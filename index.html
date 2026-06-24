@@ -2096,6 +2096,12 @@ function renderHome(){
       const deptUsers = userEvents.filter(({u}) => (u.dept||'その他')===dept && true);
       const activeUsers = deptUsers.filter(({hasAny}) => hasAny);
       if(!activeUsers.length) return '';
+      // 役職が「一般」以外の人を上に
+      activeUsers.sort((a, b) => {
+        const aGeneral = (!a.u.role || a.u.role === '一般') ? 1 : 0;
+        const bGeneral = (!b.u.role || b.u.role === '一般') ? 1 : 0;
+        return aGeneral - bGeneral;
+      });
       const deptRow = `<tr><td colspan="${days.length+1}" style="padding:5px 8px;font-size:0.7em;font-weight:700;color:var(--text2);background:var(--bg);letter-spacing:.05em">${dept}</td></tr>`;
       const memberRows = activeUsers.map(({u, dayMap}) => {
         const cells = days.map(d => {
