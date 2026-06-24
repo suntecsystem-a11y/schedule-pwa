@@ -4473,7 +4473,7 @@ async function initPushNotifications() {
     });
 
     console.log('[Push] ServiceWorker登録');
-    const swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const swReg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
     console.log('[Push] ServiceWorker登録完了');
 
     console.log('[Push] 通知許可リクエスト（現在: ' + Notification.permission + '）');
