@@ -2155,20 +2155,38 @@ function renderHome(){
       const headerColor = isToday?'var(--primary)':isSun?'#e53935':isSat?'#1e88e5':'#546e7a';
 
       const dayUsers = userEvents.filter(({dayMap})=>dayMap[d].length>0);
-      const items = dayUsers.map(({u, dayMap}) =>
-        dayMap[d].map(e => {
-          if(e._yasumi) return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:0.78em;padding:2px 8px;border-radius:10px;background:#eeeeee;color:#757575;font-weight:700;white-space:nowrap">🛌 休み</span>
-            <span style="font-size:0.85em;font-weight:600">${u.name}</span>
-          </div>`;
-          const col = TYPE_COLOR[e.type]||'#9e9e9e';
-          const timeStr = e.start ? `<span style="font-size:0.75em;color:var(--text2)"> ${e.start}〜${e.end}</span>` : '';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:0.78em;padding:2px 8px;border-radius:10px;background:${col};color:white;font-weight:700;white-space:nowrap">${e.type}</span>
-            <span style="font-size:0.85em;font-weight:600">${u.name}</span>${timeStr}
-          </div>`;
-        }).join('')
-      ).join('');
+
+      // 種別ごとに人名をまとめる
+      const typeMap = {}; // { type: { col, names: [], timeStr } }
+      dayUsers.forEach(({u, dayMap}) => {
+        dayMap[d].forEach(e => {
+          if(e._yasumi) {
+            if(!typeMap['🛌 休み']) typeMap['🛌 休み'] = { col:'#eeeeee', textCol:'#757575', names:[], timeStr:'' };
+            typeMap['🛌 休み'].names.push(u.name);
+          } else {
+            const key = e.type + (e.start ? `__${e.start}〜${e.end}` : '');
+            if(!typeMap[key]) {
+              typeMap[key] = {
+                col: TYPE_COLOR[e.type]||'#9e9e9e',
+                textCol: 'white',
+                label: e.type,
+                names: [],
+                timeStr: e.start ? `<span style="font-size:0.75em;opacity:.85"> ${e.start}〜${e.end}</span>` : '',
+              };
+            }
+            typeMap[key].names.push(u.name);
+          }
+        });
+      });
+
+      const items = Object.values(typeMap).map(g => {
+        const label = g.label || Object.keys(typeMap).find(k => typeMap[k]===g) || '';
+        const names = g.names.join('　');
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+          <span style="font-size:0.78em;padding:2px 8px;border-radius:10px;background:${g.col};color:${g.textCol};font-weight:700;white-space:nowrap">${label}${g.timeStr||''}</span>
+          <span style="font-size:0.85em;font-weight:600">${names}</span>
+        </div>`;
+      }).join('');
 
       return `<div style="background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:10px">
         <div style="background:${headerColor};color:white;padding:8px 14px;display:flex;align-items:baseline;gap:8px">
