@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>社内申請アプリ</title>
+<link rel="manifest" href="./manifest.json">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #1a73e8; --primary-dark: #1557b0;
+  --danger: #e53935; --success: #43a047; --warn: #fb8c00;
+  --bg: #f5f7fa; --card: #fff; --border: #e0e0e0;
+  --text: #212121; --text-sub: #757575; --radius: 8px;
+}
+body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg); color: var(--text); }
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ログイン */
+#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#1a73e8,#0d47a1); }
+.login-card { background: var(--card); border-radius: 16px; padding: 40px 32px; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.login-card h1 { font-size: 20px; text-align: center; margin-bottom: 8px; }
+.login-card p  { font-size: 13px; color: var(--text-sub); text-align: center; margin-bottom: 24px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 15px; }
+.form-group input:focus { outline: none; border-color: var(--primary); }
+.btn-primary { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: var(--primary-dark); }
+.login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+
+/* ヘッダー */
+.app-header { background: var(--primary); color: #fff; padding: 0 16px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.app-header h1 { font-size: 18px; font-weight: 700; }
+.header-user { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.btn-logout { background: rgba(255,255,255,.2); border: none; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+
+/* タブ */
+.tab-nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab-btn { flex: 1; min-width: 80px; padding: 12px 8px; border: none; background: none; font-size: 13px; font-weight: 600; color: var(--text-sub); cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; transition: color .2s, border-color .2s; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+.tab-content { display: none; padding: 16px; }
+.tab-content.active { display: block; }
+
+/* カード */
+.card { background: var(--card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); cursor: pointer; }
+.card:active { opacity: .8; }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.card-sub   { font-size: 13px; color: var(--text-sub); }
+
+/* バッジ */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; }
+.badge-申請中  { background: #fff3e0; color: var(--warn); }
+.badge-承認済  { background: #e8f5e9; color: var(--success); }
+.badge-否認   { background: #ffebee; color: var(--danger); }
+.badge-取下げ  { background: #f5f5f5; color: var(--text-sub); }
+
+/* FAB */
+.fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 16px rgba(26,115,232,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.fab:hover { transform: scale(1.08); }
+
+/* モーダル */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; justify-content: center; align-items: flex-end; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--card); border-radius: 16px 16px 0 0; padding: 24px; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-header h2 { font-size: 17px; font-weight: 700; }
+.btn-close { background: none; border: none; font-size: 22px; color: var(--text-sub); cursor: pointer; }
+.modal label { font-size: 13px; font-weight: 600; display: block; margin-top: 14px; }
+.modal select, .modal input[type=text], .modal input[type=date],
+.modal input[type=number], .modal textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 14px; margin-top: 4px; font-family: inherit;
+}
+.modal textarea { resize: vertical; min-height: 80px; }
+.modal select:focus, .modal input:focus, .modal textarea:focus { outline: none; border-color: var(--primary); }
+.modal-footer { margin-top: 20px; display: flex; gap: 8px; }
+.btn-cancel { flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: none; font-size: 14px; cursor: pointer; }
+.btn-submit { flex: 2; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 700; cursor: pointer; }
+.btn-danger { flex: 1; padding: 12px; background: var(--danger); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; cursor: pointer; }
+.btn-success { flex: 1; padding: 12px; background: var(--success); color: #fff; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* 詳細行 */
+.detail-row { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.detail-label { color: var(--text-sub); font-size: 13px; min-width: 110px; }
+.detail-val { font-size: 14px; flex: 1; }
+
+/* 明細テーブル */
+.detail-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+.detail-table th { background: #f0f4ff; padding: 6px 8px; text-align: left; border: 1px solid var(--border); }
+.detail-table td { padding: 6px 8px; border: 1px solid var(--border); }
+.detail-table input { width: 100%; border: none; background: none; font-size: 13px; font-family: inherit; }
+.detail-table input:focus { outline: 1px solid var(--primary); border-radius: 4px; }
+.btn-add-row { margin-top: 8px; padding: 6px 14px; border: 1px dashed var(--border); background: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; color: var(--text-sub); }
+.btn-del-row { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; }
+
+/* ローディング */
+.loading { text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { text-align: center; padding: 60px 20px; color: var(--text-sub); }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+.toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #323232; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+.toast.show { opacity: 1; }
+
+.rejection-box { margin-top: 12px; padding: 12px; background: #ffebee; border-radius: var(--radius); }
+.rejection-box .label { font-size: 13px; color: var(--danger); font-weight: 700; }
+.rejection-box .val { font-size: 14px; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ログイン -->
+<div id="screen-login" class="screen active">
+  <div class="login-card">
+    <h1>📋 社内申請アプリ</h1>
+    <p>社員番号とPINコードでログイン</p>
+    <div class="form-group">
+      <label>社員番号</label>
+      <input type="text" id="inp-empid" placeholder="例: 1001" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label>PINコード</label>
+      <input type="password" id="inp-pin" placeholder="4桁" inputmode="numeric" maxlength="4">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- メイン -->
+<div id="screen-main" class="screen">
+  <header class="app-header">
+    <h1>📋 社内申請</h1>
+    <div class="header-user">
+      <span id="header-username"></span>
+      <button class="btn-logout" onclick="doLogout()">ログアウト</button>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="mine"    onclick="switchTab('mine')">自分の申請</button>
+    <button class="tab-btn" data-tab="pending" onclick="switchTab('pending')" id="tab-pending-btn" style="display:none">承認待ち</button>
+  </nav>
+
+  <div id="tab-mine" class="tab-content active">
+    <div id="list-mine"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
+  </div>
+  <div id="tab-pending" class="tab-content">
+    <div id="list-pending"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
+  </div>
+
+  <button class="fab" onclick="openNewModal()" title="新規申請">＋</button>
+</div>
+
+<!-- 新規申請モーダル -->
+<div class="modal-overlay" id="modal-new">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>新規申請</h2>
+      <button class="btn-close" onclick="closeModal('modal-new')">✕</button>
+    </div>
+    <label>申請種別</label>
+    <select id="new-type" onchange="renderNewFields()">
+      <option value="">選択してください</option>
+      <option value="leave">🌴 休暇申請</option>
+      <option value="expense">💴 出張費精算</option>
+      <option value="other">📝 その他</option>
+    </select>
+    <div id="new-type-fields"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-new')">キャンセル</button>
+      <button class="btn-submit" onclick="submitNew()">申請する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="detail-title">申請詳細</h2>
+      <button class="btn-close" onclick="closeModal('modal-detail')">✕</button>
+    </div>
+    <div id="detail-body"></div>
+    <div class="modal-footer" id="detail-footer"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================================================
+// 設定
+// ===================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvHJ12cwnKgWIwrAXAeXuv1wSZXQXOHdAxhZ_P7vbe7KhrtEwv1wCigz0IHocrgHg/exec'; // TODO: スケジュールアプリと同じGAS URLを入れる
+
+// ===================================================
+// セッション
+// ===================================================
+let currentUser = null;
+let currentToken = null;
+
+function saveSession(token, user) {
+  currentToken = token;
+  currentUser = user;
+  localStorage.setItem('apply_session', JSON.stringify({ token, user, expires: Date.now() + 8 * 60 * 60 * 1000 }));
+}
+function loadSession() {
+  try {
+    const d = JSON.parse(localStorage.getItem('apply_session') || 'null');
+    if (!d || Date.now() > d.expires) return false;
+    currentToken = d.token;
+    currentUser  = d.user;
+    return true;
+  } catch { return false; }
+}
+function doLogout() {
+  localStorage.removeItem('apply_session');
+  currentToken = currentUser = null;
+  showScreen('login');
+}
+
+// ===================================================
+// 画面・タブ
+// ===================================================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  loadTab(name);
+}
+
+// ===================================================
+// GAS通信（POST）
+// ===================================================
+async function gas(payload) {
+  if (!GAS_URL) throw new Error('GAS URLが未設定です。index.html の GAS_URL を設定してください');
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || '通信エラー');
+  return json.data;
+}
+
+// ===================================================
+// ログイン
+// ===================================================
+async function doLogin() {
+  const empId = document.getElementById('inp-empid').value.trim();
+  const pin   = document.getElementById('inp-pin').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!empId || !pin) { errEl.textContent = '社員番号とPINを入力してください'; errEl.style.display = 'block'; return; }
+  try {
+    const data = await gas({ action: 'login', empId, pin });
+    saveSession(data.token, data.user);
+    initMain();
+  } catch (e) {
+    errEl.textContent = e.message.includes('LOCKED') ? 'アカウントがロックされています' : e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// ===================================================
+// メイン初期化
+// ===================================================
+function initMain() {
+  document.getElementById('header-username').textContent = currentUser.name;
+  const canApprove = currentUser.isAdmin || currentUser.role === '主任';
+  document.getElementById('tab-pending-btn').style.display = canApprove ? '' : 'none';
+  showScreen('main');
+  loadTab('mine');
+}
+
+// ===================================================
+// タブ読み込み
+// ===================================================
+async function loadTab(name) {
+  const el = document.getElementById('list-' + name);
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
+  try {
+    let records = [];
+    if (name === 'mine') {
+      const [applyLeave, applyOther, expenses] = await Promise.all([
+        gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'other' }),
+        gas({ action: 'getExpenses', token: currentToken }),
+      ]);
+      records = [
+        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...(expenses    || []).map(r => ({ ...r, _appType: 'expense', approvalStatus: r.approvalStatus })),
+      ];
+    } else {
+      const [applyLeave, applyOther, expenses] = await Promise.all([
+        gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'other' }),
+        gas({ action: 'getExpenses', token: currentToken }),
+      ]);
+      records = [
+        ...(applyLeave  || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther  || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'other' })),
+        ...(expenses    || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
+      ];
+    }
+    renderList(el, records);
+  } catch (e) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function renderList(el, records) {
+  if (!records.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>申請はありません</p></div>';
+    return;
+  }
+  el.innerHTML = records.map(r => `
+    <div class="card" onclick="openDetail('${r._appType}','${r.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
+          <div class="card-sub">${r.applicantName || r.applicantId} ・ ${r.applicationDate || r.appliedAt || ''}</div>
+          ${r._appType === 'expense' ? `<div class="card-sub">行先: ${r.destination || ''}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); return `<div class="card-sub">${c.leave_type || c.title || ''} ${c.start ? c.start + '〜' + c.end : ''}</div>`; } catch { return ''; } })() : ''}
+        </div>
+        <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===================================================
+// 詳細表示
+// ===================================================
+async function openDetail(appType, id) {
+  document.getElementById('detail-body').innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
+  document.getElementById('detail-footer').innerHTML = '';
+  document.getElementById('detail-title').textContent = typeIcon(appType) + ' ' + typeLabel(appType) + ' 詳細';
+  openModal('modal-detail');
+
+  try {
+    let r;
+    if (appType === 'expense') {
+      const list = await gas({ action: 'getExpenses', token: currentToken });
+      r = (list || []).find(x => String(x.id) === String(id));
+      if (!r) throw new Error('申請が見つかりません');
+      renderExpenseDetail(r);
+    } else {
+      const list = await gas({ action: 'getApply', token: currentToken, appType });
+      r = (list || []).find(x => String(x.id) === String(id));
+      if (!r) throw new Error('申請が見つかりません');
+      renderApplyDetail(appType, r);
+    }
+
+    const canApprove = currentUser.isAdmin || currentUser.role === '主任';
+    const isOwn = r.applicantId === currentUser.id;
+    const footer = document.getElementById('detail-footer');
+    footer.innerHTML = '';
+
+    if (canApprove && r.approvalStatus === '申請中') {
+      const rejectBtn = document.createElement('button');
+      rejectBtn.className = 'btn-danger';
+      rejectBtn.textContent = '却下';
+      rejectBtn.onclick = () => doReject(appType, r.id);
+      const approveBtn = document.createElement('button');
+      approveBtn.className = 'btn-success';
+      approveBtn.textContent = '承認';
+      approveBtn.onclick = () => doApprove(appType, r.id);
+      footer.appendChild(rejectBtn);
+      footer.appendChild(approveBtn);
+    } else if (isOwn && r.approvalStatus === '申請中') {
+      const withdrawBtn = document.createElement('button');
+      withdrawBtn.className = 'btn-cancel';
+      withdrawBtn.style.flex = '1';
+      withdrawBtn.textContent = '取下げ';
+      withdrawBtn.onclick = () => doWithdraw(appType, r.id);
+      footer.appendChild(withdrawBtn);
+    }
+  } catch (e) {
+    document.getElementById('detail-body').innerHTML = `<div class="empty"><p>読み込み失敗: ${e.message}</p></div>`;
+  }
+}
+
+function renderApplyDetail(appType, r) {
+  let contentRows = '';
+  try {
+    const c = JSON.parse(r.content || '{}');
+    contentRows = Object.entries(c).map(([k, v]) =>
+      `<div class="detail-row"><span class="detail-label">${contentFieldLabel(k)}</span><span class="detail-val">${v || '-'}</span></div>`
+    ).join('');
+  } catch {}
+  document.getElementById('detail-body').innerHTML = `
+    <div style="margin-bottom:12px;"><span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span></div>
+    <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
+    ${contentRows}
+    ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${r.rejectionReason}</div></div>` : ''}
+  `;
+}
+
+function renderExpenseDetail(r) {
+  const detailRows = (r.details || []).map(d => `
+    <tr>
+      <td>${d.date}</td><td>${d.category}</td><td>${d.facility}</td>
+      <td>${d.from}</td><td>${d.to}</td>
+      <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
+      <td>${d.memo}</td>
+    </tr>
+  `).join('');
+  document.getElementById('detail-body').innerHTML = `
+    <div style="margin-bottom:12px;"><span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span></div>
+    <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
+    <div class="detail-row"><span class="detail-label">申請日</span><span class="detail-val">${r.applicationDate}</span></div>
+    <div class="detail-row"><span class="detail-label">出張期間</span><span class="detail-val">${r.periodStart} 〜 ${r.periodEnd}</span></div>
+    <div class="detail-row"><span class="detail-label">行先</span><span class="detail-val">${r.destination}</span></div>
+    <div class="detail-row"><span class="detail-label">同行者</span><span class="detail-val">${r.companions || '-'}</span></div>
+    <div class="detail-row"><span class="detail-label">精算方法</span><span class="detail-val">${r.paymentMethod}</span></div>
+    <div class="detail-row"><span class="detail-label">合計金額</span><span class="detail-val"><strong>${Number(r.totalAmount||0).toLocaleString()} 円</strong></span></div>
+    ${detailRows ? `
+    <div style="margin-top:14px;font-size:13px;font-weight:700;">明細</div>
+    <div style="overflow-x:auto;margin-top:6px;">
+      <table class="detail-table">
+        <thead><tr><th>日付</th><th>区分</th><th>利用機関</th><th>出発地</th><th>到着地</th><th>金額</th><th>備考</th></tr></thead>
+        <tbody>${detailRows}</tbody>
+      </table>
+    </div>` : ''}
+    ${r.receipts && r.receipts.length ? `
+    <div style="margin-top:14px;font-size:13px;font-weight:700;">領収書</div>
+    ${r.receipts.map(rc => `<div style="margin-top:6px;"><a href="${rc.url}" target="_blank" style="color:var(--primary)">📎 領収書を見る</a> <span style="font-size:12px;color:var(--text-sub)">${rc.takenAt}</span></div>`).join('')}` : ''}
+    ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${r.rejectionReason}</div></div>` : ''}
+  `;
+}
+
+// ===================================================
+// 承認・却下・取下げ
+// ===================================================
+async function doApprove(appType, id) {
+  try {
+    if (appType === 'expense') await gas({ action: 'approveExpense', token: currentToken, expenseId: id });
+    else await gas({ action: 'approveApply', token: currentToken, appType, recordId: id });
+    closeModal('modal-detail');
+    showToast('承認しました');
+    loadTab('pending');
+  } catch (e) { showToast('失敗: ' + e.message); }
+}
+
+async function doReject(appType, id) {
+  const reason = prompt('却下理由を入力してください');
+  if (reason === null) return;
+  if (!reason.trim()) { showToast('却下理由を入力してください'); return; }
+  try {
+    if (appType === 'expense') await gas({ action: 'rejectExpense', token: currentToken, expenseId: id, reason });
+    else await gas({ action: 'rejectApply', token: currentToken, appType, recordId: id, reason });
+    closeModal('modal-detail');
+    showToast('却下しました');
+    loadTab('pending');
+  } catch (e) { showToast('失敗: ' + e.message); }
+}
+
+async function doWithdraw(appType, id) {
+  if (!confirm('この申請を取り下げますか？')) return;
+  try {
+    if (appType === 'expense') await gas({ action: 'deleteExpense', token: currentToken, expenseId: id });
+    else await gas({ action: 'deleteApply', token: currentToken, appType, recordId: id });
+    closeModal('modal-detail');
+    showToast('取り下げました');
+    loadTab('mine');
+  } catch (e) { showToast('失敗: ' + e.message); }
+}
+
+// ===================================================
+// 新規申請フォーム
+// ===================================================
+function openNewModal() {
+  document.getElementById('new-type').value = '';
+  document.getElementById('new-type-fields').innerHTML = '';
+  openModal('modal-new');
+}
+
+function renderNewFields() {
+  const type = document.getElementById('new-type').value;
+  const el   = document.getElementById('new-type-fields');
+  if (type === 'leave') {
+    el.innerHTML = `
+      <label>休暇種別</label>
+      <select id="f-leave-type">
+        <option>有給休暇</option><option>特別休暇</option><option>慶弔休暇</option><option>その他</option>
+      </select>
+      <label>開始日</label><input type="date" id="f-leave-start">
+      <label>終了日</label><input type="date" id="f-leave-end">
+      <label>理由・備考（任意）</label><textarea id="f-leave-note" placeholder="任意"></textarea>
+    `;
+  } else if (type === 'expense') {
+    el.innerHTML = `
+      <label>申請日</label><input type="date" id="f-exp-appdate">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label>出張期間（開始）</label><input type="date" id="f-exp-start"></div>
+        <div><label>出張期間（終了）</label><input type="date" id="f-exp-end"></div>
+      </div>
+      <label>行先</label><input type="text" id="f-exp-dest" placeholder="例: 東京">
+      <label>同行者（任意）</label><input type="text" id="f-exp-companion" placeholder="例: 山田">
+      <label>精算方法</label>
+      <select id="f-exp-method"><option>現金</option><option>立替払い</option><option>法人カード</option></select>
+      <label>明細</label>
+      <div style="overflow-x:auto;">
+        <table class="detail-table" id="detail-rows-table">
+          <thead><tr><th>日付</th><th>区分</th><th>利用機関</th><th>出発地</th><th>到着地</th><th>金額</th><th>備考</th><th></th></tr></thead>
+          <tbody id="detail-rows"></tbody>
+        </table>
+      </div>
+      <button type="button" class="btn-add-row" onclick="addDetailRow()">＋ 行を追加</button>
+    `;
+    addDetailRow();
+  } else if (type === 'other') {
+    el.innerHTML = `
+      <label>件名</label><input type="text" id="f-other-title" placeholder="申請の件名">
+      <label>内容</label><textarea id="f-other-body" placeholder="申請内容を記入してください" style="min-height:120px;"></textarea>
+    `;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+function addDetailRow() {
+  const tbody = document.getElementById('detail-rows');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="date"></td>
+    <td><input type="text" placeholder="交通費"></td>
+    <td><input type="text" placeholder="JR東海"></td>
+    <td><input type="text" placeholder="大阪"></td>
+    <td><input type="text" placeholder="東京"></td>
+    <td><input type="number" placeholder="0" style="width:70px"></td>
+    <td><input type="text" placeholder="備考"></td>
+    <td><button class="btn-del-row" onclick="this.closest('tr').remove()">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+async function submitNew() {
+  const type = document.getElementById('new-type').value;
+  if (!type) { showToast('申請種別を選択してください'); return; }
+  try {
+    if (type === 'leave') await submitLeave();
+    else if (type === 'expense') await submitExpense();
+    else await submitOther();
+    closeModal('modal-new');
+    showToast('申請しました');
+    loadTab('mine');
+  } catch (e) { showToast(e.message); }
+}
+
+async function submitLeave() {
+  const start = document.getElementById('f-leave-start').value;
+  const end   = document.getElementById('f-leave-end').value;
+  if (!start || !end) throw new Error('日付を入力してください');
+  const content = JSON.stringify({
+    leave_type: document.getElementById('f-leave-type').value,
+    start, end,
+    note: document.getElementById('f-leave-note').value,
+  });
+  await gas({ action: 'saveApply', token: currentToken, appType: 'leave', applyData: { applicantName: currentUser.name, content } });
+}
+
+async function submitExpense() {
+  const dest  = document.getElementById('f-exp-dest').value.trim();
+  const start = document.getElementById('f-exp-start').value;
+  const end   = document.getElementById('f-exp-end').value;
+  const appDate = document.getElementById('f-exp-appdate').value;
+  if (!dest || !start || !appDate) throw new Error('申請日・出張期間・行先を入力してください');
+  const rows = document.getElementById('detail-rows');
+  const details = [...rows.querySelectorAll('tr')].map(tr => {
+    const inputs = tr.querySelectorAll('input');
+    return { date: inputs[0].value, category: inputs[1].value, facility: inputs[2].value, from: inputs[3].value, to: inputs[4].value, amount: inputs[5].value || 0, memo: inputs[6].value };
+  });
+  await gas({ action: 'saveExpense', token: currentToken, expense: {
+    applicationDate: appDate,
+    applicantName:   currentUser.name,
+    periodStart: start, periodEnd: end,
+    destination: dest,
+    companions:  document.getElementById('f-exp-companion').value,
+    paymentMethod: document.getElementById('f-exp-method').value,
+    details,
+  }});
+}
+
+async function submitOther() {
+  const title = document.getElementById('f-other-title').value.trim();
+  if (!title) throw new Error('件名を入力してください');
+  const content = JSON.stringify({ title, body: document.getElementById('f-other-body').value });
+  await gas({ action: 'saveApply', token: currentToken, appType: 'other', applyData: { applicantName: currentUser.name, content } });
+}
+
+// ===================================================
+// ユーティリティ
+// ===================================================
+function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝' }[t] || '📋'; }
+function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請' }[t] || t; }
+function contentFieldLabel(k) {
+  return { leave_type:'休暇種別', start:'開始日', end:'終了日', note:'備考', title:'件名', body:'内容' }[k] || k;
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+document.getElementById('inp-pin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// 起動時
+if (loadSession()) initMain();
+</script>
+</body>
+</html>
