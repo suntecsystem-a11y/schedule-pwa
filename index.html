@@ -436,6 +436,7 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="team" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在籍ボード</span></button>
     <button class="sidebar-btn" data-tab="cars" onclick="switchTab('cars',this)"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約</span></button>
     <button class="sidebar-btn" data-tab="expense" onclick="switchTab('expense',this)"><span class="sidebar-icon">💰</span><span class="sidebar-label">精算</span></button>
+    <button class="sidebar-btn" data-tab="notice" onclick="switchTab('notice',this)"><span class="sidebar-icon">📢</span><span class="sidebar-label">お知らせ</span></button>
     <button class="sidebar-btn" data-tab="inquiry" onclick="switchTab('inquiry',this)"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ</span></button>
     <button class="sidebar-btn" data-tab="mypage" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
     <button class="sidebar-btn admin-side" data-tab="admin" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
@@ -462,6 +463,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" onclick="switchTab('team',this)">🏢 在籍</button>
     <button class="tab-btn" onclick="switchTab('cars',this)">🚗 車</button>
     <button class="tab-btn" onclick="switchTab('expense',this)">💰 精算</button>
+    <button class="tab-btn" onclick="switchTab('notice',this)">📢 お知らせ</button>
     <button class="tab-btn" onclick="switchTab('inquiry',this)">💬 問い合わせ</button>
     <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <!-- 管理者のみ表示 -->
@@ -577,6 +579,44 @@ input,select{font-family:inherit;outline:none}
   </div>
 
   <!-- 問い合わせ -->
+  <!-- お知らせ掲示板 -->
+  <div class="content" id="tab-notice" style="display:none">
+    <div style="max-width:680px;margin:0 auto;padding:16px 12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <h2 style="font-size:1em;font-weight:700;margin:0">📢 お知らせ</h2>
+        <button id="notice-add-btn" onclick="openNoticeModal()" style="display:none;padding:7px 16px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">＋ 投稿</button>
+      </div>
+      <div id="notice-list"></div>
+    </div>
+  </div>
+
+  <!-- 投稿モーダル -->
+  <div id="notice-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <h3 style="margin:0 0 16px;font-size:1em;font-weight:700" id="notice-modal-title">お知らせを投稿</h3>
+      <div style="margin-bottom:12px">
+        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">重要度</label>
+        <select id="notice-importance" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
+          <option value="通常">通常</option>
+          <option value="重要">🔶 重要</option>
+          <option value="緊急">🔴 緊急</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">タイトル</label>
+        <input id="notice-title" type="text" placeholder="タイトルを入力" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;background:var(--bg)">
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">本文</label>
+        <textarea id="notice-body" rows="5" placeholder="本文を入力" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
+        <button onclick="submitNotice()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">投稿</button>
+      </div>
+    </div>
+  </div>
+
   <div class="content" id="tab-inquiry" style="display:none">
     <div style="max-width:680px;margin:0 auto;padding:16px 12px">
 
@@ -1355,7 +1395,7 @@ async function loadEvents({ force = false } = {}){
 
 // ===== タブ =====
 function switchTab(tab, btn){
-  ['home','calendar','rooms','team','cars','expense','inquiry','mypage','admin'].forEach(t=>{
+  ['home','calendar','rooms','team','cars','expense','notice','inquiry','mypage','admin'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -1363,13 +1403,14 @@ function switchTab(tab, btn){
   const sideBtn = document.querySelector(`.sidebar-btn[data-tab="${tab}"]`);
   if(sideBtn) sideBtn.classList.add('active');
   const tabBtns = document.querySelectorAll('.tab-btn');
-  const idx=['home','calendar','rooms','team','cars','expense','inquiry','mypage','admin'].indexOf(tab);
+  const idx=['home','calendar','rooms','team','cars','expense','notice','inquiry','mypage','admin'].indexOf(tab);
   if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
   if(tab==='home')    renderHome();
   if(tab==='rooms')   renderRoomTimeline();
   if(tab==='team')    renderTeam();
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='expense') renderApplyTab('expense');
+  if(tab==='notice')  loadNotices();
   if(tab==='inquiry') loadInquiryFiles();
   if(tab==='mypage')  renderMyPage();
   if(tab==='admin')   loadAdminUsers();
@@ -2710,6 +2751,119 @@ async function rejectEventAction(eventId) {
 function openModal(id){ document.getElementById(id).classList.add('open') }
 function closeModal(id){ document.getElementById(id).classList.remove('open') }
 function closeModalIfBackdrop(e,id){ if(e.target.id===id) closeModal(id) }
+
+// ============================================================
+// ===== お知らせ掲示板 =====
+// ============================================================
+let _notices = [];
+let _editingNoticeId = null;
+
+async function loadNotices() {
+  const list = document.getElementById('notice-list');
+  const addBtn = document.getElementById('notice-add-btn');
+  if (!list) return;
+
+  // 管理者のみ投稿ボタン表示
+  if (addBtn) addBtn.style.display = currentUser?.isAdmin ? 'block' : 'none';
+
+  if (!GAS_URL) {
+    list.innerHTML = '<p style="color:var(--text2);font-size:0.85em">GAS未設定のため表示できません</p>';
+    return;
+  }
+  list.innerHTML = '<p style="color:var(--text2);font-size:0.85em">読み込み中...</p>';
+  try {
+    _notices = await api('getNotices', {}, '');
+    renderNotices();
+  } catch(e) {
+    list.innerHTML = `<p style="color:var(--text2);font-size:0.85em">⚠️ 読み込みエラー: ${e.message}</p>`;
+  }
+}
+
+function renderNotices() {
+  const list = document.getElementById('notice-list');
+  if (!list) return;
+  if (!_notices.length) {
+    list.innerHTML = '<p style="color:var(--text2);font-size:0.85em;text-align:center;padding:40px 0">お知らせはありません</p>';
+    return;
+  }
+  const IMPORTANCE_STYLE = {
+    '緊急': { bg:'#ffebee', border:'#e53935', badge:'🔴 緊急', badgeBg:'#e53935' },
+    '重要': { bg:'#fff8e1', border:'#fb8c00', badge:'🔶 重要', badgeBg:'#fb8c00' },
+    '通常': { bg:'white',   border:'var(--border)', badge:'', badgeBg:'' },
+  };
+  list.innerHTML = _notices.map(n => {
+    const s = IMPORTANCE_STYLE[n.importance] || IMPORTANCE_STYLE['通常'];
+    const badge = s.badge ? `<span style="font-size:0.75em;padding:2px 8px;border-radius:10px;background:${s.badgeBg};color:white;font-weight:700">${s.badge}</span>` : '';
+    const date = n.createdAt ? n.createdAt.slice(0,10) : '';
+    const adminBtns = currentUser?.isAdmin ? `
+      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+        <button onclick="openNoticeModal('${n.id}')" style="font-size:0.78em;padding:4px 12px;border-radius:8px;border:1.5px solid var(--border);background:white;cursor:pointer">編集</button>
+        <button onclick="deleteNoticeConfirm('${n.id}')" style="font-size:0.78em;padding:4px 12px;border-radius:8px;border:1.5px solid #e53935;color:#e53935;background:white;cursor:pointer">削除</button>
+      </div>` : '';
+    return `<div style="background:${s.bg};border:1.5px solid ${s.border};border-radius:12px;padding:14px 16px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        ${badge}
+        <span style="font-weight:700;font-size:0.95em;flex:1">${_escHtml(n.title)}</span>
+        <span style="font-size:0.75em;color:var(--text2)">${date}</span>
+      </div>
+      <p style="font-size:0.88em;line-height:1.7;margin:0;white-space:pre-wrap">${_escHtml(n.body)}</p>
+      ${adminBtns}
+    </div>`;
+  }).join('');
+}
+
+function openNoticeModal(editId) {
+  _editingNoticeId = editId || null;
+  const modal = document.getElementById('notice-modal');
+  const titleEl = document.getElementById('notice-modal-title');
+  if (editId) {
+    const n = _notices.find(x => x.id === editId);
+    if (n) {
+      document.getElementById('notice-title').value = n.title;
+      document.getElementById('notice-body').value = n.body;
+      document.getElementById('notice-importance').value = n.importance;
+    }
+    titleEl.textContent = 'お知らせを編集';
+  } else {
+    document.getElementById('notice-title').value = '';
+    document.getElementById('notice-body').value = '';
+    document.getElementById('notice-importance').value = '通常';
+    titleEl.textContent = 'お知らせを投稿';
+  }
+  modal.style.display = 'flex';
+}
+
+function closeNoticeModal() {
+  document.getElementById('notice-modal').style.display = 'none';
+  _editingNoticeId = null;
+}
+
+async function submitNotice() {
+  const title = document.getElementById('notice-title').value.trim();
+  const body  = document.getElementById('notice-body').value.trim();
+  const importance = document.getElementById('notice-importance').value;
+  if (!title) { showToast('タイトルを入力してください'); return; }
+  if (!body)  { showToast('本文を入力してください'); return; }
+  try {
+    await api('saveNotice', { notice: { id: _editingNoticeId, title, body, importance } }, '');
+    closeNoticeModal();
+    showToast(_editingNoticeId ? 'お知らせを更新しました' : 'お知らせを投稿しました');
+    loadNotices();
+  } catch(e) {
+    showToast('⚠️ エラー: ' + e.message);
+  }
+}
+
+async function deleteNoticeConfirm(noticeId) {
+  if (!confirm('このお知らせを削除しますか？')) return;
+  try {
+    await api('deleteNotice', { noticeId }, '');
+    showToast('削除しました');
+    loadNotices();
+  } catch(e) {
+    showToast('⚠️ エラー: ' + e.message);
+  }
+}
 
 // ============================================================
 // ===== 問い合わせタブ（SharePoint + Gemini）=====
