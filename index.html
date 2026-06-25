@@ -436,6 +436,7 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="team" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在籍ボード</span></button>
     <button class="sidebar-btn" data-tab="cars" onclick="switchTab('cars',this)"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約</span></button>
     <button class="sidebar-btn" data-tab="inquiry" onclick="switchTab('inquiry',this)"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ</span></button>
+    <button class="sidebar-btn" onclick="window.open('../apply-pwa/','_blank')"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span></button>
     <button class="sidebar-btn" data-tab="mypage" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
     <button class="sidebar-btn admin-side" data-tab="admin" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
   </div>
@@ -461,6 +462,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" onclick="switchTab('team',this)">🏢 在籍</button>
     <button class="tab-btn" onclick="switchTab('cars',this)">🚗 車</button>
     <button class="tab-btn" onclick="switchTab('inquiry',this)">💬 問い合わせ</button>
+    <button class="tab-btn" onclick="window.open('../apply-pwa/','_blank')">📋 申請</button>
     <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <!-- 管理者のみ表示 -->
     <button class="tab-btn admin-tab" id="admin-tab-btn" onclick="switchTab('admin',this)" style="display:none">⚙️ 管理</button>
