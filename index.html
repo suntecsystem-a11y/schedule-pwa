@@ -430,7 +430,7 @@ input,select{font-family:inherit;outline:none}
     <span class="sidebar-logo-text">スケジュール管理</span>
   </div>
   <div class="sidebar-nav">
-    <button class="sidebar-btn active" data-tab="home" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span></button>
+    <button class="sidebar-btn active" data-tab="home" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
     <button class="sidebar-btn" data-tab="calendar" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span></button>
     <button class="sidebar-btn" data-tab="rooms" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span></button>
     <button class="sidebar-btn" data-tab="team" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在籍ボード</span></button>
@@ -456,7 +456,7 @@ input,select{font-family:inherit;outline:none}
     <button class="btn-logout" onclick="doLogout()">ログアウト</button>
   </div>
   <div class="tab-nav" id="tab-nav">
-    <button class="tab-btn active" onclick="switchTab('home',this)">🏠 ホーム</button>
+    <button class="tab-btn active" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
     <button class="tab-btn" onclick="switchTab('calendar',this)">📅 カレンダー</button>
     <button class="tab-btn" onclick="switchTab('rooms',this)">🏢 会議室</button>
     <button class="tab-btn" onclick="switchTab('team',this)">🏢 在籍</button>
@@ -1412,6 +1412,7 @@ function switchTab(tab, btn){
   const idx=['home','calendar','rooms','team','cars','expense','inquiry','mypage','admin'].indexOf(tab);
   if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
   if(tab==='home')    { renderHome(); loadNotices(); }
+  else                { _markNoticesAsSeen(); }
   if(tab==='rooms')   renderRoomTimeline();
   if(tab==='team')    renderTeam();
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
@@ -2781,6 +2782,28 @@ async function loadNotices() {
   }
 }
 
+function _updateNoticeBadge(count) {
+  const CIRCLED = ['','①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+  const label = count <= 0 ? '' : count < CIRCLED.length ? CIRCLED[count] : `${count}`;
+  ['notice-badge-side','notice-badge-tab'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = label;
+    el.style.display = count > 0 ? 'inline-block' : 'none';
+  });
+}
+
+function _getSeenNoticeIds() {
+  try { return new Set(JSON.parse(localStorage.getItem('seen_notice_ids') || '[]')); }
+  catch { return new Set(); }
+}
+
+function _markNoticesAsSeen() {
+  const ids = _notices.map(n => n.id);
+  localStorage.setItem('seen_notice_ids', JSON.stringify(ids));
+  _updateNoticeBadge(0);
+}
+
 function renderNotices() {
   const list = document.getElementById('notice-home-list');
   if (!list) return;
@@ -2791,9 +2814,14 @@ function renderNotices() {
     } else {
       document.getElementById('notice-home-wrap').style.display = 'none';
     }
+    _updateNoticeBadge(0);
     return;
   }
   document.getElementById('notice-home-wrap').style.display = 'block';
+  // 未読カウントをバッジに反映（既読化は他タブ移動時）
+  const seen = _getSeenNoticeIds();
+  const unread = _notices.filter(n => !seen.has(n.id)).length;
+  _updateNoticeBadge(unread);
   const IMPORTANCE_STYLE = {
     '緊急': { bg:'#ffebee', border:'#e53935', badge:'🔴 緊急', badgeBg:'#e53935' },
     '重要': { bg:'#fff8e1', border:'#fb8c00', badge:'🔶 重要', badgeBg:'#fb8c00' },
@@ -2801,7 +2829,8 @@ function renderNotices() {
   };
   list.innerHTML = _notices.map(n => {
     const s = IMPORTANCE_STYLE[n.importance] || IMPORTANCE_STYLE['通常'];
-    const badge = s.badge ? `<span style="font-size:0.75em;padding:2px 8px;border-radius:10px;background:${s.badgeBg};color:white;font-weight:700">${s.badge}</span>` : '';
+    const impBadge = s.badge ? `<span style="font-size:0.75em;padding:2px 8px;border-radius:10px;background:${s.badgeBg};color:white;font-weight:700">${s.badge}</span>` : '';
+    const newBadge = !seen.has(n.id) ? `<span style="font-size:0.72em;padding:2px 7px;border-radius:10px;background:#e53935;color:white;font-weight:700">NEW</span>` : '';
     const date = n.createdAt ? n.createdAt.slice(0,10) : '';
     const adminBtns = currentUser?.isAdmin ? `
       <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
@@ -2810,7 +2839,7 @@ function renderNotices() {
       </div>` : '';
     return `<div style="background:${s.bg};border:1.5px solid ${s.border};border-radius:12px;padding:14px 16px;margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-        ${badge}
+        ${newBadge}${impBadge}
         <span style="font-weight:700;font-size:0.95em;flex:1">${_escHtml(n.title)}</span>
         <span style="font-size:0.75em;color:var(--text2)">${date}</span>
       </div>
@@ -4669,6 +4698,8 @@ async function initPushNotifications() {
       const title = payload.notification?.title || '通知';
       const body  = payload.notification?.body  || '';
       showToast(`🔔 ${title}：${body}`);
+      // お知らせ通知ならホームのリストを再読込
+      if (payload.data?.type === 'notice') loadNotices();
     });
 
     console.log('[Push] ServiceWorker登録');
