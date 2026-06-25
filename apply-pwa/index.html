@@ -235,7 +235,8 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 // ===================================================
 // 設定
 // ===================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvHJ12cwnKgWIwrAXAeXuv1wSZXQXOHdAxhZ_P7vbe7KhrtEwv1wCigz0IHocrgHg/exec'; // TODO: スケジュールアプリと同じGAS URLを入れる
+const GAS_URL      = 'https://script.google.com/macros/s/AKfycbwvHJ12cwnKgWIwrAXAeXuv1wSZXQXOHdAxhZ_P7vbe7KhrtEwv1wCigz0IHocrgHg/exec';
+const PHOTO_GAS_URL = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVuUrgwqBPr7UfFcWrFrXsfXcCR1eUo_siMsWahjSgxnU7LMjWRtM/exec';
 
 // ===================================================
 // セッション
@@ -621,8 +622,22 @@ function renderNewFields() {
         </table>
       </div>
       <button type="button" class="btn-add-row" onclick="addDetailRow()">＋ 行を追加</button>
+      <label style="margin-top:16px;">領収書写真</label>
+      <div style="margin-top:6px;">
+        <video id="receipt-video" style="display:none;width:100%;max-height:200px;border-radius:var(--radius);background:#000;" autoplay playsinline></video>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;">
+          <button type="button" id="receipt-camera-btn" onclick="startReceiptCamera()" style="padding:8px 14px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:13px;cursor:pointer;">📷 カメラ撮影</button>
+          <button type="button" id="receipt-capture-btn" onclick="captureReceiptPhoto()" style="display:none;padding:8px 14px;background:var(--success);color:#fff;border:none;border-radius:var(--radius);font-size:13px;cursor:pointer;">✅ 撮影する</button>
+          <button type="button" id="receipt-stop-btn" onclick="stopReceiptCamera()" style="display:none;padding:8px 14px;background:none;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;cursor:pointer;">✕ キャンセル</button>
+          <label style="display:inline-flex;align-items:center;padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;cursor:pointer;margin-top:0;">
+            🖼 ファイル選択<input type="file" accept="image/*" style="display:none;" onchange="uploadReceiptFile(this)">
+          </label>
+        </div>
+        <div id="receipt-photo-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+      </div>
     `;
     addDetailRow();
+    receiptPhotos = [];
   } else if (type === 'other') {
     el.innerHTML = `
       <label>件名</label><input type="text" id="f-other-title" placeholder="申請の件名">
@@ -648,6 +663,99 @@ function addDetailRow() {
   `;
   tbody.appendChild(tr);
 }
+
+// ===================================================
+// 領収書カメラ
+// ===================================================
+let receiptPhotos = [];
+let receiptStream = null;
+
+async function startReceiptCamera() {
+  try {
+    receiptStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('receipt-video');
+    video.srcObject = receiptStream;
+    video.style.display = 'block';
+    document.getElementById('receipt-camera-btn').style.display  = 'none';
+    document.getElementById('receipt-capture-btn').style.display = 'inline-flex';
+    document.getElementById('receipt-stop-btn').style.display    = 'inline-flex';
+  } catch (e) { showToast('カメラを起動できませんでした: ' + e.message); }
+}
+
+function stopReceiptCamera() {
+  if (receiptStream) { receiptStream.getTracks().forEach(t => t.stop()); receiptStream = null; }
+  const video = document.getElementById('receipt-video');
+  if (video) { video.srcObject = null; video.style.display = 'none'; }
+  document.getElementById('receipt-camera-btn').style.display  = 'inline-flex';
+  document.getElementById('receipt-capture-btn').style.display = 'none';
+  document.getElementById('receipt-stop-btn').style.display    = 'none';
+}
+
+async function captureReceiptPhoto() {
+  const video = document.getElementById('receipt-video');
+  if (!video || !receiptStream) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const base64 = canvas.toDataURL('image/jpeg');
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const fileName = `receipt_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.jpg`;
+  stopReceiptCamera();
+  await uploadReceiptBase64(base64, fileName, now);
+}
+
+async function uploadReceiptFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const fileName = `receipt_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.jpg`;
+    await uploadReceiptBase64(e.target.result, fileName, now);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadReceiptBase64(base64, fileName, now) {
+  showToast('アップロード中...');
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', PHOTO_GAS_URL);
+      xhr.setRequestHeader('Content-Type', 'text/plain');
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState !== 4) return;
+        if (xhr.status === 200) { try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error('レスポンス解析失敗')); } }
+        else reject(new Error('通信エラー: ' + xhr.status));
+      };
+      xhr.send(JSON.stringify({ image: base64, fileName }));
+    });
+    if (result.url) {
+      receiptPhotos.push({ url: result.url, takenAt: now.toISOString().slice(0, 19) + 'Z' });
+      renderReceiptPhotos();
+      showToast('✅ 領収書を追加しました');
+    } else { showToast('⚠️ ' + (result.error || 'アップロード失敗')); }
+  } catch (e) { showToast('⚠️ ' + e.message); }
+}
+
+function renderReceiptPhotos() {
+  const el = document.getElementById('receipt-photo-list');
+  if (!el) return;
+  el.innerHTML = receiptPhotos.map((p, i) => `
+    <div style="position:relative;">
+      <img src="${p.url}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <a href="${p.url}" target="_blank" style="display:none;width:72px;height:72px;border-radius:6px;background:#e3f2fd;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;">
+        <span style="font-size:1.6em">📎</span><span style="font-size:0.6em;color:#1e88e5;font-weight:600">開く</span>
+      </a>
+      <button onclick="removeReceiptPhoto(${i})" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--danger);color:#fff;font-size:0.7em;border:none;cursor:pointer;line-height:1;">×</button>
+    </div>
+  `).join('');
+}
+
+function removeReceiptPhoto(i) { receiptPhotos.splice(i, 1); renderReceiptPhotos(); }
 
 async function submitNew() {
   const type = document.getElementById('new-type').value;
@@ -693,6 +801,7 @@ async function submitExpense() {
     companions:  document.getElementById('f-exp-companion').value,
     paymentMethod: document.getElementById('f-exp-method').value,
     details,
+    receipts: receiptPhotos,
   }});
 }
 
