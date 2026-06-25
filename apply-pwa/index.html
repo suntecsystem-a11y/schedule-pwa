@@ -111,6 +111,19 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .rejection-box { margin-top: 12px; padding: 12px; background: #ffebee; border-radius: var(--radius); }
 .rejection-box .label { font-size: 13px; color: var(--danger); font-weight: 700; }
 .rejection-box .val { font-size: 14px; margin-top: 4px; }
+
+/* 絞り込みバー */
+.filter-bar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 0; }
+.filter-bar select, .filter-bar input[type=date] {
+  padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 13px; background: var(--card); color: var(--text); flex: 1; min-width: 120px;
+}
+.filter-bar select:focus, .filter-bar input:focus { outline: none; border-color: var(--primary); }
+.btn-filter-clear {
+  padding: 7px 14px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: none; font-size: 13px; cursor: pointer; color: var(--text-sub); white-space: nowrap;
+}
+.btn-filter-clear:hover { background: var(--bg); }
 </style>
 </head>
 <body>
@@ -146,6 +159,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
   <nav class="tab-nav">
     <button class="tab-btn active" data-tab="mine"    onclick="switchTab('mine')">自分の申請</button>
     <button class="tab-btn" data-tab="pending" onclick="switchTab('pending')" id="tab-pending-btn" style="display:none">承認待ち</button>
+    <button class="tab-btn" data-tab="all"     onclick="switchTab('all')"     id="tab-all-btn"     style="display:none">全申請</button>
   </nav>
 
   <div id="tab-mine" class="tab-content active">
@@ -153,6 +167,29 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
   </div>
   <div id="tab-pending" class="tab-content">
     <div id="list-pending"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
+  </div>
+  <div id="tab-all" class="tab-content">
+    <!-- 絞り込みフィルター -->
+    <div class="filter-bar">
+      <select id="filter-type" onchange="applyFilter()">
+        <option value="">すべての種別</option>
+        <option value="leave">🌴 休暇申請</option>
+        <option value="expense">💴 出張費精算</option>
+        <option value="other">📝 その他</option>
+      </select>
+      <select id="filter-status" onchange="applyFilter()">
+        <option value="">すべてのステータス</option>
+        <option value="申請中">申請中</option>
+        <option value="承認済">承認済</option>
+        <option value="否認">否認</option>
+        <option value="取下げ">取下げ</option>
+      </select>
+      <input type="date" id="filter-from" onchange="applyFilter()" placeholder="開始日">
+      <input type="date" id="filter-to"   onchange="applyFilter()" placeholder="終了日">
+      <button class="btn-filter-clear" onclick="clearFilter()">クリア</button>
+    </div>
+    <div id="filter-count" style="font-size:13px;color:var(--text-sub);padding:4px 0 8px;"></div>
+    <div id="list-all"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
   </div>
 
   <button class="fab" onclick="openNewModal()" title="新規申請">＋</button>
@@ -291,6 +328,7 @@ function initMain() {
   document.getElementById('header-username').textContent = currentUser.name;
   const canApprove = currentUser.isAdmin || currentUser.role === '主任';
   document.getElementById('tab-pending-btn').style.display = canApprove ? '' : 'none';
+  document.getElementById('tab-all-btn').style.display     = currentUser.isAdmin ? '' : 'none';
   showScreen('main');
   loadTab('mine');
 }
@@ -298,6 +336,9 @@ function initMain() {
 // ===================================================
 // タブ読み込み
 // ===================================================
+// 全申請タブ用キャッシュ
+let allRecordsCache = [];
+
 async function loadTab(name) {
   const el = document.getElementById('list-' + name);
   el.innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
@@ -310,26 +351,75 @@ async function loadTab(name) {
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
-        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
-        ...(expenses    || []).map(r => ({ ...r, _appType: 'expense', approvalStatus: r.approvalStatus })),
+        ...(applyLeave || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther || []).map(r => ({ ...r, _appType: 'other' })),
+        ...(expenses   || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
-    } else {
+    } else if (name === 'pending') {
       const [applyLeave, applyOther, expenses] = await Promise.all([
         gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
         gas({ action: 'getApply', token: currentToken, appType: 'other' }),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
-        ...(applyLeave  || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther  || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'other' })),
-        ...(expenses    || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
+        ...(applyLeave || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'other' })),
+        ...(expenses   || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
       ];
+    } else if (name === 'all') {
+      const [applyLeave, applyOther, expenses] = await Promise.all([
+        gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'other' }),
+        gas({ action: 'getExpenses', token: currentToken }),
+      ]);
+      records = [
+        ...(applyLeave || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther || []).map(r => ({ ...r, _appType: 'other' })),
+        ...(expenses   || []).map(r => ({ ...r, _appType: 'expense' })),
+      ];
+      // 申請日で降順ソート
+      records.sort((a, b) => (b.applicationDate || b.appliedAt || '').localeCompare(a.applicationDate || a.appliedAt || ''));
+      allRecordsCache = records;
+      applyFilter();
+      return;
     }
+    records.sort((a, b) => (b.applicationDate || b.appliedAt || '').localeCompare(a.applicationDate || a.appliedAt || ''));
     renderList(el, records);
   } catch (e) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
   }
+}
+
+// ===================================================
+// 絞り込み
+// ===================================================
+function applyFilter() {
+  const typeVal   = document.getElementById('filter-type').value;
+  const statusVal = document.getElementById('filter-status').value;
+  const fromVal   = document.getElementById('filter-from').value;
+  const toVal     = document.getElementById('filter-to').value;
+
+  let filtered = allRecordsCache.filter(r => {
+    if (typeVal   && r._appType !== typeVal) return false;
+    if (statusVal && r.approvalStatus !== statusVal) return false;
+    const dateStr = r.applicationDate || r.appliedAt || '';
+    if (fromVal && dateStr && dateStr < fromVal) return false;
+    if (toVal   && dateStr && dateStr > toVal)   return false;
+    return true;
+  });
+
+  const countEl = document.getElementById('filter-count');
+  countEl.textContent = `${filtered.length} 件`;
+
+  renderList(document.getElementById('list-all'), filtered);
+}
+
+function clearFilter() {
+  document.getElementById('filter-type').value   = '';
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-from').value   = '';
+  document.getElementById('filter-to').value     = '';
+  applyFilter();
 }
 
 function renderList(el, records) {
