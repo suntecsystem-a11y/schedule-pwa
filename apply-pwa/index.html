@@ -571,10 +571,14 @@ async function doReject(appType, id) {
 }
 
 async function doWithdraw(appType, id) {
-  if (!confirm('この申請を取り下げますか？')) return;
+  if (!confirm('この申請を取り下げますか？\n取り下げ後も履歴として残ります。')) return;
   try {
-    if (appType === 'expense') await gas({ action: 'deleteExpense', token: currentToken, expenseId: id });
-    else await gas({ action: 'deleteApply', token: currentToken, appType, recordId: id });
+    if (appType === 'expense') {
+      // expenseはステータス更新（削除しない）
+      await gas({ action: 'rejectExpense', token: currentToken, expenseId: id, reason: '申請者による取下げ' });
+    } else {
+      await gas({ action: 'withdrawApply', token: currentToken, appType, recordId: id });
+    }
     closeModal('modal-detail');
     showToast('取り下げました');
     loadTab('mine');
