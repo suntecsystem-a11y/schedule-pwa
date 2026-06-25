@@ -436,7 +436,6 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="team" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在籍ボード</span></button>
     <button class="sidebar-btn" data-tab="cars" onclick="switchTab('cars',this)"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約</span></button>
     <button class="sidebar-btn" data-tab="expense" onclick="switchTab('expense',this)"><span class="sidebar-icon">💰</span><span class="sidebar-label">精算</span></button>
-    <button class="sidebar-btn" data-tab="notice" onclick="switchTab('notice',this)"><span class="sidebar-icon">📢</span><span class="sidebar-label">お知らせ</span></button>
     <button class="sidebar-btn" data-tab="inquiry" onclick="switchTab('inquiry',this)"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ</span></button>
     <button class="sidebar-btn" data-tab="mypage" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
     <button class="sidebar-btn admin-side" data-tab="admin" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
@@ -463,7 +462,6 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" onclick="switchTab('team',this)">🏢 在籍</button>
     <button class="tab-btn" onclick="switchTab('cars',this)">🚗 車</button>
     <button class="tab-btn" onclick="switchTab('expense',this)">💰 精算</button>
-    <button class="tab-btn" onclick="switchTab('notice',this)">📢 お知らせ</button>
     <button class="tab-btn" onclick="switchTab('inquiry',this)">💬 問い合わせ</button>
     <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <!-- 管理者のみ表示 -->
@@ -472,6 +470,14 @@ input,select{font-family:inherit;outline:none}
 
   <!-- ホーム -->
   <div class="content" id="tab-home">
+    <!-- お知らせエリア -->
+    <div id="notice-home-wrap" style="max-width:900px;margin:0 auto 4px;padding:12px 12px 0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">📢 お知らせ</span>
+        <button id="notice-add-btn" onclick="openNoticeModal()" style="display:none;padding:4px 12px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.78em;cursor:pointer">＋ 投稿</button>
+      </div>
+      <div id="notice-home-list"></div>
+    </div>
     <div id="home-content"></div>
   </div>
 
@@ -579,8 +585,8 @@ input,select{font-family:inherit;outline:none}
   </div>
 
   <!-- 問い合わせ -->
-  <!-- お知らせ掲示板 -->
-  <div class="content" id="tab-notice" style="display:none">
+  <!-- お知らせ掲示板（ホームタブ内に移動） -->
+  <div id="tab-notice" style="display:none">
     <div style="max-width:680px;margin:0 auto;padding:16px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <h2 style="font-size:1em;font-weight:700;margin:0">📢 お知らせ</h2>
@@ -1395,7 +1401,7 @@ async function loadEvents({ force = false } = {}){
 
 // ===== タブ =====
 function switchTab(tab, btn){
-  ['home','calendar','rooms','team','cars','expense','notice','inquiry','mypage','admin'].forEach(t=>{
+  ['home','calendar','rooms','team','cars','expense','inquiry','mypage','admin'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -1403,14 +1409,13 @@ function switchTab(tab, btn){
   const sideBtn = document.querySelector(`.sidebar-btn[data-tab="${tab}"]`);
   if(sideBtn) sideBtn.classList.add('active');
   const tabBtns = document.querySelectorAll('.tab-btn');
-  const idx=['home','calendar','rooms','team','cars','expense','notice','inquiry','mypage','admin'].indexOf(tab);
+  const idx=['home','calendar','rooms','team','cars','expense','inquiry','mypage','admin'].indexOf(tab);
   if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
-  if(tab==='home')    renderHome();
+  if(tab==='home')    { renderHome(); loadNotices(); }
   if(tab==='rooms')   renderRoomTimeline();
   if(tab==='team')    renderTeam();
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='expense') renderApplyTab('expense');
-  if(tab==='notice')  loadNotices();
   if(tab==='inquiry') loadInquiryFiles();
   if(tab==='mypage')  renderMyPage();
   if(tab==='admin')   loadAdminUsers();
@@ -2759,33 +2764,36 @@ let _notices = [];
 let _editingNoticeId = null;
 
 async function loadNotices() {
-  const list = document.getElementById('notice-list');
+  const list = document.getElementById('notice-home-list');
   const addBtn = document.getElementById('notice-add-btn');
   if (!list) return;
 
   // 管理者のみ投稿ボタン表示
   if (addBtn) addBtn.style.display = currentUser?.isAdmin ? 'block' : 'none';
 
-  if (!GAS_URL) {
-    list.innerHTML = '<p style="color:var(--text2);font-size:0.85em">GAS未設定のため表示できません</p>';
-    return;
-  }
-  list.innerHTML = '<p style="color:var(--text2);font-size:0.85em">読み込み中...</p>';
+  if (!GAS_URL) return;
+  list.innerHTML = '<p style="color:var(--text2);font-size:0.82em;margin:0">読み込み中...</p>';
   try {
     _notices = await api('getNotices', {}, '');
     renderNotices();
   } catch(e) {
-    list.innerHTML = `<p style="color:var(--text2);font-size:0.85em">⚠️ 読み込みエラー: ${e.message}</p>`;
+    list.innerHTML = `<p style="color:var(--text2);font-size:0.82em;margin:0">⚠️ 読み込みエラー: ${e.message}</p>`;
   }
 }
 
 function renderNotices() {
-  const list = document.getElementById('notice-list');
+  const list = document.getElementById('notice-home-list');
   if (!list) return;
   if (!_notices.length) {
-    list.innerHTML = '<p style="color:var(--text2);font-size:0.85em;text-align:center;padding:40px 0">お知らせはありません</p>';
+    // 管理者は投稿できるのでエリアを残す、一般は非表示
+    if (currentUser?.isAdmin) {
+      list.innerHTML = '<p style="color:var(--text2);font-size:0.82em;margin:0">お知らせはありません</p>';
+    } else {
+      document.getElementById('notice-home-wrap').style.display = 'none';
+    }
     return;
   }
+  document.getElementById('notice-home-wrap').style.display = 'block';
   const IMPORTANCE_STYLE = {
     '緊急': { bg:'#ffebee', border:'#e53935', badge:'🔴 緊急', badgeBg:'#e53935' },
     '重要': { bg:'#fff8e1', border:'#fb8c00', badge:'🔶 重要', badgeBg:'#fb8c00' },
