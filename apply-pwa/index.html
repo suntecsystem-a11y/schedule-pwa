@@ -213,11 +213,21 @@ function saveSession(token, user) {
 }
 function loadSession() {
   try {
+    // 申請アプリ独自のセッション
     const d = JSON.parse(localStorage.getItem('apply_session') || 'null');
-    if (!d || Date.now() > d.expires) return false;
-    currentToken = d.token;
-    currentUser  = d.user;
-    return true;
+    if (d && Date.now() <= d.expires) {
+      currentToken = d.token;
+      currentUser  = d.user;
+      return true;
+    }
+    // スケジュールアプリのセッションを流用（同一オリジンでlocalStorageを共有）
+    const s = JSON.parse(localStorage.getItem('sch_sess') || 'null');
+    if (s && s.token && s.user) {
+      currentToken = s.token;
+      currentUser  = s.user;
+      return true;
+    }
+    return false;
   } catch { return false; }
 }
 function doLogout() {
