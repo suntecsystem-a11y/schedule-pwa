@@ -484,6 +484,13 @@ input,select{font-family:inherit;outline:none}
         <div id="home-room-status"></div>
       </div>
     </div>
+    <!-- 社用車の空き -->
+    <div style="max-width:900px;margin:0 auto;padding:8px 12px 0">
+      <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">
+        <div style="font-size:0.82em;font-weight:700;color:var(--text2);margin-bottom:8px">🚗 社用車の空き（今日）</div>
+        <div id="home-car-status"></div>
+      </div>
+    </div>
     <!-- お知らせエリア -->
     <div id="notice-home-wrap" style="max-width:900px;margin:0 auto 4px;padding:8px 12px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -1337,7 +1344,7 @@ function showApp(){
   buildFilterUI();
   switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   renderAll();
-  loadCarData();
+  loadCarData().then(() => renderHomeDayWidgets());
   loadHolidays();
   loadRentalMasters();
 }
@@ -2176,6 +2183,45 @@ function renderHomeDayWidgets(){
         ${busy?'':'<span style="font-size:0.72em;color:var(--primary);font-weight:700">＋予約</span>'}
       </div>`;
     }).join('');
+  }
+
+  // ---- 社用車の空き状況 ----
+  const carEl = document.getElementById('home-car-status');
+  if(carEl){
+    if(!carMasters.length){
+      carEl.innerHTML = `<div style="font-size:0.82em;color:var(--text3)">読み込み中...</div>`;
+    } else {
+      const todayStr = today;
+      carEl.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">` +
+        carMasters.map(car => {
+          // 今日の予約のうち帰社済みでないもの
+          const activeEv = carEvents.find(e => {
+            if(e.endAt) return false;
+            const s = new Date(e.startAt), en = new Date(e.endScheduled);
+            const todayStart = new Date(todayStr + 'T00:00:00');
+            const todayEnd   = new Date(todayStr + 'T23:59:59');
+            return e.carName === car.name && s <= todayEnd && en >= todayStart;
+          });
+          const state = activeEv ? carEventState(activeEv) : null;
+          const isBusy = state === 'active' || state === 'overdue' || state === 'upcoming';
+          const bg    = isBusy ? '#fce4e4' : '#e8f5e9';
+          const color = isBusy ? '#c62828' : '#2e7d32';
+          const icon  = isBusy ? '🔴' : '🟢';
+          const sub   = !activeEv ? '空き' :
+                        state === 'upcoming' ? `予定 ${new Date(activeEv.startAt).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}〜` :
+                        state === 'active'   ? `出中〜${new Date(activeEv.endScheduled).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})}` :
+                        state === 'overdue'  ? `未帰社` : '帰社済';
+          const user  = activeEv ? activeEv.applicant : '';
+          const clickAttr = isBusy ? '' : `onclick="switchTab('car',document.querySelector('[data-tab=car]'))"`;
+          return `<div style="padding:8px 10px;border-radius:8px;background:${bg};cursor:${isBusy?'default':'pointer'}" ${clickAttr}>
+            <div style="font-size:0.78em;font-weight:700;color:${color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${icon} ${car.name}</div>
+            <div style="font-size:0.7em;color:var(--text2);margin-top:3px">${sub}</div>
+            ${user?`<div style="font-size:0.68em;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${user}</div>`:''}
+            ${!isBusy?`<div style="font-size:0.68em;color:var(--primary);font-weight:700;margin-top:3px">＋予約</div>`:''}
+          </div>`;
+        }).join('') +
+      `</div>`;
+    }
   }
 }
 
