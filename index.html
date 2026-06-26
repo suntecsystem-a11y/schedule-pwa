@@ -1411,7 +1411,6 @@ async function loadEvents({ force = false } = {}){
   }
   renderAll(); renderRoomTimeline(); renderTeam();
   checkApprovalNotifs();
-  checkApplyPending();
   loadDailyRest().then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); });
 }
 
