@@ -95,7 +95,7 @@ input,select{font-family:inherit;outline:none}
 .dash-card-title{font-size:0.7em;font-weight:700;color:var(--text2);margin-bottom:6px}
 .dash-card-value{font-size:1.5em;font-weight:800;color:var(--primary);line-height:1.2}
 .dash-card-sub{font-size:0.7em;color:var(--text2);margin-top:3px}
-@media(max-width:600px){#dashboard-widget{grid-template-columns:1fr 1fr;gap:8px}.dash-card-value{font-size:1.2em}}
+@media(max-width:600px){#dashboard-widget{grid-template-columns:1fr 1fr;gap:8px}.dash-card-value{font-size:1.2em}#home-top-grid{grid-template-columns:1fr!important}}
 
 /* 車使用中バナー */
 #car-in-use-banner{margin-bottom:10px}
@@ -472,7 +472,20 @@ input,select{font-family:inherit;outline:none}
   <!-- ホーム -->
   <div class="content" id="tab-home">
     <!-- お知らせエリア -->
-    <div id="notice-home-wrap" style="max-width:900px;margin:0 auto 4px;padding:12px 12px 0">
+    <div style="max-width:900px;margin:0 auto;padding:12px 12px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px" id="home-top-grid">
+      <!-- 今日の自分の予定 -->
+      <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">
+        <div style="font-size:0.82em;font-weight:700;color:var(--text2);margin-bottom:8px">📅 今日の予定</div>
+        <div id="home-today-schedule"></div>
+      </div>
+      <!-- 会議室の空き状況 -->
+      <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">
+        <div style="font-size:0.82em;font-weight:700;color:var(--text2);margin-bottom:8px" id="home-room-label">🏢 会議室の空き</div>
+        <div id="home-room-status"></div>
+      </div>
+    </div>
+    <!-- お知らせエリア -->
+    <div id="notice-home-wrap" style="max-width:900px;margin:0 auto 4px;padding:8px 12px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span style="font-size:0.82em;font-weight:700;color:var(--text2)">📢 お知らせ</span>
         <button id="notice-add-btn" onclick="openNoticeModal()" style="display:none;padding:4px 12px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.78em;cursor:pointer">＋ 投稿</button>
@@ -1392,7 +1405,7 @@ async function loadEvents({ force = false } = {}){
   renderAll(); renderRoomTimeline(); renderTeam();
   checkApprovalNotifs();
   checkApplyPending();
-  loadDailyRest().then(() => { renderTeam(); renderHome(); });
+  loadDailyRest().then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); });
 }
 
 // ===== タブ =====
@@ -1414,7 +1427,7 @@ function switchTab(tab, btn){
   const tabBtns = document.querySelectorAll('.tab-btn');
   const idx=['home','calendar','rooms','team','cars','inquiry','mypage','admin'].indexOf(tab);
   if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
-  if(tab==='home')    { renderHome(); loadNotices(); }
+  if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); }
   else                { _markNoticesAsSeen(); }
   if(tab==='rooms')   renderRoomTimeline();
   if(tab==='team')    renderTeam();
@@ -2107,6 +2120,65 @@ function openMemberDetail(userId){
 function closeMemberPopup(){ document.getElementById('member-popup').style.display='none'; }
 
 // ===== ホーム（週間スタッフビュー） =====
+function renderHomeDayWidgets(){
+  const today = fmtDate(new Date());
+  const now = new Date();
+  const hNow = now.getHours() + now.getMinutes()/60;
+  const hStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+
+  // ---- 今日の自分の予定 ----
+  const schedEl = document.getElementById('home-today-schedule');
+  if(schedEl){
+    const myEvs = events.filter(e =>
+      eventIncludesDate(e, today) &&
+      (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id))
+    ).sort((a,b) => (a.start||'99:99').localeCompare(b.start||'99:99'));
+    const isYasumi = yasumiUsers.has(currentUser.id);
+    if(isYasumi){
+      schedEl.innerHTML = `<div style="font-size:0.85em;color:#ff7043;font-weight:700">🛌 休み</div>`;
+    } else if(!myEvs.length){
+      schedEl.innerHTML = `<div style="font-size:0.82em;color:var(--text3)">予定なし</div>`;
+    } else {
+      schedEl.innerHTML = myEvs.map(e => {
+        const col = STATUS_COLOR[e.type]||'#9e9e9e';
+        const timeStr = e.start ? `${e.start}〜${e.end}　` : '';
+        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer" onclick="openDetail('${e.id}')">
+          <span style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></span>
+          <span style="font-size:0.82em"><span style="color:var(--text2)">${timeStr}</span><strong>${e.type}</strong>${e.title?' '+e.title:''}</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ---- 会議室の空き状況 ----
+  const roomLabel = document.getElementById('home-room-label');
+  const roomEl = document.getElementById('home-room-status');
+  if(roomEl){
+    if(roomLabel) roomLabel.textContent = `🏢 会議室の空き（${hStr}）`;
+    const todayRoomEvs = events.filter(e => e.date===today && e.type==='会議室' && e.room);
+    roomEl.innerHTML = ROOMS.map(room => {
+      const busy = todayRoomEvs.some(e =>
+        e.room===room.id && timeToMins(e.start)<=hNow*60 && timeToMins(e.end)>hNow*60
+      );
+      // 次の予約を探す
+      const upcoming = todayRoomEvs
+        .filter(e => e.room===room.id && timeToMins(e.start)>hNow*60)
+        .sort((a,b)=>timeToMins(a.start)-timeToMins(b.start))[0];
+      const subText = busy
+        ? (() => { const ev=todayRoomEvs.find(e=>e.room===room.id&&timeToMins(e.start)<=hNow*60&&timeToMins(e.end)>hNow*60); return ev?`〜${ev.end}`:''; })()
+        : upcoming ? `次：${upcoming.start}〜` : '終日空き';
+      const clickAttr = busy ? '' : `onclick="openRoomBookingModal('${room.id}')"`;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:7px 10px;border-radius:8px;background:${busy?'#fce4e4':'#e8f5e9'};cursor:${busy?'default':'pointer'}" ${clickAttr}>
+        <div>
+          <div style="font-size:0.82em;font-weight:700;color:${busy?'#c62828':'#2e7d32'}">${busy?'🔴':'🟢'} ${room.name}</div>
+          <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${subText}</div>
+        </div>
+        ${busy?'':'<span style="font-size:0.72em;color:var(--primary);font-weight:700">＋予約</span>'}
+      </div>`;
+    }).join('');
+  }
+}
+
 function renderHome(){
   const el = document.getElementById('home-content');
   if(!el) return;
