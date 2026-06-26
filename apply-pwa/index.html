@@ -221,6 +221,22 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
   </div>
 </div>
 
+<!-- 申請確認モーダル -->
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="confirm-modal-title">申請内容の確認</h2>
+      <button class="btn-close" onclick="closeModal('modal-confirm')">✕</button>
+    </div>
+    <div id="confirm-modal-body"></div>
+    <div id="confirm-modal-warning" style="margin-top:12px;display:none;"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-confirm')">戻る</button>
+      <button class="btn-submit" id="confirm-modal-btn">申請を確定する</button>
+    </div>
+  </div>
+</div>
+
 <!-- 詳細モーダル -->
 <div class="modal-overlay" id="modal-detail">
   <div class="modal">
@@ -444,12 +460,24 @@ function clearFilter() {
   applyFilter();
 }
 
+function elapsedDays(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days === 0) return '今日';
+  return `${days}日経過`;
+}
+
 function renderList(el, records) {
   if (!records.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>申請はありません</p></div>';
     return;
   }
-  el.innerHTML = records.map(r => `
+  el.innerHTML = records.map(r => {
+    const elapsed = r.approvalStatus === '申請中'
+      ? elapsedDays(r.createdAt || r.applicationDate) : '';
+    return `
     <div class="card" onclick="openDetail('${r._appType}','${r.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
@@ -458,10 +486,13 @@ function renderList(el, records) {
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${r.destination || ''}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
           ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); return `<div class="card-sub">${c.leave_type || c.title || ''} ${c.start ? c.start + '〜' + c.end : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
-        <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
+          ${elapsed ? `<span style="font-size:11px;color:var(--text-sub);">${elapsed}</span>` : ''}
+        </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ===================================================
@@ -513,6 +544,13 @@ async function openDetail(appType, id) {
       withdrawBtn.onclick = () => doWithdraw(appType, r.id);
       footer.appendChild(withdrawBtn);
     }
+    if (appType === 'expense') {
+      const pdfBtn = document.createElement('button');
+      pdfBtn.className = 'btn-cancel';
+      pdfBtn.textContent = '🖨 PDF出力';
+      pdfBtn.onclick = () => printExpensePDF(r);
+      footer.appendChild(pdfBtn);
+    }
   } catch (e) {
     document.getElementById('detail-body').innerHTML = `<div class="empty"><p>読み込み失敗: ${e.message}</p></div>`;
   }
@@ -534,8 +572,12 @@ function renderApplyDetail(appType, r) {
   const commentDisplay = r.approverComment
     ? `<div class="detail-row"><span class="detail-label">承認コメント</span><span class="detail-val">${r.approverComment}</span></div>`
     : '';
+  const elapsedDisplay = r.approvalStatus === '申請中' && r.createdAt
+    ? `<span style="font-size:12px;color:var(--text-sub);margin-left:8px;">${elapsedDays(r.createdAt)}</span>` : '';
   document.getElementById('detail-body').innerHTML = `
-    <div style="margin-bottom:12px;"><span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span></div>
+    <div style="margin-bottom:12px;">
+      <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>${elapsedDisplay}
+    </div>
     <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
     ${approverDisplay}
     ${commentDisplay}
@@ -553,8 +595,12 @@ function renderExpenseDetail(r) {
       <td>${d.memo}</td>
     </tr>
   `).join('');
+  const expElapsed = r.approvalStatus === '申請中' && r.applicationDate
+    ? `<span style="font-size:12px;color:var(--text-sub);margin-left:8px;">${elapsedDays(r.applicationDate)}</span>` : '';
   document.getElementById('detail-body').innerHTML = `
-    <div style="margin-bottom:12px;"><span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span></div>
+    <div style="margin-bottom:12px;">
+      <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>${expElapsed}
+    </div>
     <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
     <div class="detail-row"><span class="detail-label">申請日</span><span class="detail-val">${r.applicationDate}</span></div>
     <div class="detail-row"><span class="detail-label">出張期間</span><span class="detail-val">${r.periodStart} 〜 ${r.periodEnd}</span></div>
@@ -590,6 +636,52 @@ async function doApprove(appType, id) {
     showToast('承認しました');
     loadTab('pending');
   } catch (e) { showToast('失敗: ' + e.message); }
+}
+
+function printExpensePDF(r) {
+  const detailRows = (r.details || []).map(d => `
+    <tr>
+      <td>${d.date||''}</td><td>${d.category||''}</td><td>${d.facility||''}</td>
+      <td>${d.from||''}</td><td>${d.to||''}</td>
+      <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
+      <td>${d.memo||''}</td>
+    </tr>`).join('');
+  const receipts = (r.receipts || []).map(p =>
+    `<img src="${p.url}" style="max-width:180px;max-height:140px;margin:4px;border:1px solid #ccc;">`
+  ).join('');
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ja"><head>
+    <meta charset="UTF-8">
+    <title>出張費精算申請書</title>
+    <style>
+      body { font-family: 'Meiryo', sans-serif; font-size: 13px; padding: 24px; color: #212121; }
+      h1 { font-size: 18px; text-align: center; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+      th, td { border: 1px solid #ccc; padding: 6px 8px; }
+      th { background: #f5f5f5; font-weight: 700; width: 120px; }
+      .detail-table th { width: auto; }
+      .section { font-weight: 700; margin: 16px 0 6px; font-size: 14px; }
+      .total { text-align: right; font-weight: 700; font-size: 15px; margin: 8px 0; }
+      @media print { button { display: none; } }
+    </style>
+  </head><body>
+    <h1>出張費精算申請書</h1>
+    <table>
+      <tr><th>申請者</th><td>${r.applicantName||''}</td><th>申請日</th><td>${r.applicationDate||''}</td></tr>
+      <tr><th>出張期間</th><td>${r.periodStart||''} 〜 ${r.periodEnd||''}</td><th>行先</th><td>${r.destination||''}</td></tr>
+      <tr><th>同行者</th><td>${r.companions||'-'}</td><th>精算方法</th><td>${r.paymentMethod||''}</td></tr>
+      <tr><th>承認状態</th><td>${r.approvalStatus||''}</td><th>承認者</th><td>${r.approverName||r.approverEmpId||'-'}</td></tr>
+    </table>
+    <div class="section">明細</div>
+    <table class="detail-table">
+      <thead><tr><th>日付</th><th>区分</th><th>利用機関</th><th>出発地</th><th>到着地</th><th>金額</th><th>備考</th></tr></thead>
+      <tbody>${detailRows}</tbody>
+    </table>
+    <div class="total">合計金額：${Number(r.totalAmount||0).toLocaleString()} 円</div>
+    ${receipts ? `<div class="section">領収書</div><div>${receipts}</div>` : ''}
+    <br><button onclick="window.print()">🖨 印刷</button>
+  </body></html>`);
+  win.document.close();
 }
 
 function exportCSV() {
@@ -869,14 +961,102 @@ function removeReceiptPhoto(i) { receiptPhotos.splice(i, 1); renderReceiptPhotos
 async function submitNew() {
   const type = document.getElementById('new-type').value;
   if (!type) { showToast('申請種別を選択してください'); return; }
+
+  let items = [];
+  let warning = '';
+
   try {
-    if (type === 'leave') await submitLeave();
-    else if (type === 'expense') await submitExpense();
-    else await submitOther();
-    closeModal('modal-new');
-    showToast('申請しました');
-    loadTab('mine');
-  } catch (e) { showToast(e.message); }
+    if (type === 'leave') {
+      const start = document.getElementById('f-leave-start').value;
+      const end   = document.getElementById('f-leave-end').value;
+      if (!start || !end) throw new Error('日付を入力してください');
+      items = [
+        { label: '休暇種別', value: document.getElementById('f-leave-type').value },
+        { label: '開始日',   value: start },
+        { label: '終了日',   value: end },
+        { label: '備考',     value: document.getElementById('f-leave-note').value || 'なし' },
+        { label: '承認者',   value: _getApproverDisplayName() },
+      ];
+      warning = await _checkLeaveOverlap(start, end);
+    } else if (type === 'expense') {
+      const dest    = document.getElementById('f-exp-dest').value.trim();
+      const appDate = document.getElementById('f-exp-appdate').value;
+      if (!dest || !appDate) throw new Error('申請日・行先を入力してください');
+      items = [
+        { label: '申請日',   value: appDate },
+        { label: '出張期間', value: `${document.getElementById('f-exp-start').value} 〜 ${document.getElementById('f-exp-end').value}` },
+        { label: '行先',     value: dest },
+        { label: '合計金額', value: document.getElementById('expense-total-display')?.textContent || '0円' },
+      ];
+    } else {
+      const title = document.getElementById('f-other-title').value.trim();
+      if (!title) throw new Error('件名を入力してください');
+      const body  = document.getElementById('f-other-body').value || '';
+      items = [
+        { label: '件名', value: title },
+        { label: '内容', value: body.length > 60 ? body.slice(0, 60) + '…' : body || 'なし' },
+        { label: '承認者', value: _getApproverDisplayName() },
+      ];
+    }
+  } catch (e) { showToast(e.message); return; }
+
+  _openConfirmModal(typeLabel(type), items, warning, async () => {
+    try {
+      if (type === 'leave') await submitLeave();
+      else if (type === 'expense') await submitExpense();
+      else await submitOther();
+      closeModal('modal-confirm');
+      closeModal('modal-new');
+      showToast('申請しました');
+      loadTab('mine');
+    } catch (e) { showToast(e.message); }
+  });
+}
+
+function _getApproverDisplayName() {
+  if (approverData && approverData.isIppan && approverData.sameDeptShunin?.length > 0) {
+    return approverData.sameDeptShunin.map(a => a.name).join('、');
+  }
+  const sel = document.getElementById('f-approver-id');
+  if (!sel || !sel.value) return '（未選択）';
+  return sel.options[sel.selectedIndex]?.text || sel.value;
+}
+
+async function _checkLeaveOverlap(start, end) {
+  try {
+    const existing = await gas({ action: 'getApply', token: currentToken, appType: 'leave' });
+    const overlapping = (existing || []).filter(r => {
+      if (r.applicantId !== currentUser.id) return false;
+      if (r.approvalStatus !== '申請中' && r.approvalStatus !== '承認済') return false;
+      try {
+        const c = JSON.parse(r.content || '{}');
+        return c.start && c.end && c.start <= end && c.end >= start;
+      } catch { return false; }
+    });
+    if (!overlapping.length) return '';
+    const dates = overlapping.map(r => {
+      try { const c = JSON.parse(r.content); return `${c.start}〜${c.end}（${r.approvalStatus}）`; } catch { return ''; }
+    }).join('、');
+    return `同じ期間に申請があります：${dates}`;
+  } catch { return ''; }
+}
+
+function _openConfirmModal(typeLabel, items, warning, onConfirm) {
+  document.getElementById('confirm-modal-title').textContent = typeLabel + ' の確認';
+  document.getElementById('confirm-modal-body').innerHTML = items.map(item =>
+    `<div class="detail-row"><span class="detail-label">${item.label}</span><span class="detail-val">${item.value}</span></div>`
+  ).join('');
+  const warnEl = document.getElementById('confirm-modal-warning');
+  if (warning) {
+    warnEl.innerHTML = `<div style="padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;margin-top:4px;">⚠ ${warning}</div>`;
+    warnEl.style.display = '';
+    document.getElementById('confirm-modal-btn').textContent = 'それでも申請する';
+  } else {
+    warnEl.style.display = 'none';
+    document.getElementById('confirm-modal-btn').textContent = '申請を確定する';
+  }
+  document.getElementById('confirm-modal-btn').onclick = onConfirm;
+  openModal('modal-confirm');
 }
 
 async function submitLeave() {
