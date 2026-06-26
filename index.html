@@ -174,7 +174,7 @@ input,select{font-family:inherit;outline:none}
 .month-grid{background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
 .month-header{display:grid;grid-template-columns:repeat(7,1fr);background:var(--primary)}
 .month-header div{text-align:center;padding:8px 2px;font-size:0.75em;font-weight:600;color:white}
-.month-week-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);height:96px;position:relative}
+.month-week-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);height:130px;position:relative}
 .month-week-row:last-child{border-bottom:none}
 .month-cell{border-right:1px solid var(--border);padding:4px 3px 0;cursor:pointer;position:relative}
 .month-cell:last-child{border-right:none}
@@ -189,7 +189,8 @@ input,select{font-family:inherit;outline:none}
 .wdate.holiday{color:var(--red)}
 .cell-more{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:0.62em;color:var(--primary);font-weight:700;cursor:pointer}
 .ev-layer{position:absolute;top:26px;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden}
-.ev-bar{position:absolute;height:17px;font-size:0.63em;color:white;font-weight:600;display:flex;align-items:center;padding:0 5px;pointer-events:all;cursor:pointer;white-space:nowrap;overflow:hidden;z-index:1;line-height:1}
+.ev-bar{position:absolute;height:17px;font-size:0.63em;color:white;font-weight:600;display:flex;align-items:center;padding:0 5px;pointer-events:all;cursor:pointer;overflow:hidden;z-index:1;line-height:1}
+.ev-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 .ev-bar.span-start{border-radius:8px 0 0 8px;margin-left:2px}
 .ev-bar.span-end{border-radius:0 8px 8px 0;margin-right:2px}
 .ev-bar.span-mid{border-radius:0}
@@ -1671,8 +1672,10 @@ function renderMonth(){
         const barStyle=isPending
           ? `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*19}px;background:${STATUS_COLOR[e.type]};opacity:0.5;border-style:dashed;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};background:${STATUS_COLOR[e.type]}33`
           : `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*19}px;background:${STATUS_COLOR[e.type]}`;
-        html+=`<div class="${cls}" style="${barStyle}"
-          onclick="event.stopPropagation();openDetail('${e.id}')">${isS?(isPending?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type):''}</div>`;
+        const barLabel = isS ? (isPending?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type) : '';
+        const barTitle = typeIcon(e.type)+' '+(e.title||e.type);
+        html+=`<div class="${cls}" style="${barStyle}" title="${esc(barTitle)}"
+          onclick="event.stopPropagation();openDetail('${e.id}')"><span>${barLabel}</span></div>`;
       });
     });
     week.forEach((day,di)=>{
@@ -1682,8 +1685,9 @@ function renderMonth(){
         const sBarStyle = isPendS
           ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${MAX_BARS*19+si*19}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
           : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${MAX_BARS*19+si*19}px;background:${STATUS_COLOR[e.type]}`;
-        html+=`<div class="ev-bar span-solo" style="${sBarStyle}"
-          onclick="event.stopPropagation();openDetail('${e.id}')">${isPendS?'(仮) ':''}${e.title||e.type}</div>`;
+        const sSoloLabel = (isPendS?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type);
+        html+=`<div class="ev-bar span-solo" style="${sBarStyle}" title="${esc(sSoloLabel)}"
+          onclick="event.stopPropagation();openDetail('${e.id}')"><span>${sSoloLabel}</span></div>`;
       });
     });
     html+=`</div></div>`;
