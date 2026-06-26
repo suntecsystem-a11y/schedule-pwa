@@ -533,24 +533,33 @@ async function openDetail(appType, id) {
     const footer = document.getElementById('detail-footer');
     footer.innerHTML = '';
 
-    if (canApprove && r.approvalStatus === '申請中') {
-      const rejectBtn = document.createElement('button');
-      rejectBtn.className = 'btn-danger';
-      rejectBtn.textContent = '却下';
-      rejectBtn.onclick = () => doReject(appType, r.id);
-      const approveBtn = document.createElement('button');
-      approveBtn.className = 'btn-success';
-      approveBtn.textContent = '承認';
-      approveBtn.onclick = () => doApprove(appType, r.id);
-      footer.appendChild(rejectBtn);
-      footer.appendChild(approveBtn);
-    } else if (isOwn && r.approvalStatus === '申請中') {
-      const withdrawBtn = document.createElement('button');
-      withdrawBtn.className = 'btn-cancel';
-      withdrawBtn.style.flex = '1';
-      withdrawBtn.textContent = '取下げ';
-      withdrawBtn.onclick = () => doWithdraw(appType, r.id);
-      footer.appendChild(withdrawBtn);
+    if (r.approvalStatus === '申請中') {
+      if (canApprove) {
+        const rejectBtn = document.createElement('button');
+        rejectBtn.className = 'btn-danger';
+        rejectBtn.textContent = '却下';
+        rejectBtn.onclick = () => doReject(appType, r.id);
+        const approveBtn = document.createElement('button');
+        approveBtn.className = 'btn-success';
+        approveBtn.textContent = '承認';
+        approveBtn.onclick = () => doApprove(appType, r.id);
+        footer.appendChild(rejectBtn);
+        footer.appendChild(approveBtn);
+      }
+      if (isOwn) {
+        const withdrawBtn = document.createElement('button');
+        withdrawBtn.className = 'btn-cancel';
+        withdrawBtn.textContent = '取下げ';
+        withdrawBtn.onclick = () => doWithdraw(appType, r.id);
+        footer.appendChild(withdrawBtn);
+      }
+    }
+    if (isOwn && r.approvalStatus === '否認' && appType !== 'expense') {
+      const reApplyBtn = document.createElement('button');
+      reApplyBtn.className = 'btn-submit';
+      reApplyBtn.textContent = '再申請';
+      reApplyBtn.onclick = () => reApply(appType, r);
+      footer.appendChild(reApplyBtn);
     }
     if (appType === 'expense') {
       const pdfBtn = document.createElement('button');
@@ -750,6 +759,29 @@ async function doWithdraw(appType, id) {
     showToast('取り下げました');
     loadTab('mine');
   } catch (e) { showToast('失敗: ' + e.message); }
+}
+
+async function reApply(appType, r) {
+  closeModal('modal-detail');
+  document.getElementById('new-type').value = appType;
+  approverData = null;
+  openModal('modal-new');
+  try {
+    approverData = await gas({ action: 'getApprovers', token: currentToken });
+  } catch(e) { /* 取得失敗時は無視 */ }
+  renderNewFields();
+  try {
+    const c = JSON.parse(r.content || '{}');
+    if (appType === 'leave') {
+      if (c.leave_type) document.getElementById('f-leave-type').value = c.leave_type;
+      if (c.start) document.getElementById('f-leave-start').value = c.start;
+      if (c.end)   document.getElementById('f-leave-end').value   = c.end;
+      if (c.note)  document.getElementById('f-leave-note').value  = c.note;
+    } else if (appType === 'other') {
+      if (c.title) document.getElementById('f-other-title').value = c.title;
+      if (c.body)  document.getElementById('f-other-body').value  = c.body;
+    }
+  } catch(e) { /* パース失敗時は空のまま */ }
 }
 
 // ===================================================
