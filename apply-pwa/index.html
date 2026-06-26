@@ -158,11 +158,12 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 
   <nav class="tab-nav">
     <button class="tab-btn active" data-tab="mine"    onclick="switchTab('mine')">自分の申請</button>
-    <button class="tab-btn" data-tab="pending" onclick="switchTab('pending')" id="tab-pending-btn" style="display:none">承認待ち</button>
+    <button class="tab-btn" data-tab="pending" onclick="switchTab('pending')" id="tab-pending-btn" style="display:none">要承認</button>
     <button class="tab-btn" data-tab="all"     onclick="switchTab('all')"     id="tab-all-btn"     style="display:none">全申請</button>
   </nav>
 
   <div id="tab-mine" class="tab-content active">
+    <div id="mine-summary" style="display:none;background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;gap:16px;flex-wrap:wrap;"></div>
     <div id="list-mine"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
   </div>
   <div id="tab-pending" class="tab-content">
@@ -188,7 +189,10 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
       <input type="date" id="filter-to"   onchange="applyFilter()" placeholder="終了日">
       <button class="btn-filter-clear" onclick="clearFilter()">クリア</button>
     </div>
-    <div id="filter-count" style="font-size:13px;color:var(--text-sub);padding:4px 0 8px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 8px;">
+      <div id="filter-count" style="font-size:13px;color:var(--text-sub);"></div>
+      <button onclick="exportCSV()" style="padding:6px 12px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);font-size:13px;cursor:pointer;">⬇ CSV出力</button>
+    </div>
     <div id="list-all"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
   </div>
 
@@ -357,6 +361,21 @@ async function loadTab(name) {
         ...(applyOther || []).map(r => ({ ...r, _appType: 'other' })),
         ...(expenses   || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
+      // ⑤ サマリー表示
+      const summaryEl = document.getElementById('mine-summary');
+      const counts = { '申請中': 0, '承認済': 0, '否認': 0, '取下げ': 0 };
+      records.forEach(r => { if (counts[r.approvalStatus] !== undefined) counts[r.approvalStatus]++; });
+      summaryEl.style.display = 'flex';
+      summaryEl.innerHTML = [
+        { label: '申請中', color: 'var(--warn)',    key: '申請中' },
+        { label: '承認済', color: 'var(--success)', key: '承認済' },
+        { label: '否認',   color: 'var(--danger)',  key: '否認'   },
+      ].map(({ label, color, key }) =>
+        `<div style="text-align:center;min-width:60px;">
+          <div style="font-size:22px;font-weight:700;color:${color};">${counts[key]}</div>
+          <div style="font-size:12px;color:var(--text-sub);">${label}</div>
+        </div>`
+      ).join('<div style="width:1px;background:var(--border);"></div>');
     } else if (name === 'pending') {
       const promises = [
         gas({ action: 'getApplyForApproval', token: currentToken, appType: 'leave' }),
@@ -512,10 +531,14 @@ function renderApplyDetail(appType, r) {
     : r.approvalStatus === '申請中'
       ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">同部署主任（自動）</span></div>`
       : '';
+  const commentDisplay = r.approverComment
+    ? `<div class="detail-row"><span class="detail-label">承認コメント</span><span class="detail-val">${r.approverComment}</span></div>`
+    : '';
   document.getElementById('detail-body').innerHTML = `
     <div style="margin-bottom:12px;"><span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span></div>
     <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
     ${approverDisplay}
+    ${commentDisplay}
     ${contentRows}
     ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${r.rejectionReason}</div></div>` : ''}
   `;
@@ -558,13 +581,47 @@ function renderExpenseDetail(r) {
 // 承認・却下・取下げ
 // ===================================================
 async function doApprove(appType, id) {
+  const comment = prompt('承認コメント（任意）', '');
+  if (comment === null) return;
   try {
     if (appType === 'expense') await gas({ action: 'approveExpense', token: currentToken, expenseId: id });
-    else await gas({ action: 'approveApply', token: currentToken, appType, recordId: id });
+    else await gas({ action: 'approveApply', token: currentToken, appType, recordId: id, comment: comment.trim() });
     closeModal('modal-detail');
     showToast('承認しました');
     loadTab('pending');
   } catch (e) { showToast('失敗: ' + e.message); }
+}
+
+function exportCSV() {
+  if (!allRecordsCache.length) { showToast('エクスポートするデータがありません'); return; }
+  const header = ['申請種別', '申請者', 'ステータス', '申請日', '承認者', 'コメント', '詳細'];
+  const rows = allRecordsCache.map(r => {
+    let detail = '';
+    try {
+      const c = JSON.parse(r.content || '{}');
+      detail = Object.values(c).join(' / ');
+    } catch { detail = r.destination || ''; }
+    return [
+      typeLabel(r._appType),
+      r.applicantName || r.applicantId || '',
+      r.approvalStatus || '',
+      r.applicationDate || r.appliedAt || '',
+      r.approverName || r.approverEmpId || '',
+      r.approverComment || '',
+      detail,
+    ];
+  });
+  const csv = [header, ...rows].map(row =>
+    row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')
+  ).join('\r\n');
+  const bom = '﻿';
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '申請一覧_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 async function doReject(appType, id) {
@@ -660,6 +717,7 @@ function renderNewFields() {
         </table>
       </div>
       <button type="button" class="btn-add-row" onclick="addDetailRow()">＋ 行を追加</button>
+      <div id="expense-total-display" style="text-align:right;font-size:15px;font-weight:700;color:var(--primary);margin-top:8px;">合計：0 円</div>
       <label style="margin-top:16px;">領収書写真</label>
       <div style="margin-top:6px;">
         <video id="receipt-video" style="display:none;width:100%;max-height:200px;border-radius:var(--radius);background:#000;" autoplay playsinline></video>
@@ -687,6 +745,17 @@ function renderNewFields() {
   }
 }
 
+function calcExpenseTotal() {
+  const rows = document.getElementById('detail-rows');
+  if (!rows) return;
+  const total = [...rows.querySelectorAll('tr')].reduce((sum, tr) => {
+    const amt = Number(tr.querySelectorAll('input')[5]?.value || 0);
+    return sum + (isNaN(amt) ? 0 : amt);
+  }, 0);
+  const el = document.getElementById('expense-total-display');
+  if (el) el.textContent = '合計：' + total.toLocaleString() + ' 円';
+}
+
 function addDetailRow() {
   const tbody = document.getElementById('detail-rows');
   const tr = document.createElement('tr');
@@ -696,11 +765,12 @@ function addDetailRow() {
     <td><input type="text" placeholder="JR東海"></td>
     <td><input type="text" placeholder="大阪"></td>
     <td><input type="text" placeholder="東京"></td>
-    <td><input type="number" placeholder="0" style="width:70px"></td>
+    <td><input type="number" placeholder="0" style="width:70px" oninput="calcExpenseTotal()"></td>
     <td><input type="text" placeholder="備考"></td>
-    <td><button class="btn-del-row" onclick="this.closest('tr').remove()">✕</button></td>
+    <td><button class="btn-del-row" onclick="this.closest('tr').remove();calcExpenseTotal()">✕</button></td>
   `;
   tbody.appendChild(tr);
+  calcExpenseTotal();
 }
 
 // ===================================================
