@@ -327,7 +327,7 @@ async function doLogin() {
 // ===================================================
 function initMain() {
   document.getElementById('header-username').textContent = currentUser.name;
-  const canApprove = currentUser.isAdmin || currentUser.role === '主任';
+  const canApprove = currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般');
   document.getElementById('tab-pending-btn').style.display = canApprove ? '' : 'none';
   document.getElementById('tab-all-btn').style.display     = currentUser.isAdmin ? '' : 'none';
   showScreen('main');
@@ -339,6 +339,7 @@ function initMain() {
 // ===================================================
 // 全申請タブ用キャッシュ
 let allRecordsCache = [];
+let approverData = null;
 
 async function loadTab(name) {
   const el = document.getElementById('list-' + name);
@@ -357,15 +358,16 @@ async function loadTab(name) {
         ...(expenses   || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
     } else if (name === 'pending') {
-      const [applyLeave, applyOther, expenses] = await Promise.all([
-        gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'other' }),
-        gas({ action: 'getExpenses', token: currentToken }),
-      ]);
+      const promises = [
+        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'leave' }),
+        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'other' }),
+      ];
+      if (currentUser.isAdmin) promises.push(gas({ action: 'getExpenses', token: currentToken }));
+      const [applyLeave, applyOther, expenses] = await Promise.all(promises);
       records = [
-        ...(applyLeave || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'other' })),
-        ...(expenses   || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
+        ...(applyLeave || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther || []).map(r => ({ ...r, _appType: 'other' })),
+        ...((expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' }))),
       ];
     } else if (name === 'all') {
       const [applyLeave, applyOther, expenses] = await Promise.all([
@@ -466,7 +468,9 @@ async function openDetail(appType, id) {
       renderApplyDetail(appType, r);
     }
 
-    const canApprove = currentUser.isAdmin || currentUser.role === '主任';
+    const isDesignatedApprover = r.approverEmpId && r.approverEmpId === currentUser.id;
+    const isSameDeptShunin = !r.approverEmpId && currentUser.role === '主任';
+    const canApprove = currentUser.isAdmin || isDesignatedApprover || isSameDeptShunin;
     const isOwn = r.applicantId === currentUser.id;
     const footer = document.getElementById('detail-footer');
     footer.innerHTML = '';
@@ -503,9 +507,15 @@ function renderApplyDetail(appType, r) {
       `<div class="detail-row"><span class="detail-label">${contentFieldLabel(k)}</span><span class="detail-val">${v || '-'}</span></div>`
     ).join('');
   } catch {}
+  const approverDisplay = r.approverName || r.approverEmpId
+    ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">${r.approverName || r.approverEmpId}${r.approvalStatus === '申請中' ? '（承認待ち）' : ''}</span></div>`
+    : r.approvalStatus === '申請中'
+      ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">同部署主任（自動）</span></div>`
+      : '';
   document.getElementById('detail-body').innerHTML = `
     <div style="margin-bottom:12px;"><span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span></div>
     <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
+    ${approverDisplay}
     ${contentRows}
     ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${r.rejectionReason}</div></div>` : ''}
   `;
@@ -588,10 +598,33 @@ async function doWithdraw(appType, id) {
 // ===================================================
 // 新規申請フォーム
 // ===================================================
-function openNewModal() {
+async function openNewModal() {
   document.getElementById('new-type').value = '';
   document.getElementById('new-type-fields').innerHTML = '';
+  approverData = null;
   openModal('modal-new');
+  try {
+    approverData = await gas({ action: 'getApprovers', token: currentToken });
+  } catch(e) { /* 取得失敗時は申請時にエラー表示 */ }
+}
+
+function getApproverSectionHTML() {
+  if (!approverData) return '<div style="margin-top:14px;padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 承認者情報を取得中です。しばらくお待ちください。</div>';
+  if (approverData.isIppan && approverData.sameDeptShunin && approverData.sameDeptShunin.length > 0) {
+    const names = approverData.sameDeptShunin.map(a => a.name).join('、');
+    return `<div style="margin-top:14px;padding:10px;background:#e8f5e9;border-radius:8px;font-size:13px;">
+      <span style="color:#2e7d32;">✔ 承認者：${names}に通知されます</span>
+    </div>`;
+  }
+  const isSelf = id => !approverData.isIppan && id === currentUser.id;
+  const options = (approverData.selectableApprovers || []).map(a =>
+    `<option value="${a.id}">${a.name}${isSelf(a.id) ? '（自分・自動承認）' : ''} [${a.role}]</option>`
+  ).join('');
+  return `<label>承認者 <span style="color:var(--danger)">*</span></label>
+    <select id="f-approver-id">
+      <option value="">選択してください</option>
+      ${options}
+    </select>`;
 }
 
 function renderNewFields() {
@@ -606,6 +639,7 @@ function renderNewFields() {
       <label>開始日</label><input type="date" id="f-leave-start">
       <label>終了日</label><input type="date" id="f-leave-end">
       <label>理由・備考（任意）</label><textarea id="f-leave-note" placeholder="任意"></textarea>
+      ${getApproverSectionHTML()}
     `;
   } else if (type === 'expense') {
     el.innerHTML = `
@@ -646,6 +680,7 @@ function renderNewFields() {
     el.innerHTML = `
       <label>件名</label><input type="text" id="f-other-title" placeholder="申請の件名">
       <label>内容</label><textarea id="f-other-body" placeholder="申請内容を記入してください" style="min-height:120px;"></textarea>
+      ${getApproverSectionHTML()}
     `;
   } else {
     el.innerHTML = '';
@@ -778,12 +813,13 @@ async function submitLeave() {
   const start = document.getElementById('f-leave-start').value;
   const end   = document.getElementById('f-leave-end').value;
   if (!start || !end) throw new Error('日付を入力してください');
+  const approverEmpId = _getSelectedApproverEmpId();
   const content = JSON.stringify({
     leave_type: document.getElementById('f-leave-type').value,
     start, end,
     note: document.getElementById('f-leave-note').value,
   });
-  await gas({ action: 'saveApply', token: currentToken, appType: 'leave', applyData: { applicantName: currentUser.name, content } });
+  await gas({ action: 'saveApply', token: currentToken, appType: 'leave', applyData: { applicantName: currentUser.name, content, approverEmpId } });
 }
 
 async function submitExpense() {
@@ -812,8 +848,19 @@ async function submitExpense() {
 async function submitOther() {
   const title = document.getElementById('f-other-title').value.trim();
   if (!title) throw new Error('件名を入力してください');
+  const approverEmpId = _getSelectedApproverEmpId();
   const content = JSON.stringify({ title, body: document.getElementById('f-other-body').value });
-  await gas({ action: 'saveApply', token: currentToken, appType: 'other', applyData: { applicantName: currentUser.name, content } });
+  await gas({ action: 'saveApply', token: currentToken, appType: 'other', applyData: { applicantName: currentUser.name, content, approverEmpId } });
+}
+
+function _getSelectedApproverEmpId() {
+  // 同部署主任自動割当の場合は空文字を返す（GAS側で解決）
+  if (approverData && approverData.isIppan && approverData.sameDeptShunin && approverData.sameDeptShunin.length > 0) {
+    return '';
+  }
+  const sel = document.getElementById('f-approver-id');
+  if (!sel || !sel.value) throw new Error('承認者を選択してください');
+  return sel.value;
 }
 
 // ===================================================
