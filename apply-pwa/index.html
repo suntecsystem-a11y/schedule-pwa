@@ -185,8 +185,13 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
         <option value="否認">否認</option>
         <option value="取下げ">取下げ</option>
       </select>
-      <input type="date" id="filter-from" onchange="applyFilter()" placeholder="開始日">
-      <input type="date" id="filter-to"   onchange="applyFilter()" placeholder="終了日">
+      <input type="text" id="filter-name" oninput="applyFilter()" placeholder="名前で絞り込み">
+      <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;">
+        <span style="font-size:12px;color:var(--text-sub);white-space:nowrap;">期間</span>
+        <input type="date" id="filter-from" onchange="applyFilter()">
+        <span style="font-size:12px;color:var(--text-sub);">〜</span>
+        <input type="date" id="filter-to"   onchange="applyFilter()">
+      </div>
       <button class="btn-filter-clear" onclick="clearFilter()">クリア</button>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0 8px;">
@@ -434,12 +439,14 @@ async function loadTab(name) {
 function applyFilter() {
   const typeVal   = document.getElementById('filter-type').value;
   const statusVal = document.getElementById('filter-status').value;
+  const nameVal   = (document.getElementById('filter-name').value || '').trim();
   const fromVal   = document.getElementById('filter-from').value;
   const toVal     = document.getElementById('filter-to').value;
 
   let filtered = allRecordsCache.filter(r => {
     if (typeVal   && r._appType !== typeVal) return false;
     if (statusVal && r.approvalStatus !== statusVal) return false;
+    if (nameVal   && !(r.applicantName || '').includes(nameVal)) return false;
     const dateStr = r.applicationDate || r.appliedAt || '';
     if (fromVal && dateStr && dateStr < fromVal) return false;
     if (toVal   && dateStr && dateStr > toVal)   return false;
@@ -455,6 +462,7 @@ function applyFilter() {
 function clearFilter() {
   document.getElementById('filter-type').value   = '';
   document.getElementById('filter-status').value = '';
+  document.getElementById('filter-name').value   = '';
   document.getElementById('filter-from').value   = '';
   document.getElementById('filter-to').value     = '';
   applyFilter();
