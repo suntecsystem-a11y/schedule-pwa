@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>社内チャット</title>
+  <meta name="theme-color" content="#1a73e8" />
+  <link rel="manifest" href="manifest.json" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; background: #f0f2f5; height: 100dvh; display: flex; flex-direction: column; }
+
+    /* ログイン */
+    #loginScreen { display: flex; align-items: center; justify-content: center; height: 100dvh; background: #1a73e8; }
+    .login-card { background: #fff; border-radius: 16px; padding: 40px 32px; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+    .login-card h1 { font-size: 22px; color: #1a73e8; margin-bottom: 8px; }
+    .login-card p { font-size: 13px; color: #888; margin-bottom: 28px; }
+    .login-card input { width: 100%; padding: 12px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; margin-bottom: 14px; outline: none; }
+    .login-card input:focus { border-color: #1a73e8; }
+    .login-card button { width: 100%; padding: 13px; background: #1a73e8; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .login-card button:hover { background: #1558b0; }
+    .login-error { color: #e53935; font-size: 13px; margin-top: 8px; display: none; }
+
+    /* メイン */
+    #mainScreen { display: none; flex: 1; overflow: hidden; }
+    .layout { display: flex; height: 100dvh; }
+
+    /* リサイズ仕切り */
+    .resizer {
+      width: 5px; background: transparent; cursor: col-resize; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; position: relative; z-index: 10;
+    }
+    .resizer:hover, .resizer.dragging { background: #1a73e8; }
+    .resizer::after {
+      content: '⋮'; font-size: 14px; color: rgba(255,255,255,0); line-height: 1;
+    }
+    .resizer:hover::after, .resizer.dragging::after { color: #fff; }
+    .resizer-thread { background: transparent; cursor: col-resize; }
+    .resizer-thread:hover, .resizer-thread.dragging { background: #1a73e8; }
+
+    /* サイドバー */
+    .sidebar { width: 320px; min-width: 200px; max-width: 500px; background: #1a73e8; color: #fff; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+    .sidebar-header { padding: 14px 16px 10px; font-size: 18px; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; }
+    .sidebar-user { padding: 8px 16px; font-size: 13px; opacity: 0.85; flex-shrink: 0; }
+    .sidebar-search { padding: 6px 10px 8px; flex-shrink: 0; }
+    .sidebar-search input { width: 100%; padding: 6px 10px; border: none; border-radius: 6px; font-size: 13px; background: rgba(255,255,255,0.2); color: #fff; outline: none; }
+    .sidebar-search input::placeholder { color: rgba(255,255,255,0.6); }
+    .sidebar-search input:focus { background: rgba(255,255,255,0.3); }
+    .sidebar-middle { flex: 1; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.2); }
+    .sidebar-middle::-webkit-scrollbar { width: 4px; }
+    .sidebar-middle::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 2px; }
+    .sidebar-section { padding: 12px 16px 4px; font-size: 11px; font-weight: 700; opacity: 0.7; letter-spacing: 0.08em; display: flex; align-items: center; justify-content: space-between; }
+    .cat-header { padding: 8px 10px 4px; font-size: 11px; font-weight: 700; opacity: 0.8; letter-spacing: 0.06em; display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none; }
+    .cat-header:hover { opacity: 1; }
+    .cat-toggle { font-size: 9px; transition: transform 0.15s; }
+    .cat-toggle.collapsed { transform: rotate(-90deg); }
+    .cat-actions { margin-left: auto; display: flex; gap: 2px; opacity: 0; }
+    .cat-header:hover .cat-actions { opacity: 1; }
+    .cat-action-btn { background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 12px; padding: 1px 4px; border-radius: 3px; line-height: 1; }
+    .cat-action-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+    .cat-body { overflow: hidden; }
+    .cat-body.collapsed { display: none; }
+    .channel-list { padding: 2px 8px; }
+    .channel-item { padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; position: relative; }
+    .channel-item:hover { background: rgba(255,255,255,0.15); }
+    .channel-item.active { background: rgba(255,255,255,0.25); font-weight: 600; }
+    .channel-item .ch-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .channel-delete-btn { display: none; background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+    .channel-item:hover .channel-delete-btn { display: block; }
+    .channel-delete-btn:hover { color: #ff5252; }
+    .ch-menu-btn { display: none; background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+    .channel-item:hover .ch-menu-btn { display: block; }
+    .ch-menu-btn:hover { color: #fff; }
+    .unread-badge { background: #ff5252; color: #fff; border-radius: 10px; padding: 1px 6px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+    .sidebar-footer { padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.2); display: flex; gap: 8px; flex-shrink: 0; }
+    .logout-btn { flex: 1; background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .logout-btn:hover { background: rgba(255,255,255,0.25); }
+    .admin-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 16px; display: none; }
+    .admin-btn:hover { background: rgba(255,255,255,0.25); }
+    .add-channel-btn { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 20px; padding: 0 2px; line-height: 1; }
+    .add-channel-btn:hover { color: #fff; }
+    /* チャンネルコンテキストメニュー */
+    .ctx-menu { position: fixed; background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); padding: 6px; z-index: 200; min-width: 160px; display: none; }
+    .ctx-menu.open { display: block; }
+    .ctx-item { padding: 7px 12px; font-size: 13px; color: #333; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 8px; }
+    .ctx-item:hover { background: #f0f0f0; }
+    .ctx-item.danger { color: #e53935; }
+    .ctx-divider { border: none; border-top: 1px solid #eee; margin: 4px 0; }
+
+    /* メインエリア */
+    .main-area { flex: 1; display: flex; overflow: hidden; }
+    .chat-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+    .chat-header { padding: 14px 20px; background: #fff; border-bottom: 1px solid #e0e0e0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .chat-header-name { flex: 1; color: #333; }
+    .manage-members-btn { font-size: 12px; padding: 5px 12px; border-radius: 6px; background: #f0f0f0; border: none; cursor: pointer; color: #555; display: none; }
+    .manage-members-btn:hover { background: #e0e0e0; }
+
+    /* メッセージ */
+    .messages { flex: 1; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; gap: 0; }
+    .msg-group { display: flex; flex-direction: row; gap: 10px; padding: 4px 16px; width: 100%; align-items: flex-start; }
+    .msg-group:hover { background: #f8f9fa; }
+    .msg-avatar { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 2px; }
+    .msg-body { flex: 1; min-width: 0; }
+    .msg-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 3px; }
+    .msg-name { font-size: 13px; font-weight: 700; color: #1a1a2e; }
+    .msg-name.me { color: #1a73e8; }
+    .msg-time { font-size: 11px; color: #aaa; }
+    .msg-row { position: relative; width: 100%; }
+    .msg-content-line { display: flex; align-items: flex-start; gap: 6px; }
+    .msg-bubble {
+      font-size: 14px; line-height: 1.6; word-break: break-word;
+      padding: 8px 12px; border-radius: 8px; display: inline-block;
+    }
+    .msg-bubble.others { background: #f0f0f0; color: #333; }
+    .msg-bubble.mine { background: #e8f0fe; color: #1a1a2e; }
+    .msg-mention { background: #fff3e0; border-radius: 3px; padding: 0 3px; font-weight: 600; color: #e65100; }
+    .msg-actions {
+      display: none; position: absolute; top: -34px; left: 0;
+      background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15); gap: 2px; padding: 2px 4px;
+      align-items: center; z-index: 10; white-space: nowrap;
+    }
+    .msg-bubble-wrap { position: relative; display: inline-block; max-width: 90%; }
+    .msg-group:hover .msg-actions { display: flex; }
+    .msg-action-btn { background: none; border: none; cursor: pointer; font-size: 14px; padding: 3px 6px; border-radius: 4px; }
+    .msg-action-btn:hover { background: #f0f0f0; }
+    /* 引用ブロック */
+    .quote-block { border-left: 3px solid #bbb; padding: 4px 8px; margin-bottom: 6px; font-size: 12px; color: #666; background: rgba(0,0,0,0.04); border-radius: 0 4px 4px 0; max-width: 80%; }
+    .quote-block .quote-name { font-weight: 700; margin-bottom: 2px; font-size: 11px; }
+    .quote-preview-area { display: none; align-items: center; gap: 8px; padding: 6px 10px; background: #f0f4ff; border-radius: 8px; margin-bottom: 6px; font-size: 13px; color: #555; border-left: 3px solid #1a73e8; }
+    .quote-preview-area.show { display: flex; }
+    .quote-preview-area button { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; margin-left: auto; }
+    /* オンライン */
+    .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #34a853; display: inline-block; margin-right: 4px; flex-shrink: 0; }
+    .offline-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; display: inline-block; margin-right: 4px; flex-shrink: 0; }
+    /* ステータス */
+    .sidebar-user { padding: 8px 16px; font-size: 13px; opacity: 0.85; flex-shrink: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; border-radius: 8px; margin: 0 8px; transition: background .15s; }
+    .sidebar-user:hover { background: rgba(255,255,255,0.15); opacity: 1; }
+    .status-badge { font-size: 11px; background: rgba(255,255,255,0.2); border-radius: 10px; padding: 1px 7px; margin-left: 4px; white-space: nowrap; }
+    /* ステータスピッカー */
+    .status-picker { position: fixed; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); padding: 8px; z-index: 200; display: none; min-width: 160px; }
+    .status-picker.open { display: block; }
+    .status-option { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; color: #333; }
+    .status-option:hover { background: #f0f0f0; }
+    .status-option.active { background: #e8f0fe; font-weight: 600; }
+    /* DMリストのステータス */
+    .user-status-text { font-size: 11px; color: #aaa; margin-left: 4px; }
+    /* お気に入り */
+    .fav-btn { background: none; border: none; cursor: pointer; font-size: 13px; padding: 0 2px; opacity: 0.4; flex-shrink: 0; display: none; }
+    .channel-item:hover .fav-btn { display: block; }
+    .fav-btn.active { opacity: 1; display: block; }
+    /* 検索バー */
+    .search-bar { display: none; padding: 8px 16px; border-bottom: 1px solid #e0e0e0; background: #fafafa; }
+    .search-bar.open { display: flex; gap: 8px; align-items: center; }
+    .search-bar input { flex: 1; padding: 6px 12px; border: 1.5px solid #ddd; border-radius: 20px; font-size: 13px; outline: none; }
+    .search-bar input:focus { border-color: #1a73e8; }
+    .search-bar-close { background: none; border: none; font-size: 18px; cursor: pointer; color: #888; }
+    .msg-bubble.search-highlight { outline: 2px solid #fbbc04; outline-offset: 2px; }
+
+    .thread-count { font-size: 12px; color: #1a73e8; cursor: pointer; margin-top: 2px; display: block; }
+    .thread-count:hover { text-decoration: underline; }
+    .msg-date-divider { text-align: center; font-size: 12px; color: #aaa; margin: 12px 0; display: flex; align-items: center; gap: 10px; }
+    .msg-date-divider::before, .msg-date-divider::after { content: ''; flex: 1; height: 1px; background: #e0e0e0; }
+
+    /* 投票（通常） */
+    .vote-card { background: #fff; border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 14px 16px; min-width: 240px; max-width: 360px; margin-top: 4px; }
+    .vote-question { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 12px; }
+    .vote-option { margin-bottom: 8px; cursor: pointer; }
+    .vote-option-bar-wrap { background: #f0f0f0; border-radius: 6px; overflow: hidden; height: 32px; position: relative; display: flex; align-items: center; transition: background .15s; }
+    .vote-option-bar-wrap:hover { background: #e3f0ff; }
+    .vote-option-bar-wrap.voted { background: #e3f0ff; }
+    .vote-option-bar { position: absolute; left: 0; top: 0; height: 100%; background: #c2d9fc; border-radius: 6px; transition: width .3s; }
+    .vote-option-label { position: relative; padding: 0 10px; font-size: 13px; color: #333; z-index: 1; flex: 1; display: flex; justify-content: space-between; align-items: center; }
+    .vote-option-pct { font-size: 12px; color: #888; font-weight: 600; }
+    .vote-option-check { color: #1a73e8; font-weight: 700; margin-left: 4px; }
+    .vote-footer { font-size: 11px; color: #aaa; margin-top: 8px; }
+    /* 日程調整カード */
+    .schedule-card { background: #fff; border: 1.5px solid #1a73e8; border-radius: 12px; padding: 14px 16px; min-width: 280px; max-width: 420px; margin-top: 4px; }
+    .schedule-card-title { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .schedule-card-meta { font-size: 11px; color: #aaa; margin-bottom: 12px; }
+    .schedule-option { border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+    .schedule-option-label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 8px; }
+    .schedule-vote-counts { display: flex; gap: 12px; margin-bottom: 8px; font-size: 12px; }
+    .schedule-vote-count { display: flex; align-items: center; gap: 3px; }
+    .schedule-vote-count.maru { color: #34a853; font-weight: 600; }
+    .schedule-vote-count.sankaku { color: #fbbc04; font-weight: 600; }
+    .schedule-vote-count.batsu { color: #ea4335; font-weight: 600; }
+    .schedule-vote-names { font-size: 11px; color: #888; margin-bottom: 8px; line-height: 1.6; }
+    .schedule-btn-row { display: flex; gap: 6px; }
+    .schedule-vote-btn { flex: 1; padding: 6px 0; border-radius: 6px; border: 1.5px solid #e0e0e0; background: #f8f8f8; cursor: pointer; font-size: 16px; font-weight: 700; transition: all .15s; }
+    .schedule-vote-btn:hover { transform: scale(1.05); }
+    .schedule-vote-btn.active-maru { background: #e6f4ea; border-color: #34a853; }
+    .schedule-vote-btn.active-sankaku { background: #fef9e7; border-color: #fbbc04; }
+    .schedule-vote-btn.active-batsu { background: #fce8e6; border-color: #ea4335; }
+    .schedule-card-footer { font-size: 11px; color: #aaa; margin-top: 8px; border-top: 1px solid #f0f0f0; padding-top: 8px; }
+    /* 日程調整作成モーダル */
+    .schedule-options-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+    .schedule-option-row { display: flex; gap: 6px; align-items: center; }
+    .schedule-option-row input[type=date] { flex: 1; padding: 6px 8px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; }
+    .schedule-option-row input[type=time] { width: 90px; padding: 6px 8px; border: 1.5px solid #ddd; border-radius: 6px; font-size: 13px; outline: none; }
+    .schedule-option-row button { background: none; border: none; color: #e53935; cursor: pointer; font-size: 18px; flex-shrink: 0; }
+    .add-schedule-option-btn { background: none; border: 1.5px dashed #ddd; border-radius: 6px; padding: 6px; width: 100%; cursor: pointer; color: #888; font-size: 13px; margin-top: 2px; }
+    .add-schedule-option-btn:hover { background: #f0f0f0; }
+
+    /* リアクション */
+    .reactions-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .reaction-chip { display: flex; align-items: center; gap: 3px; background: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 12px; padding: 2px 8px; font-size: 13px; cursor: pointer; transition: background .15s; }
+    .reaction-chip:hover, .reaction-chip.mine { background: #e3f0ff; border-color: #1a73e8; }
+    .reaction-chip .cnt { font-size: 12px; color: #555; }
+
+    /* 絵文字ピッカー */
+    .emoji-picker { position: absolute; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); padding: 8px; display: none; z-index: 50; }
+    .emoji-picker.open { display: flex; flex-wrap: wrap; gap: 4px; width: 220px; }
+    .emoji-btn { font-size: 20px; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px; }
+    .emoji-btn:hover { background: #f0f0f0; }
+    .emoji-add-btn { font-size: 18px; background: #f0f0f0; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; color: #555; }
+    .emoji-add-btn:hover { background: #e0e0e0; }
+    .emoji-img-btn { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1.5px solid transparent; display: block; }
+    .emoji-img-btn:hover { border-color: #1a73e8; }
+    .reaction-chip img { height: 18px; width: 18px; object-fit: cover; border-radius: 3px; vertical-align: middle; }
+    /* 名前スタンプ */
+    .name-stamp-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .name-stamp-chip { display: flex; align-items: center; gap: 4px; background: #f0f0f0; border: 1px solid #e0e0e0; border-radius: 12px; padding: 3px 10px; font-size: 12px; cursor: pointer; transition: background .15s; color: #333; }
+    .name-stamp-chip:hover { background: #e0e0e0; }
+    .name-stamp-chip.mine { background: #e8f5e9; border-color: #43a047; color: #2e7d32; font-weight: 600; }
+
+    /* テキスト書式ツールバー */
+    .fmt-toolbar { display: flex; gap: 3px; padding: 4px 0 2px; flex-wrap: wrap; align-items: center; }
+    .fmt-btn { background: none; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px; padding: 2px 8px; color: #555; line-height: 1.5; }
+    .fmt-btn:hover { background: #f0f0f0; border-color: #bbb; }
+    .fmt-color-wrap { position: relative; }
+    .color-picker-pop { position: absolute; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); padding: 8px; display: none; z-index: 100; flex-wrap: wrap; gap: 6px; width: 150px; bottom: calc(100% + 4px); left: 0; }
+    .color-picker-pop.open { display: flex; }
+    .color-dot { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform .1s; flex-shrink: 0; }
+    .color-dot:hover { transform: scale(1.2); border-color: rgba(0,0,0,0.25); }
+
+    /* ファイルプレビュー */
+    .file-preview { margin-top: 6px; }
+    .file-preview img { max-width: 300px; max-height: 200px; border-radius: 8px; display: block; cursor: pointer; }
+    .file-preview video { max-width: 320px; border-radius: 8px; display: block; }
+    .file-preview audio { width: 280px; display: block; margin-top: 2px; }
+    .file-link { display: inline-flex; align-items: center; gap: 6px; background: #f0f0f0; border-radius: 8px; padding: 6px 12px; font-size: 13px; color: #333; text-decoration: none; }
+    .file-link:hover { background: #e0e0e0; }
+    /* インライン書式 */
+    .msg-bubble strong { font-weight: 700; }
+    .msg-bubble em { font-style: italic; }
+    .msg-bubble del { text-decoration: line-through; opacity: 0.7; }
+    .msg-bubble mark { border-radius: 2px; padding: 0 2px; }
+
+    /* 入力エリア */
+    .input-area { padding: 10px 16px; background: #fff; border-top: 1px solid #e0e0e0; }
+    .mention-suggestions { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 6px; overflow: hidden; display: none; }
+    .mention-suggestions.open { display: block; }
+    .mention-item { padding: 8px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+    .mention-item:hover, .mention-item.selected { background: #f0f0f0; }
+    .mention-avatar { width: 24px; height: 24px; background: #1a73e8; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+    .input-row { display: flex; gap: 8px; align-items: flex-end; }
+    .input-row textarea { flex: 1; padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 20px; font-size: 14px; resize: none; outline: none; max-height: 120px; font-family: inherit; line-height: 1.5; }
+    .input-row textarea:focus { border-color: #1a73e8; }
+    .file-input-btn { width: 36px; height: 36px; background: #f0f0f0; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .file-input-btn:hover { background: #e0e0e0; }
+    .send-btn { width: 40px; height: 40px; background: #1a73e8; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .send-btn:hover { background: #1558b0; }
+    .send-btn svg { width: 18px; height: 18px; fill: #fff; }
+    .file-selected-preview { display: none; align-items: center; gap: 8px; padding: 6px 4px; font-size: 13px; color: #555; margin-bottom: 4px; }
+    .file-selected-preview.show { display: flex; }
+    .file-selected-preview button { background: none; border: none; color: #e53935; cursor: pointer; font-size: 16px; }
+
+    /* スレッドパネル */
+    .thread-panel { width: 360px; min-width: 200px; max-width: 600px; background: #fff; display: none; flex-direction: column; flex-shrink: 0; }
+    .thread-panel.open { display: flex; }
+    .thread-header { padding: 14px 16px; font-size: 15px; font-weight: 600; color: #333; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; }
+    .thread-close-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; }
+    .thread-close-btn:hover { color: #333; }
+    .thread-original { padding: 14px 16px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333; line-height: 1.6; }
+    .thread-original .orig-name { font-weight: 600; margin-bottom: 4px; font-size: 13px; color: #555; }
+    .thread-messages { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+    .thread-input-area { padding: 10px 12px; border-top: 1px solid #e0e0e0; display: flex; gap: 8px; align-items: flex-end; background: #fff; }
+    .thread-input-area textarea { flex: 1; padding: 8px 12px; border: 1.5px solid #ddd; border-radius: 16px; font-size: 13px; resize: none; outline: none; max-height: 100px; font-family: inherit; line-height: 1.5; }
+    .thread-input-area textarea:focus { border-color: #1a73e8; }
+    .thread-send-btn { width: 34px; height: 34px; background: #1a73e8; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .thread-send-btn:hover { background: #1558b0; }
+    .thread-send-btn svg { width: 15px; height: 15px; fill: #fff; }
+
+    /* モーダル共通 */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; padding: 28px 24px; width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+    .modal h3 { font-size: 16px; margin-bottom: 16px; color: #333; }
+    .modal input[type=text], .modal input[type=password] { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; margin-bottom: 12px; }
+    .modal input:focus { border-color: #1a73e8; }
+    .modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+    .modal-btns button { padding: 9px 18px; border-radius: 8px; border: none; font-size: 14px; cursor: pointer; }
+    .btn-cancel { background: #f0f0f0; color: #555; }
+    .btn-ok { background: #1a73e8; color: #fff; font-weight: 600; }
+    .btn-danger { background: #e53935; color: #fff; font-weight: 600; }
+
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; font-size: 14px; color: #333; }
+    .toggle-switch { position: relative; width: 42px; height: 24px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: #ccc; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .toggle-slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    .toggle-switch input:checked + .toggle-slider { background: #1a73e8; }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(18px); }
+
+    /* メンバー管理 */
+    .member-list { max-height: 180px; overflow-y: auto; margin-bottom: 14px; }
+    .member-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; }
+    .remove-member-btn { background: none; border: none; color: #e53935; cursor: pointer; font-size: 18px; line-height: 1; }
+    .add-member-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .add-member-row input { flex: 1; padding: 8px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; margin-bottom: 0; }
+    .add-member-row input:focus { border-color: #1a73e8; }
+    .add-member-row button { padding: 8px 14px; background: #1a73e8; color: #fff; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
+
+    /* ユーザー管理 */
+    .user-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+    .user-table th { text-align: left; padding: 8px; border-bottom: 2px solid #e0e0e0; color: #888; font-weight: 600; }
+    .user-table td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
+    .user-edit-btn { background: none; border: 1px solid #ddd; border-radius: 4px; padding: 3px 8px; font-size: 12px; cursor: pointer; color: #555; margin-right: 4px; }
+    .user-edit-btn:hover { background: #f0f0f0; }
+    .user-del-btn { background: none; border: 1px solid #ffcdd2; border-radius: 4px; padding: 3px 8px; font-size: 12px; cursor: pointer; color: #e53935; }
+    .user-del-btn:hover { background: #ffebee; }
+    .modal-label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
+
+    @media (max-width: 700px) {
+      .sidebar { width: 200px; }
+      .thread-panel { width: 280px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>社内チャット</h1>
+    <p>社員番号とPINでログイン</p>
+    <input type="text" id="loginEmpId" placeholder="社員番号" />
+    <input type="password" id="loginPin" placeholder="PIN（4桁）" maxlength="4" />
+    <button onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="loginError">社員番号またはPINが違います</div>
+  </div>
+</div>
+
+<div id="mainScreen">
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-header">💬 社内チャット</div>
+      <div class="sidebar-user" id="sidebarUser"></div>
+      <div class="sidebar-search">
+        <input type="text" id="sidebarSearch" placeholder="🔍 チャンネル・DMを検索..." oninput="filterSidebar(this.value)" />
+      </div>
+      <div class="sidebar-middle">
+        <div class="sidebar-section">
+          チャンネル
+          <div style="display:flex;gap:4px;align-items:center;">
+            <button class="add-channel-btn" onclick="openAddCategoryModal()" title="カテゴリ追加" style="font-size:14px;">📁</button>
+            <button class="add-channel-btn" onclick="openAddChannel()" title="チャンネル追加">＋</button>
+          </div>
+        </div>
+        <div id="channelSections"></div>
+        <div class="sidebar-section">
+          ダイレクトメッセージ
+          <button class="add-channel-btn" onclick="openNewDmModal()" title="新しいDM">＋</button>
+        </div>
+        <div class="channel-list" style="padding-bottom:4px;">
+          <div class="channel-item" id="selfNoteItem" onclick="openSelfNote()">
+            <span style="font-size:13px">📝</span>
+            <span class="ch-name">メモ（自分）</span>
+          </div>
+        </div>
+        <div class="channel-list" id="dmList"></div>
+      </div>
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="doLogout()">ログアウト</button>
+        <button class="admin-btn" id="notifBell" onclick="requestNotifPermission()" title="通知をオンにする" style="display:block;opacity:0.4;">🔔</button>
+        <button class="admin-btn" id="adminBtn" onclick="openUserAdmin()" title="ユーザー管理">⚙️</button>
+      </div>
+    </div>
+    <div class="resizer" id="resizerSidebar"></div>
+    <div class="main-area">
+      <div class="chat-area">
+        <div class="chat-header">
+          <span class="chat-header-name" id="currentChannelName">チャンネルを選択</span>
+          <button class="manage-members-btn" id="manageMembersBtn" onclick="openManageMembers()">メンバー管理</button>
+          <button class="msg-action-btn" title="検索" onclick="toggleSearch()" style="font-size:18px;padding:4px 8px;">🔍</button>
+        </div>
+        <div class="search-bar" id="searchBar">
+          <input type="text" id="searchInput" placeholder="メッセージを検索..." oninput="filterMessages(this.value)" />
+          <button class="search-bar-close" onclick="toggleSearch()">✕</button>
+        </div>
+        <div class="messages" id="messages"></div>
+        <div class="input-area">
+          <div class="quote-preview-area" id="quotePreviewArea">
+            <span id="quotePreviewText" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+            <button onclick="clearQuote()">×</button>
+          </div>
+          <div class="file-selected-preview" id="filePreview">
+            <span id="filePreviewName"></span>
+            <button onclick="clearFile()">×</button>
+          </div>
+          <div class="fmt-toolbar" id="fmtToolbar">
+            <button class="fmt-btn" onclick="applyFmt('bold')" title="太字"><b>B</b></button>
+            <button class="fmt-btn" onclick="applyFmt('italic')" title="斜体"><i>I</i></button>
+            <button class="fmt-btn" onclick="applyFmt('strike')" title="取り消し線"><s>S</s></button>
+            <button class="fmt-btn" onclick="applyFmt('highlight')" title="ハイライト" style="background:#fff176;border-color:#ddd;">H</button>
+            <div class="fmt-color-wrap">
+              <button class="fmt-btn" onclick="toggleColorPicker(event)" title="文字色">🎨 色</button>
+              <div id="colorPickerPop" class="color-picker-pop"></div>
+            </div>
+          </div>
+          <div class="mention-suggestions" id="mentionSuggestions"></div>
+          <div class="input-row">
+            <input type="file" id="fileInput" style="display:none" onchange="onFileSelected()" accept="image/*,video/*,audio/*,.pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.txt,.csv" />
+            <input type="file" id="stampImageInput" style="display:none" onchange="onStampImageSelected()" accept="image/*" />
+            <button class="file-input-btn" onclick="document.getElementById('fileInput').click()" title="ファイル添付">📎</button>
+            <button class="file-input-btn" onclick="openSchedulePoll()" title="日程調整">📅</button>
+            <textarea id="msgInput" placeholder="メッセージを入力（Shift+Enterで改行）@で宛先指定" rows="1"
+              oninput="onMsgInput(this)" onkeydown="handleKey(event,'main')"></textarea>
+            <button class="send-btn" onclick="sendMessage()">
+              <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="resizer resizer-thread" id="resizerThread"></div>
+      <div class="thread-panel" id="threadPanel">
+        <div class="thread-header">
+          スレッド
+          <button class="thread-close-btn" onclick="closeThread()">×</button>
+        </div>
+        <div class="thread-original" id="threadOriginal"></div>
+        <div class="thread-messages" id="threadMessages"></div>
+        <div class="thread-input-area">
+          <textarea id="threadInput" placeholder="返信を入力..." rows="1"
+            oninput="autoResize(this)" onkeydown="handleKey(event,'thread')"></textarea>
+          <button class="thread-send-btn" onclick="sendThreadReply()">
+            <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 絵文字ピッカー -->
+<div class="emoji-picker" id="emojiPicker"></div>
+
+<!-- コンテキストメニュー -->
+<div class="ctx-menu" id="ctxMenu"></div>
+
+<!-- カテゴリ追加 -->
+<div class="modal-overlay" id="addCategoryModal">
+  <div class="modal">
+    <h3>📁 カテゴリを追加</h3>
+    <input type="text" id="newCategoryName" placeholder="カテゴリ名（例：営業部）" />
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('addCategoryModal')">キャンセル</button>
+      <button class="btn-ok" onclick="addCategory()">作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- カテゴリ名変更 -->
+<div class="modal-overlay" id="renameCategoryModal">
+  <div class="modal">
+    <h3>カテゴリ名を変更</h3>
+    <input type="hidden" id="renameCategoryId" />
+    <input type="text" id="renameCategoryName" placeholder="新しいカテゴリ名" />
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('renameCategoryModal')">キャンセル</button>
+      <button class="btn-ok" onclick="renameCategory()">変更</button>
+    </div>
+  </div>
+</div>
+
+<!-- チャンネル追加 -->
+<div class="modal-overlay" id="addChannelModal">
+  <div class="modal">
+    <h3>チャンネルを追加</h3>
+    <input type="text" id="newChannelName" placeholder="チャンネル名（例：営業部）" />
+    <div class="toggle-row">
+      <span>🔒 プライベートチャンネル</span>
+      <label class="toggle-switch"><input type="checkbox" id="newChannelPrivate" /><span class="toggle-slider"></span></label>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('addChannelModal')">キャンセル</button>
+      <button class="btn-ok" onclick="addChannel()">作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- チャンネル削除確認 -->
+<div class="modal-overlay" id="deleteChannelModal">
+  <div class="modal">
+    <h3>チャンネルを削除</h3>
+    <p style="font-size:14px;color:#555;margin-bottom:20px">「<span id="deleteChannelNameLabel"></span>」を削除します。メッセージもすべて削除されます。よろしいですか？</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('deleteChannelModal')">キャンセル</button>
+      <button class="btn-danger" onclick="confirmDeleteChannel()">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- メンバー管理 -->
+<div class="modal-overlay" id="manageMembersModal">
+  <div class="modal">
+    <h3>🔒 メンバー管理</h3>
+    <div class="member-list" id="memberList"></div>
+    <div class="add-member-row">
+      <input type="text" id="addMemberEmpId" placeholder="社員番号で追加" />
+      <button onclick="addMember()">追加</button>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('manageMembersModal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新規DM -->
+<div class="modal-overlay" id="newDmModal">
+  <div class="modal">
+    <h3>💬 新しいDM</h3>
+    <input type="text" id="dmSearchInput" placeholder="名前で検索..." oninput="filterDmUsers()" />
+    <div class="member-list" id="dmUserList"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('newDmModal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ユーザー管理 -->
+<div class="modal-overlay" id="userAdminModal">
+  <div class="modal" style="width:500px;max-width:95vw">
+    <h3>⚙️ ユーザー管理</h3>
+    <div id="userAdminList"></div>
+    <button class="btn-ok" style="width:100%;padding:10px;margin-bottom:0" onclick="openAddUser()">＋ ユーザー追加</button>
+    <div class="modal-btns" style="margin-top:12px">
+      <button class="btn-cancel" onclick="closeModal('userAdminModal')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ユーザー追加・編集 -->
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal">
+    <h3 id="editUserTitle">ユーザー追加</h3>
+    <input type="hidden" id="editUserId" />
+    <label class="modal-label">社員番号</label>
+    <input type="text" id="editEmpId" placeholder="例：0001" />
+    <label class="modal-label">名前</label>
+    <input type="text" id="editName" placeholder="例：山田 太郎" />
+    <label class="modal-label">PIN（4桁）</label>
+    <input type="password" id="editPin" placeholder="4桁の数字" maxlength="4" />
+    <div class="toggle-row" style="margin-top:4px">
+      <span>管理者権限</span>
+      <label class="toggle-switch"><input type="checkbox" id="editIsAdmin" /><span class="toggle-slider"></span></label>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('editUserModal')">キャンセル</button>
+      <button class="btn-ok" onclick="saveUser()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 日程調整作成モーダル -->
+<div class="modal-overlay" id="schedulePollModal">
+  <div class="modal" style="width:440px">
+    <h3>📅 日程調整を作成</h3>
+    <label class="modal-label">タイトル</label>
+    <input type="text" id="schedulePollTitle" placeholder="例：来週の定例会議" style="margin-bottom:12px" />
+    <label class="modal-label">候補日時</label>
+    <div class="schedule-options-list" id="scheduleOptionsList">
+      <div class="schedule-option-row">
+        <input type="date" /><input type="time" /><button onclick="removeScheduleOptionRow(this)">×</button>
+      </div>
+      <div class="schedule-option-row">
+        <input type="date" /><input type="time" /><button onclick="removeScheduleOptionRow(this)">×</button>
+      </div>
+      <div class="schedule-option-row">
+        <input type="date" /><input type="time" /><button onclick="removeScheduleOptionRow(this)">×</button>
+      </div>
+    </div>
+    <button class="add-schedule-option-btn" onclick="addScheduleOptionRow()">＋ 候補を追加</button>
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn-cancel" onclick="closeModal('schedulePollModal')">キャンセル</button>
+      <button class="btn-ok" onclick="sendSchedulePoll()">作成</button>
+    </div>
+  </div>
+</div>
+
+<!-- ステータスピッカー -->
+<div class="status-picker" id="statusPicker">
+  <div class="status-option" onclick="updateStatus('在席中')">🟢 在席中</div>
+  <div class="status-option" onclick="updateStatus('離席中')">🟡 離席中</div>
+  <div class="status-option" onclick="updateStatus('会議中')">🔴 会議中</div>
+  <div class="status-option" onclick="updateStatus('テレワーク')">🏠 テレワーク</div>
+  <div class="status-option" onclick="updateStatus('外出中')">🚗 外出中</div>
+  <div class="status-option" onclick="updateStatus('退勤')">⛔ 退勤</div>
+</div>
+
+<div class="modal-overlay" id="editMsgModal">
+  <div class="modal">
+    <h3>メッセージを編集</h3>
+    <input type="hidden" id="editMsgId" />
+    <textarea id="editMsgContent" rows="4" style="width:100%;padding:8px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:14px;resize:vertical;font-family:inherit;outline:none;box-sizing:border-box;"></textarea>
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="btn-cancel" onclick="closeModal('editMsgModal')">キャンセル</button>
+      <button class="btn-ok" onclick="saveEditMsg()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://lwawtzpjwklzprlzwozd.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3YXd0enBqd2tsenBybHp3b3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3NjExMDUsImV4cCI6MjA5NzMzNzEwNX0.HsSw0Mn4IEFGwELrdTlB8HjAwDn58a2bxi5w8VLo3es';
+  const EMOJIS = ['👍','❤️','😂','😮','😢','🎉','🔥','✅','👏','🙏'];
+  function getCustomEmojis() { return JSON.parse(localStorage.getItem('chat_custom_emojis') || '[]'); }
+  function saveCustomEmojis(arr) { localStorage.setItem('chat_custom_emojis', JSON.stringify(arr)); }
+
+  let sb = null;
+  let currentUser = null;
+  let currentChannel = null;
+  let currentThread = null;
+  let realtimeSub = null;
+  let realtimeThreadSub = null;
+  let notifSub = null;
+  let channelToDelete = null;
+  let allUsers = [];
+  let allChannelsCache = [];
+  let selectedFile = null;
+  let emojiTargetMsgId = null;
+  let mentionQuery = null;
+  let mentionStart = -1;
+  let mentionSelectedIdx = 0;
+  let quotedMessage = null;
+  let onlineUsers = new Set();
+  let presenceCh = null;
+
+  function nameToColor(name) {
+    const colors = ['#e53935','#8e24aa','#1e88e5','#00897b','#f57c00','#6d4c41','#546e7a'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  async function init() {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const saved = sessionStorage.getItem('chat_user');
+    if (saved) {
+      const old = JSON.parse(saved);
+      // 常にDBから最新情報を取得
+      const { data } = await sb.from('users').select('*').eq('id', old.id).single();
+      currentUser = data || old;
+      sessionStorage.setItem('chat_user', JSON.stringify(currentUser));
+      startMain();
+    } else show('loginScreen');
+  }
+
+  // ── ログイン ──────────────────────────────────────
+  async function doLogin() {
+    const empId = document.getElementById('loginEmpId').value.trim();
+    const pin = document.getElementById('loginPin').value.trim();
+    if (!empId || !pin) return;
+    const { data, error } = await sb.from('users').select('*').eq('emp_id', empId).eq('pin', pin).single();
+    if (error || !data) { document.getElementById('loginError').style.display = 'block'; return; }
+    currentUser = data;
+    sessionStorage.setItem('chat_user', JSON.stringify(data));
+    startMain();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') doLogin();
+  });
+
+  function doLogout() {
+    sessionStorage.removeItem('chat_user');
+    currentUser = null; currentChannel = null; currentThread = null;
+    if (realtimeSub) sb.removeChannel(realtimeSub);
+    if (realtimeThreadSub) sb.removeChannel(realtimeThreadSub);
+    show('loginScreen');
+  }
+
+  const STATUS_ICONS = { '在席中':'🟢','離席中':'🟡','会議中':'🔴','テレワーク':'🏠','外出中':'🚗','退勤':'⛔' };
+
+  function getStatusIcon(status) { return STATUS_ICONS[status] || '🟢'; }
+
+  function updateSidebarUser() {
+    const icon = getStatusIcon(currentUser.status || '在席中');
+    const label = currentUser.status || '在席中';
+    document.getElementById('sidebarUser').innerHTML =
+      `<span style="font-size:12px">${icon}</span><span style="flex:1">${currentUser.name || currentUser.emp_id}</span><span class="status-badge">${label}</span>`;
+  }
+
+  function openStatusPicker(e) {
+    e.stopPropagation();
+    const picker = document.getElementById('statusPicker');
+    const rect = document.getElementById('sidebarUser').getBoundingClientRect();
+    picker.style.left = rect.left + 'px';
+    picker.style.top = (rect.bottom + 4) + 'px';
+    // 現在のステータスをハイライト
+    picker.querySelectorAll('.status-option').forEach(el => {
+      el.classList.toggle('active', el.textContent.includes(currentUser.status || '在席中'));
+    });
+    picker.classList.add('open');
+  }
+
+  async function updateStatus(status) {
+    document.getElementById('statusPicker').classList.remove('open');
+    await sb.from('users').update({ status }).eq('id', currentUser.id);
+    currentUser.status = status;
+    sessionStorage.setItem('chat_user', JSON.stringify(currentUser));
+    updateSidebarUser();
+    allUsers = allUsers.map(u => u.id === currentUser.id ? { ...u, status } : u);
+  }
+
+  async function startMain() {
+    show('mainScreen');
+    if (currentUser.is_admin) document.getElementById('adminBtn').style.display = 'block';
+    const { data } = await sb.from('users').select('id, name, emp_id, status');
+    allUsers = data || [];
+    // currentUserのstatusを最新に
+    const me = allUsers.find(u => u.id === currentUser.id);
+    if (me) currentUser.status = me.status;
+    updateSidebarUser();
+    document.getElementById('sidebarUser').onclick = openStatusPicker;
+    // ステータス変更のRealtime購読
+    sb.channel('users-status').on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'users' },
+      payload => {
+        allUsers = allUsers.map(u => u.id === payload.new.id ? { ...u, status: payload.new.status } : u);
+        if (payload.new.id === currentUser.id) { currentUser.status = payload.new.status; updateSidebarUser(); }
+        loadDmList();
+      }
+    ).subscribe();
+    await loadChannels();
+    await loadDmList();
+    initPresence();
+    await requestNotifPermission();
+    subscribeAllNotifications();
+  }
+
+  function initPresence() {
+    if (presenceCh) sb.removeChannel(presenceCh);
+    presenceCh = sb.channel('online', { config: { presence: { key: currentUser.id } } });
+    presenceCh.on('presence', { event: 'sync' }, () => {
+      const state = presenceCh.presenceState();
+      onlineUsers = new Set(Object.keys(state));
+      loadDmList();
+    }).subscribe(async status => {
+      if (status === 'SUBSCRIBED') await presenceCh.track({ user_id: currentUser.id });
+    });
+  }
+
+  // ── DM ───────────────────────────────────────────
+  async function loadDmList() {
+    // 自分が参加しているDMチャンネルのみ表示
+    const { data: dmChannels } = await sb.from('channels').select('*')
+      .eq('is_dm', true)
+      .or(`dm_user1_id.eq.${currentUser.id},dm_user2_id.eq.${currentUser.id}`);
+
+    const { data: reads } = await sb.from('channel_reads').select('channel_id, last_read_at').eq('user_id', currentUser.id);
+    const readMap = {};
+    (reads || []).forEach(r => { readMap[r.channel_id] = r.last_read_at; });
+
+    const list = document.getElementById('dmList');
+    list.innerHTML = '';
+
+    (dmChannels || []).forEach(ch => {
+      const partnerId = ch.dm_user1_id === currentUser.id ? ch.dm_user2_id : ch.dm_user1_id;
+      const partner = allUsers.find(u => u.id === partnerId);
+      if (!partner) return;
+
+      const lastRead = readMap[ch.id];
+      const unreadBadge = !lastRead ? '<span class="unread-badge">!</span>' : '';
+      const isOnline = onlineUsers.has(String(partnerId));
+      const dot = isOnline ? '<span class="online-dot"></span>' : '<span class="offline-dot"></span>';
+      const partnerStatus = allUsers.find(u => u.id === partnerId)?.status || '在席中';
+      const statusIcon = getStatusIcon(partnerStatus);
+
+      const el = document.createElement('div');
+      el.className = 'channel-item' + (currentChannel?.id === ch.id ? ' active' : '');
+      el.innerHTML = `<span style="font-size:12px;margin-right:4px">${statusIcon}</span><span class="ch-name">${partner.name}</span><span class="user-status-text">${partnerStatus}</span>${unreadBadge}`;
+      el.onclick = () => selectDmChannel(ch, partner.name);
+      list.appendChild(el);
+    });
+  }
+
+  function openNewDmModal() {
+    document.getElementById('dmSearchInput').value = '';
+    renderDmUserList('');
+    openModal('newDmModal');
+  }
+
+  function filterDmUsers() {
+    const q = document.getElementById('dmSearchInput').value;
+    renderDmUserList(q);
+  }
+
+  function renderDmUserList(query) {
+    const filtered = allUsers.filter(u =>
+      u.id !== currentUser.id &&
+      u.name.toLowerCase().includes(query.toLowerCase())
+    );
+    const el = document.getElementById('dmUserList');
+    el.innerHTML = '';
+    if (!filtered.length) {
+      el.innerHTML = '<div style="color:#aaa;font-size:13px;padding:8px 0">見つかりません</div>';
+      return;
+    }
+    filtered.forEach(u => {
+      const item = document.createElement('div');
+      item.className = 'member-item';
+      item.style.cursor = 'pointer';
+      item.innerHTML = `<span>👤 ${u.name}</span>`;
+      item.onclick = async () => {
+        closeModal('newDmModal');
+        await openDm(u);
+      };
+      el.appendChild(item);
+    });
+  }
+
+  async function openDm(otherUser) {
+    // 既存DMチャンネルを検索
+    const { data: existing } = await sb.from('channels').select('*')
+      .eq('is_dm', true)
+      .or(`and(dm_user1_id.eq.${currentUser.id},dm_user2_id.eq.${otherUser.id}),and(dm_user1_id.eq.${otherUser.id},dm_user2_id.eq.${currentUser.id})`)
+      .single();
+
+    let dmChannel = existing;
+    if (!dmChannel) {
+      const { data: created } = await sb.from('channels').insert({
+        name: `dm_${currentUser.id}_${otherUser.id}`,
+        is_dm: true,
+        is_private: true,
+        dm_user1_id: currentUser.id,
+        dm_user2_id: otherUser.id
+      }).select().single();
+      dmChannel = created;
+    }
+
+    if (!dmChannel) return;
+    await loadDmList();
+    selectDmChannel(dmChannel, otherUser.name);
+  }
+
+  function selectDmChannel(ch, partnerName) {
+    currentChannel = ch;
+    closeThread();
+    document.getElementById('currentChannelName').textContent = '💬 ' + partnerName;
+    document.getElementById('manageMembersBtn').style.display = 'none';
+    document.querySelectorAll('.channel-item').forEach(el => {
+      el.classList.toggle('active', el.querySelector('.ch-name')?.textContent === partnerName);
+    });
+    markChannelRead(ch.id);
+    loadMessages();
+    subscribeChannel();
+  }
+
+  // ── チャンネル ────────────────────────────────────
+  async function loadChannels() {
+    const { data: allCh } = await sb.from('channels').select('*').order('created_at');
+    const { data: myMem } = await sb.from('channel_members').select('channel_id').eq('user_id', currentUser.id);
+    const myIds = new Set((myMem || []).map(m => m.channel_id));
+    const visible = (allCh || []).filter(ch => !ch.is_dm && (!ch.is_private || myIds.has(ch.id)));
+    // 通知用にDM含む全チャンネルをキャッシュ
+    allChannelsCache = allCh || [];
+
+    // 未読カウント取得
+    const { data: reads } = await sb.from('channel_reads').select('channel_id, last_read_at').eq('user_id', currentUser.id);
+    const readMap = {};
+    (reads || []).forEach(r => { readMap[r.channel_id] = r.last_read_at; });
+
+    const unreadCounts = {};
+    await Promise.all(visible.map(async ch => {
+      const lastRead = readMap[ch.id];
+      if (!lastRead) { unreadCounts[ch.id] = 1; return; }
+      const { count } = await sb.from('messages').select('id', { count: 'exact', head: true })
+        .eq('channel_id', ch.id).is('parent_id', null).gt('created_at', lastRead);
+      unreadCounts[ch.id] = count || 0;
+    }));
+
+    const favs = JSON.parse(localStorage.getItem('chat_favs') || '[]');
+    const cats = getCategories();
+    const chCats = getChCats();
+    const container = document.getElementById('channelSections');
+    container.innerHTML = '';
+
+    // 検索フィルター
+    const filtered = sidebarQuery
+      ? visible.filter(ch => ch.name.toLowerCase().includes(sidebarQuery))
+      : visible;
+
+    // お気に入りセクション
+    const favChs = filtered.filter(ch => favs.includes(ch.id));
+    if (favChs.length) {
+      const sec = document.createElement('div');
+      sec.innerHTML = '<div class="cat-header" style="opacity:0.8">⭐ お気に入り</div>';
+      const body = document.createElement('div');
+      body.className = 'channel-list';
+      favChs.forEach(ch => body.appendChild(renderChannelItem(ch, unreadCounts[ch.id] || 0)));
+      sec.appendChild(body);
+      container.appendChild(sec);
+    }
+
+    // カテゴリセクション
+    cats.forEach(cat => {
+      const chs = filtered.filter(ch => chCats[ch.id] === cat.id);
+      if (!chs.length && sidebarQuery) return;
+      const sec = document.createElement('div');
+      const header = document.createElement('div');
+      header.className = 'cat-header';
+      header.innerHTML = `
+        <span class="cat-toggle${cat.collapsed ? ' collapsed' : ''}">▼</span>
+        <span style="flex:1">${cat.name}</span>
+        <div class="cat-actions">
+          <button class="cat-action-btn" onclick="openRenameCategoryModal('${cat.id}')" title="名前変更">✏️</button>
+          <button class="cat-action-btn" onclick="deleteCategory('${cat.id}')" title="削除">🗑️</button>
+        </div>
+      `;
+      header.onclick = e => { if (!e.target.classList.contains('cat-action-btn')) toggleCategory(cat.id); };
+      const body = document.createElement('div');
+      body.className = 'cat-body channel-list' + (cat.collapsed ? ' collapsed' : '');
+      chs.forEach(ch => body.appendChild(renderChannelItem(ch, unreadCounts[ch.id] || 0)));
+      if (!chs.length) body.innerHTML = '<div style="font-size:12px;opacity:0.5;padding:4px 10px;">チャンネルなし</div>';
+      sec.appendChild(header);
+      sec.appendChild(body);
+      container.appendChild(sec);
+    });
+
+    // その他（未分類・非お気に入り）
+    const otherChs = filtered.filter(ch => !favs.includes(ch.id) && !chCats[ch.id]);
+    if (otherChs.length || !cats.length) {
+      const sec = document.createElement('div');
+      if (cats.length) {
+        const label = document.createElement('div');
+        label.className = 'cat-header';
+        label.style.opacity = '0.6';
+        label.textContent = 'その他';
+        sec.appendChild(label);
+      }
+      const body = document.createElement('div');
+      body.className = 'channel-list';
+      otherChs.forEach(ch => body.appendChild(renderChannelItem(ch, unreadCounts[ch.id] || 0)));
+      sec.appendChild(body);
+      container.appendChild(sec);
+    }
+
+    if (visible.length && !currentChannel) selectChannel(visible[0]);
+  }
+
+  function selectChannel(ch) {
+    currentChannel = ch;
+    closeThread();
+    document.getElementById('currentChannelName').textContent = (ch.is_private ? '🔒 ' : '# ') + ch.name;
+    document.getElementById('manageMembersBtn').style.display = ch.is_private ? 'block' : 'none';
+    document.querySelectorAll('.channel-item').forEach(el => {
+      const isActive = el.querySelector('.ch-name')?.textContent === ch.name;
+      el.classList.toggle('active', isActive);
+      // 選択したチャンネルの未読バッジを即消す
+      if (isActive) { const b = el.querySelector('.unread-badge'); if (b) b.remove(); }
+    });
+    markChannelRead(ch.id);
+    loadMessages();
+    subscribeChannel();
+  }
+
+  async function markChannelRead(channelId) {
+    await sb.from('channel_reads').upsert({ user_id: currentUser.id, channel_id: channelId, last_read_at: new Date().toISOString() }, { onConflict: 'user_id,channel_id' });
+  }
+
+  // ── カテゴリ管理 ──────────────────────────────────
+  function getCategories() { return JSON.parse(localStorage.getItem('chat_categories') || '[]'); }
+  function saveCategories(c) { localStorage.setItem('chat_categories', JSON.stringify(c)); }
+  function getChCats() { return JSON.parse(localStorage.getItem('chat_ch_cats') || '{}'); }
+  function saveChCats(m) { localStorage.setItem('chat_ch_cats', JSON.stringify(m)); }
+
+  function openAddCategoryModal() {
+    document.getElementById('newCategoryName').value = '';
+    openModal('addCategoryModal');
+  }
+
+  function addCategory() {
+    const name = document.getElementById('newCategoryName').value.trim();
+    if (!name) return;
+    const cats = getCategories();
+    cats.push({ id: 'cat_' + Date.now(), name, collapsed: false });
+    saveCategories(cats);
+    closeModal('addCategoryModal');
+    loadChannels();
+  }
+
+  function openRenameCategoryModal(catId) {
+    const cats = getCategories();
+    const cat = cats.find(c => c.id === catId);
+    if (!cat) return;
+    document.getElementById('renameCategoryId').value = catId;
+    document.getElementById('renameCategoryName').value = cat.name;
+    openModal('renameCategoryModal');
+  }
+
+  function renameCategory() {
+    const id = document.getElementById('renameCategoryId').value;
+    const name = document.getElementById('renameCategoryName').value.trim();
+    if (!name) return;
+    const cats = getCategories();
+    const cat = cats.find(c => c.id === id);
+    if (cat) cat.name = name;
+    saveCategories(cats);
+    closeModal('renameCategoryModal');
+    loadChannels();
+  }
+
+  function deleteCategory(catId) {
+    if (!confirm('カテゴリを削除しますか？（チャンネルは削除されません）')) return;
+    const cats = getCategories().filter(c => c.id !== catId);
+    saveCategories(cats);
+    const map = getChCats();
+    Object.keys(map).forEach(k => { if (map[k] === catId) delete map[k]; });
+    saveChCats(map);
+    loadChannels();
+  }
+
+  function toggleCategory(catId) {
+    const cats = getCategories();
+    const cat = cats.find(c => c.id === catId);
+    if (cat) cat.collapsed = !cat.collapsed;
+    saveCategories(cats);
+    loadChannels();
+  }
+
+  function assignToCategory(chId, catId) {
+    const map = getChCats();
+    if (catId === null) delete map[chId];
+    else map[chId] = catId;
+    saveChCats(map);
+    closeCtxMenu();
+    loadChannels();
+  }
+
+  // ── コンテキストメニュー ──────────────────────────
+  function openChannelCtxMenu(e, ch) {
+    e.stopPropagation();
+    const cats = getCategories();
+    const map = getChCats();
+    const currentCat = map[ch.id];
+    const menu = document.getElementById('ctxMenu');
+    let html = '';
+    if (cats.length) {
+      html += cats.map(cat =>
+        `<div class="ctx-item" onclick="assignToCategory('${ch.id}','${cat.id}')">
+          ${currentCat === cat.id ? '✓ ' : '　'}${cat.name}に移動
+        </div>`
+      ).join('');
+      if (currentCat) html += `<div class="ctx-item" onclick="assignToCategory('${ch.id}',null)">　カテゴリから外す</div>`;
+      html += `<hr class="ctx-divider">`;
+    } else {
+      html += `<div class="ctx-item" style="color:#aaa;font-size:12px;cursor:default">📁 でカテゴリを先に作成</div><hr class="ctx-divider">`;
+    }
+    html += `<div class="ctx-item danger" onclick="openDeleteChannel(event,'${ch.id}','${ch.name.replace(/'/g,"\\'")}')">削除</div>`;
+    menu.innerHTML = html;
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 180) + 'px';
+    menu.style.top = Math.min(e.clientY, window.innerHeight - menu.offsetHeight - 10) + 'px';
+    menu.classList.add('open');
+  }
+
+  function closeCtxMenu() { document.getElementById('ctxMenu').classList.remove('open'); }
+  document.addEventListener('click', closeCtxMenu);
+
+  // ── サイドバー検索 ────────────────────────────────
+  let sidebarQuery = '';
+  function filterSidebar(q) {
+    sidebarQuery = q.toLowerCase().trim();
+    loadChannels();
+    loadDmList();
+  }
+
+  // ── チャンネル描画（カテゴリ対応） ──────────────
+  function renderChannelItem(ch, unread) {
+    const favs = JSON.parse(localStorage.getItem('chat_favs') || '[]');
+    const isFav = favs.includes(ch.id);
+    const el = document.createElement('div');
+    el.className = 'channel-item' + (currentChannel?.id === ch.id ? ' active' : '');
+    el.innerHTML = `
+      ${ch.is_private ? '<span style="font-size:11px">🔒</span>' : '<span style="opacity:0.7">#</span>'}
+      <span class="ch-name">${ch.name}</span>
+      ${unread > 0 && currentChannel?.id !== ch.id ? `<span class="unread-badge">${unread > 99 ? '99+' : unread}</span>` : ''}
+      <button class="fav-btn${isFav ? ' active' : ''}" onclick="toggleFav(event,'${ch.id}')" title="お気に入り">★</button>
+      <button class="ch-menu-btn" onclick="openChannelCtxMenu(event,${JSON.stringify(ch).replace(/"/g,'&quot;')})" title="メニュー">⋮</button>
+    `;
+    el.onclick = e => {
+      if (e.target.classList.contains('fav-btn') || e.target.classList.contains('ch-menu-btn')) return;
+      selectChannel(ch);
+    };
+    return el;
+  }
+
+  function toggleFav(e, chId) {
+    e.stopPropagation();
+    const favs = JSON.parse(localStorage.getItem('chat_favs') || '[]');
+    const idx = favs.indexOf(chId);
+    if (idx >= 0) favs.splice(idx, 1); else favs.push(chId);
+    localStorage.setItem('chat_favs', JSON.stringify(favs));
+    loadChannels();
+  }
+
+  async function openSelfNote() {
+    const { data: existing } = await sb.from('channels').select('*')
+      .eq('is_dm', true).eq('dm_user1_id', currentUser.id).eq('dm_user2_id', currentUser.id).maybeSingle();
+    let ch = existing;
+    if (!ch) {
+      const { data: created } = await sb.from('channels').insert({
+        name: `note_${currentUser.id}`, is_dm: true, is_private: true,
+        dm_user1_id: currentUser.id, dm_user2_id: currentUser.id
+      }).select().single();
+      ch = created;
+    }
+    if (!ch) return;
+    document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('selfNoteItem').classList.add('active');
+    currentChannel = ch;
+    closeThread();
+    document.getElementById('currentChannelName').textContent = '📝 メモ（自分）';
+    document.getElementById('manageMembersBtn').style.display = 'none';
+    markChannelRead(ch.id);
+    loadMessages();
+    subscribeChannel();
+  }
+
+  function openAddChannel() {
+    document.getElementById('newChannelName').value = '';
+    document.getElementById('newChannelPrivate').checked = false;
+    openModal('addChannelModal');
+  }
+
+  async function addChannel() {
+    const name = document.getElementById('newChannelName').value.trim();
+    const isPrivate = document.getElementById('newChannelPrivate').checked;
+    if (!name) return;
+    const { data: ch } = await sb.from('channels').insert({ name, is_private: isPrivate }).select().single();
+    if (isPrivate && ch) await sb.from('channel_members').insert({ channel_id: ch.id, user_id: currentUser.id });
+    closeModal('addChannelModal');
+    await loadChannels();
+    if (ch) selectChannel(ch);
+  }
+
+  function openDeleteChannel(e, id, name) {
+    e.stopPropagation();
+    channelToDelete = { id, name };
+    document.getElementById('deleteChannelNameLabel').textContent = name;
+    openModal('deleteChannelModal');
+  }
+
+  async function confirmDeleteChannel() {
+    if (!channelToDelete) return;
+    await sb.from('messages').delete().eq('channel_id', channelToDelete.id);
+    await sb.from('channel_members').delete().eq('channel_id', channelToDelete.id);
+    await sb.from('channels').delete().eq('id', channelToDelete.id);
+    closeModal('deleteChannelModal');
+    if (currentChannel?.id === channelToDelete.id) {
+      currentChannel = null;
+      document.getElementById('currentChannelName').textContent = 'チャンネルを選択';
+      document.getElementById('messages').innerHTML = '';
+    }
+    channelToDelete = null;
+    await loadChannels();
+  }
+
+  // ── メンバー管理 ───────────────────────────────────
+  async function openManageMembers() {
+    await renderMemberList();
+    document.getElementById('addMemberEmpId').value = '';
+    openModal('manageMembersModal');
+  }
+
+  async function renderMemberList() {
+    const { data } = await sb.from('channel_members').select('id, users(name, emp_id)').eq('channel_id', currentChannel.id);
+    const list = document.getElementById('memberList');
+    list.innerHTML = '';
+    (data || []).forEach(m => {
+      const el = document.createElement('div');
+      el.className = 'member-item';
+      el.innerHTML = `<span>${m.users?.name || m.users?.emp_id || '不明'}</span><button class="remove-member-btn" onclick="removeMember('${m.id}')">×</button>`;
+      list.appendChild(el);
+    });
+    if (!data?.length) list.innerHTML = '<div style="color:#aaa;font-size:13px;padding:8px 0">メンバーがいません</div>';
+  }
+
+  async function addMember() {
+    const empId = document.getElementById('addMemberEmpId').value.trim();
+    if (!empId) return;
+    const { data: user } = await sb.from('users').select('id,name').eq('emp_id', empId).single();
+    if (!user) { alert('社員番号が見つかりません'); return; }
+    const { error } = await sb.from('channel_members').insert({ channel_id: currentChannel.id, user_id: user.id });
+    if (error?.code === '23505') { alert('すでに追加されています'); return; }
+    document.getElementById('addMemberEmpId').value = '';
+    await renderMemberList();
+  }
+
+  async function removeMember(memberId) {
+    await sb.from('channel_members').delete().eq('id', memberId);
+    await renderMemberList();
+  }
+
+  // ── ユーザー管理 ──────────────────────────────────
+  async function openUserAdmin() {
+    await renderUserAdmin();
+    openModal('userAdminModal');
+  }
+
+  async function renderUserAdmin() {
+    const { data } = await sb.from('users').select('*').order('emp_id');
+    const el = document.getElementById('userAdminList');
+    if (!data?.length) { el.innerHTML = '<p style="color:#aaa;font-size:13px;margin-bottom:12px">ユーザーがいません</p>'; return; }
+    el.innerHTML = `<table class="user-table">
+      <thead><tr><th>社員番号</th><th>名前</th><th>管理者</th><th></th></tr></thead>
+      <tbody>${data.map(u => `
+        <tr>
+          <td>${u.emp_id}</td>
+          <td>${u.name}</td>
+          <td>${u.is_admin ? '✅' : ''}</td>
+          <td>
+            <button class="user-edit-btn" onclick="openEditUser('${u.id}','${u.emp_id}','${u.name}',${u.is_admin})">編集</button>
+            <button class="user-del-btn" onclick="deleteUser('${u.id}','${u.name}')">削除</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  function openAddUser() {
+    document.getElementById('editUserTitle').textContent = 'ユーザー追加';
+    document.getElementById('editUserId').value = '';
+    document.getElementById('editEmpId').value = '';
+    document.getElementById('editName').value = '';
+    document.getElementById('editPin').value = '';
+    document.getElementById('editIsAdmin').checked = false;
+    document.getElementById('editEmpId').disabled = false;
+    openModal('editUserModal');
+  }
+
+  function openEditUser(id, empId, name, isAdmin) {
+    document.getElementById('editUserTitle').textContent = 'ユーザー編集';
+    document.getElementById('editUserId').value = id;
+    document.getElementById('editEmpId').value = empId;
+    document.getElementById('editName').value = name;
+    document.getElementById('editPin').value = '';
+    document.getElementById('editIsAdmin').checked = isAdmin;
+    document.getElementById('editEmpId').disabled = true;
+    openModal('editUserModal');
+  }
+
+  async function saveUser() {
+    const id = document.getElementById('editUserId').value;
+    const empId = document.getElementById('editEmpId').value.trim();
+    const name = document.getElementById('editName').value.trim();
+    const pin = document.getElementById('editPin').value.trim();
+    const isAdmin = document.getElementById('editIsAdmin').checked;
+    if (!name) { alert('名前を入力してください'); return; }
+
+    if (id) {
+      const updates = { name, is_admin: isAdmin };
+      if (pin) updates.pin = pin;
+      await sb.from('users').update(updates).eq('id', id);
+    } else {
+      if (!empId || !pin) { alert('社員番号とPINを入力してください'); return; }
+      await sb.from('users').insert({ emp_id: empId, pin, name, is_admin: isAdmin });
+    }
+    allUsers = (await sb.from('users').select('id,name,emp_id')).data || [];
+    closeModal('editUserModal');
+    await renderUserAdmin();
+  }
+
+  async function deleteUser(id, name) {
+    if (!confirm(`${name} を削除しますか？`)) return;
+    await sb.from('users').delete().eq('id', id);
+    allUsers = (await sb.from('users').select('id,name,emp_id')).data || [];
+    await renderUserAdmin();
+  }
+
+  // ── 検索 ──────────────────────────────────────────
+  let cachedMsgs = [], cachedReplyCounts = {}, cachedReactionsMap = {}, cachedVoteResponsesMap = {};
+
+  function toggleSearch() {
+    const bar = document.getElementById('searchBar');
+    const isOpen = bar.classList.toggle('open');
+    if (isOpen) {
+      document.getElementById('searchInput').focus();
+    } else {
+      document.getElementById('searchInput').value = '';
+      renderMessages(cachedMsgs, cachedReplyCounts, cachedReactionsMap);
+    }
+  }
+
+  function filterMessages(q) {
+    if (!q.trim()) {
+      renderMessages(cachedMsgs, cachedReplyCounts, cachedReactionsMap, '', cachedVoteResponsesMap);
+      return;
+    }
+    const lower = q.toLowerCase();
+    const filtered = cachedMsgs.filter(m => m.content && m.content.toLowerCase().includes(lower));
+    renderMessages(filtered, cachedReplyCounts, cachedReactionsMap, lower, cachedVoteResponsesMap);
+  }
+
+  // ── 編集・削除 ────────────────────────────────────
+  function openEditMsg(id, content) {
+    document.getElementById('editMsgId').value = id;
+    document.getElementById('editMsgContent').value = content.replace(/\\n/g, '\n');
+    document.getElementById('editMsgModal').classList.add('open');
+  }
+
+  async function saveEditMsg() {
+    const id = document.getElementById('editMsgId').value;
+    const content = document.getElementById('editMsgContent').value.trim();
+    if (!content) return;
+    await sb.from('messages').update({ content }).eq('id', id);
+    closeModal('editMsgModal');
+    loadMessages();
+  }
+
+  async function deleteMsg(id) {
+    if (!confirm('このメッセージを削除しますか？')) return;
+    await sb.from('reactions').delete().eq('message_id', id);
+    await sb.from('messages').delete().eq('parent_id', id);
+    await sb.from('messages').delete().eq('id', id);
+    loadMessages();
+  }
+
+  // ── メッセージ ─────────────────────────────────────
+  async function loadMessages() {
+    if (!currentChannel) return;
+    const { data } = await sb.from('messages').select('*, users(name)')
+      .eq('channel_id', currentChannel.id).is('parent_id', null)
+      .order('created_at', { ascending: true }).limit(200);
+
+    const msgs = data || [];
+    const ids = msgs.map(m => m.id);
+    let replyCounts = {}, reactionsMap = {};
+
+    let voteResponsesMap = {};
+    if (ids.length) {
+      const { data: replies } = await sb.from('messages').select('parent_id').in('parent_id', ids);
+      (replies || []).forEach(r => { replyCounts[r.parent_id] = (replyCounts[r.parent_id] || 0) + 1; });
+
+      const { data: reactions } = await sb.from('reactions').select('*').in('message_id', ids);
+      (reactions || []).forEach(r => {
+        if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = [];
+        reactionsMap[r.message_id].push(r);
+      });
+
+      const voteIds = msgs.filter(m => m.is_vote).map(m => m.id);
+      if (voteIds.length) {
+        const { data: vr } = await sb.from('vote_responses').select('*').in('message_id', voteIds);
+        (vr || []).forEach(r => {
+          if (!voteResponsesMap[r.message_id]) voteResponsesMap[r.message_id] = [];
+          voteResponsesMap[r.message_id].push(r);
+        });
+      }
+    }
+    cachedMsgs = msgs;
+    cachedReplyCounts = replyCounts;
+    cachedReactionsMap = reactionsMap;
+    cachedVoteResponsesMap = voteResponsesMap;
+    const q = document.getElementById('searchInput')?.value || '';
+    if (q.trim()) {
+      filterMessages(q);
+    } else {
+      renderMessages(msgs, replyCounts, reactionsMap, '', voteResponsesMap);
+    }
+  }
+
+  function renderMentions(text) {
+    return text.replace(/@([^\s@]+)/g, (match, name) => {
+      const found = allUsers.find(u => u.name === name);
+      return found ? `<span class="msg-mention">${match}</span>` : match;
+    });
+  }
+
+  function renderFormat(html) {
+    return html
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/~~(.+?)~~/g, '<del>$1</del>')
+      .replace(/==(.+?)==/g, '<mark style="background:#fff176;color:#333;padding:0 2px;border-radius:2px;">$1</mark>')
+      .replace(/\[c:([a-zA-Z#0-9]+)\](.+?)\[\/c\]/g, '<span style="color:$1">$2</span>');
+  }
+
+  // ── テキスト書式 ──────────────────────────────────
+  const TEXT_COLORS = [
+    { color: '#e53935', label: '赤' }, { color: '#f57c00', label: 'オレンジ' },
+    { color: '#f9a825', label: '黄' }, { color: '#2e7d32', label: '緑' },
+    { color: '#1a73e8', label: '青' }, { color: '#6a1b9a', label: '紫' },
+    { color: '#795548', label: '茶' }, { color: '#546e7a', label: 'グレー' },
+  ];
+
+  function initColorPicker() {
+    const pop = document.getElementById('colorPickerPop');
+    if (!pop) return;
+    pop.innerHTML = TEXT_COLORS.map(c =>
+      `<div class="color-dot" style="background:${c.color}" title="${c.label}" onclick="applyColor('${c.color}')"></div>`
+    ).join('') + `<div class="color-dot" style="background:#333;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;" title="黒" onclick="applyColor('#333')">A</div>`;
+  }
+
+  function applyFmt(type) {
+    const ta = document.getElementById('msgInput');
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end);
+    const map = { bold: '**', italic: '*', strike: '~~', highlight: '==' };
+    const marker = map[type];
+    const inner = selected || 'テキスト';
+    const newText = marker + inner + marker;
+    ta.value = ta.value.substring(0, start) + newText + ta.value.substring(end);
+    ta.focus();
+    if (!selected) {
+      ta.selectionStart = start + marker.length;
+      ta.selectionEnd = start + marker.length + inner.length;
+    } else {
+      ta.selectionStart = start;
+      ta.selectionEnd = start + newText.length;
+    }
+    autoResize(ta);
+  }
+
+  function applyColor(color) {
+    const ta = document.getElementById('msgInput');
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const selected = ta.value.substring(start, end);
+    const inner = selected || 'テキスト';
+    const newText = `[c:${color}]${inner}[/c]`;
+    ta.value = ta.value.substring(0, start) + newText + ta.value.substring(end);
+    ta.focus();
+    document.getElementById('colorPickerPop').classList.remove('open');
+    autoResize(ta);
+  }
+
+  function toggleColorPicker(e) {
+    e.stopPropagation();
+    document.getElementById('colorPickerPop').classList.toggle('open');
+  }
+
+  document.addEventListener('click', () => {
+    document.getElementById('colorPickerPop')?.classList.remove('open');
+  });
+
+  function renderMessages(msgs, replyCounts = {}, reactionsMap = {}, searchQ = '', voteResponsesMap = {}) {
+    const el = document.getElementById('messages');
+    el.innerHTML = '';
+    let lastDate = '';
+
+    msgs.forEach(msg => {
+      const date = new Date(msg.created_at);
+      const dateStr = date.toLocaleDateString('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' });
+      const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      const name = msg.users?.name || '不明';
+      const isMe = msg.user_id === currentUser.id;
+      const side = isMe ? 'mine' : 'others';
+
+      if (dateStr !== lastDate) {
+        const div = document.createElement('div');
+        div.className = 'msg-date-divider';
+        div.textContent = dateStr;
+        el.appendChild(div);
+        lastDate = dateStr;
+      }
+
+      const group = document.createElement('div');
+      group.className = `msg-group ${side}`;
+
+      // アバター
+      const avatar = document.createElement('div');
+      avatar.className = 'msg-avatar';
+      avatar.style.background = nameToColor(name);
+      avatar.textContent = name.charAt(0);
+      group.appendChild(avatar);
+
+      // ボディ
+      const body = document.createElement('div');
+      body.className = 'msg-body';
+
+      // 名前＋時刻
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      meta.innerHTML = `<span class="msg-name${isMe ? ' me' : ''}">${name}</span><span class="msg-time">${timeStr}</span>`;
+      body.appendChild(meta);
+
+      // メッセージ本体
+      const row = document.createElement('div');
+      row.className = 'msg-row';
+
+      const contentLine = document.createElement('div');
+      contentLine.className = 'msg-content-line';
+
+      const bubbleWrap = document.createElement('div');
+      bubbleWrap.className = 'msg-bubble-wrap';
+
+      // actionsを先に生成（vote cardでも使用するため）
+      const actions = document.createElement('div');
+      actions.className = 'msg-actions';
+
+      // 投票カード
+      if (msg.is_vote && msg.vote_options) {
+        const vo = msg.vote_options;
+        const responses = voteResponsesMap[msg.id] || [];
+
+        // 日程調整カード
+        if (vo.type === 'schedule') {
+          const card = document.createElement('div');
+          card.className = 'schedule-card';
+          const creator = allUsers.find(u => u.id === msg.user_id);
+          card.innerHTML = `<div class="schedule-card-title">📅 ${vo.question}</div><div class="schedule-card-meta">作成：${creator?.name || '不明'} · ${vo.options.length}件の候補</div>`;
+          vo.options.forEach((opt, i) => {
+            const optResponses = responses.filter(r => r.option_index === i);
+            const maruUsers = optResponses.filter(r => r.vote_value === '○');
+            const sankakuUsers = optResponses.filter(r => r.vote_value === '△');
+            const batsuUsers = optResponses.filter(r => r.vote_value === '✗');
+            const myR = optResponses.find(r => r.user_id === currentUser.id);
+            const getName = r => allUsers.find(u => u.id === r.user_id)?.name || '不明';
+            const optEl = document.createElement('div');
+            optEl.className = 'schedule-option';
+            optEl.innerHTML = `
+              <div class="schedule-option-label">${opt}</div>
+              <div class="schedule-vote-counts">
+                <span class="schedule-vote-count maru">○ ${maruUsers.length}人</span>
+                <span class="schedule-vote-count sankaku">△ ${sankakuUsers.length}人</span>
+                <span class="schedule-vote-count batsu">✗ ${batsuUsers.length}人</span>
+              </div>
+              ${maruUsers.length || sankakuUsers.length || batsuUsers.length ? `<div class="schedule-vote-names">${
+                [...maruUsers.map(r=>`<span style="color:#34a853">○${getName(r)}</span>`),
+                 ...sankakuUsers.map(r=>`<span style="color:#fbbc04">△${getName(r)}</span>`),
+                 ...batsuUsers.map(r=>`<span style="color:#ea4335">✗${getName(r)}</span>`)].join('　')
+              }</div>` : ''}
+              <div class="schedule-btn-row">
+                <button class="schedule-vote-btn ${myR?.vote_value==='○'?'active-maru':''}" onclick="castScheduleVote('${msg.id}',${i},'○')">○</button>
+                <button class="schedule-vote-btn ${myR?.vote_value==='△'?'active-sankaku':''}" onclick="castScheduleVote('${msg.id}',${i},'△')">△</button>
+                <button class="schedule-vote-btn ${myR?.vote_value==='✗'?'active-batsu':''}" onclick="castScheduleVote('${msg.id}',${i},'✗')">✗</button>
+              </div>`;
+            card.appendChild(optEl);
+          });
+          const respondedCount = new Set(responses.map(r => r.user_id)).size;
+          const footer = document.createElement('div');
+          footer.className = 'schedule-card-footer';
+          footer.textContent = `${respondedCount}人が回答済み`;
+          card.appendChild(footer);
+          actions.innerHTML = isMe ? `<button class="msg-action-btn" title="削除" onclick="deleteMsg('${msg.id}')">🗑️</button>` : '';
+          bubbleWrap.appendChild(card);
+          bubbleWrap.appendChild(actions);
+          contentLine.appendChild(bubbleWrap);
+          row.appendChild(contentLine);
+          body.appendChild(row);
+          group.appendChild(body);
+          el.appendChild(group);
+          return;
+        }
+
+        // 通常投票カード
+        const total = responses.length;
+        const myVote = responses.find(r => r.user_id === currentUser.id);
+        const card = document.createElement('div');
+        card.className = 'vote-card';
+        const qDiv = document.createElement('div');
+        qDiv.className = 'vote-question';
+        qDiv.textContent = vo.question;
+        card.appendChild(qDiv);
+        vo.options.forEach((opt, i) => {
+          const count = responses.filter(r => r.option_index === i).length;
+          const pct = total > 0 ? Math.round(count / total * 100) : 0;
+          const isMyVote = myVote?.option_index === i;
+          const optEl = document.createElement('div');
+          optEl.className = 'vote-option';
+          optEl.innerHTML = `
+            <div class="vote-option-bar-wrap${isMyVote ? ' voted' : ''}">
+              <div class="vote-option-bar" style="width:${pct}%"></div>
+              <div class="vote-option-label">
+                <span>${opt}${isMyVote ? ' <span class="vote-option-check">✓</span>' : ''}</span>
+                <span class="vote-option-pct">${count}票 (${pct}%)</span>
+              </div>
+            </div>`;
+          optEl.onclick = () => castVote(msg.id, i);
+          card.appendChild(optEl);
+        });
+        const footer = document.createElement('div');
+        footer.className = 'vote-footer';
+        footer.textContent = `合計 ${total} 票 · ${myVote !== undefined ? '投票済み（再クリックで取消）' : 'クリックで投票'}`;
+        card.appendChild(footer);
+        actions.innerHTML = isMe
+          ? `<button class="msg-action-btn" title="削除" onclick="deleteMsg('${msg.id}')">🗑️</button>`
+          : '';
+        bubbleWrap.appendChild(card);
+        bubbleWrap.appendChild(actions);
+        contentLine.appendChild(bubbleWrap);
+        row.appendChild(contentLine);
+        body.appendChild(row);
+        group.appendChild(body);
+        el.appendChild(group);
+        return;
+      }
+
+      // 引用ブロック
+      const rawContent = msg.content || '';
+      if (rawContent.startsWith('\u{E001}')) {
+        const sepIdx = rawContent.indexOf('\u{E002}');
+        const bodyIdx = rawContent.indexOf('\u{E003}');
+        if (sepIdx > 0 && bodyIdx > sepIdx) {
+          const qName = rawContent.substring(1, sepIdx);
+          const qText = rawContent.substring(sepIdx + 1, bodyIdx);
+          const qBlock = document.createElement('div');
+          qBlock.className = 'quote-block';
+          qBlock.innerHTML = `<div class="quote-name">${qName}</div><div>${qText.substring(0, 80)}${qText.length > 80 ? '…' : ''}</div>`;
+          bubbleWrap.appendChild(qBlock);
+        }
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = `msg-bubble ${side}`;
+      const displayContent = rawContent.startsWith('\u{E001}') ? rawContent.substring(rawContent.indexOf('\u{E003}') + 1) : rawContent;
+      let content = renderFormat(renderMentions(displayContent)).replace(/\n/g, '<br>');
+      if (searchQ) {
+        const re = new RegExp(`(${searchQ.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+        content = content.replace(re, '<mark style="background:#fff176;color:#333;border-radius:2px;">$1</mark>');
+        bubble.classList.add('search-highlight');
+      }
+      bubble.innerHTML = content;
+      bubbleWrap.appendChild(bubble);
+
+      actions.innerHTML = `
+        <button class="msg-action-btn" title="確認スタンプ" onclick="toggleStamp('${msg.id}')">✅</button>
+        <button class="msg-action-btn" title="引用返信" onclick="quoteMessage(${JSON.stringify({id:msg.id,name,content:displayContent})})">↩</button>
+        <button class="msg-action-btn" title="リアクション" onclick="openEmojiPicker(event,'${msg.id}')">😊</button>
+        <button class="msg-action-btn" title="スレッド" onclick="openThread('${msg.id}')">💬</button>
+        ${isMe ? `<button class="msg-action-btn" title="編集" onclick="openEditMsg('${msg.id}',${JSON.stringify(displayContent)})">✏️</button><button class="msg-action-btn" title="削除" onclick="deleteMsg('${msg.id}')">🗑️</button>` : ''}
+      `;
+
+      bubbleWrap.appendChild(actions);
+      contentLine.appendChild(bubbleWrap);
+      row.appendChild(contentLine);
+
+      // ファイル添付
+      if (msg.file_url) {
+        const fp = document.createElement('div');
+        fp.className = 'file-preview';
+        if (msg.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          fp.innerHTML = `<img src="${msg.file_url}" alt="${msg.file_name||'画像'}" onclick="window.open('${msg.file_url}','_blank')" />`;
+        } else if (msg.file_url.match(/\.(mp4|webm|mov|avi|mkv)$/i)) {
+          fp.innerHTML = `<video src="${msg.file_url}" controls preload="metadata"></video>`;
+        } else if (msg.file_url.match(/\.(mp3|wav|ogg|m4a|aac)$/i)) {
+          fp.innerHTML = `<audio src="${msg.file_url}" controls preload="metadata"></audio>`;
+        } else {
+          const icon = msg.file_url.match(/\.pdf$/i) ? '📄' : msg.file_url.match(/\.(xlsx|xls|csv)$/i) ? '📊' : msg.file_url.match(/\.(docx|doc)$/i) ? '📝' : msg.file_url.match(/\.(pptx|ppt)$/i) ? '📊' : '📎';
+          fp.innerHTML = `<a class="file-link" href="${msg.file_url}" target="_blank">${icon} ${msg.file_name || 'ファイル'}</a>`;
+        }
+        row.appendChild(fp);
+      }
+
+      body.appendChild(row);
+
+      // リアクション＆名前スタンプ
+      const reactions = reactionsMap[msg.id] || [];
+      if (reactions.length) {
+        const stamps = reactions.filter(r => r.emoji === '__stamp__');
+        const emojis = reactions.filter(r => r.emoji !== '__stamp__');
+
+        // 絵文字リアクション
+        if (emojis.length) {
+          const grouped = {};
+          emojis.forEach(r => {
+            if (!grouped[r.emoji]) grouped[r.emoji] = [];
+            grouped[r.emoji].push(r);
+          });
+          const rRow = document.createElement('div');
+          rRow.className = 'reactions-row';
+          Object.entries(grouped).forEach(([emoji, list]) => {
+            const mine = list.some(r => r.user_id === currentUser.id);
+            const chip = document.createElement('button');
+            chip.className = 'reaction-chip' + (mine ? ' mine' : '');
+            if (emoji.startsWith('img:')) {
+              chip.innerHTML = `<img src="${emoji.slice(4)}" style="height:20px;width:20px;object-fit:cover;border-radius:3px;vertical-align:middle;"> <span class="cnt">${list.length}</span>`;
+            } else {
+              chip.innerHTML = `${emoji} <span class="cnt">${list.length}</span>`;
+            }
+            chip.onclick = () => toggleReaction(msg.id, emoji);
+            rRow.appendChild(chip);
+          });
+          body.appendChild(rRow);
+        }
+
+        // 名前スタンプ
+        if (stamps.length) {
+          const sRow = document.createElement('div');
+          sRow.className = 'name-stamp-row';
+          const label = document.createElement('span');
+          label.style.cssText = 'font-size:11px;color:#aaa;align-self:center;margin-right:2px;';
+          label.textContent = '✅確認：';
+          sRow.appendChild(label);
+          stamps.forEach(r => {
+            const user = allUsers.find(u => u.id === r.user_id);
+            const chip = document.createElement('button');
+            const isMe = r.user_id === currentUser.id;
+            chip.className = 'name-stamp-chip' + (isMe ? ' mine' : '');
+            chip.textContent = user?.name || '不明';
+            chip.title = isMe ? 'クリックで取り消す' : '';
+            chip.onclick = () => { if (isMe) toggleStamp(msg.id); };
+            sRow.appendChild(chip);
+          });
+          body.appendChild(sRow);
+        }
+      }
+
+      // スレッド返信数
+      const cnt = replyCounts[msg.id];
+      if (cnt) {
+        const tc = document.createElement('span');
+        tc.className = 'thread-count';
+        tc.textContent = `💬 ${cnt}件の返信`;
+        tc.onclick = () => openThread(msg.id);
+        body.appendChild(tc);
+      }
+
+      group.appendChild(body);
+      el.appendChild(group);
+    });
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function quoteMessage(msg) {
+    quotedMessage = msg;
+    document.getElementById('quotePreviewText').textContent = `${msg.name}：${msg.content.substring(0, 60)}${msg.content.length > 60 ? '…' : ''}`;
+    document.getElementById('quotePreviewArea').classList.add('show');
+    document.getElementById('msgInput').focus();
+  }
+
+  function clearQuote() {
+    quotedMessage = null;
+    document.getElementById('quotePreviewArea').classList.remove('show');
+  }
+
+  // ── ファイル送信 ───────────────────────────────────
+  function onFileSelected() {
+    const f = document.getElementById('fileInput').files[0];
+    if (!f) return;
+    selectedFile = f;
+    document.getElementById('filePreviewName').textContent = f.name;
+    document.getElementById('filePreview').classList.add('show');
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('filePreview').classList.remove('show');
+  }
+
+  async function uploadFile(file) {
+    const ext = file.name.split('.').pop();
+    const path = `${currentUser.id}/${Date.now()}.${ext}`;
+    const { error } = await sb.storage.from('chat-files').upload(path, file);
+    if (error) { alert('ファイルのアップロードに失敗しました'); return null; }
+    const { data } = sb.storage.from('chat-files').getPublicUrl(path);
+    return { url: data.publicUrl, name: file.name };
+  }
+
+  // ── メッセージ送信 ─────────────────────────────────
+  async function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const content = input.value.trim();
+    if (!content && !selectedFile) return;
+    if (!currentChannel) return;
+
+    input.value = ''; input.style.height = 'auto';
+    hideMentionSuggestions();
+
+    // 投票コマンド検出: /vote 質問 選択肢1 選択肢2 ...
+    if (content.startsWith('/vote ')) {
+      const parts = content.slice(6).split(' ').filter(p => p);
+      if (parts.length >= 3) {
+        const question = parts[0];
+        const options = parts.slice(1);
+        await sb.from('messages').insert({
+          channel_id: currentChannel.id, user_id: currentUser.id,
+          content: `📊 ${question}`, is_vote: true,
+          vote_options: { question, options }
+        });
+        await markChannelRead(currentChannel.id);
+        return;
+      }
+    }
+
+    let fileUrl = null, fileName = null;
+    if (selectedFile) {
+      const result = await uploadFile(selectedFile);
+      if (result) { fileUrl = result.url; fileName = result.name; }
+      clearFile();
+    }
+
+    let finalContent = content || (fileName || '');
+    if (quotedMessage) {
+      finalContent = `\u{E001}${quotedMessage.name}\u{E002}${quotedMessage.content}\u{E003}${finalContent}`;
+      clearQuote();
+    }
+
+    await sb.from('messages').insert({
+      channel_id: currentChannel.id, user_id: currentUser.id,
+      content: finalContent, file_url: fileUrl, file_name: fileName
+    });
+    await markChannelRead(currentChannel.id);
+  }
+
+  async function castVote(msgId, optionIndex) {
+    const { data: existing } = await sb.from('vote_responses')
+      .select('id, option_index').eq('message_id', msgId).eq('user_id', currentUser.id).maybeSingle();
+    if (existing) {
+      if (existing.option_index === optionIndex) {
+        await sb.from('vote_responses').delete().eq('id', existing.id);
+      } else {
+        await sb.from('vote_responses').update({ option_index: optionIndex }).eq('id', existing.id);
+      }
+    } else {
+      await sb.from('vote_responses').insert({ message_id: msgId, user_id: currentUser.id, option_index: optionIndex });
+    }
+    loadMessages();
+  }
+
+  async function castScheduleVote(msgId, optionIndex, voteValue) {
+    const { data: existing } = await sb.from('vote_responses')
+      .select('id, vote_value').eq('message_id', msgId).eq('user_id', currentUser.id).eq('option_index', optionIndex).maybeSingle();
+    if (existing) {
+      if (existing.vote_value === voteValue) {
+        await sb.from('vote_responses').delete().eq('id', existing.id);
+      } else {
+        await sb.from('vote_responses').update({ vote_value: voteValue }).eq('id', existing.id);
+      }
+    } else {
+      await sb.from('vote_responses').insert({ message_id: msgId, user_id: currentUser.id, option_index: optionIndex, vote_value: voteValue });
+    }
+    loadMessages();
+  }
+
+  function openSchedulePoll() {
+    if (!currentChannel) { alert('チャンネルを選択してください'); return; }
+    document.getElementById('schedulePollTitle').value = '';
+    const list = document.getElementById('scheduleOptionsList');
+    list.innerHTML = '';
+    for (let i = 0; i < 3; i++) addScheduleOptionRow();
+    openModal('schedulePollModal');
+  }
+
+  function addScheduleOptionRow() {
+    const list = document.getElementById('scheduleOptionsList');
+    const row = document.createElement('div');
+    row.className = 'schedule-option-row';
+    row.innerHTML = `<input type="date" /><input type="time" /><button onclick="removeScheduleOptionRow(this)">×</button>`;
+    list.appendChild(row);
+  }
+
+  function removeScheduleOptionRow(btn) {
+    const list = document.getElementById('scheduleOptionsList');
+    if (list.children.length <= 1) return;
+    btn.closest('.schedule-option-row').remove();
+  }
+
+  async function sendSchedulePoll() {
+    const title = document.getElementById('schedulePollTitle').value.trim();
+    if (!title) { alert('タイトルを入力してください'); return; }
+    const rows = document.querySelectorAll('#scheduleOptionsList .schedule-option-row');
+    const options = [];
+    rows.forEach(row => {
+      const date = row.querySelector('input[type=date]').value;
+      const time = row.querySelector('input[type=time]').value;
+      if (!date) return;
+      const d = new Date(date);
+      const label = d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', weekday: 'short' });
+      options.push(time ? `${label} ${time}` : label);
+    });
+    if (options.length === 0) { alert('候補日時を1件以上入力してください'); return; }
+    await sb.from('messages').insert({
+      channel_id: currentChannel.id, user_id: currentUser.id,
+      content: `📅 ${title}`, is_vote: true,
+      vote_options: { type: 'schedule', question: title, options }
+    });
+    closeModal('schedulePollModal');
+    await markChannelRead(currentChannel.id);
+  }
+
+  function subscribeChannel() {
+    if (realtimeSub) sb.removeChannel(realtimeSub);
+    realtimeSub = sb.channel('ch:' + currentChannel.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `channel_id=eq.${currentChannel.id}` },
+        () => { loadMessages(); markChannelRead(currentChannel.id); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' },
+        () => loadMessages())
+      .subscribe();
+  }
+
+  // ── スレッド ──────────────────────────────────────
+  async function openThread(msgId) {
+    const { data: msg } = await sb.from('messages').select('*, users(name)').eq('id', msgId).single();
+    if (!msg) return;
+    currentThread = msg;
+    document.getElementById('threadOriginal').innerHTML = `<div class="orig-name">${msg.users?.name || '不明'}</div><div>${renderMentions(msg.content)}</div>`;
+    document.getElementById('threadPanel').classList.add('open');
+    await loadThreadReplies();
+    subscribeThread();
+  }
+
+  function closeThread() {
+    document.getElementById('threadPanel').classList.remove('open');
+    currentThread = null;
+    if (realtimeThreadSub) sb.removeChannel(realtimeThreadSub);
+  }
+
+  async function loadThreadReplies() {
+    if (!currentThread) return;
+    const { data } = await sb.from('messages').select('*, users(name)')
+      .eq('parent_id', currentThread.id).order('created_at', { ascending: true });
+
+    const msgs = data || [];
+    const ids = msgs.map(m => m.id);
+    let reactionsMap = {};
+    if (ids.length) {
+      const { data: reactions } = await sb.from('reactions').select('*').in('message_id', ids);
+      (reactions || []).forEach(r => {
+        if (!reactionsMap[r.message_id]) reactionsMap[r.message_id] = [];
+        reactionsMap[r.message_id].push(r);
+      });
+    }
+
+    const el = document.getElementById('threadMessages');
+    el.innerHTML = '';
+    msgs.forEach(msg => {
+      const date = new Date(msg.created_at);
+      const timeStr = date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      const isMe = msg.user_id === currentUser.id;
+
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      meta.innerHTML = `<span class="msg-name">${msg.users?.name || '不明'}</span><span class="msg-time">${timeStr}</span>`;
+
+      const row = document.createElement('div');
+      row.className = 'msg-row';
+
+      const contentLine = document.createElement('div');
+      contentLine.className = 'msg-content-line';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'msg-bubble' + (isMe ? ' mine' : '');
+      bubble.innerHTML = renderFormat(renderMentions(msg.content)).replace(/\n/g, '<br>');
+
+      const actions = document.createElement('div');
+      actions.className = 'msg-actions';
+      actions.innerHTML = `<button class="msg-action-btn" title="リアクション" onclick="openEmojiPicker(event,'${msg.id}')">😊</button>`;
+
+      contentLine.appendChild(bubble);
+      contentLine.appendChild(actions);
+      row.appendChild(contentLine);
+
+      // リアクション表示
+      const reactions = reactionsMap[msg.id] || [];
+      if (reactions.length) {
+        const grouped = {};
+        reactions.forEach(r => {
+          if (!grouped[r.emoji]) grouped[r.emoji] = [];
+          grouped[r.emoji].push(r);
+        });
+        const rRow = document.createElement('div');
+        rRow.className = 'reactions-row';
+        Object.entries(grouped).forEach(([emoji, list]) => {
+          const mine = list.some(r => r.user_id === currentUser.id);
+          const chip = document.createElement('button');
+          chip.className = 'reaction-chip' + (mine ? ' mine' : '');
+          if (emoji.startsWith('img:')) {
+            chip.innerHTML = `<img src="${emoji.slice(4)}" style="height:20px;width:20px;object-fit:cover;border-radius:3px;vertical-align:middle;"> <span class="cnt">${list.length}</span>`;
+          } else {
+            chip.innerHTML = `${emoji} <span class="cnt">${list.length}</span>`;
+          }
+          chip.onclick = () => { toggleReaction(msg.id, emoji); };
+          rRow.appendChild(chip);
+        });
+        row.appendChild(rRow);
+      }
+
+      el.appendChild(meta);
+      el.appendChild(row);
+    });
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function sendThreadReply() {
+    const input = document.getElementById('threadInput');
+    const content = input.value.trim();
+    if (!content || !currentThread) return;
+    input.value = ''; input.style.height = 'auto';
+    await sb.from('messages').insert({
+      channel_id: currentChannel.id, user_id: currentUser.id,
+      content, parent_id: currentThread.id
+    });
+  }
+
+  function subscribeThread() {
+    if (realtimeThreadSub) sb.removeChannel(realtimeThreadSub);
+    realtimeThreadSub = sb.channel('thread:' + currentThread.id)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `parent_id=eq.${currentThread.id}` },
+        () => { loadThreadReplies(); loadMessages(); })
+      .subscribe();
+  }
+
+  // ── リアクション ──────────────────────────────────
+  function renderStampBtn(em, isCustom) {
+    const btn = document.createElement('button');
+    if (em.startsWith('img:')) {
+      const img = document.createElement('img');
+      img.src = em.slice(4);
+      img.className = 'emoji-img-btn';
+      btn.appendChild(img);
+      btn.style.cssText = 'background:none;border:none;cursor:pointer;padding:2px;';
+    } else {
+      btn.className = 'emoji-btn';
+      btn.textContent = em;
+    }
+    btn.onclick = () => pickEmoji(em);
+    if (isCustom) {
+      btn.title = '右クリックで削除';
+      btn.addEventListener('contextmenu', ev => {
+        ev.preventDefault(); ev.stopPropagation();
+        const label = em.startsWith('img:') ? 'この画像スタンプ' : `「${em}」`;
+        if (!confirm(`${label}を削除しますか？`)) return;
+        saveCustomEmojis(getCustomEmojis().filter(x => x !== em));
+        document.getElementById('emojiPicker').classList.remove('open');
+      });
+    }
+    return btn;
+  }
+
+  function openEmojiPicker(e, msgId) {
+    e.stopPropagation();
+    emojiTargetMsgId = msgId;
+    const picker = document.getElementById('emojiPicker');
+    picker.innerHTML = '';
+    EMOJIS.forEach(em => picker.appendChild(renderStampBtn(em, false)));
+    getCustomEmojis().forEach(em => picker.appendChild(renderStampBtn(em, true)));
+
+    const addEmojiBtn = document.createElement('button');
+    addEmojiBtn.className = 'emoji-add-btn';
+    addEmojiBtn.title = '絵文字追加';
+    addEmojiBtn.textContent = '＋';
+    addEmojiBtn.onclick = addCustomStamp;
+    picker.appendChild(addEmojiBtn);
+
+    const addImgBtn = document.createElement('button');
+    addImgBtn.className = 'emoji-add-btn';
+    addImgBtn.title = '画像スタンプ追加';
+    addImgBtn.textContent = '🖼';
+    addImgBtn.onclick = e2 => { e2.stopPropagation(); document.getElementById('stampImageInput').click(); };
+    picker.appendChild(addImgBtn);
+
+    picker.style.left = (e.pageX - 100) + 'px';
+    picker.style.top = (e.pageY + 8) + 'px';
+    picker.classList.add('open');
+  }
+
+  function addCustomStamp(e) {
+    if (e) e.stopPropagation();
+    const em = prompt('追加する絵文字を入力してください（例：🌟）');
+    if (!em || !em.trim()) return;
+    const cur = getCustomEmojis();
+    if (cur.includes(em.trim()) || EMOJIS.includes(em.trim())) { alert('すでに登録されています'); return; }
+    saveCustomEmojis([...cur, em.trim()]);
+    document.getElementById('emojiPicker').classList.remove('open');
+  }
+
+  async function onStampImageSelected() {
+    const file = document.getElementById('stampImageInput').files[0];
+    if (!file) return;
+    document.getElementById('emojiPicker').classList.remove('open');
+    const ext = file.name.split('.').pop();
+    const path = `stamps/${Date.now()}.${ext}`;
+    const { data, error } = await sb.storage.from('chat-files').upload(path, file, { upsert: true });
+    if (error) { alert('画像のアップロードに失敗しました'); return; }
+    const { data: { publicUrl } } = sb.storage.from('chat-files').getPublicUrl(path);
+    saveCustomEmojis([...getCustomEmojis(), `img:${publicUrl}`]);
+    document.getElementById('stampImageInput').value = '';
+  }
+
+  async function pickEmoji(emoji) {
+    document.getElementById('emojiPicker').classList.remove('open');
+    if (!emojiTargetMsgId) return;
+    await toggleReaction(emojiTargetMsgId, emoji);
+    emojiTargetMsgId = null;
+  }
+
+  async function toggleStamp(msgId) {
+    const { data: existing } = await sb.from('reactions')
+      .select('id').eq('message_id', msgId).eq('user_id', currentUser.id).eq('emoji', '__stamp__').single();
+    if (existing) {
+      await sb.from('reactions').delete().eq('id', existing.id);
+    } else {
+      await sb.from('reactions').insert({ message_id: msgId, user_id: currentUser.id, emoji: '__stamp__' });
+    }
+    loadMessages();
+    if (currentThread) loadThreadReplies();
+  }
+
+  async function toggleReaction(msgId, emoji) {
+    const { data: existing } = await sb.from('reactions')
+      .select('id').eq('message_id', msgId).eq('user_id', currentUser.id).eq('emoji', emoji).single();
+    if (existing) {
+      await sb.from('reactions').delete().eq('id', existing.id);
+    } else {
+      await sb.from('reactions').insert({ message_id: msgId, user_id: currentUser.id, emoji });
+    }
+    loadMessages();
+    if (currentThread) loadThreadReplies();
+  }
+
+  document.addEventListener('click', () => {
+    document.getElementById('emojiPicker').classList.remove('open');
+    document.getElementById('statusPicker').classList.remove('open');
+  });
+
+  // ── メンション ────────────────────────────────────
+  function onMsgInput(el) {
+    autoResize(el);
+    const val = el.value;
+    const pos = el.selectionStart;
+    const before = val.substring(0, pos);
+    const atIdx = before.lastIndexOf('@');
+    if (atIdx >= 0 && !before.substring(atIdx + 1).includes(' ')) {
+      mentionQuery = before.substring(atIdx + 1).toLowerCase();
+      mentionStart = atIdx;
+      const filtered = allUsers.filter(u => u.name.toLowerCase().includes(mentionQuery) && u.id !== currentUser.id);
+      if (filtered.length) { showMentionSuggestions(filtered); return; }
+    }
+    hideMentionSuggestions();
+  }
+
+  function showMentionSuggestions(users) {
+    mentionSelectedIdx = 0;
+    const el = document.getElementById('mentionSuggestions');
+    el.innerHTML = users.map((u, i) => `
+      <div class="mention-item${i === 0 ? ' selected' : ''}" onclick="insertMention('${u.name}')">
+        <div class="mention-avatar">${u.name.charAt(0)}</div>
+        ${u.name}
+      </div>`).join('');
+    el.classList.add('open');
+    el._users = users;
+  }
+
+  function hideMentionSuggestions() {
+    document.getElementById('mentionSuggestions').classList.remove('open');
+    mentionQuery = null; mentionStart = -1;
+  }
+
+  function insertMention(name) {
+    const input = document.getElementById('msgInput');
+    const val = input.value;
+    const pos = input.selectionStart;
+    input.value = val.substring(0, mentionStart) + '@' + name + ' ' + val.substring(pos);
+    input.focus();
+    hideMentionSuggestions();
+  }
+
+  // ── UI補助 ────────────────────────────────────────
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  function show(id) {
+    ['loginScreen','mainScreen'].forEach(s => {
+      document.getElementById(s).style.display = s === id ? (s === 'mainScreen' ? 'block' : 'flex') : 'none';
+    });
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e, target) {
+    const sug = document.getElementById('mentionSuggestions');
+    if (sug.classList.contains('open') && target === 'main') {
+      const items = sug.querySelectorAll('.mention-item');
+      if (e.key === 'ArrowDown') { e.preventDefault(); mentionSelectedIdx = Math.min(mentionSelectedIdx + 1, items.length - 1); items.forEach((el, i) => el.classList.toggle('selected', i === mentionSelectedIdx)); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); mentionSelectedIdx = Math.max(mentionSelectedIdx - 1, 0); items.forEach((el, i) => el.classList.toggle('selected', i === mentionSelectedIdx)); return; }
+      if (e.key === 'Enter') { e.preventDefault(); insertMention(sug._users[mentionSelectedIdx].name); return; }
+      if (e.key === 'Escape') { hideMentionSuggestions(); return; }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (target === 'main') sendMessage();
+      else sendThreadReply();
+    }
+  }
+
+  // ── リサイズ ──────────────────────────────────────
+  function initResizer(resizerId, targetEl, side) {
+    const resizer = document.getElementById(resizerId);
+    if (!resizer) return;
+    let startX, startW;
+
+    resizer.addEventListener('mousedown', e => {
+      startX = e.clientX;
+      startW = targetEl.offsetWidth;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      function onMove(e) {
+        const delta = side === 'left' ? e.clientX - startX : startX - e.clientX;
+        const min = parseInt(targetEl.style.minWidth || targetEl.getAttribute('min-width') || 160);
+        const max = parseInt(targetEl.style.maxWidth || targetEl.getAttribute('max-width') || 600);
+        const newW = Math.min(Math.max(startW + delta, min), max);
+        targetEl.style.width = newW + 'px';
+      }
+
+      function onUp() {
+        resizer.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
+
+  function initResizers() {
+    initResizer('resizerSidebar', document.querySelector('.sidebar'), 'left');
+    initResizer('resizerThread', document.getElementById('threadPanel'), 'right');
+  }
+
+  // ── ブラウザ通知 ──────────────────────────────────
+  async function requestNotifPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    updateNotifBell();
+  }
+
+  function updateNotifBell() {
+    const bell = document.getElementById('notifBell');
+    if (!bell) return;
+    const granted = Notification.permission === 'granted';
+    bell.title = granted ? '通知オン' : '通知をオンにする';
+    bell.style.opacity = granted ? '1' : '0.4';
+  }
+
+  function subscribeAllNotifications() {
+    if (notifSub) sb.removeChannel(notifSub);
+    notifSub = sb.channel('notif-global')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        const msg = payload.new;
+        if (msg.user_id === currentUser.id) return;
+        if (msg.parent_id) return;
+        if (msg.channel_id === currentChannel?.id && document.hasFocus()) return;
+        const sender = allUsers.find(u => u.id === msg.user_id);
+        const senderName = sender?.name || '不明';
+        const ch = allChannelsCache.find(c => c.id === msg.channel_id);
+        const chName = ch
+          ? (ch.is_dm ? 'DM' : `#${ch.name}`)
+          : '';
+        const title = chName ? `${senderName}（${chName}）` : senderName;
+        const rawBody = (msg.content || '').replace(/\*\*|==|~~|\*|\[c:[^\]]+\]|\[\/c\]/g, '');
+        const body = rawBody.substring(0, 80) || 'ファイルを送信しました';
+        showBrowserNotif(title, body, msg.channel_id);
+      })
+      .subscribe();
+  }
+
+  function showBrowserNotif(title, body, channelId) {
+    if (Notification.permission !== 'granted') return;
+    const n = new Notification(title, {
+      body,
+      icon: 'https://via.placeholder.com/192x192/1a73e8/ffffff?text=Chat',
+      tag: channelId,
+      renotify: true,
+    });
+    n.onclick = () => {
+      window.focus();
+      const ch = allChannelsCache.find(c => c.id === channelId);
+      if (ch) {
+        if (ch.is_dm) {
+          const partnerId = ch.dm_user1_id === currentUser.id ? ch.dm_user2_id : ch.dm_user1_id;
+          const partner = allUsers.find(u => u.id === partnerId);
+          if (partner) selectDmChannel(ch, partner.name);
+          else if (ch.dm_user1_id === ch.dm_user2_id) openSelfNote();
+        } else {
+          selectChannel(ch);
+        }
+      }
+      n.close();
+    };
+  }
+
+  // クリップボードから画像を貼り付け
+  document.getElementById('msgInput').addEventListener('paste', e => {
+    const files = e.clipboardData?.files;
+    if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+      e.preventDefault();
+      selectedFile = files[0];
+      document.getElementById('filePreviewName').textContent = files[0].name || 'clipboard-image.png';
+      document.getElementById('filePreview').classList.add('show');
+    }
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+
+  init();
+  initResizers();
+  initColorPicker();
+</script>
+</body>
+</html>
