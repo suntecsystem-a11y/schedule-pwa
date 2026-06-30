@@ -1895,6 +1895,7 @@
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' },
         () => loadMessages())
       .subscribe(status => {
+        console.log('[Realtime] status:', status);
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           setTimeout(() => { if (currentChannel) subscribeChannel(); }, 3000);
         }
