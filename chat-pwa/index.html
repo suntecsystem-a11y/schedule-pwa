@@ -739,6 +739,12 @@
     initPresence();
     await requestNotifPermission();
     subscribeAllNotifications();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && currentChannel) {
+        loadMessages();
+        subscribeChannel();
+      }
+    });
   }
 
   function initPresence() {
@@ -1888,7 +1894,11 @@
         () => { loadMessages(); markChannelRead(currentChannel.id); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' },
         () => loadMessages())
-      .subscribe();
+      .subscribe(status => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setTimeout(() => { if (currentChannel) subscribeChannel(); }, 3000);
+        }
+      });
   }
 
   // ── スレッド ──────────────────────────────────────
