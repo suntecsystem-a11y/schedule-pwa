@@ -484,13 +484,14 @@ input,select{font-family:inherit;outline:none}
         <div id="home-room-status"></div>
       </div>
     </div>
-    <!-- 社用車の空き -->
+    <!-- 社用車の空き（車タブ未リリースのため一時非表示）
     <div style="max-width:900px;margin:0 auto;padding:8px 12px 0">
       <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">
         <div style="font-size:0.82em;font-weight:700;color:var(--text2);margin-bottom:8px">🚗 社用車の空き（今日）</div>
         <div id="home-car-status"></div>
       </div>
     </div>
+    -->
     <!-- お知らせエリア -->
     <div id="notice-home-wrap" style="max-width:900px;margin:0 auto 4px;padding:8px 12px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -1344,7 +1345,7 @@ function showApp(){
   buildFilterUI();
   switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   renderAll();
-  loadCarData().then(() => renderHomeDayWidgets());
+  // loadCarData(); // 車タブ未リリースのため一時停止（ホームの車ウィジェットも非表示）
   loadHolidays();
   loadRentalMasters();
 }
@@ -2184,7 +2185,8 @@ function renderHomeDayWidgets(){
     }).join('');
   }
 
-  // ---- 社用車の空き状況 ----
+  // ---- 社用車の空き状況（車タブ未リリースのため一時コメントアウト） ----
+  /*
   const carEl = document.getElementById('home-car-status');
   if(carEl){
     if(!carMasters.length){
@@ -2222,6 +2224,7 @@ function renderHomeDayWidgets(){
       `</div>`;
     }
   }
+  */
 }
 
 function renderHome(){
