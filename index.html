@@ -1182,7 +1182,7 @@ const APPROVAL_OVERRIDE_EMPID = {
 // currentUserが申請者(applicantDept)の承認者になれるか判定（主任不在部署の委譲・管理者の全部署承認を考慮）
 // ※管理者の全部署承認は一時的な対応。承認フロー整理後に見直す想定
 function canApproveDept(applicantDept) {
-  if (currentUser.isAdmin) return true;
+  // if (currentUser.isAdmin) return true; // 一時的対応のため無効化（2026-07-03）
   const overrideId = APPROVAL_OVERRIDE_EMPID[applicantDept];
   if (overrideId) return String(currentUser.id) === String(overrideId);
   if (!isShunin(currentUser)) return false;
