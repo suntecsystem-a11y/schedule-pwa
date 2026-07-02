@@ -760,9 +760,9 @@ input,select{font-family:inherit;outline:none}
         <div class="ev-row-icon">🕐</div>
         <div class="ev-row-content">
           <div class="ev-time-block">
-            <input type="time" id="ev-start" oninput="checkRoomConflict();checkParticipantConflicts()">
+            <input type="time" id="ev-start" oninput="checkRoomConflict();checkParticipantConflicts()" onclick="this.showPicker&&this.showPicker()">
             <span class="ev-date-sep">〜</span>
-            <input type="time" id="ev-end" oninput="checkRoomConflict();checkParticipantConflicts()">
+            <input type="time" id="ev-end" oninput="checkRoomConflict();checkParticipantConflicts()" onclick="this.showPicker&&this.showPicker()">
           </div>
         </div>
       </div>
