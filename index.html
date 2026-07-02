@@ -54,7 +54,7 @@ input,select{font-family:inherit;outline:none}
 .content{flex:1;padding:16px;max-width:900px;width:100%;margin:0 auto}
 @media(min-width:900px){
   .content{max-width:1400px;padding:20px 28px}
-  .month-week-row{height:200px}
+  .month-week-row{height:240px}
   .week-body{max-height:calc(100vh - 180px)}
   .ev-layer{top:32px}
   .cell-num{font-size:0.82em;width:26px;height:26px}
@@ -174,7 +174,7 @@ input,select{font-family:inherit;outline:none}
 .month-grid{background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
 .month-header{display:grid;grid-template-columns:repeat(7,1fr);background:var(--primary)}
 .month-header div{text-align:center;padding:8px 2px;font-size:0.75em;font-weight:600;color:white}
-.month-week-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);height:130px;position:relative}
+.month-week-row{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);height:170px;position:relative}
 .month-week-row:last-child{border-bottom:none}
 .month-cell{border-right:1px solid var(--border);padding:4px 3px 0;cursor:pointer;position:relative}
 .month-cell:last-child{border-right:none}
@@ -1622,7 +1622,7 @@ function renderCalendar(){
 }
 
 // ===== 月表示 =====
-const MAX_BARS=2;
+const MAX_BARS=4;
 function renderMonth(){
   const y=calDate.getFullYear(),m=calDate.getMonth();
   document.getElementById('cal-title').textContent=`${y}年 ${m+1}月`;
