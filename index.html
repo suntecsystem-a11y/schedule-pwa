@@ -1170,15 +1170,35 @@ function isShunin(user){
   return (u?.role || '') === '主任';
 }
 
-// 自分が承認すべき「申請中」イベントを返す（主任かつ同部署）
+// 主任不在部署の承認委譲設定（gas.gs側の同名定数と一致させること）
+const APPROVAL_DEPT_ALIAS = {
+  '事務': '製造',
+};
+const APPROVAL_OVERRIDE_EMPID = {
+  '総務':   '100',
+  '新規事業': '100',
+};
+
+// currentUserが申請者(applicantDept)の承認者になれるか判定（主任不在部署の委譲・管理者の全部署承認を考慮）
+// ※管理者の全部署承認は一時的な対応。承認フロー整理後に見直す想定
+function canApproveDept(applicantDept) {
+  if (currentUser.isAdmin) return true;
+  const overrideId = APPROVAL_OVERRIDE_EMPID[applicantDept];
+  if (overrideId) return String(currentUser.id) === String(overrideId);
+  if (!isShunin(currentUser)) return false;
+  const effectiveDept = APPROVAL_DEPT_ALIAS[applicantDept] || applicantDept;
+  return currentUser.dept === effectiveDept;
+}
+
+// 自分が承認すべき「申請中」イベントを返す
 function getPendingApprovals() {
-  if (!isShunin(currentUser)) return [];
   return events.filter(e => {
     if (e.approvalStatus !== '申請中') return false;
     if (!APPROVAL_TYPES.includes(e.type)) return false;
     if (e.userId === currentUser.id) return false; // 自分自身の申請は除外
     const applicant = USERS.find(u => u.id === e.userId);
-    return applicant?.dept === currentUser.dept;
+    if (!applicant) return false;
+    return canApproveDept(applicant.dept);
   });
 }
 
@@ -2772,12 +2792,12 @@ function openDetail(id){
       ${approvalRow}
     </table>`;
 
-  // 承認ボタンの表示判定：主任 & 同部署 & 申請中
+  // 承認ボタンの表示判定：承認権限あり & 申請中（主任不在部署の委譲を考慮）
   const applicant = USERS.find(u => u.id === e.userId);
-  const canApprove = isShunin(currentUser)
-    && e.approvalStatus === '申請中'
-    && applicant?.dept === currentUser.dept
-    && e.userId !== currentUser.id;
+  const canApprove = e.approvalStatus === '申請中'
+    && e.userId !== currentUser.id
+    && !!applicant
+    && canApproveDept(applicant.dept);
 
   let actionsHTML = '';
   if (canApprove) {
