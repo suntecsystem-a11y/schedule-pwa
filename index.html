@@ -233,6 +233,8 @@ input,select{font-family:inherit;outline:none}
 .status-在宅{background:#e8f5e9;color:#1b5e20}
 .status-打ち合わせ{background:#f3e5f5;color:#4a148c}
 .status-会議室{background:#e8eaf6;color:#1a237e}
+.status-会議中{background:#e8eaf6;color:#1a237e}
+.status-休み{background:#fbe9e7;color:#bf360c}
 .status-在席{background:#f5f5f5;color:#616161}
 
 /* チーム */
@@ -1089,7 +1091,6 @@ let pinTargetEmpId = null;
 let teamFilterStatus = null;
 let teamView = 'normal'; // 'normal' | 'dept'
 let mpUserId = null, mpWeekOffset = 0;
-// let kotAbsentIds = []; // KoT連携有効化時にコメント解除
 let holidays = [];
 let yasumiUsers = new Set(); // 休みマーク（ローカルのみ・Kintone保存なし）
 let homeView = 'grid'; // ホームページの表示モード: 'grid' | 'cards'
@@ -1138,7 +1139,8 @@ function uid(){ return 'e'+Date.now()+Math.random().toString(36).slice(2,6) }
 // "HH:MM" → 分数値（時刻比較用）
 function timeToMins(t){ if(!t) return 0; const[h,m]=(t+':0').split(':'); return +h*60+(+m||0) }
 function userName(id){ return USERS.find(u=>u.id===id)?.name || id }
-function typeIcon(t){ return{会議室:'🏢',外出:'🚶',出張:'✈️',休暇:'🌴',在宅:'🏠',打ち合わせ:'💬'}[t]||'📌' }
+const TYPE_ICON = {会議室:'🏢',外出:'🚶',出張:'✈️',休暇:'🌴',在宅:'🏠',打ち合わせ:'💬'};
+function typeIcon(t){ return TYPE_ICON[t]||'📌' }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200) }
 
 // ===== オフライン検知 =====
@@ -1593,48 +1595,6 @@ function renderTypeLegend(){
 }
 function renderAll(){ renderCalendar(); renderTeam(); renderDashboard(); renderSidebarToday(); renderTypeLegend(); }
 
-// ============================================================
-// ▼ King of Time 欠勤自動反映（未有効化）
-// ============================================================
-// 【有効化の手順】
-//   1. gas.gs の syncKotAbsent / getKotAbsent のコメントを外してデプロイ
-//   2. GASタイムトリガーを 9時台・13時台 に2つ設定
-//   3. 下記 /* ... */ を外す
-//   4. afterLogin() の末尾に loadKotAbsent() の呼び出しを追加
-//   5. renderTeam() 内のステータス判定に applyKotAbsent(userId, todayEvs) を追加
-//      （在宅・出張登録済みの人は除外するため既存イベントを渡す）
-//
-/*
-
-async function loadKotAbsent() {
-  if (!GAS_URL) return;
-  try {
-    kotAbsentIds = await api('getKotAbsent', {});
-  } catch(e) {
-    console.warn('KoT欠勤リスト取得失敗:', e.message);
-    kotAbsentIds = [];
-  }
-  renderTeam(); // 取得後に在籍ボードを再描画
-}
-
-// スケジュールに「在宅」「出張」「休暇」登録済みの人は KoT の休み扱いから除外
-// 戻り値: true = KoT起因で休み扱い
-function applyKotAbsent(userId, todayEvs) {
-  if (!kotAbsentIds.includes(userId)) return false;
-  const EXCLUDE_TYPES = ['在宅', '出張', '休暇']; // これらが登録済みなら除外
-  const hasSchedule = todayEvs.some(e => EXCLUDE_TYPES.includes(e.type));
-  return !hasSchedule;
-}
-
-// 使用例（renderTeam のステータス判定部分に追加）:
-// const isKotAbsent = applyKotAbsent(u.id, todayEvs);
-// const status = STATUS_PRIORITY.find(s => todayEvs.some(e => e.type === s))
-//   || (isKotAbsent ? '休み' : (isHol ? '休暇' : '在席'));
-
-*/
-// ============================================================
-// ▼ King of Time 欠勤自動反映ここまで
-// ============================================================
 function renderCalendar(){
   if(calView==='month') renderMonth();
   else if(calView==='week') renderWeek();
@@ -1886,7 +1846,7 @@ function renderRoomTimeline(){
 // ===== 在籍ボード =====
 // 会議室・打ち合わせは時刻チェックあり、それ以外は日付のみで判定
 const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','打ち合わせ','会議中'];
-const STATUS_ICON = {'出張':'🚗','休暇':'🌴','休み':'🛌','外出':'🚶','在宅':'🏠','打ち合わせ':'💬','会議中':'📋','在席':'🏢'};
+const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢'};
 
 function renderTeam(){
   if (teamView === 'dept') { renderTeamDeptView(); return; }
@@ -2001,7 +1961,7 @@ function renderTeamDeptView() {
       : (statusBase || (isHoliday ? '休暇' : '在席'));
     // 今日の予定（会議室含む）を時刻順
     const todayEvs = myEvs
-      .filter(e => e.type !== '会議室' || true)
+      .slice()
       .sort((a,b) => timeToMins(a.start||'00:00') - timeToMins(b.start||'00:00'));
     return { ...u, status, todayEvs };
   });
@@ -2237,7 +2197,6 @@ function renderHome(){
   });
   const DAY_LABELS = ['日','月','火','水','木','金','土'];
   const HOME_TYPES = ['外出','出張','在宅','休暇'];
-  const TYPE_COLOR = {'外出':'#fb8c00','出張':'#1e88e5','在宅':'#8e24aa','休暇':'#43a047'};
   const today = fmtDate(new Date());
 
   // ユーザーごとに7日間の予定を集計
@@ -2294,7 +2253,7 @@ function renderHome(){
           if(!evs.length) return `<td style="padding:4px;border-bottom:1px solid var(--border);border-left:1px solid var(--border)"></td>`;
           const pills = evs.map(e => {
             if(e._yasumi) return `<span style="font-size:0.72em;padding:2px 6px;border-radius:10px;background:#eeeeee;color:#757575;font-weight:700">🛌 休み</span>`;
-            const col = TYPE_COLOR[e.type]||'#9e9e9e';
+            const col = STATUS_COLOR[e.type]||'#9e9e9e';
             const timeStr = e.start ? ` ${e.start}〜${e.end}` : '';
             return `<span style="font-size:0.72em;font-weight:700;padding:2px 7px;border-radius:10px;background:${col};color:white;white-space:nowrap">${e.type}${timeStr}</span>`;
           }).join('<br>');
@@ -2339,7 +2298,7 @@ function renderHome(){
             const key = e.type + (e.start ? `__${e.start}〜${e.end}` : '');
             if(!typeMap[key]) {
               typeMap[key] = {
-                col: TYPE_COLOR[e.type]||'#9e9e9e',
+                col: STATUS_COLOR[e.type]||'#9e9e9e',
                 textCol: 'white',
                 label: e.type,
                 names: [],
@@ -2400,9 +2359,7 @@ async function loadRentalMasters(){
   if(!GAS_URL) return;
   try {
     const res = await api('getRentalMasters', {}, '');
-    console.log('[rentalMasters] response:', JSON.stringify(res));
     rentalMasters = Array.isArray(res) ? res : [];
-    console.log('[rentalMasters] count:', rentalMasters.length);
   } catch(e) {
     console.error('[rentalMasters] error:', e);
     rentalMasters = [];
@@ -2755,7 +2712,6 @@ async function doSaveEvent(){
   try {
     const result = await api('saveEvent', {event:ev}, editingId?'更新中...':'保存中...');
     if(!editingId) ev.id = result.id;
-    if(result._debug) console.log('[承認デバッグ]', JSON.stringify(result._debug, null, 2));
     closeModal('add-modal-backdrop');
     await loadEvents({ force: true });
     const savedMsg = result.approvalStatus === '申請中'
@@ -3144,15 +3100,15 @@ function renderMyPage() {
 
   // 今日のステータス判定
   const nowStr = new Date().getHours().toString().padStart(2,'0') + ':' + new Date().getMinutes().toString().padStart(2,'0');
-  const statusPriority = ['出張','外出','休暇','在宅'];
+  const statusPriority = STATUS_PRIORITY.filter(s => ['出張','外出','休暇','在宅'].includes(s));
   const statusEv = statusPriority.map(s => todayEvs.find(e => e.type === s)).find(Boolean)
     || todayEvs.find(e => e.type === '会議室' && e.start && e.end && e.start <= nowStr && nowStr < e.end);
   const statusMap = {
-    '出張':  ['🚗','出張中','#1e88e5'],
-    '外出':  ['🚶','外出中','#fb8c00'],
-    '休暇':  ['🌴','休暇',  '#43a047'],
-    '在宅':  ['🏠','在宅勤務','#8e24aa'],
-    '会議室':['📋','会議中','#e53935'],
+    '出張':  [STATUS_ICON['出張'], '出張中',   STATUS_COLOR['出張']],
+    '外出':  [STATUS_ICON['外出'], '外出中',   STATUS_COLOR['外出']],
+    '休暇':  [STATUS_ICON['休暇'], '休暇',     STATUS_COLOR['休暇']],
+    '在宅':  [STATUS_ICON['在宅'], '在宅勤務', STATUS_COLOR['在宅']],
+    '会議室':[STATUS_ICON['会議中'], '会議中', STATUS_COLOR['会議室']],
   };
   const [stIcon, stLabel, stColor] = statusEv ? (statusMap[statusEv.type] || ['📅', statusEv.type, '#757575']) : ['🏢','出勤','#757575'];
 
@@ -3194,7 +3150,7 @@ function renderMyPage() {
       <div style="font-size:0.72em;color:#e65100;font-weight:700;letter-spacing:.05em;margin-bottom:10px">📋 承認待ち（${pendingApprovals.length}件）</div>
       ${pendingApprovals.map(e => {
         const applicant = USERS.find(u => u.id === e.userId);
-        return `<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeModal('');openDetail('${e.id}')">
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDetail('${e.id}')">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:1em">${typeIcon(e.type)}</span>
             <div style="flex:1">
@@ -3319,15 +3275,15 @@ function renderMyPage() {
           </div>
           <div style="background:var(--bg);border-radius:10px;padding:10px 12px">
             <div style="font-size:0.7em;color:var(--text2);margin-bottom:3px">🚶 外出</div>
-            <div style="font-size:1.3em;font-weight:800;color:#fb8c00">${goOut}<span style="font-size:0.55em;font-weight:600;margin-left:2px">回</span></div>
+            <div style="font-size:1.3em;font-weight:800;color:${STATUS_COLOR['外出']}">${goOut}<span style="font-size:0.55em;font-weight:600;margin-left:2px">回</span></div>
           </div>
           <div style="background:var(--bg);border-radius:10px;padding:10px 12px">
             <div style="font-size:0.7em;color:var(--text2);margin-bottom:3px">🏠 在宅</div>
-            <div style="font-size:1.3em;font-weight:800;color:#43a047">${wfhDays}<span style="font-size:0.55em;font-weight:600;margin-left:2px">日</span></div>
+            <div style="font-size:1.3em;font-weight:800;color:${STATUS_COLOR['在宅']}">${wfhDays}<span style="font-size:0.55em;font-weight:600;margin-left:2px">日</span></div>
           </div>
           <div style="background:var(--bg);border-radius:10px;padding:10px 12px">
-            <div style="font-size:0.7em;color:var(--text2);margin-bottom:3px">🚗 出張</div>
-            <div style="font-size:1.3em;font-weight:800;color:#1e88e5">${bizTrip}<span style="font-size:0.55em;font-weight:600;margin-left:2px">回</span></div>
+            <div style="font-size:0.7em;color:var(--text2);margin-bottom:3px">${TYPE_ICON['出張']} 出張</div>
+            <div style="font-size:1.3em;font-weight:800;color:${STATUS_COLOR['出張']}">${bizTrip}<span style="font-size:0.55em;font-weight:600;margin-left:2px">回</span></div>
           </div>
         </div>
       </div>`;
@@ -3404,14 +3360,6 @@ function updateNotifBadge(count) {
   const tabBadge = document.getElementById('tab-notif-badge');
   if (badge) { badge.textContent = count || ''; badge.style.display = count ? 'flex' : 'none'; }
   if (tabBadge) { tabBadge.textContent = count || ''; tabBadge.style.display = count ? 'inline' : 'none'; }
-}
-
-function refreshTotalBadge() {
-  const carCount      = getPendingNotifs().length;
-  const approvalCount = getApprovalPendingNotifs().length;
-  const pendingApprovalCount = getPendingApprovals().length;
-  const applyCount = Object.values(applyState).reduce((s, st) => s + (st.pendingCount || 0), 0);
-  updateNotifBadge(carCount + approvalCount + pendingApprovalCount + applyCount);
 }
 
 // 承認結果通知をGASから取得してlocalStorageに保存
