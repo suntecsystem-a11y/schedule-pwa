@@ -56,10 +56,10 @@ input,select{font-family:inherit;outline:none}
   .content{max-width:1400px;padding:20px 28px}
   .month-week-row{height:240px}
   .week-body{max-height:calc(100vh - 180px)}
-  .ev-layer{top:32px}
+  .ev-layer{top:35px}
   .cell-num{font-size:0.82em;width:26px;height:26px}
   .holiday-name{font-size:0.62em}
-  .ev-bar{height:20px;font-size:0.7em}
+  .ev-bar{height:22px;font-size:0.7em}
 }
 
 /* サイドバー（タブレット・PC） */
@@ -188,8 +188,8 @@ input,select{font-family:inherit;outline:none}
 .holiday-name{font-size:0.65em;color:var(--red);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 2px;line-height:1.2}
 .wdate.holiday{color:var(--red)}
 .cell-more{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:0.72em;color:var(--primary);font-weight:700;cursor:pointer}
-.ev-layer{position:absolute;top:26px;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden}
-.ev-bar{position:absolute;height:20px;font-size:0.7em;color:white;font-weight:600;display:flex;align-items:center;padding:0 5px;pointer-events:all;cursor:pointer;overflow:hidden;z-index:1;line-height:1}
+.ev-layer{position:absolute;top:29px;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden}
+.ev-bar{position:absolute;height:22px;font-size:0.7em;color:white;font-weight:600;display:flex;align-items:center;padding:0 5px;pointer-events:all;cursor:pointer;overflow:hidden;z-index:1;line-height:1.5}
 .ev-bar span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 .ev-bar.span-start{border-radius:8px 0 0 8px;margin-left:2px}
 .ev-bar.span-end{border-radius:0 8px 8px 0;margin-right:2px}
@@ -1677,8 +1677,8 @@ function renderMonth(){
         const isPending = e.approvalStatus === '申請中';
         let cls='ev-bar '+(isS&&isE?'span-solo':isS?'span-start':isE?'span-end':'span-mid');
         const barStyle=isPending
-          ? `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*19}px;background:${STATUS_COLOR[e.type]};opacity:0.5;border-style:dashed;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};background:${STATUS_COLOR[e.type]}33`
-          : `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*19}px;background:${STATUS_COLOR[e.type]}`;
+          ? `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${STATUS_COLOR[e.type]};opacity:0.5;border-style:dashed;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};background:${STATUS_COLOR[e.type]}33`
+          : `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${STATUS_COLOR[e.type]}`;
         const barLabel = isS ? (isPending?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type) : '';
         const barTitle = typeIcon(e.type)+' '+(e.title||e.type);
         html+=`<div class="${cls}" style="${barStyle}" title="${esc(barTitle)}"
@@ -1690,8 +1690,8 @@ function renderMonth(){
       ov.singles.slice(0,ov.singleSlot).forEach((e,si)=>{
         const isPendS = e.approvalStatus === '申請中';
         const sBarStyle = isPendS
-          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*19+si*19}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
-          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*19+si*19}px;background:${STATUS_COLOR[e.type]}`;
+          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*26+si*26}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
+          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*26+si*26}px;background:${STATUS_COLOR[e.type]}`;
         const sSoloLabel = (isPendS?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type);
         html+=`<div class="ev-bar span-solo" style="${sBarStyle}" title="${esc(sSoloLabel)}"
           onclick="event.stopPropagation();openDetail('${e.id}')"><span>${sSoloLabel}</span></div>`;
