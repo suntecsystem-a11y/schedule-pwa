@@ -1652,7 +1652,7 @@ function renderMonth(){
       const singles=singleByDay[ds]||[];
       const slot=Math.max(0,MAX_BARS-spanned);
       const total=multiEvs.filter(e=>eventIncludesDate(e,ds)).length+singles.length;
-      cellOv[di]={overflow:total-(spanned+Math.min(singles.length,slot)),singleSlot:slot,singles};
+      cellOv[di]={overflow:total-(spanned+Math.min(singles.length,slot)),singleSlot:slot,singles,spanned};
     });
     html+=`<div class="month-week-row">`;
     week.forEach((day,di)=>{
@@ -1690,8 +1690,8 @@ function renderMonth(){
       ov.singles.slice(0,ov.singleSlot).forEach((e,si)=>{
         const isPendS = e.approvalStatus === '申請中';
         const sBarStyle = isPendS
-          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${MAX_BARS*19+si*19}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
-          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${MAX_BARS*19+si*19}px;background:${STATUS_COLOR[e.type]}`;
+          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*19+si*19}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
+          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*19+si*19}px;background:${STATUS_COLOR[e.type]}`;
         const sSoloLabel = (isPendS?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type);
         html+=`<div class="ev-bar span-solo" style="${sBarStyle}" title="${esc(sSoloLabel)}"
           onclick="event.stopPropagation();openDetail('${e.id}')"><span>${sSoloLabel}</span></div>`;
