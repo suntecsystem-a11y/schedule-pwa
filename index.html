@@ -3142,7 +3142,12 @@ function renderMyPage() {
   const myEvs = events
     .filter(e => (e.startDate||e.date).slice(0,7) === ym &&
       (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id)))
-    .sort((a,b) => (a.startDate||a.date).localeCompare(b.startDate||b.date));
+    .sort((a,b) => {
+      const dc = (a.startDate||a.date).localeCompare(b.startDate||b.date);
+      if(dc !== 0) return dc;
+      const at = a.start||'99:99', bt = b.start||'99:99';
+      return at.localeCompare(bt);
+    });
 
   // 自分の車予約（直近5件）
   const myCars = carEvents
