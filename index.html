@@ -1885,7 +1885,7 @@ function renderTeam(){
 
   // 全員のステータスを優先度順に計算
   const members=USERS.map(u=>{
-    const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(u.id)||e.userId===u.id)&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
+    const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&(e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id))&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
     // 会議室予約は現在時刻が開始〜終了内のときのみ「会議中」と判定
     const nowMins=timeToMins(nowTime);
     const inMeeting=myEvs.some(e=>e.type==='会議室'&&e.start&&e.end&&timeToMins(e.start)<=nowMins&&nowMins<timeToMins(e.end));
@@ -1975,7 +1975,7 @@ function renderTeamDeptView() {
 
   const members = USERS.map(u => {
     const myEvs = events.filter(e =>
-      eventIncludesDate(e, ds) && ((e.people||[]).includes(u.id) || e.userId === u.id) &&
+      eventIncludesDate(e, ds) && (e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id)) &&
       e.approvalStatus !== '申請中' && e.approvalStatus !== '否認');
     const inMeeting = myEvs.some(e =>
       e.type==='会議室' && e.start && e.end &&
@@ -2234,7 +2234,7 @@ function renderHome(){
       events.filter(e =>
         eventIncludesDate(e, d) && HOME_TYPES.includes(e.type) &&
         e.approvalStatus !== '否認' && e.approvalStatus !== '申請中' &&
-        (e.userId===u.id || (e.people||[]).includes(u.id))
+        (e.type==='休暇' ? (e.people||[]).includes(u.id) : (e.userId===u.id || (e.people||[]).includes(u.id)))
       ).forEach(e => evs.push(e));
       dayMap[d] = evs;
     });
@@ -2394,7 +2394,7 @@ async function loadRentalMasters(){
 
 function openAddModalForUser(targetUserId){
   openAddModal(fmtDate(new Date()));
-  selectedPeople = new Set([targetUserId]);
+  selectedPeople = new Set([currentUser.id, targetUserId]);
   renderPeoplePicker();
   updatePeopleSummary();
   renderPeopleSchedule();
