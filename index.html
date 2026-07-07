@@ -767,6 +767,9 @@ input,select{font-family:inherit;outline:none}
       <div class="ev-row" id="date-range-row" style="display:none">
         <div class="ev-row-icon">📅</div>
         <div class="ev-row-content">
+          <div id="date-range-labels" style="display:none;font-size:0.72em;color:var(--text2);font-weight:600;margin-bottom:3px">
+            <div class="ev-date-block"><span id="date-start-label">出発日</span><span class="ev-date-sep" style="visibility:hidden">〜</span><span id="date-end-label">帰社日</span></div>
+          </div>
           <div class="ev-date-block">
             <input type="date" id="ev-start-date">
             <span class="ev-date-sep">〜</span>
@@ -777,6 +780,9 @@ input,select{font-family:inherit;outline:none}
       <div class="ev-row" id="time-row">
         <div class="ev-row-icon">🕐</div>
         <div class="ev-row-content">
+          <div id="time-labels" style="display:none;font-size:0.72em;color:var(--text2);font-weight:600;margin-bottom:3px">
+            <div class="ev-time-block"><span id="time-start-label">出発時間</span><span class="ev-date-sep" style="visibility:hidden">〜</span><span id="time-end-label">帰社時間</span></div>
+          </div>
           <div class="ev-time-block">
             <input type="time" id="ev-start" oninput="checkRoomConflict();checkParticipantConflicts()" onclick="this.showPicker&&this.showPicker()">
             <span class="ev-date-sep">〜</span>
@@ -2579,6 +2585,9 @@ function applyAlldayLayout(){
     document.getElementById('time-row').style.display=isTimed?'flex':'none';
     return;
   }
+  const isBizTrip=t==='出張'&&!allday;
+  document.getElementById('date-range-labels').style.display=isBizTrip?'block':'none';
+  document.getElementById('time-labels').style.display=isBizTrip?'block':'none';
   if(allday){
     document.getElementById('date-single-row').style.display='none';
     document.getElementById('date-range-row').style.display='flex';
