@@ -2107,7 +2107,7 @@ function renderMemberWeek(){
     } else {
       html += dayEvs.map(e=>`<div style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;background:${STATUS_COLOR[e.type]||'#eee'}18;border-left:2px solid ${STATUS_COLOR[e.type]||'#ccc'};margin-left:20px;margin-bottom:3px;font-size:0.78em">
         <div style="flex:1"><strong>${e.type}</strong>${e.title?'　'+e.title:''}${e.start?`<span style="color:var(--text2);margin-left:4px">${e.start}〜${e.end}</span>`:''}</div>
-        ${isAdmin?`<button onclick="closeMemberPopup();openEditModal('${e.id}')" style="font-size:0.65em;padding:2px 6px;border-radius:5px;background:var(--primary-light);color:var(--primary);font-weight:700;flex-shrink:0">編集</button>`:''}
+        ${(isAdmin||(currentUser.role&&currentUser.role!=='一般'))?`<button onclick="closeMemberPopup();openEditModal('${e.id}')" style="font-size:0.65em;padding:2px 6px;border-radius:5px;background:var(--primary-light);color:var(--primary);font-weight:700;flex-shrink:0">編集</button>`:''}
       </div>`).join('');
     }
     html += '</div>';
@@ -2537,7 +2537,8 @@ function openAddModal(dateStr){
 }
 function openEditModal(id){
   const e=events.find(ev=>ev.id===id);if(!e)return;
-  if(e.userId!==currentUser.id&&!currentUser.isAdmin){showToast('⚠️ 自分が登録した予定のみ編集できます');return}
+  const canEdit=e.userId===currentUser.id||currentUser.isAdmin||(currentUser.role&&currentUser.role!=='一般');
+  if(!canEdit){showToast('⚠️ 自分が登録した予定のみ編集できます');return}
   editingId=id;selectedRoom=e.room;selectedPeople=new Set(e.people||[]);
   document.getElementById('modal-title-text').textContent='予定を編集';
   document.getElementById('ev-type').value=e.type;
@@ -2917,7 +2918,7 @@ function openDetail(id){
         <button class="btn-primary" style="background:#e53935;border-color:#e53935" onclick="rejectEventAction('${id}')">❌ 却下する</button>
         <button class="btn-primary" style="background:#43a047" onclick="approveEventAction('${id}')">✅ 承認する</button>
       </div>`;
-  } else if (isOwner) {
+  } else if (isOwner || currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般')) {
     const isLocked = APPROVAL_TYPES.includes(e.type)
       && e.approvalStatus === '申請中'
       && currentUser.role === '一般'
