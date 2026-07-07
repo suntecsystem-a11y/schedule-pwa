@@ -272,6 +272,8 @@ input,select{font-family:inherit;outline:none}
 .people-picker{display:flex;flex-wrap:wrap;gap:6px}
 .people-chip{padding:6px 12px;border-radius:16px;font-size:0.8em;font-weight:600;border:1.5px solid var(--border);color:var(--text2);cursor:pointer;transition:all .15s}
 .people-chip.selected{background:var(--primary);border-color:var(--primary);color:white}
+.people-group-chip{padding:5px 11px;border-radius:14px;font-size:0.78em;font-weight:700;border:1.5px solid #b0bec5;color:#546e7a;cursor:pointer;transition:all .15s;background:#eceff1}
+.people-group-chip.active{background:#37474f;border-color:#37474f;color:white}
 .room-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .room-card{padding:12px;border-radius:10px;border:2px solid var(--border);cursor:pointer;text-align:center;transition:all .15s}
 .room-card:hover{border-color:var(--primary-light)}
@@ -345,6 +347,8 @@ input,select{font-family:inherit;outline:none}
 .ev-title-input::placeholder{color:var(--text3);font-weight:400}
 .ev-row{display:flex;align-items:flex-start;gap:14px;padding:13px 16px;border-bottom:1px solid #f0f0f0;min-height:50px}
 .ev-row-icon{width:22px;flex-shrink:0;font-size:1.05em;margin-top:2px;text-align:center;color:var(--text2)}
+#ev-allday:checked+span{background:var(--primary)}
+#ev-allday:checked~#allday-knob{left:22px}
 .ev-row-content{flex:1;min-width:0}
 .ev-row-label{font-size:0.75em;color:var(--text2);margin-bottom:5px;font-weight:600}
 .ev-row input,.ev-row select,.ev-row textarea{
@@ -741,6 +745,18 @@ input,select{font-family:inherit;outline:none}
         </div>
         <span style="color:var(--text2);font-size:0.8em">▼</span>
       </div>
+      <!-- 終日トグル -->
+      <div class="ev-row" id="allday-row" style="display:none">
+        <div class="ev-row-icon">🔄</div>
+        <div class="ev-row-content" style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:0.92em">終日</span>
+          <label style="position:relative;width:44px;height:24px;cursor:pointer">
+            <input type="checkbox" id="ev-allday" onchange="onAlldayChange()" checked style="opacity:0;width:0;height:0">
+            <span style="position:absolute;inset:0;background:#ccc;border-radius:12px;transition:.2s"></span>
+            <span id="allday-knob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+          </label>
+        </div>
+      </div>
       <!-- 日付・時間 -->
       <div class="ev-row" id="date-single-row">
         <div class="ev-row-icon">📅</div>
@@ -791,6 +807,7 @@ input,select{font-family:inherit;outline:none}
         </div>
       </div>
       <div id="people-panel" style="display:none;padding:10px 16px 14px 52px;border-bottom:1px solid #f0f0f0">
+        <div id="people-group-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
         <input type="text" id="people-search" placeholder="名前で検索..." oninput="renderPeoplePicker()"
           style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;margin-bottom:10px;font-family:inherit;outline:none">
         <div class="people-picker" id="people-picker"></div>
@@ -1046,6 +1063,7 @@ const STATUS_COLOR = {
 };
 const MULTIDAY_TYPES = ['出張','休暇','休み','在宅'];
 const TIMED_TYPES    = ['会議室','打ち合わせ','外出'];
+const ALLDAY_TOGGLE_TYPES = ['出張','休暇','在宅','外出'];
 const RENTAL_TYPES = ['外出','出張','在宅']; // レンタル申請対象の種別
 // 写真アップロード用GAS（既存のアルコールチェッカーと共用）
 const PHOTO_GAS_URL  = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVuUrgwqBPr7UfFcWrFrXsfXcCR1eUo_siMsWahjSgxnU7LMjWRtM/exec';
@@ -1886,15 +1904,24 @@ function renderTeam(){
   // 全員のステータスを優先度順に計算
   const members=USERS.map(u=>{
     const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&(e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id))&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
-    // 会議室予約は現在時刻が開始〜終了内のときのみ「会議中」と判定
     const nowMins=timeToMins(nowTime);
-    const inMeeting=myEvs.some(e=>e.type==='会議室'&&e.start&&e.end&&timeToMins(e.start)<=nowMins&&nowMins<timeToMins(e.end));
-    const eventsForStatus=myEvs.filter(e=>e.type!=='会議室');
-    const statusBase=STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>eventsForStatus.some(e=>e.type===s));
+    const isNowInEvent=(e)=>{
+      if(!e.start||!e.end) return true;
+      const isFirstDay=(e.startDate||e.date)===ds;
+      const isLastDay=(e.endDate||e.date)===ds;
+      const isMiddle=!isFirstDay&&!isLastDay;
+      if(isMiddle) return true;
+      const sMins=isFirstDay?timeToMins(e.start):0;
+      const eMins=isLastDay?timeToMins(e.end):24*60;
+      return sMins<=nowMins&&nowMins<eMins;
+    };
+    const activeEvs=myEvs.filter(isNowInEvent);
+    const inMeeting=activeEvs.some(e=>e.type==='会議室');
+    const statusBase=STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>activeEvs.some(e=>e.type===s));
     const status=yasumiUsers.has(u.id)?'休み':inMeeting?'会議中':(statusBase||(isHoliday?'休暇':'在席'));
     const ev=inMeeting
-      ? myEvs.find(e=>e.type==='会議室'&&e.start&&e.end&&nowTime>=e.start&&nowTime<e.end)
-      : myEvs.find(e=>e.type===status);
+      ? activeEvs.find(e=>e.type==='会議室')
+      : activeEvs.find(e=>e.type===status);
     return{...u, status, subInfo: ev?.title||ev?.room||''};
   });
 
@@ -1977,11 +2004,17 @@ function renderTeamDeptView() {
     const myEvs = events.filter(e =>
       eventIncludesDate(e, ds) && (e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id)) &&
       e.approvalStatus !== '申請中' && e.approvalStatus !== '否認');
-    const inMeeting = myEvs.some(e =>
-      e.type==='会議室' && e.start && e.end &&
-      timeToMins(e.start) <= nowMins && nowMins < timeToMins(e.end));
+    const isNowInEv=(e)=>{
+      if(!e.start||!e.end) return true;
+      const isFirst=(e.startDate||e.date)===ds, isLast=(e.endDate||e.date)===ds;
+      if(!isFirst&&!isLast) return true;
+      const sM=isFirst?timeToMins(e.start):0, eM=isLast?timeToMins(e.end):24*60;
+      return sM<=nowMins&&nowMins<eM;
+    };
+    const activeEvs=myEvs.filter(isNowInEv);
+    const inMeeting=activeEvs.some(e=>e.type==='会議室');
     const statusBase = STATUS_PRIORITY.filter(s => s!=='会議中'&&s!=='休み')
-      .find(s => myEvs.filter(e=>e.type!=='会議室').some(e=>e.type===s));
+      .find(s => activeEvs.some(e=>e.type===s));
     const status = yasumiUsers.has(u.id) ? '休み'
       : inMeeting ? '会議中'
       : (statusBase || (isHoliday ? '休暇' : '在席'));
@@ -2474,6 +2507,7 @@ function openAddModal(dateStr){
   editingId=null;selectedRoom=null;selectedPeople=new Set([currentUser.id]);
   document.getElementById('modal-title-text').textContent='新しい予定を追加';
   document.getElementById('ev-type').value='会議室';
+  document.getElementById('ev-allday').checked=true;
   const ds=dateStr||fmtDate(new Date());
   document.getElementById('ev-date').value=ds;
   document.getElementById('ev-start-date').value=ds;
@@ -2501,6 +2535,8 @@ function openEditModal(id){
   editingId=id;selectedRoom=e.room;selectedPeople=new Set(e.people||[]);
   document.getElementById('modal-title-text').textContent='予定を編集';
   document.getElementById('ev-type').value=e.type;
+  const isAlldayEvent=ALLDAY_TOGGLE_TYPES.includes(e.type)&&!e.start&&!e.end;
+  document.getElementById('ev-allday').checked=isAlldayEvent;
   document.getElementById('ev-title').value=e.title||'';
   document.getElementById('ev-date').value=e.date;
   document.getElementById('ev-start-date').value=e.startDate||e.date;
@@ -2521,14 +2557,43 @@ function openEditModal(id){
 }
 function onTypeChange(){
   const t=document.getElementById('ev-type').value;
-  const isMulti=MULTIDAY_TYPES.includes(t),isTimed=TIMED_TYPES.includes(t),isRoom=t==='会議室';
-  document.getElementById('date-single-row').style.display=isMulti?'none':'flex';
-  document.getElementById('date-range-row').style.display=isMulti?'flex':'none';
-  document.getElementById('time-row').style.display=isTimed?'flex':'none';
+  const hasAlldayToggle=ALLDAY_TOGGLE_TYPES.includes(t);
+  const isRoom=t==='会議室';
+  document.getElementById('allday-row').style.display=hasAlldayToggle?'flex':'none';
+  if(!hasAlldayToggle) document.getElementById('ev-allday').checked=false;
+  applyAlldayLayout();
   document.getElementById('room-row').style.display=isRoom?'flex':'none';
   document.getElementById('rental-row').style.display=RENTAL_TYPES.includes(t)?'flex':'none';
   if(isRoom)checkRoomConflict();
   if(RENTAL_TYPES.includes(t))renderRentalSelect();
+}
+function onAlldayChange(){ applyAlldayLayout(); }
+function applyAlldayLayout(){
+  const t=document.getElementById('ev-type').value;
+  const allday=document.getElementById('ev-allday').checked;
+  const hasToggle=ALLDAY_TOGGLE_TYPES.includes(t);
+  if(!hasToggle){
+    const isMulti=MULTIDAY_TYPES.includes(t), isTimed=TIMED_TYPES.includes(t);
+    document.getElementById('date-single-row').style.display=isMulti?'none':'flex';
+    document.getElementById('date-range-row').style.display=isMulti?'flex':'none';
+    document.getElementById('time-row').style.display=isTimed?'flex':'none';
+    return;
+  }
+  if(allday){
+    document.getElementById('date-single-row').style.display='none';
+    document.getElementById('date-range-row').style.display='flex';
+    document.getElementById('time-row').style.display='none';
+  } else {
+    if(t==='出張'){
+      document.getElementById('date-single-row').style.display='none';
+      document.getElementById('date-range-row').style.display='flex';
+      document.getElementById('time-row').style.display='flex';
+    } else {
+      document.getElementById('date-single-row').style.display='flex';
+      document.getElementById('date-range-row').style.display='none';
+      document.getElementById('time-row').style.display='flex';
+    }
+  }
 }
 function renderRentalSelect(){
   const opts = rentalMasters.map(m => {
@@ -2552,18 +2617,40 @@ function togglePeoplePicker(){
   if(peoplePanelOpen) document.getElementById('people-search').focus();
 }
 function renderPeoplePicker(){
+  const depts=[...new Set(USERS.map(u=>u.dept).filter(Boolean))].sort();
+  const gc=document.getElementById('people-group-chips');
+  if(gc){
+    const allIds=USERS.map(u=>u.id);
+    const allActive=allIds.length>0&&allIds.every(id=>selectedPeople.has(id));
+    gc.innerHTML=`<div class="people-group-chip${allActive?' active':''}" onclick="togglePeopleGroup('all')">全員</div>`+
+      depts.map(d=>{
+        const ids=USERS.filter(u=>u.dept===d).map(u=>u.id);
+        const active=ids.length>0&&ids.every(id=>selectedPeople.has(id));
+        return `<div class="people-group-chip${active?' active':''}" onclick="togglePeopleGroup('${d}')">${d}</div>`;
+      }).join('');
+  }
   const kw=(document.getElementById('people-search')?.value||'').toLowerCase();
   const visible=USERS.filter(u=>!kw||u.name.toLowerCase().includes(kw)||(u.dept||'').toLowerCase().includes(kw));
   document.getElementById('people-picker').innerHTML=visible.map(u=>
     `<div class="people-chip${selectedPeople.has(u.id)?' selected':''}" onclick="togglePerson('${u.id}',this)">${u.name}</div>`).join('');
-  // サマリー更新
   const sel=[...selectedPeople].map(id=>USERS.find(u=>u.id===id)?.name).filter(Boolean);
   const summary=document.getElementById('people-summary');
   if(summary) summary.textContent=sel.length?sel.join('、'):'未選択';
 }
+function togglePeopleGroup(group){
+  const ids=group==='all'?USERS.map(u=>u.id):USERS.filter(u=>u.dept===group).map(u=>u.id);
+  const allIn=ids.every(id=>selectedPeople.has(id));
+  if(allIn){ ids.forEach(id=>{ if(id!==currentUser.id) selectedPeople.delete(id); }); }
+  else { ids.forEach(id=>selectedPeople.add(id)); }
+  renderPeoplePicker();
+  updatePeopleSummary();
+  renderPeopleSchedule();
+  checkParticipantConflicts();
+}
 function togglePerson(id,el){
   selectedPeople.has(id)?selectedPeople.delete(id):selectedPeople.add(id);
   el.classList.toggle('selected');
+  renderPeoplePicker();
   updatePeopleSummary();
   renderPeopleSchedule();
   checkParticipantConflicts();
@@ -2705,15 +2792,19 @@ function checkRoomConflict(){renderRoomPicker()}
 
 async function doSaveEvent(){
   const type=document.getElementById('ev-type').value;
-  const isMulti=MULTIDAY_TYPES.includes(type);
-  const date=isMulti?document.getElementById('ev-start-date').value:document.getElementById('ev-date').value;
-  const startDate=isMulti?document.getElementById('ev-start-date').value:date;
-  const endDate=isMulti?document.getElementById('ev-end-date').value:date;
-  const start=TIMED_TYPES.includes(type)?document.getElementById('ev-start').value:'';
-  const end=TIMED_TYPES.includes(type)?document.getElementById('ev-end').value:'';
+  const allday=document.getElementById('ev-allday').checked&&ALLDAY_TOGGLE_TYPES.includes(type);
+  const hasToggle=ALLDAY_TOGGLE_TYPES.includes(type);
+  const useRange=allday||(hasToggle&&type==='出張'&&!allday)||(!hasToggle&&MULTIDAY_TYPES.includes(type));
+  const useSingleDate=!useRange;
+  const date=useSingleDate?document.getElementById('ev-date').value:document.getElementById('ev-start-date').value;
+  const startDate=useRange?document.getElementById('ev-start-date').value:date;
+  const endDate=useRange?document.getElementById('ev-end-date').value:date;
+  const showTime=(!allday&&hasToggle)||(!hasToggle&&TIMED_TYPES.includes(type));
+  const start=showTime?document.getElementById('ev-start').value:'';
+  const end=showTime?document.getElementById('ev-end').value:'';
   if(!date){showToast('日付を入力してください');return}
-  if(isMulti&&endDate<startDate){showToast('終了日は開始日以降にしてください');return}
-  if(TIMED_TYPES.includes(type)&&start&&end&&end<=start){showToast('終了時間は開始時間より後にしてください');return}
+  if(useRange&&endDate<startDate){showToast('終了日は開始日以降にしてください');return}
+  if(showTime&&start&&end&&end<=start&&startDate===endDate){showToast('終了時間は開始時間より後にしてください');return}
   if(type==='会議室'&&!selectedRoom){showToast('会議室を選んでください');return}
   if(type==='会議室'&&events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===selectedRoom&&e.date===date&&start<e.end&&end>e.start)){
     showToast('⚠️ この時間帯はすでに予約があります');return;
