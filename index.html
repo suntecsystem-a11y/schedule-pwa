@@ -2951,8 +2951,9 @@ async function doSaveEvent(){
     if(!editingId) ev.id = result.id;
     closeModal('add-modal-backdrop');
     await loadEvents({ force: true });
+    const wasAlreadyPending = editingId && events.find(e=>e.id===editingId)?.approvalStatus === '申請中';
     const savedMsg = result.approvalStatus === '申請中'
-      ? `申請しました（承認者：${result._debug?.approversFound?.join('、') || '主任なし'}）`
+      ? (wasAlreadyPending ? '申請内容を更新しました' : `申請しました（承認者：${result._debug?.approversFound?.join('、') || '—'}）`)
       : (editingId ? '予定を更新しました' : '予定を追加しました');
     showToast(savedMsg);
   } catch(err){ showToast('⚠️ '+err.message) }
