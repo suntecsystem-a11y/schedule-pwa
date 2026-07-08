@@ -816,7 +816,11 @@ input,select{font-family:inherit;outline:none}
         <div id="people-group-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
         <input type="text" id="people-search" placeholder="名前で検索..." oninput="renderPeoplePicker()"
           style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;margin-bottom:10px;font-family:inherit;outline:none">
-        <div class="people-picker" id="people-picker"></div>
+        <div class="people-picker" id="people-picker" style="max-height:120px;overflow-y:auto"></div>
+      </div>
+      <!-- 参加者かぶり警告 -->
+      <div style="padding:0 16px" id="people-conflict-wrap" style="display:none">
+        <div class="conflict-warn" id="people-conflict-warn" style="display:none"></div>
       </div>
       <!-- 参加者の当日予定 -->
       <div id="people-schedule-row" style="display:none">
@@ -830,10 +834,6 @@ input,select{font-family:inherit;outline:none}
         <div id="people-schedule-panel" style="display:none;padding:10px 16px 14px 52px;border-bottom:1px solid #f0f0f0">
           <div id="people-schedule-content"></div>
         </div>
-      </div>
-      <!-- 参加者かぶり警告 -->
-      <div style="padding:0 16px" id="people-conflict-wrap" style="display:none">
-        <div class="conflict-warn" id="people-conflict-warn" style="display:none"></div>
       </div>
       <!-- レンタル申請（外出・出張・在宅時） -->
       <div class="ev-row" id="rental-row" style="display:none">
