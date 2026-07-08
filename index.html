@@ -2712,39 +2712,52 @@ function togglePeopleSchedule(){
   if(peopleSchedOpen) renderPeopleSchedule();
 }
 function renderPeopleSchedule(){
-  // 参加者が1人以上いれば行を表示
   const row=document.getElementById('people-schedule-row');
   if(!row) return;
   row.style.display=selectedPeople.size?'block':'none';
-
-  // パネルが閉じていれば内容更新不要
   if(!peopleSchedOpen) return;
 
   const date=document.getElementById('ev-date')?.value||document.getElementById('ev-start-date')?.value||'';
   if(!date){ document.getElementById('people-schedule-content').innerHTML='<p style="font-size:0.82em;color:var(--text2)">日付を先に選んでください</p>'; return; }
 
+  const TL_START=8, TL_END=20, TL_HOURS=TL_END-TL_START;
+  const toPos=t=>{
+    if(!t) return null;
+    const [h,m]=t.split(':').map(Number);
+    return Math.max(0,Math.min(100,((h+m/60-TL_START)/TL_HOURS)*100));
+  };
+  const selStart=document.getElementById('ev-start')?.value||'';
+  const selEnd=document.getElementById('ev-end')?.value||'';
+  const nowLeft=toPos(selStart), nowRight=toPos(selEnd);
+  const hasNow=nowLeft!==null&&nowRight!==null&&selStart&&selEnd;
+
   const html=[...selectedPeople].map(uid=>{
     const user=USERS.find(u=>u.id===uid);
     if(!user) return '';
-    const dayEvs=events.filter(e=>eventIncludesDate(e,date)&&((e.people||[]).includes(uid)||e.userId===uid)&&e.type!=='会議室');
-    const roomEvs=events.filter(e=>eventIncludesDate(e,date)&&((e.people||[]).includes(uid)||e.userId===uid)&&e.type==='会議室');
-    const allEvs=[...dayEvs,...roomEvs].sort((a,b)=>(a.start||'00:00').localeCompare(b.start||'00:00'));
-    return`<div style="margin-bottom:12px">
-      <div style="font-size:0.8em;font-weight:700;color:var(--text);margin-bottom:5px;display:flex;align-items:center;gap:6px">
-        <span style="display:inline-flex;width:22px;height:22px;border-radius:50%;background:${STATUS_COLOR[dayEvs[0]?.type||'在席']||'#9e9e9e'};color:white;font-size:0.75em;font-weight:700;align-items:center;justify-content:center">${user.name.slice(-1)}</span>
-        ${user.name}
-        <span class="status-badge status-${dayEvs[0]?.type||'在席'}" style="font-size:0.68em">${dayEvs[0]?.type||'在席'}</span>
+    const allEvs=events.filter(e=>e.id!==editingId&&eventIncludesDate(e,date)&&((e.people||[]).includes(uid)||e.userId===uid)&&e.start&&e.end);
+    const alldayEvs=events.filter(e=>eventIncludesDate(e,date)&&((e.people||[]).includes(uid)||e.userId===uid)&&!e.start&&!e.end);
+    const blocks=allEvs.map(e=>{
+      const l=toPos(e.start),r=toPos(e.end);
+      if(l===null||r===null) return '';
+      const c=STATUS_COLOR[e.type]||'#9e9e9e';
+      const title=(e.title||e.type)+' '+e.start+'〜'+e.end;
+      return`<div class="room-tl-block" style="left:${l}%;width:${Math.max(r-l,2)}%;background:${c}" title="${title}">${r-l>8?(e.title||e.type):''}</div>`;
+    }).join('');
+    const nowBar=hasNow?`<div class="room-tl-now" style="left:${nowLeft}%;width:${nowRight-nowLeft}%"></div>`:'';
+    const alldayTag=alldayEvs.length?alldayEvs.map(e=>`<span style="font-size:0.65em;padding:1px 6px;border-radius:8px;background:${STATUS_COLOR[e.type]||'#9e9e9e'}22;color:${STATUS_COLOR[e.type]||'#9e9e9e'};font-weight:700">${e.type}</span>`).join(' '):'';
+    return`<div class="room-tl-wrap">
+      <div class="room-tl-name" style="display:flex;align-items:center;gap:6px">
+        <span style="display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--primary);color:white;font-size:0.7em;font-weight:700;align-items:center;justify-content:center">${user.name.slice(-1)}</span>
+        ${user.name} ${alldayTag}
       </div>
-      ${allEvs.length?allEvs.map(e=>`
-        <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:0.8em;border-bottom:1px solid #f5f5f5">
-          <span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[e.type]};flex-shrink:0"></span>
-          <span style="color:var(--text2);flex-shrink:0">${e.start?e.start+'〜'+e.end:'終日'}</span>
-          <span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||e.type}</span>
-        </div>`).join('')
-      :'<div style="font-size:0.8em;color:var(--text3);padding:4px 0">予定なし（在席）</div>'}
+      <div class="room-tl-bar">${blocks}${nowBar}</div>
     </div>`;
   }).join('');
-  document.getElementById('people-schedule-content').innerHTML=html||'<p style="font-size:0.82em;color:var(--text2)">参加者を選んでください</p>';
+
+  const hoursRow=`<div class="room-tl-hours">${Array.from({length:7},(_,i)=>`<span>${TL_START+i*2}時</span>`).join('')}</div>`;
+  document.getElementById('people-schedule-content').innerHTML=html
+    ? `<div style="font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px">📊 参加者の当日スケジュール</div>${html}${hoursRow}`
+    : '<p style="font-size:0.82em;color:var(--text2)">参加者を選んでください</p>';
 }
 function renderRoomPicker(){
   const date=document.getElementById('ev-date').value;
