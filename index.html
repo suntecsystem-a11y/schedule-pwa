@@ -819,7 +819,7 @@ input,select{font-family:inherit;outline:none}
         <div class="people-picker" id="people-picker" style="max-height:120px;overflow-y:auto"></div>
       </div>
       <!-- 参加者かぶり警告 -->
-      <div style="padding:0 16px" id="people-conflict-wrap" style="display:none">
+      <div id="people-conflict-wrap" style="padding:0 16px">
         <div class="conflict-warn" id="people-conflict-warn" style="display:none"></div>
       </div>
       <!-- 参加者の当日予定 -->
@@ -2654,6 +2654,7 @@ function togglePeopleGroup(group){
   else { ids.forEach(id=>selectedPeople.add(id)); }
   renderPeoplePicker();
   updatePeopleSummary();
+  autoOpenPeopleSchedule();
   renderPeopleSchedule();
   checkParticipantConflicts();
 }
@@ -2662,8 +2663,15 @@ function togglePerson(id,el){
   el.classList.toggle('selected');
   renderPeoplePicker();
   updatePeopleSummary();
+  autoOpenPeopleSchedule();
   renderPeopleSchedule();
   checkParticipantConflicts();
+}
+function autoOpenPeopleSchedule(){
+  if(peopleSchedOpen||selectedPeople.size===0) return;
+  peopleSchedOpen=true;
+  document.getElementById('people-schedule-panel').style.display='block';
+  document.getElementById('people-sched-toggle').style.transform='rotate(180deg)';
 }
 function checkParticipantConflicts(){
   const warn = document.getElementById('people-conflict-warn');
