@@ -808,6 +808,24 @@ input,select{font-family:inherit;outline:none}
           </div>
         </div>
       </div>
+      <!-- 繰り返し（新規作成時のみ表示） -->
+      <div class="ev-row" id="repeat-row" style="display:none">
+        <div class="ev-row-icon">🔁</div>
+        <div class="ev-row-content">
+          <div style="display:flex;align-items:center;gap:10px">
+            <select id="ev-repeat" onchange="onRepeatChange()" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;font-family:inherit;background:white;color:var(--text)">
+              <option value="">繰り返しなし</option>
+              <option value="daily">毎日</option>
+              <option value="weekly">毎週</option>
+              <option value="monthly">毎月（同日）</option>
+            </select>
+          </div>
+          <div id="repeat-end-wrap" style="display:none;margin-top:8px">
+            <label style="font-size:0.8em;color:var(--text2)">終了日</label>
+            <input type="date" id="ev-repeat-end" style="width:100%;margin-top:4px">
+          </div>
+        </div>
+      </div>
       <!-- 会議室 -->
       <div class="ev-row" id="room-row">
         <div class="ev-row-icon">🏢</div>
@@ -1919,7 +1937,7 @@ function renderRoomTimeline(){
   ['1F','2F'].forEach(floor=>{
     html+=`<div style="font-size:0.85em;font-weight:700;color:var(--text2);margin:16px 0 8px">${floor}</div>`;
     ROOMS.filter(r=>r.floor===floor).forEach(room=>{
-      const rEvs=roomEvs.filter(e=>e.room===room.id);
+      const rEvs=roomEvs.filter(e=>e.room===room.id).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
       html+=`<div style="background:white;border-radius:var(--radius);padding:12px;margin-bottom:10px;box-shadow:var(--shadow)">
         <div style="font-weight:700;font-size:0.9em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
           <span>${room.name} <span style="font-size:0.75em;color:var(--text2);font-weight:400">定員${room.capacity}名</span></span>
@@ -2574,6 +2592,9 @@ function openAddModal(dateStr){
   document.getElementById('ev-memo').value='';
   selectedRental='';
   document.getElementById('ev-approver').value='';
+  document.getElementById('ev-repeat').value='';
+  document.getElementById('repeat-end-wrap').style.display='none';
+  document.getElementById('repeat-row').style.display='flex';
   document.getElementById('btn-delete').style.display='none';
   document.getElementById('general-conflict-warn').style.display='none';
   peoplePanelOpen=false; peopleSchedOpen=false;
@@ -2608,6 +2629,8 @@ function openEditModal(id){
   } else {
     document.getElementById('ev-approver').value='';
   }
+  document.getElementById('repeat-row').style.display='none';
+  document.getElementById('ev-repeat').value='';
   document.getElementById('btn-delete').style.display='block';
   document.getElementById('general-conflict-warn').style.display='none';
   peoplePanelOpen=false;
@@ -2691,6 +2714,14 @@ function renderApproverSelect(){
     sel.appendChild(o);
   });
   if(cur)sel.value=cur;
+}
+function onRepeatChange(){
+  const v=document.getElementById('ev-repeat').value;
+  document.getElementById('repeat-end-wrap').style.display=v?'block':'none';
+  if(v&&!document.getElementById('ev-repeat-end').value){
+    const d=new Date();d.setMonth(d.getMonth()+3);
+    document.getElementById('ev-repeat-end').value=fmtDate(d);
+  }
 }
 function onApproverChange(){updateSaveButtonState()}
 function updateSaveButtonState(){
@@ -2937,6 +2968,8 @@ async function doSaveEvent(){
     memo:document.getElementById('ev-memo').value.trim(),
     userId:editingId?(events.find(e=>e.id===editingId)?.userId||currentUser.id):currentUser.id,
     selectedApprover,
+    repeat:document.getElementById('ev-repeat').value||'',
+    repeatEnd:document.getElementById('ev-repeat-end').value||'',
   };
 
   if(!GAS_URL){
@@ -2952,9 +2985,14 @@ async function doSaveEvent(){
     closeModal('add-modal-backdrop');
     await loadEvents({ force: true });
     const wasAlreadyPending = editingId && events.find(e=>e.id===editingId)?.approvalStatus === '申請中';
-    const savedMsg = result.approvalStatus === '申請中'
+    let savedMsg = result.approvalStatus === '申請中'
       ? (wasAlreadyPending ? '申請内容を更新しました' : `申請しました（承認者：${result._debug?.approversFound?.join('、') || '—'}）`)
       : (editingId ? '予定を更新しました' : '予定を追加しました');
+    if(result.repeatCreated>0||result.repeatSkipped>0){
+      const total=1+result.repeatCreated;
+      savedMsg=`${total}件登録しました`;
+      if(result.repeatSkipped>0) savedMsg+=`（${result.repeatSkipped}件は会議室重複のためスキップ）`;
+    }
     showToast(savedMsg);
   } catch(err){ showToast('⚠️ '+err.message) }
 }
