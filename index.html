@@ -362,8 +362,8 @@ input,select{font-family:inherit;outline:none}
 .ev-title-input::placeholder{color:var(--text3);font-weight:400}
 .ev-row{display:flex;align-items:flex-start;gap:14px;padding:13px 16px;border-bottom:1px solid #f0f0f0;min-height:50px}
 .ev-row-icon{width:22px;flex-shrink:0;font-size:1.05em;margin-top:2px;text-align:center;color:var(--text2)}
-#ev-allday:checked+span{background:var(--primary)}
-#ev-allday:checked~#allday-knob{left:22px}
+#ev-allday:checked+span{background:var(--primary) !important}
+#ev-allday:checked~#allday-knob{left:22px !important}
 .ev-row-content{flex:1;min-width:0}
 .ev-row-label{font-size:0.75em;color:var(--text2);margin-bottom:5px;font-weight:600}
 .ev-row input,.ev-row select,.ev-row textarea{
@@ -770,8 +770,8 @@ input,select{font-family:inherit;outline:none}
           <span style="font-size:0.92em">終日</span>
           <label style="position:relative;width:44px;height:24px;cursor:pointer">
             <input type="checkbox" id="ev-allday" onchange="onAlldayChange()" checked style="opacity:0;width:0;height:0">
-            <span style="position:absolute;inset:0;background:#ccc;border-radius:12px;transition:.2s"></span>
-            <span id="allday-knob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+            <span style="position:absolute;inset:0;background:var(--primary);border-radius:12px;transition:.2s"></span>
+            <span id="allday-knob" style="position:absolute;top:2px;left:22px;width:20px;height:20px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
           </label>
         </div>
       </div>
@@ -2582,7 +2582,7 @@ function openAddModal(dateStr){
   editingId=null;selectedRoom=null;selectedPeople=new Set([currentUser.id]);
   document.getElementById('modal-title-text').textContent='新しい予定を追加';
   document.getElementById('ev-type').value='会議室';
-  document.getElementById('ev-allday').checked=true;
+  document.getElementById('ev-allday').checked=true;updateAlldayToggleVisual();
   const ds=dateStr||fmtDate(new Date());
   document.getElementById('ev-date').value=ds;
   document.getElementById('ev-start-date').value=ds;
@@ -2616,7 +2616,7 @@ function openEditModal(id){
   document.getElementById('modal-title-text').textContent='予定を編集';
   document.getElementById('ev-type').value=e.type;
   const isAlldayEvent=ALLDAY_TOGGLE_TYPES.includes(e.type)&&!e.start&&!e.end;
-  document.getElementById('ev-allday').checked=isAlldayEvent;
+  document.getElementById('ev-allday').checked=isAlldayEvent;updateAlldayToggleVisual();
   document.getElementById('ev-title').value=e.title||'';
   document.getElementById('ev-date').value=e.date;
   document.getElementById('ev-start-date').value=e.startDate||e.date;
@@ -2648,7 +2648,7 @@ function onTypeChange(){
   const isRoom=t==='会議室';
   document.getElementById('allday-row').style.display=hasAlldayToggle?'flex':'none';
   if(!hasAlldayToggle) document.getElementById('ev-allday').checked=false;
-  applyAlldayLayout();
+  updateAlldayToggleVisual();applyAlldayLayout();
   document.getElementById('room-row').style.display=isRoom?'flex':'none';
   document.getElementById('rental-row').style.display=RENTAL_TYPES.includes(t)?'flex':'none';
   const needsApprover=APPROVAL_TYPES.includes(t)&&currentUser&&currentUser.role==='一般';
@@ -2658,7 +2658,14 @@ function onTypeChange(){
   if(isRoom)checkRoomConflict();
   if(RENTAL_TYPES.includes(t))renderRentalSelect();
 }
-function onAlldayChange(){ applyAlldayLayout(); }
+function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); }
+function updateAlldayToggleVisual(){
+  const c=document.getElementById('ev-allday').checked;
+  const knob=document.getElementById('allday-knob');
+  const bg=document.getElementById('ev-allday').nextElementSibling;
+  if(knob) knob.style.left=c?'22px':'2px';
+  if(bg) bg.style.background=c?'var(--primary)':'#ccc';
+}
 function applyAlldayLayout(){
   const t=document.getElementById('ev-type').value;
   const allday=document.getElementById('ev-allday').checked;
