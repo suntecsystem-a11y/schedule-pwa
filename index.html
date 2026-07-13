@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>スケジュール管理</title>
 <style>
@@ -42,13 +42,13 @@ input,select{font-family:inherit;outline:none}
 
 /* アプリ */
 #app{display:none;flex-direction:column;min-height:100vh}
-.topbar{background:var(--primary);color:white;display:flex;align-items:center;padding:0 16px;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar{background:var(--primary);color:white;display:flex;align-items:center;padding:env(safe-area-inset-top,0) 16px 0;height:calc(56px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .topbar-title{font-size:1.05em;font-weight:700;flex:1}
 .topbar-user{font-size:0.78em;opacity:.85;margin-right:12px}
 .btn-logout{font-size:0.75em;background:rgba(255,255,255,.2);color:white;border-radius:16px;padding:4px 12px}
 .tab-nav{display:flex;background:white;border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:99;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative}
 .tab-nav::-webkit-scrollbar{display:none}
-.tab-nav-wrap{position:sticky;top:56px;z-index:99}
+.tab-nav-wrap{position:sticky;top:calc(56px + env(safe-area-inset-top,0px));z-index:99}
 .tab-nav-wrap::after{content:'';position:absolute;right:0;top:0;bottom:0;width:28px;background:linear-gradient(to right,transparent,white);pointer-events:none;z-index:1;transition:opacity .2s}
 .tab-nav-wrap.scrolled-end::after{opacity:0}
 .tab-btn{flex-shrink:0;flex:1;padding:12px 4px;font-size:0.82em;font-weight:600;color:var(--text2);background:none;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
@@ -3594,6 +3594,61 @@ function renderMyPage() {
             </a>` : ''}
         </div>`).join('') :
         '<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">車予約はありません</div>'}
+    </div>
+
+    <!-- 利用ルール -->
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
+      <div style="font-size:0.72em;color:var(--text2);font-weight:700;letter-spacing:.05em;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="this.parentElement.querySelector('.rules-body').style.display=this.parentElement.querySelector('.rules-body').style.display==='none'?'block':'none';this.querySelector('.rules-arrow').textContent=this.parentElement.querySelector('.rules-body').style.display==='none'?'▶':'▼'">
+        <span>📖 利用ルール</span><span class="rules-arrow" style="font-size:0.9em">▶</span>
+      </div>
+      <div class="rules-body" style="display:none;font-size:0.82em;color:var(--text);line-height:1.7">
+
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">予定の登録</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li>予定は遅くとも当日の朝までに登録する</li>
+          <li>タイトルは具体的に書く<br><span style="color:var(--text2);font-size:0.9em">× 「会議」 → ○ 「○○社 見積もり打ち合わせ」</span></li>
+          <li>予定が変更・中止になったらその日のうちに削除または修正する</li>
+        </ul>
+
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">参加者の登録</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li><b>会議室予約・打ち合わせ</b>：参加メンバーを必ず登録する（在籍ボードに反映される）</li>
+          <li><b>休暇</b>：自分だけでOK（参加者の追加は不要）</li>
+        </ul>
+
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">承認が必要な予定（外出・出張・在宅）</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li><b>一般社員</b>：保存時に承認者を選択する</li>
+          <li><b>主任以上</b>：承認不要（自動で承認済になる）</li>
+        </ul>
+
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">繰り返し予定</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li>定例会議や毎週の在宅勤務などに使用する</li>
+          <li>最大3ヶ月先まで一括登録される</li>
+          <li>定例が終了・変更になったら<b>不要な将来の予定を手動で削除する</b></li>
+          <li>会議室予約の繰り返しでは、重複する日は自動でスキップされる</li>
+        </ul>
+
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">会議室</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li>予約は先着順（同じ時間帯には1件しか入らない）</li>
+          <li>使わなくなった予約は必ず削除する</li>
+        </ul>
+
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">在籍ボード</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li>登録した予定から自動で反映される（手動操作は不要）</li>
+          <li>急な外出などで先に登録できない場合は、戻り次第すぐに登録する</li>
+        </ul>
+
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">アカウント</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li>PINコードは他人に教えない</li>
+          <li>PINを忘れた場合は管理者に再発行を依頼する</li>
+        </ul>
+
+      </div>
     </div>
   `;
 }
