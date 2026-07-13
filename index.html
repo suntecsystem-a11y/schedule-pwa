@@ -1552,7 +1552,7 @@ function switchTab(tab, btn){
   const sideBtn = document.querySelector(`.sidebar-btn[data-tab="${tab}"]`);
   if(sideBtn) sideBtn.classList.add('active');
   const tabBtns = document.querySelectorAll('.tab-btn');
-  const idx=['home','calendar','rooms','team','cars','inquiry','mypage','admin'].indexOf(tab);
+  const idx=['home','calendar','rooms','team','cars','inquiry','apply','mypage','admin'].indexOf(tab);
   if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); }
   else                { _markNoticesAsSeen(); }
@@ -1777,7 +1777,7 @@ function renderMonth(){
         const barStyle=isPending
           ? `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${STATUS_COLOR[e.type]};opacity:0.5;border-style:dashed;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};background:${STATUS_COLOR[e.type]}33`
           : `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${STATUS_COLOR[e.type]}`;
-        const barLabel = isS ? (isPending?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type) : '';
+        const barLabel = isS ? (isPending?'(仮) ':'')+typeIcon(e.type)+' '+esc(e.title||e.type) : '';
         const barTitle = typeIcon(e.type)+' '+(e.title||e.type);
         html+=`<div class="${cls}" style="${barStyle}" title="${esc(barTitle)}"
           onclick="event.stopPropagation();openDetail('${e.id}')"><span>${barLabel}</span></div>`;
@@ -1790,7 +1790,7 @@ function renderMonth(){
         const sBarStyle = isPendS
           ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*26+si*26}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
           : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*26+si*26}px;background:${STATUS_COLOR[e.type]}`;
-        const sSoloLabel = (isPendS?'(仮) ':'')+typeIcon(e.type)+' '+(e.title||e.type);
+        const sSoloLabel = (isPendS?'(仮) ':'')+typeIcon(e.type)+' '+esc(e.title||e.type);
         html+=`<div class="ev-bar span-solo" style="${sBarStyle}" title="${esc(sSoloLabel)}"
           onclick="event.stopPropagation();openDetail('${e.id}')"><span>${sSoloLabel}</span></div>`;
       });
@@ -1821,7 +1821,7 @@ function renderWeek(){
       html+=`<div class="week-allday-cell">${alldayEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
         const ip=e.approvalStatus==='申請中';
         const wStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
-        return`<div class="week-allday-bar" style="${wStyle}" onclick="openDetail('${e.id}')">${ip?'(仮) ':''}${typeIcon(e.type)}${e.title||e.type}</div>`;
+        return`<div class="week-allday-bar" style="${wStyle}" onclick="openDetail('${e.id}')">${ip?'(仮) ':''}${typeIcon(e.type)}${esc(e.title||e.type)}</div>`;
       }).join('')}</div>`;
     });
     html+=`</div>`;
@@ -1836,7 +1836,7 @@ function renderWeek(){
         ${sEvs.map(e=>{
           const ip=e.approvalStatus==='申請中';
           const wEvStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
-          return`<div class="week-event" style="${wEvStyle}" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?'(仮) ':''}${e.title||e.type}</div>`;
+          return`<div class="week-event" style="${wEvStyle}" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?'(仮) ':''}${esc(e.title||e.type)}</div>`;
         }).join('')}
       </div></div>`;
     });
@@ -1870,7 +1870,7 @@ function eventCardHTML(e){
   return`<div class="event-card" style="${cardStyle}" onclick="openDetail('${e.id}')">
     <div class="event-card-icon">${typeIcon(e.type)}</div>
     <div class="event-card-body">
-      <div class="event-card-title">${isPending?'(仮) ':''}${e.title||e.type}${statusLabel}</div>
+      <div class="event-card-title">${isPending?'(仮) ':''}${esc(e.title||e.type)}${statusLabel}</div>
       <div class="event-card-meta">
         <span class="status-badge status-${e.type}">${e.type}</span>
         ${e.start?`<span>🕐 ${e.start}〜${e.end}</span>`:''}
@@ -1894,7 +1894,7 @@ function openDayPopup(ds){
       <div class="day-ev-item" onclick="closeModal('day-popup-backdrop');openDetail('${e.id}')">
         <div class="day-ev-dot" style="background:${STATUS_COLOR[e.type]}"></div>
         <div class="day-ev-info">
-          <div class="day-ev-name">${e.title||e.type}</div>
+          <div class="day-ev-name">${esc(e.title||e.type)}</div>
           <div class="day-ev-sub">${e.type}${e.start?' ・ '+e.start+'〜'+e.end:''}${(e.people||[]).map(p=>' ・ '+userName(p)).join('')}</div>
         </div>›
       </div>`).join('');
@@ -2818,7 +2818,7 @@ function checkParticipantConflicts(){
       timeToMins(e.start) < endM && timeToMins(e.end) > startM
     );
     if (clash.length) {
-      const labels = clash.map(e => `${e.start}〜${e.end} ${e.title||e.type}`).join('、');
+      const labels = clash.map(e => `${e.start}〜${e.end} ${esc(e.title||e.type)}`).join('、');
       conflicts.push(`${user.name}：${labels}`);
     }
   });
@@ -2871,8 +2871,8 @@ function renderPeopleSchedule(){
       const l=toPos(e.start),r=toPos(e.end);
       if(l===null||r===null) return '';
       const c=STATUS_COLOR[e.type]||'#9e9e9e';
-      const title=(e.title||e.type)+' '+e.start+'〜'+e.end;
-      return`<div class="room-tl-block" style="left:${l}%;width:${Math.max(r-l,2)}%;background:${c}" title="${title}">${r-l>8?(e.title||e.type):''}</div>`;
+      const title=esc(e.title||e.type)+' '+e.start+'〜'+e.end;
+      return`<div class="room-tl-block" style="left:${l}%;width:${Math.max(r-l,2)}%;background:${c}" title="${title}">${r-l>8?esc(e.title||e.type):''}</div>`;
     }).join('');
     const nowBar=hasNow?`<div class="room-tl-now" style="left:${nowLeft}%;width:${nowRight-nowLeft}%"></div>`:'';
     const alldayTag=alldayEvs.length?alldayEvs.map(e=>`<span style="font-size:0.65em;padding:1px 6px;border-radius:8px;background:${STATUS_COLOR[e.type]||'#9e9e9e'}22;color:${STATUS_COLOR[e.type]||'#9e9e9e'};font-weight:700">${e.type}</span>`).join(' '):'';
@@ -4150,6 +4150,12 @@ async function doSaveCarEvent() {
   if (!start) { showToast('出発日時を入力してください'); return; }
   if (!end)   { showToast('帰社予定日時を入力してください'); return; }
   if (end <= start) { showToast('帰社予定は出発より後にしてください'); return; }
+  const sUtc = datetimeLocalToUtc(start), eUtc = datetimeLocalToUtc(end);
+  const carConflict = carEvents.some(ev =>
+    ev.id !== carEditingId && ev.carName === car &&
+    ev.startAt < eUtc && (ev.endScheduled || ev.startAt) > sUtc
+  );
+  if (carConflict) { showToast('⚠️ この時間帯はすでに予約があります'); return; }
   const destData = carDestinations.find(d => d.name === dest);
   const ev = {
     id:           carEditingId || undefined,
