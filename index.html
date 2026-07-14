@@ -1436,7 +1436,7 @@ function showLoginScreen(){
 }
 
 function showSessionExpiredDialog() {
-  document.getElementById('session-expired-dialog')?.remove();
+  if (document.getElementById('session-expired-dialog')) return;
   const el = document.createElement('div');
   el.id = 'session-expired-dialog';
   el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -1526,7 +1526,7 @@ async function loadEvents({ force = false } = {}){
     });
   } catch(err) {
     if(token !== _loadToken){ hideLoading(); return; }
-    showToast('⚠️ 予定の読み込みに失敗: ' + err.message);
+    if(err.message !== 'SESSION_EXPIRED') showToast('⚠️ 予定の読み込みに失敗: ' + err.message);
   } finally {
     hideLoading();
   }
@@ -2736,7 +2736,8 @@ function onApproverChange(){updateSaveButtonState()}
 function updateSaveButtonState(){
   const btn=document.getElementById('btn-save-event');if(!btn)return;
   const t=document.getElementById('ev-type').value;
-  const need=APPROVAL_TYPES.includes(t)&&currentUser&&currentUser.role==='一般';
+  const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
+  const need=APPROVAL_TYPES.includes(t)&&currentUser&&currentUser.role==='一般'&&!editingApproved;
   const ok=!need||!!document.getElementById('ev-approver')?.value;
   btn.disabled=!ok;
   btn.style.opacity=ok?'1':'0.4';
