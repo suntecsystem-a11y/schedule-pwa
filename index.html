@@ -2651,7 +2651,8 @@ function onTypeChange(){
   updateAlldayToggleVisual();applyAlldayLayout();
   document.getElementById('room-row').style.display=isRoom?'flex':'none';
   document.getElementById('rental-row').style.display=RENTAL_TYPES.includes(t)?'flex':'none';
-  const needsApprover=APPROVAL_TYPES.includes(t)&&currentUser&&currentUser.role==='一般';
+  const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
+  const needsApprover=APPROVAL_TYPES.includes(t)&&currentUser&&currentUser.role==='一般'&&!editingApproved;
   document.getElementById('approver-row').style.display=needsApprover?'flex':'none';
   if(needsApprover)renderApproverSelect();
   updateSaveButtonState();
@@ -2963,7 +2964,8 @@ async function doSaveEvent(){
   if(type==='会議室'&&events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===selectedRoom&&e.date===date&&start<e.end&&end>e.start)){
     showToast('⚠️ この時間帯はすでに予約があります');return;
   }
-  const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&currentUser.role==='一般';
+  const editApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
+  const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&currentUser.role==='一般'&&!editApproved;
   const selectedApprover=needsApprover?document.getElementById('ev-approver').value:'';
   if(needsApprover&&!selectedApprover){showToast('承認者を選択してください');return}
   const ev={
