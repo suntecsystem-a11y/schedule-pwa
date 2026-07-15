@@ -1121,6 +1121,14 @@ const RENTAL_TYPES = ['外出','出張','在宅']; // レンタル申請対象�
 // 写真アップロード用GAS（既存のアルコールチェッカーと共用）
 const PHOTO_GAS_URL  = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVuUrgwqBPr7UfFcWrFrXsfXcCR1eUo_siMsWahjSgxnU7LMjWRtM/exec';
 
+// ===== リリースノート設定 =====
+const APP_VERSION = '2.4';
+const SHOW_RELEASE_NOTES = false;
+const RELEASE_NOTES = [
+  'マイページにミニカレンダーを追加',
+  'プロフィールカードをコンパクトに変更',
+];
+
 // ============================================================
 // ===== Web Push 通知（Firebase Cloud Messaging）設定 =====
 // ★ Firebaseコンソール（https://console.firebase.google.com）で
@@ -1174,6 +1182,7 @@ function clearSession(){ localStorage.removeItem('sch_sess') }
 
 // ===== API ヘルパー =====
 let _apiAbort=null;
+let _sessionExpired=false;
 function cancelApiRequest(){if(_apiAbort){_apiAbort.abort();_apiAbort=null}}
 async function api(action, data={}, loadingMsg='処理中...'){
   showLoading(loadingMsg);
@@ -1377,6 +1386,7 @@ async function doLogin(){
   if(!GAS_URL){ demoLogin(empId, pin); return }
 
   try {
+    _sessionExpired = false;
     const result = await api('login', {empId, pin}, 'ログイン中...');
     currentUser = result.user; // role フィールドを含む
     saveSession(result.token, result.user);
@@ -1436,7 +1446,8 @@ function showLoginScreen(){
 }
 
 function showSessionExpiredDialog() {
-  if (document.getElementById('session-expired-dialog')) return;
+  if (_sessionExpired) return;
+  _sessionExpired = true;
   const el = document.createElement('div');
   el.id = 'session-expired-dialog';
   el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -1468,6 +1479,21 @@ function showApp(){
   // loadCarData(); // 車タブ未リリースのため一時停止（ホームの車ウィジェットも非表示）
   loadHolidays();
   loadRentalMasters();
+  showReleaseNotes();
+}
+function showReleaseNotes(){
+  if(!SHOW_RELEASE_NOTES||!RELEASE_NOTES.length) return;
+  const seen=localStorage.getItem('release_seen');
+  if(seen===APP_VERSION) return;
+  const ol=document.createElement('div');
+  ol.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
+  ol.innerHTML=`<div style="background:white;border-radius:var(--radius);padding:24px 20px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-size:1.1em;font-weight:700;margin-bottom:4px">アップデート情報 v${APP_VERSION}</div>
+    <div style="font-size:0.78em;color:var(--text2);margin-bottom:14px">新しい機能・変更点のお知らせ</div>
+    <ul style="margin:0 0 18px;padding-left:1.3em;font-size:0.9em;line-height:1.8">${RELEASE_NOTES.map(n=>'<li>'+n+'</li>').join('')}</ul>
+    <button class="btn-primary" style="width:100%" onclick="localStorage.setItem('release_seen','${APP_VERSION}');this.closest('div[style*=fixed]').remove()">OK</button>
+  </div>`;
+  document.body.appendChild(ol);
 }
 function doLogout(){
   clearSession(); currentUser=null; USERS=[]; events=[];
@@ -3375,26 +3401,42 @@ function _escHtml(s) {
 // ============================================================
 // ===== マイページタブ =====
 // ============================================================
+let _mypageCM=null,_mypageSD=null;
 function renderMyPage() {
   const today = fmtDate(new Date());
-  const ym    = today.slice(0, 7);
+  if(!_mypageCM) _mypageCM=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  if(!_mypageSD) _mypageSD=today;
 
-  // 今日のイベント（自分が登録者 or 参加者）
-  const todayEvs = events.filter(e =>
-    eventIncludesDate(e, today) &&
-    (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id))
-  );
-
-  // 今月の自分の予定（登録者 or 参加者）
-  const myEvs = events
-    .filter(e => (e.startDate||e.date).slice(0,7) === ym &&
-      (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id)))
-    .sort((a,b) => {
-      const dc = (a.startDate||a.date).localeCompare(b.startDate||b.date);
-      if(dc !== 0) return dc;
-      const at = a.start||'99:99', bt = b.start||'99:99';
-      return at.localeCompare(bt);
-    });
+  // ミニカレンダー構築
+  const _cy=_mypageCM.getFullYear(),_cmo=_mypageCM.getMonth();
+  const _fdow=new Date(_cy,_cmo,1).getDay();
+  const _dim=new Date(_cy,_cmo+1,0).getDate();
+  const _pdm=new Date(_cy,_cmo,0).getDate();
+  const _myAll=events.filter(e=>e.userId===currentUser.id||(e.people||[]).includes(currentUser.id));
+  let _calHTML='';
+  '日月火水木金土'.split('').forEach((d,i)=>{
+    const c=i===0?'var(--red)':i===6?'var(--blue)':'var(--text2)';
+    _calHTML+=`<div style="font-size:0.72em;color:${c};padding:4px 0;font-weight:700;text-align:center">${d}</div>`;
+  });
+  for(let i=0;i<_fdow;i++) _calHTML+=`<div style="text-align:center;padding:2px 0"><span style="font-size:0.82em;color:var(--text3);display:inline-block;width:28px;height:28px;line-height:28px">${_pdm-_fdow+1+i}</span><div style="height:7px"></div></div>`;
+  for(let d=1;d<=_dim;d++){
+    const ds=`${_cy}-${String(_cmo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isTd=ds===today,isSel=ds===_mypageSD;
+    const dEvs=_myAll.filter(e=>eventIncludesDate(e,ds));
+    const types=[...new Set(dEvs.map(e=>e.type))];
+    const dow=(_fdow+d-1)%7;
+    let ns='font-size:0.82em;display:inline-block;width:28px;height:28px;line-height:28px;border-radius:50%;cursor:pointer;';
+    if(isSel) ns+='background:var(--primary);color:white;font-weight:700;';
+    else if(isTd) ns+='background:var(--primary-light);color:var(--primary);font-weight:700;';
+    else if(dow===0) ns+='color:var(--red);';
+    else if(dow===6) ns+='color:var(--blue);';
+    const dots=types.slice(0,3).map(t=>`<span style="width:5px;height:5px;border-radius:50%;background:${STATUS_COLOR[t]||'#9e9e9e'}"></span>`).join('');
+    _calHTML+=`<div style="text-align:center;padding:2px 0" onclick="mypageSelectDate('${ds}')"><span style="${ns}">${d}</span><div style="display:flex;justify-content:center;gap:2px;margin-top:-2px;height:7px">${dots}</div></div>`;
+  }
+  const _rem=(_fdow+_dim)%7;if(_rem>0)for(let d=1;d<=7-_rem;d++) _calHTML+=`<div style="text-align:center;padding:2px 0"><span style="font-size:0.82em;color:var(--text3);display:inline-block;width:28px;height:28px;line-height:28px">${d}</span><div style="height:7px"></div></div>`;
+  const _selEvs=_myAll.filter(e=>eventIncludesDate(e,_mypageSD)).sort((a,b)=>(a.start||'99:99').localeCompare(b.start||'99:99'));
+  const _selD=new Date(_mypageSD+'T00:00:00');
+  const _selLabel=`${_selD.getMonth()+1}月${_selD.getDate()}日（${'日月火水木金土'[_selD.getDay()]}）`;
 
   // 自分の車予約（直近5件）
   const myCars = carEvents
@@ -3499,17 +3541,31 @@ function renderMyPage() {
       </div>
     </div>
 
-    <!-- 今月の予定 -->
+    <!-- マイカレンダー -->
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
-      <div style="font-size:0.72em;color:var(--text2);font-weight:700;letter-spacing:.05em;margin-bottom:10px">${new Date().getMonth()+1}月の予定（${myEvs.length}件）</div>
-      ${myEvs.length ? myEvs.map(e => `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:1.2em;color:var(--text2);cursor:pointer;padding:4px 8px" onclick="mypageCalNav(-1)">‹</span>
+        <span style="font-size:0.88em;font-weight:700">${_cy}年${_cmo+1}月</span>
+        <span style="font-size:1.2em;color:var(--text2);cursor:pointer;padding:4px 8px" onclick="mypageCalNav(1)">›</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr)">${_calHTML}</div>
+      <div style="display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);flex-wrap:wrap">
+        ${[['会議室','会議'],['打ち合わせ','打合せ'],['外出','外出'],['出張','出張'],['休暇','休暇'],['在宅','在宅']].map(([k,l])=>`<span style="font-size:0.7em;color:var(--text2);display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[k]}"></span>${l}</span>`).join('')}
+      </div>
+    </div>
+
+    <!-- 選択日の予定 -->
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
+      <div style="font-size:0.72em;color:var(--text2);font-weight:700;letter-spacing:.05em;margin-bottom:8px">${_selLabel}の予定</div>
+      ${_selEvs.length ? _selEvs.map(e=>`
         <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDetail('${e.id}')">
           <span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[e.type]||'#9e9e9e'};flex-shrink:0"></span>
-          <span style="font-size:0.8em;color:var(--text2);min-width:38px">${(e.startDate||e.date).slice(5).replace('-','/')}</span>
-          <span style="font-size:0.88em;font-weight:600;flex:1">${typeIcon(e.type)} ${esc(e.title||e.type)}</span>
-          ${e.start?`<span style="font-size:0.75em;color:var(--text2)">${e.start}</span>`:''}
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.88em;font-weight:600">${typeIcon(e.type)} ${esc(e.title||e.type)}</div>
+            <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${e.start&&e.end?e.start+' - '+e.end:'終日'}${e.room?' / '+esc(e.room):''}</div>
+          </div>
         </div>`).join('') :
-        '<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">今月の予定はありません</div>'}
+        '<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">予定はありません</div>'}
     </div>
 
     <!-- 今週のサマリー -->
@@ -3637,6 +3693,9 @@ function renderMyPage() {
     </div>
   `;
 }
+
+function mypageCalNav(dir){_mypageCM=new Date(_mypageCM.getFullYear(),_mypageCM.getMonth()+dir,1);renderMyPage()}
+function mypageSelectDate(ds){_mypageSD=ds;renderMyPage()}
 
 // ※ 出張費精算・汎用申請フレームは申請アプリ（apply-pwa）へ移行
 // ※ バックアップ：schedule-pwa/expense_backup.txt
