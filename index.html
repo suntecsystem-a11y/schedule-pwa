@@ -3385,20 +3385,6 @@ function renderMyPage() {
     (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id))
   );
 
-  // 今日のステータス判定
-  const nowStr = new Date().getHours().toString().padStart(2,'0') + ':' + new Date().getMinutes().toString().padStart(2,'0');
-  const statusPriority = STATUS_PRIORITY.filter(s => ['出張','外出','休暇','在宅'].includes(s));
-  const statusEv = statusPriority.map(s => todayEvs.find(e => e.type === s)).find(Boolean)
-    || todayEvs.find(e => e.type === '会議室' && e.start && e.end && e.start <= nowStr && nowStr < e.end);
-  const statusMap = {
-    '出張':  [STATUS_ICON['出張'], '出張中',   STATUS_COLOR['出張']],
-    '外出':  [STATUS_ICON['外出'], '外出中',   STATUS_COLOR['外出']],
-    '休暇':  [STATUS_ICON['休暇'], '休暇',     STATUS_COLOR['休暇']],
-    '在宅':  [STATUS_ICON['在宅'], '在宅勤務', STATUS_COLOR['在宅']],
-    '会議室':[STATUS_ICON['会議中'], '会議中', STATUS_COLOR['会議室']],
-  };
-  const [stIcon, stLabel, stColor] = statusEv ? (statusMap[statusEv.type] || ['📅', statusEv.type, '#757575']) : ['🏢','出勤','#757575'];
-
   // 今月の自分の予定（登録者 or 参加者）
   const myEvs = events
     .filter(e => (e.startDate||e.date).slice(0,7) === ym &&
@@ -3505,22 +3491,11 @@ function renderMyPage() {
     </div>` : ''}
 
     <!-- プロフィールカード -->
-    <div style="background:white;border-radius:var(--radius);padding:20px 16px;margin-bottom:12px;box-shadow:var(--shadow);text-align:center">
-      <div style="width:60px;height:60px;border-radius:50%;background:var(--primary);color:white;font-size:1.6em;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 10px">${esc(initials)}</div>
-      <div style="font-size:1.1em;font-weight:700">${esc(currentUser.name)}</div>
-      <div style="font-size:0.85em;color:var(--text2);margin-top:4px">${esc(currentUser.dept||'')}</div>
-      <div style="font-size:0.78em;color:var(--text2);margin-top:2px">社員番号: ${esc(currentUser.id)}</div>
-    </div>
-
-    <!-- 今日のステータス -->
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
-      <div style="font-size:0.72em;color:var(--text2);font-weight:700;letter-spacing:.05em;margin-bottom:10px">TODAY</div>
-      <div style="display:flex;align-items:center;gap:12px">
-        <span style="font-size:2em">${stIcon}</span>
-        <div>
-          <div style="font-weight:700;color:${stColor};font-size:1.05em">${stLabel}</div>
-          ${statusEv?.title ? `<div style="font-size:0.82em;color:var(--text2);margin-top:2px">${esc(statusEv.title)}</div>` : ''}
-        </div>
+    <div style="background:white;border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);color:white;font-size:1.1em;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${esc(initials)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:1em;font-weight:700">${esc(currentUser.name)}</div>
+        <div style="font-size:0.78em;color:var(--text2);margin-top:2px">${esc(currentUser.dept||'')}　社員番号: ${esc(currentUser.id)}</div>
       </div>
     </div>
 
