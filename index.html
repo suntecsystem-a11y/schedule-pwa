@@ -1123,7 +1123,7 @@ const PHOTO_GAS_URL  = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVu
 
 // ===== リリースノート設定 =====
 const APP_VERSION = '2.4';
-const SHOW_RELEASE_NOTES = true;
+const SHOW_RELEASE_NOTES = false;
 const RELEASE_NOTES = [
   'マイページにミニカレンダーを追加',
   'プロフィールカードをコンパクトに変更',
@@ -1244,6 +1244,16 @@ function userName(id){ return USERS.find(u=>u.id===id)?.name || id }
 const TYPE_ICON = {会議室:'🏢',外出:'🚶',出張:'✈️',休暇:'🌴',在宅:'🏠',打ち合わせ:'💬'};
 function typeIcon(t){ return TYPE_ICON[t]||'📌' }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200) }
+function jpNationalHolidays(y){
+  const nM=(m,n)=>{return 1+(8-new Date(y,m-1,1).getDay())%7+(n-1)*7};
+  const se=Math.floor(20.8431+.242194*(y-1980))-Math.floor((y-1980)/4);
+  const ae=Math.floor(23.2488+.242194*(y-1980))-Math.floor((y-1980)/4);
+  const ds=[`${y}-01-01`,`${y}-01-${pad(nM(1,2))}`,`${y}-02-11`,`${y}-02-23`,`${y}-03-${pad(se)}`,`${y}-04-29`,`${y}-05-03`,`${y}-05-04`,`${y}-05-05`,`${y}-07-${pad(nM(7,3))}`,`${y}-08-11`,`${y}-09-${pad(nM(9,3))}`,`${y}-09-${pad(ae)}`,`${y}-10-${pad(nM(10,2))}`,`${y}-11-03`,`${y}-11-23`];
+  const s=new Set(ds);
+  ds.forEach(d=>{if(new Date(d+'T00:00:00').getDay()===0){let n=new Date(d+'T00:00:00');do{n.setDate(n.getDate()+1)}while(s.has(fmtDate(n)));s.add(fmtDate(n))}});
+  const sorted=[...s].sort();for(let i=0;i<sorted.length-1;i++){const a=new Date(sorted[i]+'T00:00:00'),b=new Date(sorted[i+1]+'T00:00:00');if((b-a)/864e5===2){const m=new Date(a);m.setDate(a.getDate()+1);s.add(fmtDate(m))}}
+  return s;
+}
 
 // ===== オフライン検知 =====
 (function initOfflineDetection() {
@@ -3413,6 +3423,7 @@ function renderMyPage() {
   const _dim=new Date(_cy,_cmo+1,0).getDate();
   const _pdm=new Date(_cy,_cmo,0).getDate();
   const _myAll=events.filter(e=>e.userId===currentUser.id||(e.people||[]).includes(currentUser.id));
+  const _natHol=jpNationalHolidays(_cy);
   let _calHTML='';
   '日月火水木金土'.split('').forEach((d,i)=>{
     const c=i===0?'var(--red)':i===6?'var(--blue)':'var(--text2)';
@@ -3422,16 +3433,20 @@ function renderMyPage() {
   for(let d=1;d<=_dim;d++){
     const ds=`${_cy}-${String(_cmo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isTd=ds===today,isSel=ds===_mypageSD;
+    const isCompHol=holidays.some(h=>h.date===ds);
+    const isNatHol=_natHol.has(ds);
     const dEvs=_myAll.filter(e=>eventIncludesDate(e,ds));
     const types=[...new Set(dEvs.map(e=>e.type))];
     const dow=(_fdow+d-1)%7;
     let ns='font-size:0.82em;display:inline-block;width:28px;height:28px;line-height:28px;border-radius:50%;cursor:pointer;';
     if(isSel) ns+='background:var(--primary);color:white;font-weight:700;';
     else if(isTd) ns+='background:var(--primary-light);color:var(--primary);font-weight:700;';
+    else if(isCompHol||isNatHol) ns+='color:var(--red);';
     else if(dow===0) ns+='color:var(--red);';
     else if(dow===6) ns+='color:var(--blue);';
+    const cellBg=isCompHol&&!isSel?'background:#fff0f0;border-radius:6px;':'';
     const dots=types.slice(0,3).map(t=>`<span style="width:5px;height:5px;border-radius:50%;background:${STATUS_COLOR[t]||'#9e9e9e'}"></span>`).join('');
-    _calHTML+=`<div style="text-align:center;padding:2px 0" onclick="mypageSelectDate('${ds}')"><span style="${ns}">${d}</span><div style="display:flex;justify-content:center;gap:2px;margin-top:-2px;height:7px">${dots}</div></div>`;
+    _calHTML+=`<div style="text-align:center;padding:2px 0;${cellBg}" onclick="mypageSelectDate('${ds}')"><span style="${ns}">${d}</span><div style="display:flex;justify-content:center;gap:2px;margin-top:-2px;height:7px">${dots}</div></div>`;
   }
   const _rem=(_fdow+_dim)%7;if(_rem>0)for(let d=1;d<=7-_rem;d++) _calHTML+=`<div style="text-align:center;padding:2px 0"><span style="font-size:0.82em;color:var(--text3);display:inline-block;width:28px;height:28px;line-height:28px">${d}</span><div style="height:7px"></div></div>`;
   const _selEvs=_myAll.filter(e=>eventIncludesDate(e,_mypageSD)).sort((a,b)=>(a.start||'99:99').localeCompare(b.start||'99:99'));
