@@ -1520,12 +1520,13 @@ function doLogout(){
 // レースコンディション防止：最新のリクエストだけ画面に反映する
 let _loadToken = 0;
 
-async function loadEvents({ force = false } = {}){
+async function loadEvents({ force = false, centerDate } = {}){
   if(!GAS_URL){ return; }
   const token = ++_loadToken;
 
-  // 表示中の月を中心に前月・当月・翌月の3ヶ月を対象にする
-  const center = new Date(calDate.getFullYear(), calDate.getMonth(), 1);
+  // centerDate指定時はそれを基準に、なければcalDateを基準に前月・当月・翌月の3ヶ月を対象にする
+  const base = centerDate || calDate;
+  const center = new Date(base.getFullYear(), base.getMonth(), 1);
   const months = [-1, 0, 1].map(d => {
     const dt = new Date(center.getFullYear(), center.getMonth() + d, 1);
     return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
@@ -1599,8 +1600,9 @@ function switchTab(tab, btn){
   if(tab==='mypage')  renderMyPage();
   if(tab==='admin')   loadAdminUsers();
   // タブ切り替え時にeventsを再取得（キャッシュ10分以内なら即返す）してバッジ更新
+  // カレンダータブ以外は今日基準で取得し、ホーム等で今月の予定が欠けるのを防ぐ
   if(tab !== 'mypage') {
-    loadEvents().then(() => {
+    loadEvents(tab !== 'calendar' ? { centerDate: new Date() } : undefined).then(() => {
       const carCount = getPendingNotifs().length;
       const approvalCount = getApprovalPendingNotifs().length;
       const pendingApprovalCount = getPendingApprovals().length;
