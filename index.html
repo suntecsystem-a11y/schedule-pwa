@@ -1111,8 +1111,8 @@ const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅'];
 const STATUS_COLOR = {
-  '会議室':'#7986cb','外出':'#ffca28','出張':'#42a5f5',
-  '休暇':'#ec407a','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ab47bc','在席':'#bdbdbd','会議中':'#7986cb',
+  '会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6',
+  '休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','在席':'#ccc','会議中':'#9fa8da',
 };
 const MULTIDAY_TYPES = ['出張','休暇','休み','在宅'];
 const TIMED_TYPES    = ['会議室','打ち合わせ','外出'];
@@ -1805,8 +1805,10 @@ function renderMonth(){
       const natHName=_nm.get(ds);const natH=!!natHName;
       const anyHol=hol||natH;const holLabel=hol?.name||natHName||'';
       html+=`<div class="month-cell${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
-        <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
-        ${holLabel?`<div class="holiday-name">${esc(holLabel)}</div>`:''}
+        <div style="display:flex;align-items:center;gap:2px">
+          <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
+          ${holLabel?`<span class="holiday-name" style="flex:1;min-width:0">${esc(holLabel)}</span>`:''}
+        </div>
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">+${ov.overflow}件</div>`:''}
       </div>`;
     });
