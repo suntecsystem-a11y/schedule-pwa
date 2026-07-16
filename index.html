@@ -1111,8 +1111,8 @@ const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅'];
 const STATUS_COLOR = {
-  '会議室':'#5c6bc0','外出':'#f9a825','出張':'#1e88e5',
-  '休暇':'#e91e63','休み':'#ff7043','在宅':'#43a047','打ち合わせ':'#8e24aa','在席':'#9e9e9e','会議中':'#5c6bc0',
+  '会議室':'#7986cb','外出':'#ffca28','出張':'#42a5f5',
+  '休暇':'#ec407a','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ab47bc','在席':'#bdbdbd','会議中':'#7986cb',
 };
 const MULTIDAY_TYPES = ['出張','休暇','休み','在宅'];
 const TIMED_TYPES    = ['会議室','打ち合わせ','外出'];
@@ -1248,11 +1248,16 @@ function jpNationalHolidays(y){
   const nM=(m,n)=>{return 1+(8-new Date(y,m-1,1).getDay())%7+(n-1)*7};
   const se=Math.floor(20.8431+.242194*(y-1980))-Math.floor((y-1980)/4);
   const ae=Math.floor(23.2488+.242194*(y-1980))-Math.floor((y-1980)/4);
-  const ds=[`${y}-01-01`,`${y}-01-${pad(nM(1,2))}`,`${y}-02-11`,`${y}-02-23`,`${y}-03-${pad(se)}`,`${y}-04-29`,`${y}-05-03`,`${y}-05-04`,`${y}-05-05`,`${y}-07-${pad(nM(7,3))}`,`${y}-08-11`,`${y}-09-${pad(nM(9,3))}`,`${y}-09-${pad(ae)}`,`${y}-10-${pad(nM(10,2))}`,`${y}-11-03`,`${y}-11-23`];
-  const s=new Set(ds);
-  ds.forEach(d=>{if(new Date(d+'T00:00:00').getDay()===0){let n=new Date(d+'T00:00:00');do{n.setDate(n.getDate()+1)}while(s.has(fmtDate(n)));s.add(fmtDate(n))}});
-  const sorted=[...s].sort();for(let i=0;i<sorted.length-1;i++){const a=new Date(sorted[i]+'T00:00:00'),b=new Date(sorted[i+1]+'T00:00:00');if((b-a)/864e5===2){const m=new Date(a);m.setDate(a.getDate()+1);s.add(fmtDate(m))}}
-  return s;
+  const entries=[
+    [`${y}-01-01`,'元日'],[`${y}-01-${pad(nM(1,2))}`,'成人の日'],[`${y}-02-11`,'建国記念の日'],[`${y}-02-23`,'天皇誕生日'],
+    [`${y}-03-${pad(se)}`,'春分の日'],[`${y}-04-29`,'昭和の日'],[`${y}-05-03`,'憲法記念日'],[`${y}-05-04`,'みどりの日'],
+    [`${y}-05-05`,'こどもの日'],[`${y}-07-${pad(nM(7,3))}`,'海の日'],[`${y}-08-11`,'山の日'],[`${y}-09-${pad(nM(9,3))}`,'敬老の日'],
+    [`${y}-09-${pad(ae)}`,'秋分の日'],[`${y}-10-${pad(nM(10,2))}`,'スポーツの日'],[`${y}-11-03`,'文化の日'],[`${y}-11-23`,'勤労感謝の日']
+  ];
+  const m=new Map(entries);
+  entries.forEach(([d])=>{if(new Date(d+'T00:00:00').getDay()===0){let n=new Date(d+'T00:00:00');do{n.setDate(n.getDate()+1)}while(m.has(fmtDate(n)));m.set(fmtDate(n),'振替休日')}});
+  const sorted=[...m.keys()].sort();for(let i=0;i<sorted.length-1;i++){const a=new Date(sorted[i]+'T00:00:00'),b=new Date(sorted[i+1]+'T00:00:00');if((b-a)/864e5===2){const mid=new Date(a);mid.setDate(a.getDate()+1);m.set(fmtDate(mid),'国民の休日')}}
+  return m;
 }
 
 // ===== オフライン検知 =====
@@ -1764,6 +1769,7 @@ function renderMonth(){
   document.getElementById('cal-title').textContent=`${y}年 ${m+1}月`;
   const startDay=(new Date(y,m,1).getDay()+6)%7;
   const todayStr=fmtDate(new Date());
+  const _natMap=jpNationalHolidays(y);const _natMapNext=m===11?jpNationalHolidays(y+1):_natMap;const _natMapPrev=m===0?jpNationalHolidays(y-1):_natMap;
   const filtered=getFiltered();
   let html=`<div class="month-grid">
     <div class="month-header">${['月','火','水','木','金','土','日'].map(d=>`<div>${d}</div>`).join('')}</div>`;
@@ -1795,11 +1801,12 @@ function renderMonth(){
       const ds=fmtDate(day);const isOther=day.getMonth()!==m;const isToday=ds===todayStr;const dow=di;
       const ov=cellOv[di];
       const hol=holidays.find(h=>h.date===ds);
-      const natH=jpNationalHolidays(day.getFullYear()).has(ds);
-      const anyHol=hol||natH;
+      const _nm=day.getMonth()<m?_natMapPrev:day.getMonth()>m?_natMapNext:_natMap;
+      const natHName=_nm.get(ds);const natH=!!natHName;
+      const anyHol=hol||natH;const holLabel=hol?.name||natHName||'';
       html+=`<div class="month-cell${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
         <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
-        ${hol&&hol.name?`<div class="holiday-name">${esc(hol.name)}</div>`:''}
+        ${holLabel?`<div class="holiday-name">${esc(holLabel)}</div>`:''}
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">+${ov.overflow}件</div>`:''}
       </div>`;
     });
@@ -1850,9 +1857,9 @@ function renderWeek(){
   const wS=fmtDate(days[0]),wE=fmtDate(days[6]);
   const alldayEvs=filtered.filter(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;return(!e.start||isMultiDay(e))&&es<=wE&&ee>=wS});
   let html=`<div class="week-grid"><div class="week-header"><div class="week-header-cell"></div>
-    ${days.map((d,i)=>{const ds=fmtDate(d);const isT=ds===todayStr;const isCompHol=holidays.some(h=>h.date===ds);const isNatH=jpNationalHolidays(d.getFullYear()).has(ds);const isHol=isCompHol||isNatH;
+    ${days.map((d,i)=>{const ds=fmtDate(d);const isT=ds===todayStr;const hol=holidays.find(h=>h.date===ds);const isCompHol=!!hol;const natHName=jpNationalHolidays(d.getFullYear()).get(ds);const isHol=isCompHol||!!natHName;const holLabel=hol?.name||natHName||'';
       return`<div class="week-header-cell"${isCompHol?` style="background:#fff0f0"`:''}><div class="wday" style="${i===6||isHol?'color:var(--red)':i===5?'color:var(--blue)':''}">${['月','火','水','木','金','土','日'][i]}</div>
-        <div class="wdate${isT?' today':''}${isHol?' holiday':''}">${d.getDate()}</div></div>`;}).join('')}
+        <div class="wdate${isT?' today':''}${isHol?' holiday':''}">${d.getDate()}</div>${holLabel?`<div style="font-size:0.65em;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(holLabel)}</div>`:''}</div>`;}).join('')}
     </div>`;
   if(alldayEvs.length){
     html+=`<div class="week-allday-row"><div class="week-allday-label">終日</div>`;
@@ -1888,7 +1895,8 @@ function renderWeek(){
 // ===== 日表示 =====
 function renderDay(){
   const ds=fmtDate(calDate);const d=parseDate(ds);
-  document.getElementById('cal-title').textContent=`${d.getMonth()+1}月${d.getDate()}日（${'日月火水木金土'[d.getDay()]}）`;
+  const _dayHolName=holidays.find(h=>h.date===ds)?.name||jpNationalHolidays(d.getFullYear()).get(ds)||'';
+  document.getElementById('cal-title').textContent=`${d.getMonth()+1}月${d.getDate()}日（${'日月火水木金土'[d.getDay()]}）${_dayHolName?' '+_dayHolName:''}`;
   const dayEvs=getFiltered().filter(e=>eventIncludesDate(e,ds));
   if(!dayEvs.length){document.getElementById('cal-content').innerHTML='<div style="text-align:center;color:var(--text2);padding:60px 20px"><div style="font-size:2em;margin-bottom:8px;opacity:.4">📅</div><div style="font-size:0.9em">この日の予定はありません</div></div>';return}
   const timed=dayEvs.filter(e=>e.start).sort((a,b)=>a.start.localeCompare(b.start));
@@ -2013,10 +2021,12 @@ function renderTeam(){
   const now=new Date();
   const nowTime=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   const kw=(document.getElementById('team-search')?.value||'').toLowerCase();
-  const isCompHoliday=holidays.some(h=>h.date===ds);
-  const isNatHoliday=jpNationalHolidays(d.getFullYear()).has(ds);
+  const _teamHol=holidays.find(h=>h.date===ds);
+  const isCompHoliday=!!_teamHol;
+  const _teamNatName=jpNationalHolidays(d.getFullYear()).get(ds);
+  const isNatHoliday=!!_teamNatName;
   const isHoliday=isCompHoliday||isNatHoliday;
-  const holName=holidays.find(h=>h.date===ds)?.name||'';
+  const holName=_teamHol?.name||_teamNatName||'';
 
   // 全員のステータスを優先度順に計算
   const members=USERS.map(u=>{
@@ -2113,10 +2123,12 @@ function renderTeamDeptView() {
   const d  = parseDate(ds);
   const now = new Date();
   const nowMins = now.getHours()*60 + now.getMinutes();
-  const isCompHoliday = holidays.some(h => h.date === ds);
-  const isNatHoliday = jpNationalHolidays(d.getFullYear()).has(ds);
+  const _deptHol = holidays.find(h => h.date === ds);
+  const isCompHoliday = !!_deptHol;
+  const _deptNatName = jpNationalHolidays(d.getFullYear()).get(ds);
+  const isNatHoliday = !!_deptNatName;
   const isHoliday = isCompHoliday||isNatHoliday;
-  const holName   = holidays.find(h => h.date === ds)?.name || '';
+  const holName   = _deptHol?.name || _deptNatName || '';
   const dow = '日月火水木金土'[d.getDay()];
 
   const members = USERS.map(u => {
@@ -2204,9 +2216,11 @@ function renderMemberWeek(){
     const dt = days[i];
     const ds = fmtDate(dt);
     const isToday = ds===today;
-    const isCompHol = holidays.some(h=>h.date===ds);
-    const isNatH = jpNationalHolidays(dt.getFullYear()).has(ds);
-    const isHol = isCompHol||isNatH;
+    const _hol = holidays.find(h=>h.date===ds);
+    const isCompHol = !!_hol;
+    const _natName = jpNationalHolidays(dt.getFullYear()).get(ds);
+    const isHol = isCompHol||!!_natName;
+    const holLabel = _hol?.name||_natName||'';
     const isSat = i===5, isSun = i===6;
     const dayEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
     const dayColor = (isHol||isSun)?'#f44336':isSat?'#1976d2':'var(--text)';
@@ -2215,7 +2229,7 @@ function renderMemberWeek(){
         <span style="font-size:0.75em;font-weight:700;color:${dayColor};min-width:14px">${dayNames[i]}</span>
         <span style="font-size:0.75em;color:${dayColor}">${dt.getMonth()+1}/${dt.getDate()}</span>
         ${isToday?'<span style="font-size:0.6em;background:var(--primary);color:white;padding:1px 5px;border-radius:4px">今日</span>':''}
-        ${isCompHol?'<span style="font-size:0.65em">🎌</span>':''}
+        ${holLabel?`<span style="font-size:0.65em;color:#f44336">${esc(holLabel)}</span>`:''}
       </div>`;
     if(!dayEvs.length){
       html += `<div style="font-size:0.75em;color:var(--text3);padding-left:20px">${(isSat||isSun||isHol)?'休日':'−'}</div>`;
@@ -2409,11 +2423,13 @@ function renderHome(){
       const dt = new Date(d+'T00:00:00');
       const dow = DAY_LABELS[dt.getDay()];
       const isToday = d === today;
+      const _hHol=holidays.find(h=>h.date===d);const _hNat=jpNationalHolidays(dt.getFullYear()).get(d);
+      const isHol=!!_hHol||!!_hNat;const _hLabel=_hHol?.name||_hNat||'';
       const isSun = dt.getDay()===0, isSat = dt.getDay()===6;
-      const color = isToday?'var(--primary)':isSun?'#e53935':isSat?'#1e88e5':'var(--text2)';
-      const bg = isToday?'#e3f2fd':'transparent';
+      const color = isToday?'var(--primary)':(isSun||isHol)?'#e53935':isSat?'#1e88e5':'var(--text2)';
+      const bg = isToday?'#e3f2fd':_hHol?'#fff0f0':'transparent';
       return `<th style="min-width:90px;padding:6px 4px;text-align:center;font-size:0.75em;color:${color};background:${bg};border-bottom:2px solid ${isToday?'var(--primary)':'var(--border)'};border-left:1px solid var(--border)">
-        <div style="font-weight:700">${d.slice(5).replace('-','/')}</div><div>(${dow})</div></th>`;
+        <div style="font-weight:700">${d.slice(5).replace('-','/')}</div><div>(${dow})</div>${_hLabel?`<div style="font-size:0.85em;color:#e53935">${esc(_hLabel)}</div>`:''}</th>`;
     }).join('');
 
     const rows = depts.map(dept => {
@@ -2462,8 +2478,10 @@ function renderHome(){
       const dt = new Date(d+'T00:00:00');
       const dow = DAY_LABELS[dt.getDay()];
       const isToday = d === today;
+      const _cHol=holidays.find(h=>h.date===d);const _cNat=jpNationalHolidays(dt.getFullYear()).get(d);
+      const _cIsHol=!!_cHol||!!_cNat;const _cLabel=_cHol?.name||_cNat||'';
       const isSun = dt.getDay()===0, isSat = dt.getDay()===6;
-      const headerColor = isToday?'var(--primary)':isSun?'#e53935':isSat?'#1e88e5':'#546e7a';
+      const headerColor = isToday?'var(--primary)':(isSun||_cIsHol)?'#e53935':isSat?'#1e88e5':'#546e7a';
 
       const dayUsers = userEvents.filter(({dayMap})=>dayMap[d].length>0);
 
@@ -2502,6 +2520,7 @@ function renderHome(){
       return `<div style="background:white;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:10px">
         <div style="background:${headerColor};color:white;padding:8px 14px;display:flex;align-items:baseline;gap:8px">
           <span style="font-weight:800;font-size:1em">${d.slice(5).replace('-','/')} (${dow})</span>
+          ${_cLabel?`<span style="font-size:0.75em;opacity:.9">${esc(_cLabel)}</span>`:''}
           ${isToday?'<span style="font-size:0.7em;background:rgba(255,255,255,.3);padding:1px 8px;border-radius:10px">今日</span>':''}
           <span style="font-size:0.75em;opacity:.85;margin-left:auto">${dayUsers.length}人</span>
         </div>
@@ -3443,8 +3462,11 @@ function renderMyPage() {
   for(let d=1;d<=_dim;d++){
     const ds=`${_cy}-${String(_cmo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isTd=ds===today,isSel=ds===_mypageSD;
-    const isCompHol=holidays.some(h=>h.date===ds);
-    const isNatHol=_natHol.has(ds);
+    const _mcHol=holidays.find(h=>h.date===ds);
+    const isCompHol=!!_mcHol;
+    const _mcNatName=_natHol.get(ds);
+    const isNatHol=!!_mcNatName;
+    const _mcHolLabel=_mcHol?.name||_mcNatName||'';
     const dEvs=_myAll.filter(e=>eventIncludesDate(e,ds));
     const types=[...new Set(dEvs.map(e=>e.type))];
     const dow=(_fdow+d-1)%7;
@@ -3456,12 +3478,13 @@ function renderMyPage() {
     else if(dow===6) ns+='color:var(--blue);';
     const cellBg=isCompHol&&!isSel?'background:#fff0f0;border-radius:6px;':'';
     const dots=types.slice(0,3).map(t=>`<span style="width:5px;height:5px;border-radius:50%;background:${STATUS_COLOR[t]||'#9e9e9e'}"></span>`).join('');
-    _calHTML+=`<div style="text-align:center;padding:2px 0;${cellBg}" onclick="mypageSelectDate('${ds}')"><span style="${ns}">${d}</span><div style="display:flex;justify-content:center;gap:2px;margin-top:-2px;height:7px">${dots}</div></div>`;
+    _calHTML+=`<div style="text-align:center;padding:2px 0;${cellBg}" onclick="mypageSelectDate('${ds}')"${_mcHolLabel?` title="${esc(_mcHolLabel)}"`:''}><span style="${ns}">${d}</span><div style="display:flex;justify-content:center;gap:2px;margin-top:-2px;height:7px">${dots}</div></div>`;
   }
   const _rem=(_fdow+_dim)%7;if(_rem>0)for(let d=1;d<=7-_rem;d++) _calHTML+=`<div style="text-align:center;padding:2px 0"><span style="font-size:0.82em;color:var(--text3);display:inline-block;width:28px;height:28px;line-height:28px">${d}</span><div style="height:7px"></div></div>`;
   const _selEvs=_myAll.filter(e=>eventIncludesDate(e,_mypageSD)).sort((a,b)=>(a.start||'99:99').localeCompare(b.start||'99:99'));
   const _selD=new Date(_mypageSD+'T00:00:00');
-  const _selLabel=`${_selD.getMonth()+1}月${_selD.getDate()}日（${'日月火水木金土'[_selD.getDay()]}）`;
+  const _selHolName=holidays.find(h=>h.date===_mypageSD)?.name||jpNationalHolidays(_selD.getFullYear()).get(_mypageSD)||'';
+  const _selLabel=`${_selD.getMonth()+1}月${_selD.getDate()}日（${'日月火水木金土'[_selD.getDay()]}）${_selHolName?' '+_selHolName:''}`;
 
   // 自分の車予約（直近5件）
   const myCars = carEvents
