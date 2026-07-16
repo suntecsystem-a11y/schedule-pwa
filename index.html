@@ -1793,8 +1793,10 @@ function renderMonth(){
       const ds=fmtDate(day);const isOther=day.getMonth()!==m;const isToday=ds===todayStr;const dow=di;
       const ov=cellOv[di];
       const hol=holidays.find(h=>h.date===ds);
-      html+=`<div class="month-cell" onclick="onCellClick('${ds}')">
-        <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||hol?' sun holiday':hol?' holiday':''}">${day.getDate()}</div>
+      const natH=jpNationalHolidays(day.getFullYear()).has(ds);
+      const anyHol=hol||natH;
+      html+=`<div class="month-cell${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
+        <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
         ${hol&&hol.name?`<div class="holiday-name">${esc(hol.name)}</div>`:''}
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">+${ov.overflow}件</div>`:''}
       </div>`;
@@ -1846,8 +1848,8 @@ function renderWeek(){
   const wS=fmtDate(days[0]),wE=fmtDate(days[6]);
   const alldayEvs=filtered.filter(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;return(!e.start||isMultiDay(e))&&es<=wE&&ee>=wS});
   let html=`<div class="week-grid"><div class="week-header"><div class="week-header-cell"></div>
-    ${days.map((d,i)=>{const ds=fmtDate(d);const isT=ds===todayStr;const isHol=holidays.some(h=>h.date===ds);
-      return`<div class="week-header-cell"><div class="wday" style="${i===6||isHol?'color:var(--red)':i===5?'color:var(--blue)':''}">${['月','火','水','木','金','土','日'][i]}</div>
+    ${days.map((d,i)=>{const ds=fmtDate(d);const isT=ds===todayStr;const isCompHol=holidays.some(h=>h.date===ds);const isNatH=jpNationalHolidays(d.getFullYear()).has(ds);const isHol=isCompHol||isNatH;
+      return`<div class="week-header-cell"${isCompHol?` style="background:#fff0f0"`:''}><div class="wday" style="${i===6||isHol?'color:var(--red)':i===5?'color:var(--blue)':''}">${['月','火','水','木','金','土','日'][i]}</div>
         <div class="wdate${isT?' today':''}${isHol?' holiday':''}">${d.getDate()}</div></div>`;}).join('')}
     </div>`;
   if(alldayEvs.length){
@@ -2009,7 +2011,9 @@ function renderTeam(){
   const now=new Date();
   const nowTime=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   const kw=(document.getElementById('team-search')?.value||'').toLowerCase();
-  const isHoliday=holidays.some(h=>h.date===ds);
+  const isCompHoliday=holidays.some(h=>h.date===ds);
+  const isNatHoliday=jpNationalHolidays(d.getFullYear()).has(ds);
+  const isHoliday=isCompHoliday||isNatHoliday;
   const holName=holidays.find(h=>h.date===ds)?.name||'';
 
   // 全員のステータスを優先度順に計算
@@ -2107,7 +2111,9 @@ function renderTeamDeptView() {
   const d  = parseDate(ds);
   const now = new Date();
   const nowMins = now.getHours()*60 + now.getMinutes();
-  const isHoliday = holidays.some(h => h.date === ds);
+  const isCompHoliday = holidays.some(h => h.date === ds);
+  const isNatHoliday = jpNationalHolidays(d.getFullYear()).has(ds);
+  const isHoliday = isCompHoliday||isNatHoliday;
   const holName   = holidays.find(h => h.date === ds)?.name || '';
   const dow = '日月火水木金土'[d.getDay()];
 
@@ -2196,16 +2202,18 @@ function renderMemberWeek(){
     const dt = days[i];
     const ds = fmtDate(dt);
     const isToday = ds===today;
-    const isHol = holidays.some(h=>h.date===ds);
+    const isCompHol = holidays.some(h=>h.date===ds);
+    const isNatH = jpNationalHolidays(dt.getFullYear()).has(ds);
+    const isHol = isCompHol||isNatH;
     const isSat = i===5, isSun = i===6;
     const dayEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
     const dayColor = (isHol||isSun)?'#f44336':isSat?'#1976d2':'var(--text)';
-    html += `<div style="margin-bottom:6px;${isToday?'background:var(--primary-light);border-radius:10px;padding:5px 8px;':'padding:2px 0'}">
+    html += `<div style="margin-bottom:6px;${isCompHol&&!isToday?'background:#fff0f0;border-radius:10px;padding:5px 8px;':isToday?'background:var(--primary-light);border-radius:10px;padding:5px 8px;':'padding:2px 0'}">
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
         <span style="font-size:0.75em;font-weight:700;color:${dayColor};min-width:14px">${dayNames[i]}</span>
         <span style="font-size:0.75em;color:${dayColor}">${dt.getMonth()+1}/${dt.getDate()}</span>
         ${isToday?'<span style="font-size:0.6em;background:var(--primary);color:white;padding:1px 5px;border-radius:4px">今日</span>':''}
-        ${isHol?'<span style="font-size:0.65em">🎌</span>':''}
+        ${isCompHol?'<span style="font-size:0.65em">🎌</span>':''}
       </div>`;
     if(!dayEvs.length){
       html += `<div style="font-size:0.75em;color:var(--text3);padding-left:20px">${(isSat||isSun||isHol)?'休日':'−'}</div>`;
@@ -2227,7 +2235,7 @@ function openMemberDetail(userId){
   mpUserId = userId; mpWeekOffset = 0;
   const ds = fmtDate(new Date());
   const myEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
-  const isHol = holidays.some(h=>h.date===ds);
+  const isHol = holidays.some(h=>h.date===ds)||jpNationalHolidays(new Date().getFullYear()).has(ds);
   const status = STATUS_PRIORITY.find(s=>myEvs.some(e=>e.type===s))||(isHol?'休暇':'在席');
   const color = STATUS_COLOR[status]||'#9e9e9e';
   document.getElementById('mp-avatar').textContent = STATUS_ICON[status]||u.name.slice(-1);
