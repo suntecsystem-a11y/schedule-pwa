@@ -1522,6 +1522,19 @@ function doLogout(){
 }
 
 // ===== イベント読み込み =====
+// カレンダーが今日と違う月を表示中でも、在籍率・ホーム等で今日のデータが必要。
+// キャッシュに今月データがあれば events にマージして常に今日の予定を参照可能にする。
+function _mergeToday(fetchedMonths){
+  const t=new Date();
+  [-1,0,1].forEach(d=>{
+    const dt=new Date(t.getFullYear(),t.getMonth()+d,1);
+    const ym=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+    if(!fetchedMonths.includes(ym)&&eventsCache[ym]){
+      const ids=new Set(events.map(e=>e.id));
+      eventsCache[ym].data.forEach(e=>{if(!ids.has(e.id)){events.push(e);ids.add(e.id)}});
+    }
+  });
+}
 // レースコンディション防止：最新のリクエストだけ画面に反映する
 let _loadToken = 0;
 
@@ -1547,6 +1560,7 @@ async function loadEvents({ force = false, centerDate } = {}){
     // キャッシュから全月分をマージして events にセット
     events = months.flatMap(ym => eventsCache[ym].data)
       .filter((e, i, arr) => arr.findIndex(x => x.id === e.id) === i); // 重複除去
+    _mergeToday(months);
     renderAll(); renderRoomTimeline(); renderTeam();
     return;
   }
@@ -1572,6 +1586,7 @@ async function loadEvents({ force = false, centerDate } = {}){
   } finally {
     hideLoading();
   }
+  _mergeToday(months);
   renderAll(); renderRoomTimeline(); renderTeam();
   checkApprovalNotifs();
   loadDailyRest().then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); });
@@ -1608,6 +1623,8 @@ function switchTab(tab, btn){
   // カレンダータブ以外は今日基準で取得し、ホーム等で今月の予定が欠けるのを防ぐ
   if(tab !== 'mypage') {
     loadEvents(tab !== 'calendar' ? { centerDate: new Date() } : undefined).then(() => {
+      if(tab==='home'){ renderHome(); renderHomeDayWidgets(); }
+      if(tab==='team') renderTeam();
       const carCount = getPendingNotifs().length;
       const approvalCount = getApprovalPendingNotifs().length;
       const pendingApprovalCount = getPendingApprovals().length;
@@ -1805,10 +1822,8 @@ function renderMonth(){
       const natHName=_nm.get(ds);const natH=!!natHName;
       const anyHol=hol||natH;const holLabel=hol?.name||natHName||'';
       html+=`<div class="month-cell${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
-        <div style="display:flex;align-items:center;gap:2px">
-          <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
-          ${holLabel?`<span class="holiday-name" style="flex:1;min-width:0">${esc(holLabel)}</span>`:''}
-        </div>
+        <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
+        ${holLabel?`<span class="holiday-name" style="position:absolute;top:3px;left:26px;right:1px">${esc(holLabel)}</span>`:''}
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">+${ov.overflow}件</div>`:''}
       </div>`;
     });
