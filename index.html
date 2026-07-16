@@ -64,7 +64,7 @@ input,select{font-family:inherit;outline:none}
   .week-body{max-height:calc(100vh - 180px)}
   .ev-layer{top:35px}
   .cell-num{font-size:0.82em;width:26px;height:26px}
-  .holiday-name{font-size:0.7em}
+  .month-cell .holiday-name{font-size:0.7em;left:30px;line-height:26px}
   .ev-bar{height:22px;font-size:0.7em}
 }
 
@@ -195,7 +195,10 @@ input,select{font-family:inherit;outline:none}
 .cell-num.sat{color:var(--blue)}
 .cell-num.sun{color:var(--red)}
 .cell-num.holiday{color:var(--red)}
-.holiday-name{font-size:0.72em;color:var(--red);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 2px;line-height:1.2}
+.holiday-name{font-size:0.72em;color:var(--red);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 2px}
+.month-cell .holiday-name{position:absolute;top:4px;left:26px;right:1px;line-height:22px}
+.holiday-short{display:none}
+@media(max-width:600px){.month-cell .holiday-name{display:none}.month-cell .holiday-short{display:block;position:absolute;top:2px;left:22px;font-size:0.55em;color:var(--red);line-height:1;white-space:nowrap}}
 .wdate.holiday{color:var(--red)}
 .cell-more{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:0.78em;color:var(--primary);font-weight:700;cursor:pointer}
 .ev-layer{position:absolute;top:29px;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden}
@@ -1259,6 +1262,7 @@ function jpNationalHolidays(y){
   const sorted=[...m.keys()].sort();for(let i=0;i<sorted.length-1;i++){const a=new Date(sorted[i]+'T00:00:00'),b=new Date(sorted[i+1]+'T00:00:00');if((b-a)/864e5===2){const mid=new Date(a);mid.setDate(a.getDate()+1);m.set(fmtDate(mid),'国民の休日')}}
   return m;
 }
+function shortHolName(n){return n.replace(/記念の日$|感謝の日$|誕生日$|記念日$|の休日$|休日$|の日$/,'')}
 
 // ===== オフライン検知 =====
 (function initOfflineDetection() {
@@ -1823,7 +1827,7 @@ function renderMonth(){
       const anyHol=hol||natH;const holLabel=hol?.name||natHName||'';
       html+=`<div class="month-cell${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
         <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
-        ${holLabel?`<span class="holiday-name" style="position:absolute;top:3px;left:26px;right:1px">${esc(holLabel)}</span>`:''}
+        ${holLabel?`<span class="holiday-name">${esc(holLabel)}</span><span class="holiday-short">${esc(shortHolName(holLabel))}</span>`:''}
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">+${ov.overflow}件</div>`:''}
       </div>`;
     });
