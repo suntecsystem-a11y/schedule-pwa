@@ -1216,6 +1216,7 @@ function clearSession(){ localStorage.removeItem('sch_sess') }
 // ===== API ヘルパー =====
 let _apiAbort=null;
 let _sessionExpired=false;
+let _reloginPromise=null;
 function cancelApiRequest(){if(_apiAbort){_apiAbort.abort();_apiAbort=null}}
 async function api(action, data={}, loadingMsg='処理中...'){
   showLoading(loadingMsg);
@@ -1231,8 +1232,9 @@ async function api(action, data={}, loadingMsg='処理中...'){
     if (!result.ok) {
       if (result.error === 'SESSION_EXPIRED') {
         clearSession();
-        showSessionExpiredDialog();
-        throw new Error('SESSION_EXPIRED');
+        hideLoading();
+        await showSessionExpiredDialog();
+        return api(action, data, loadingMsg);
       }
       throw new Error(result.error || 'エラーが発生しました');
     }
@@ -1495,20 +1497,59 @@ function showLoginScreen(){
 }
 
 function showSessionExpiredDialog() {
-  if (_sessionExpired) return;
-  _sessionExpired = true;
-  const el = document.createElement('div');
-  el.id = 'session-expired-dialog';
-  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  el.innerHTML = `
-    <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
-      <div style="font-size:2em;margin-bottom:10px">⏱️</div>
-      <h3 style="margin:0 0 8px;font-size:1.05em">セッションが切れました</h3>
-      <p style="color:var(--text2);font-size:0.88em;margin:0 0 20px">長時間操作がなかったため、自動的にログアウトされました。再度ログインしてください。</p>
-      <button onclick="document.getElementById('session-expired-dialog').remove();showLoginScreen()" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:0.95em;font-weight:600;cursor:pointer">再ログイン</button>
-    </div>
-  `;
-  document.body.appendChild(el);
+  if(_reloginPromise) return _reloginPromise;
+  _sessionExpired=true;
+  _reloginPromise=new Promise((resolve,reject)=>{
+    const el=document.createElement('div');
+    el.id='session-expired-dialog';
+    el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    const empVal=currentUser?.empId||'';
+    el.innerHTML=`
+      <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
+        <div style="font-size:2em;margin-bottom:10px">⏱️</div>
+        <h3 style="margin:0 0 8px;font-size:1.05em">セッションが切れました</h3>
+        <p style="color:var(--text2);font-size:0.85em;margin:0 0 16px">再ログインすると操作を続けられます</p>
+        <input id="relogin-empid" type="text" inputmode="numeric" value="${empVal}" placeholder="社員番号" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:0.95em;margin-bottom:8px;box-sizing:border-box">
+        <input id="relogin-pin" type="password" inputmode="numeric" placeholder="PIN" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:0.95em;margin-bottom:4px;box-sizing:border-box">
+        <p id="relogin-error" style="color:var(--red);font-size:0.82em;display:none;margin:4px 0 0"></p>
+        <button id="relogin-btn" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:0.95em;font-weight:600;cursor:pointer;margin-top:12px">ログイン</button>
+        <button id="relogin-cancel" style="width:100%;padding:8px;background:none;border:none;color:var(--text2);font-size:0.82em;cursor:pointer;margin-top:4px">ログイン画面に戻る</button>
+      </div>`;
+    document.body.appendChild(el);
+    const empIn=document.getElementById('relogin-empid'),pinIn=document.getElementById('relogin-pin');
+    empVal?pinIn.focus():empIn.focus();
+    const _doRelogin=async()=>{
+      const empId=empIn.value.trim(),pin=pinIn.value.trim();
+      const errEl=document.getElementById('relogin-error');
+      if(!empId||!pin){errEl.textContent='社員番号とPINを入力してください';errEl.style.display='block';return}
+      const btn=document.getElementById('relogin-btn');
+      btn.disabled=true;btn.textContent='ログイン中...';
+      try{
+        const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'login',empId,pin}),redirect:'follow'});
+        const r=await res.json();
+        if(!r.ok) throw new Error(r.error||'ログイン失敗');
+        saveSession(r.data.token,r.data.user);
+        currentUser=r.data.user;
+        _sessionExpired=false;_reloginPromise=null;
+        el.remove();
+        resolve();
+      }catch(e){
+        errEl.textContent=e.message==='LOGIN_LOCKED'?'🔒 ロック中。15分後に再試行してください':'社員番号またはPINが正しくありません';
+        errEl.style.display='block';
+        btn.disabled=false;btn.textContent='ログイン';
+        pinIn.value='';pinIn.focus();
+      }
+    };
+    document.getElementById('relogin-btn').addEventListener('click',_doRelogin);
+    pinIn.addEventListener('keydown',e=>{if(e.key==='Enter')_doRelogin()});
+    empIn.addEventListener('keydown',e=>{if(e.key==='Enter')pinIn.focus()});
+    document.getElementById('relogin-cancel').addEventListener('click',()=>{
+      _sessionExpired=false;_reloginPromise=null;
+      el.remove();showLoginScreen();
+      reject(new Error('SESSION_EXPIRED'));
+    });
+  });
+  return _reloginPromise;
 }
 function showApp(){
   document.getElementById('login-screen').style.display='none';
@@ -3078,10 +3119,11 @@ function renderRoomTimelineMini(date, selStart, selEnd){
       const title=(e.title||'予約中')+' '+e.start+'〜'+e.end;
       return`<div class="room-tl-block" style="left:${l}%;width:${r2-l}%;background:#e53935;border-radius:3px" title="${title}"></div>`;
     }).join('');
-    const nowBar=hasNow?`<div class="room-tl-now" data-drag="move" style="left:${nowLeft}%;width:${nowRight-nowLeft}%"><div class="room-tl-handle left" data-drag="left"></div><div class="room-tl-handle right" data-drag="right"></div></div>`:'';
+    const isSel=selectedRoom===r.id;
+    const nowBar=hasNow&&isSel?`<div class="room-tl-now" data-drag="move" style="left:${nowLeft}%;width:${nowRight-nowLeft}%"><div class="room-tl-handle left" data-drag="left"></div><div class="room-tl-handle right" data-drag="right"></div></div>`:'';
     return`<div class="room-tl-wrap">
-      <div class="room-tl-name">${r.name}（${r.floor}）</div>
-      <div class="room-tl-bar">${blocks}${nowBar}</div>
+      <div class="room-tl-name" style="${isSel?'color:var(--primary);font-weight:800':''}">${isSel?'✓ ':''}${r.name}（${r.floor}）</div>
+      <div class="room-tl-bar" data-room="${r.id}">${blocks}${nowBar}</div>
       <div class="room-tl-hours">
         ${Array.from({length:7},(_,i)=>`<span>${TL_START+i*2}時</span>`).join('')}
       </div>
@@ -3150,6 +3192,8 @@ function _initTimelineDrag(){
   el.querySelectorAll('.room-tl-bar').forEach(tlBar=>{
     tlBar.addEventListener('click',e=>{
       if(e.target.closest('.room-tl-now')||e.target.closest('.room-tl-block')) return;
+      const roomId=tlBar.dataset.room;
+      if(roomId){selectedRoom=roomId;}
       const rect=tlBar.getBoundingClientRect();
       const pct=((e.clientX-rect.left)/rect.width)*100;
       const clickStart=posToTime(pct);
