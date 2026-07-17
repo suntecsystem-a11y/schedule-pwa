@@ -409,9 +409,14 @@ input,select{font-family:inherit;outline:none}
 /* 会議室ミニタイムライン */
 .room-tl-wrap{margin-bottom:10px}
 .room-tl-name{font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:4px}
-.room-tl-bar{position:relative;height:22px;background:#f0f4f8;border-radius:6px;overflow:hidden}
+.room-tl-bar{position:relative;height:22px;background:#f0f4f8;border-radius:6px;overflow:visible}
 .room-tl-block{position:absolute;top:0;height:100%;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:0.6em;color:white;font-weight:700;overflow:hidden;white-space:nowrap;padding:0 4px}
-.room-tl-now{position:absolute;top:0;height:100%;background:rgba(92,107,192,.25);border:1.5px solid var(--primary);border-radius:4px;z-index:2;pointer-events:none}
+.room-tl-now{position:absolute;top:0;height:100%;background:rgba(92,107,192,.25);border:1.5px solid var(--primary);border-radius:4px;z-index:2;cursor:grab}
+.room-tl-now:active{cursor:grabbing}
+.room-tl-handle{position:absolute;top:0;width:10px;height:100%;cursor:ew-resize;z-index:3}
+.room-tl-handle::after{content:'';position:absolute;top:50%;transform:translateY(-50%);width:3px;height:14px;border-radius:2px;background:var(--primary)}
+.room-tl-handle.left{left:-2px}.room-tl-handle.left::after{left:2px}
+.room-tl-handle.right{right:-2px}.room-tl-handle.right::after{right:2px}
 .room-tl-hours{display:flex;justify-content:space-between;margin-top:3px}
 .room-tl-hours span{font-size:0.6em;color:var(--text3)}
 
@@ -3073,7 +3078,7 @@ function renderRoomTimelineMini(date, selStart, selEnd){
       const title=(e.title||'予約中')+' '+e.start+'〜'+e.end;
       return`<div class="room-tl-block" style="left:${l}%;width:${r2-l}%;background:#e53935;border-radius:3px" title="${title}"></div>`;
     }).join('');
-    const nowBar=hasNow?`<div class="room-tl-now" style="left:${nowLeft}%;width:${nowRight-nowLeft}%"></div>`:'';
+    const nowBar=hasNow?`<div class="room-tl-now" data-drag="move" style="left:${nowLeft}%;width:${nowRight-nowLeft}%"><div class="room-tl-handle left" data-drag="left"></div><div class="room-tl-handle right" data-drag="right"></div></div>`:'';
     return`<div class="room-tl-wrap">
       <div class="room-tl-name">${r.name}（${r.floor}）</div>
       <div class="room-tl-bar">${blocks}${nowBar}</div>
@@ -3082,6 +3087,82 @@ function renderRoomTimelineMini(date, selStart, selEnd){
       </div>
     </div>`;
   }).join('');
+  _initTimelineDrag();
+}
+function _initTimelineDrag(){
+  const el=document.getElementById('room-timeline-mini');
+  if(!el) return;
+  const TL_START=8,TL_END=20,TL_HOURS=TL_END-TL_START,SNAP=15;
+  const posToTime=(pct)=>{
+    let mins=Math.round((pct/100)*TL_HOURS*60/SNAP)*SNAP;
+    mins=Math.max(0,Math.min(TL_HOURS*60,mins));
+    const h=TL_START+Math.floor(mins/60),m=mins%60;
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  };
+  const bars=el.querySelectorAll('.room-tl-now');
+  bars.forEach(bar=>{
+    const initDrag=(e,mode)=>{
+      e.preventDefault();e.stopPropagation();
+      const tlBar=bar.parentElement;
+      const rect=tlBar.getBoundingClientRect();
+      const startL=parseFloat(bar.style.left);
+      const startW=parseFloat(bar.style.width);
+      const startX=e.touches?e.touches[0].clientX:e.clientX;
+      const onMove=(ev)=>{
+        const cx=ev.touches?ev.touches[0].clientX:ev.clientX;
+        const dx=((cx-startX)/rect.width)*100;
+        if(mode==='left'){
+          let nl=Math.max(0,Math.min(startL+startW-2,startL+dx));
+          let nw=startW-(nl-startL);
+          bar.style.left=nl+'%';bar.style.width=nw+'%';
+        }else if(mode==='right'){
+          let nw=Math.max(2,Math.min(100-startL,startW+dx));
+          bar.style.width=nw+'%';
+        }else{
+          let nl=Math.max(0,Math.min(100-startW,startL+dx));
+          bar.style.left=nl+'%';
+        }
+      };
+      const onEnd=()=>{
+        document.removeEventListener('mousemove',onMove);
+        document.removeEventListener('mouseup',onEnd);
+        document.removeEventListener('touchmove',onMove);
+        document.removeEventListener('touchend',onEnd);
+        const fl=parseFloat(bar.style.left),fw=parseFloat(bar.style.width);
+        const newStart=posToTime(fl),newEnd=posToTime(fl+fw);
+        if(newStart>=newEnd) return;
+        document.getElementById('ev-start').value=newStart;
+        document.getElementById('ev-end').value=newEnd;
+        renderRoomPicker();
+      };
+      document.addEventListener('mousemove',onMove);
+      document.addEventListener('mouseup',onEnd);
+      document.addEventListener('touchmove',onMove,{passive:false});
+      document.addEventListener('touchend',onEnd);
+    };
+    bar.querySelector('.room-tl-handle.left').addEventListener('mousedown',e=>initDrag(e,'left'));
+    bar.querySelector('.room-tl-handle.left').addEventListener('touchstart',e=>initDrag(e,'left'),{passive:false});
+    bar.querySelector('.room-tl-handle.right').addEventListener('mousedown',e=>initDrag(e,'right'));
+    bar.querySelector('.room-tl-handle.right').addEventListener('touchstart',e=>initDrag(e,'right'),{passive:false});
+    bar.addEventListener('mousedown',e=>{if(e.target.dataset.drag==='move')initDrag(e,'move')});
+    bar.addEventListener('touchstart',e=>{if(e.target.dataset.drag==='move')initDrag(e,'move')},{passive:false});
+  });
+  el.querySelectorAll('.room-tl-bar').forEach(tlBar=>{
+    tlBar.addEventListener('click',e=>{
+      if(e.target.closest('.room-tl-now')||e.target.closest('.room-tl-block')) return;
+      const rect=tlBar.getBoundingClientRect();
+      const pct=((e.clientX-rect.left)/rect.width)*100;
+      const clickStart=posToTime(pct);
+      const [ch,cm]=clickStart.split(':').map(Number);
+      const endMins=(ch*60+cm)+60;
+      const eh=Math.min(TL_END,Math.floor(endMins/60)),em=endMins%60;
+      const clickEnd=String(eh).padStart(2,'0')+':'+String(Math.min(em,45)).padStart(2,'0');
+      if(clickStart>=clickEnd) return;
+      document.getElementById('ev-start').value=clickStart;
+      document.getElementById('ev-end').value=clickEnd;
+      renderRoomPicker();
+    });
+  });
 }
 function selectRoom(id,el){
   if(selectedRoom===id){selectedRoom=null;}else{selectedRoom=id;}
