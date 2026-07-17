@@ -231,6 +231,7 @@ input,select{font-family:inherit;outline:none}
 .mini-bar.span-end{border-radius:0 5px 5px 0;margin-right:1px}
 .mini-bar.span-mid{border-radius:0}
 .mini-bar.span-solo{border-radius:5px;margin:0 1px}
+.mini-hol{position:absolute;top:2px;left:20px;font-size:0.55em;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;right:1px;line-height:18px;pointer-events:none}
 .mini-more{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:0.58em;color:var(--primary);font-weight:700;cursor:pointer}
 
 /* 週表示 */
@@ -3515,11 +3516,12 @@ function renderMyPage() {
       const ds=fmtDate(day),isO=day.getMonth()!==_cmo,isTd=ds===today,isSel=ds===_mypageSD;
       const hol=holidays.find(h=>h.date===ds);
       const nm=day.getMonth()<_cmo?_natHolP:day.getMonth()>_cmo?_natHolN:_natHol;
-      const nN=nm.get(ds),nH=!!nN,anyH=hol||nH;
+      const nN=nm.get(ds),nH=!!nN,anyH=hol||nH;const holLbl=hol?.name||nN||'';
       let nc='mini-n';if(isSel)nc+=' sel';else if(isTd)nc+=' today';if(isO)nc+=' other';
       if(!isSel&&!isTd){if(di===5)nc+=' sat';if(di===6||anyH)nc+=' sun hol';}
       _calHTML+=`<div class="mini-c${hol&&!nH?' comp-hol':''}" onclick="mypageSelectDate('${ds}')"${hol?` style="background:#fff0f0"`:''}>
         <div class="${nc}">${day.getDate()}</div>
+        ${holLbl?`<span class="mini-hol">${esc(shortHolName(holLbl))}</span>`:''}
         ${cOv[di].overflow>0?`<div class="mini-more">+${cOv[di].overflow}件</div>`:''}
       </div>`;
     });
