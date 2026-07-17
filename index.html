@@ -2753,6 +2753,38 @@ function openEditModal(id){
   closeModal('detail-modal-backdrop');
   openModal('add-modal-backdrop');
 }
+function copyEvent(id){
+  const e=events.find(ev=>ev.id===id);if(!e)return;
+  closeModal('detail-modal-backdrop');
+  editingId=null;selectedRoom=e.room;selectedPeople=new Set(e.people||[]);
+  document.getElementById('modal-title-text').textContent='予定をコピーして作成';
+  document.getElementById('ev-type').value=e.type;
+  const isAlldayEvent=ALLDAY_TOGGLE_TYPES.includes(e.type)&&!e.start&&!e.end;
+  document.getElementById('ev-allday').checked=isAlldayEvent;updateAlldayToggleVisual();
+  document.getElementById('ev-title').value=e.title||'';
+  document.getElementById('ev-date').value=e.date;
+  document.getElementById('ev-start-date').value=e.startDate||e.date;
+  document.getElementById('ev-end-date').value=e.endDate||e.date;
+  document.getElementById('ev-start').value=e.start||'09:00';
+  document.getElementById('ev-end').value=e.end||'10:00';
+  document.getElementById('ev-memo').value=e.memo||'';
+  selectedRental=(e.rentals||[])[0]||'';
+  document.getElementById('ev-approver').value='';
+  document.getElementById('ev-repeat').value='';
+  document.getElementById('repeat-end-wrap').style.display='none';
+  document.getElementById('repeat-row').style.display='flex';
+  document.getElementById('btn-delete').style.display='none';
+  document.getElementById('general-conflict-warn').style.display='none';
+  peoplePanelOpen=false;peopleSchedOpen=false;
+  document.getElementById('people-panel').style.display='none';
+  document.getElementById('people-toggle-icon').style.transform='';
+  document.getElementById('people-schedule-panel').style.display='none';
+  document.getElementById('people-sched-toggle').style.transform='';
+  if(document.getElementById('people-search')) document.getElementById('people-search').value='';
+  onTypeChange();renderPeoplePicker();renderRoomPicker();
+  updatePeopleSummary();renderPeopleSchedule();
+  openModal('add-modal-backdrop');
+}
 function onTypeChange(){
   const t=document.getElementById('ev-type').value;
   const hasAlldayToggle=ALLDAY_TOGGLE_TYPES.includes(t);
@@ -3178,6 +3210,7 @@ function openDetail(id){
     && canApproveDept(applicant.dept, e.approvedBy);
 
   let actionsHTML = '';
+  const copyBtn = `<button class="btn-outline" onclick="copyEvent('${id}')" style="font-size:0.85em">📋 コピー</button>`;
   if (canApprove) {
     actionsHTML = `
       <div style="margin-bottom:10px;padding:10px 12px;background:#e8f5e9;border-radius:10px;font-size:0.82em;color:#2e7d32">
@@ -3185,6 +3218,7 @@ function openDetail(id){
       </div>
       <div class="btn-row">
         <button class="btn-outline" onclick="closeModal('detail-modal-backdrop')">閉じる</button>
+        ${copyBtn}
         <button class="btn-primary" style="background:#e53935;border-color:#e53935" onclick="rejectEventAction('${id}')">❌ 却下する</button>
         <button class="btn-primary" style="background:#43a047" onclick="approveEventAction('${id}')">✅ 承認する</button>
       </div>`;
@@ -3194,14 +3228,21 @@ function openDetail(id){
       && currentUser.role === '一般'
       && !currentUser.isAdmin;
     actionsHTML = isLocked
-      ? `<button class="btn-outline" style="width:100%" onclick="closeModal('detail-modal-backdrop')">閉じる</button>
+      ? `<div class="btn-row">
+           <button class="btn-outline" onclick="closeModal('detail-modal-backdrop')">閉じる</button>
+           ${copyBtn}
+         </div>
          <p class="owner-only-note">申請中のため編集・削除できません</p>`
       : `<div class="btn-row">
            <button class="btn-outline" onclick="closeModal('detail-modal-backdrop')">閉じる</button>
+           ${copyBtn}
            <button class="btn-primary" onclick="openEditModal('${id}')">編集する</button>
          </div>`;
   } else {
-    actionsHTML = `<button class="btn-outline" style="width:100%" onclick="closeModal('detail-modal-backdrop')">閉じる</button>
+    actionsHTML = `<div class="btn-row">
+        <button class="btn-outline" onclick="closeModal('detail-modal-backdrop')">閉じる</button>
+        ${copyBtn}
+      </div>
       <p class="owner-only-note">編集・削除は登録者（${userName(e.userId)}）のみ可能です</p>`;
   }
   document.getElementById('detail-actions').innerHTML = actionsHTML;
