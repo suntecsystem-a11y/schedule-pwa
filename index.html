@@ -1234,6 +1234,9 @@ async function api(action, data={}, loadingMsg='処理中...'){
     if (!result.ok) {
       if (result.error === 'SESSION_EXPIRED') {
         clearSession();
+        clearTimeout(timer);clearTimeout(showCancel);
+        _apiAbort=null;
+        if(cancelBtn)cancelBtn.style.display='none';
         hideLoading();
         await showSessionExpiredDialog();
         return api(action, data, loadingMsg);
@@ -2139,7 +2142,7 @@ function renderTeam(){
     const activeEvs=myEvs.filter(isNowInEvent);
     const inMeeting=activeEvs.some(e=>e.type==='会議室');
     const statusBase=STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>activeEvs.some(e=>e.type===s));
-    const status=yasumiUsers.has(u.id)?'休み':inMeeting?'会議中':(statusBase||(isHoliday?'休暇':'在席'));
+    const status=yasumiUsers.has(u.id)?'休み':inMeeting?'会議中':(statusBase||(isCompHoliday?'休暇':'在席'));
     const ev=inMeeting
       ? activeEvs.find(e=>e.type==='会議室')
       : activeEvs.find(e=>e.type===status);
@@ -2242,7 +2245,7 @@ function renderTeamDeptView() {
       .find(s => activeEvs.some(e=>e.type===s));
     const status = yasumiUsers.has(u.id) ? '休み'
       : inMeeting ? '会議中'
-      : (statusBase || (isHoliday ? '休暇' : '在席'));
+      : (statusBase || (isCompHoliday ? '休暇' : '在席'));
     // 今日の予定（会議室含む）を時刻順
     const todayEvs = myEvs
       .slice()
