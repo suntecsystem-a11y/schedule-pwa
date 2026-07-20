@@ -1150,10 +1150,22 @@ const ROOMS = [
 const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休み','在宅'];
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅'];
-const STATUS_COLOR = {
-  '会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6',
-  '休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','在席':'#ccc','会議中':'#9fa8da',
+const COLOR_PALETTES = {
+  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','在席':'#ccc','会議中':'#9fa8da'},
+  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','在席':'#ccc','会議中':'#90a4ae'},
+  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','在席':'#ccc','会議中':'#e57373'},
 };
+let colorMode = localStorage.getItem('sch_color_mode') || 'normal';
+const STATUS_COLOR = {...COLOR_PALETTES.normal};
+function applyColorMode(mode) {
+  colorMode = mode;
+  localStorage.setItem('sch_color_mode', mode);
+  const p = COLOR_PALETTES[mode] || COLOR_PALETTES.normal;
+  Object.keys(p).forEach(k => STATUS_COLOR[k] = p[k]);
+  renderAll();
+  renderSettings();
+}
+Object.assign(STATUS_COLOR, COLOR_PALETTES[colorMode] || COLOR_PALETTES.normal);
 const MULTIDAY_TYPES = ['出張','休暇','休み','在宅'];
 const TIMED_TYPES    = ['会議室','打ち合わせ','外出'];
 const ALLDAY_TOGGLE_TYPES = ['出張','休暇','在宅','外出'];
@@ -4024,23 +4036,33 @@ function renderSettings() {
   const el = document.getElementById('settings-content');
   if (!el) return;
   const sites = ['本社・茨城', '大黒'];
+  const colorModes = [
+    {id:'normal',label:'通常'},
+    {id:'protanopia',label:'P型・D型'},
+    {id:'tritanopia',label:'T型'},
+  ];
+  const radio = (sel) => `<span style="width:16px;height:16px;border-radius:50%;border:2px solid ${sel?'var(--primary)':'#bbb'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;vertical-align:middle">${sel?'<span style="width:8px;height:8px;border-radius:50%;background:var(--primary)"></span>':''}</span>`;
   el.innerHTML = `
     <div style="max-width:480px;margin:0 auto">
-      <h2 style="font-size:1.05em;font-weight:700;margin:0 0 20px;display:flex;align-items:center;gap:8px">🔧 設定</h2>
-      <div style="background:white;border-radius:var(--radius);padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
-        <div style="font-weight:700;font-size:0.92em;margin-bottom:4px">📅 カレンダーの休日表示</div>
-        <p style="font-size:0.8em;color:var(--text2);margin:0 0 14px">選択した拠点の休日カレンダーを表示します</p>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          ${sites.map(s => `
-            <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;cursor:pointer;border:1.5px solid ${siteFilter===s?'var(--primary)':'#e0e0e0'};background:${siteFilter===s?'rgba(92,107,192,.06)':'white'};transition:all .15s" onclick="changeSiteFilter('${s}')">
-              <span style="width:20px;height:20px;border-radius:50%;border:2px solid ${siteFilter===s?'var(--primary)':'#bbb'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                ${siteFilter===s?'<span style="width:10px;height:10px;border-radius:50%;background:var(--primary)"></span>':''}
-              </span>
-              <span style="font-size:0.92em;font-weight:${siteFilter===s?'600':'400'}">${s}</span>
-            </label>
-          `).join('')}
+      <h2 style="font-size:1.05em;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px">🔧 設定</h2>
+
+      <div class="settings-card" style="background:white;border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:10px">
+        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:600;font-size:0.88em">📅 休日カレンダーの拠点</div>
+          <div style="display:flex;gap:6px">${sites.map(s => `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${siteFilter===s?'var(--primary)':'#ddd'};background:${siteFilter===s?'rgba(92,107,192,.08)':'transparent'}" onclick="changeSiteFilter('${s}')">${radio(siteFilter===s)} ${s}</label>`).join('')}</div>
         </div>
-        <p style="font-size:0.75em;color:var(--text2);margin:14px 0 0">※ ホーム・カレンダー・マイページの休日表示に反映されます</p>
+      </div>
+
+      <div class="settings-card" style="background:white;border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:10px">
+        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div style="font-weight:600;font-size:0.88em">🎨 配色モード</div>
+          <div style="display:flex;gap:6px">${colorModes.map(m => {
+            const sel=colorMode===m.id;
+            const pal=COLOR_PALETTES[m.id];
+            const dots=['会議室','外出','出張','休暇','在宅'].map(t=>`<span style="width:10px;height:10px;border-radius:3px;background:${pal[t]};display:inline-block"></span>`).join('');
+            return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="applyColorMode('${m.id}')">${radio(sel)} <span>${m.label}</span> <span style="display:inline-flex;gap:2px;margin-left:2px">${dots}</span></label>`;
+          }).join('')}</div>
+        </div>
       </div>
     </div>`;
 }
