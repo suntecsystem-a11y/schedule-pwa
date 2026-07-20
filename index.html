@@ -1580,7 +1580,7 @@ function showSessionExpiredDialog() {
   });
   return _reloginPromise;
 }
-function showApp(){
+function showApp(opts){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('fab-btn').style.display='flex';
@@ -1598,7 +1598,7 @@ function showApp(){
   // loadCarData(); // 車タブ未リリースのため一時停止（ホームの車ウィジェットも非表示）
   loadHolidays();
   loadRentalMasters();
-  showReleaseNotes();
+  if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
   if(!SHOW_RELEASE_NOTES||!RELEASE_NOTES.length) return;
@@ -4740,9 +4740,10 @@ calDate=new Date(); roomDate=new Date();
     }
     showApp();
   } catch(err) {
-    // SESSION_EXPIREDなどでloadEvents内でログイン画面に戻る
-    clearSession();
-    currentUser = null;
+    if(!_sessionExpired){
+      clearSession();
+      currentUser = null;
+    }
   }
 })();
 </script>
