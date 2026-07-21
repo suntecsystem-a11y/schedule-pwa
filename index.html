@@ -444,6 +444,62 @@ input,select{font-family:inherit;outline:none}
   }
   #car-modal-backdrop.open .modal{transform:scale(1) translateY(0)}
 }
+
+/* ===== 企画書タブ ===== */
+.prop-wrap{max-width:720px;margin:0 auto;padding:8px 0}
+.prop-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.prop-header h2{font-size:1.1em;font-weight:700}
+.btn-new-prop{background:var(--primary);color:white;border-radius:10px;padding:10px 20px;font-size:0.88em;font-weight:700;display:flex;align-items:center;gap:6px}
+.btn-new-prop:hover{background:var(--primary-dark)}
+.prop-list-empty{text-align:center;padding:48px 16px;color:var(--text2);font-size:0.9em}
+.prop-card{background:white;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.prop-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.prop-card-title{font-size:0.95em;font-weight:700;margin-bottom:4px}
+.prop-card-meta{font-size:0.78em;color:var(--text2);display:flex;gap:12px;align-items:center}
+.prop-badge{font-size:0.72em;font-weight:700;padding:2px 8px;border-radius:10px;color:white}
+.prop-badge.draft{background:var(--text3)}
+.prop-badge.submitted{background:var(--blue)}
+.prop-badge.ai-done{background:var(--green)}
+.prop-form-wrap{max-width:720px;margin:0 auto;padding:8px 0}
+.prop-form-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.prop-form-back{font-size:1.4em;cursor:pointer;color:var(--text2);background:none;padding:4px 8px;border-radius:8px}
+.prop-form-back:hover{background:var(--primary-light)}
+.prop-form-title{font-size:1.05em;font-weight:700;flex:1}
+.prop-accordion{background:white;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+.prop-acc-header{display:flex;align-items:center;padding:14px 16px;cursor:pointer;gap:10px;transition:background .15s;user-select:none}
+.prop-acc-header:hover{background:var(--primary-light)}
+.prop-acc-header.open{background:var(--primary-light)}
+.prop-acc-num{width:26px;height:26px;border-radius:50%;background:var(--primary);color:white;font-size:0.78em;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prop-acc-label{flex:1;font-size:0.9em;font-weight:700}
+.prop-acc-arrow{font-size:0.8em;color:var(--text2);transition:transform .2s}
+.prop-acc-header.open .prop-acc-arrow{transform:rotate(180deg)}
+.prop-acc-badge{font-size:0.68em;color:var(--text2);margin-left:auto;margin-right:4px}
+.prop-acc-body{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.prop-acc-body.open{max-height:2000px}
+.prop-acc-inner{padding:0 16px 16px}
+.prop-field{margin-bottom:12px}
+.prop-field label{display:block;font-size:0.78em;font-weight:600;color:var(--text2);margin-bottom:4px}
+.prop-field input,.prop-field textarea{width:100%;padding:10px 12px;border:2px solid var(--border);border-radius:8px;font-size:0.9em;font-family:inherit;transition:border .2s}
+.prop-field input:focus,.prop-field textarea:focus{border-color:var(--primary)}
+.prop-field textarea{resize:vertical;min-height:80px}
+.prop-required::after{content:' *';color:var(--red)}
+.prop-actions{display:flex;gap:10px;margin-top:16px}
+.prop-btn-draft{flex:1;padding:12px;background:white;border:2px solid var(--border);border-radius:10px;font-size:0.88em;font-weight:700;color:var(--text2)}
+.prop-btn-draft:hover{background:var(--bg)}
+.prop-btn-submit{flex:1;padding:12px;background:var(--primary);color:white;border-radius:10px;font-size:0.88em;font-weight:700}
+.prop-btn-submit:hover{background:var(--primary-dark)}
+.prop-complete{text-align:center;padding:48px 16px;max-width:720px;margin:0 auto}
+.prop-complete-icon{font-size:3em;margin-bottom:12px}
+.prop-complete h2{font-size:1.2em;font-weight:700;margin-bottom:8px}
+.prop-complete p{font-size:0.88em;color:var(--text2);margin-bottom:20px}
+.prop-btn-copy{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:var(--green);color:white;border-radius:12px;font-size:0.95em;font-weight:700;margin-bottom:12px}
+.prop-btn-copy:hover{filter:brightness(.9)}
+.prop-btn-back{display:inline-block;padding:10px 24px;background:white;border:2px solid var(--border);border-radius:10px;font-size:0.88em;font-weight:600;color:var(--text2)}
+.prop-btn-back:hover{background:var(--bg)}
+.prop-detail-section{margin-bottom:16px}
+.prop-detail-section h4{font-size:0.82em;font-weight:700;color:var(--primary);margin-bottom:4px}
+.prop-detail-section p{font-size:0.88em;white-space:pre-wrap;line-height:1.6}
+.prop-detail-actions{display:flex;gap:10px;margin-top:20px}
 </style>
 </head>
 <body>
@@ -493,6 +549,7 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="cars" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span></button>
     <button class="sidebar-btn" data-tab="inquiry" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span></button>
     <button class="sidebar-btn" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請 <span style="font-size:0.72em">（準備中）</span></span></button>
+    <button class="sidebar-btn" data-tab="proposal" id="proposal-sidebar-btn" onclick="switchTab('proposal',this)" style="display:none"><span class="sidebar-icon">📝</span><span class="sidebar-label">企画書</span></button>
     <button class="sidebar-btn" data-tab="mypage" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
     <button class="sidebar-btn" data-tab="settings" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span></button>
     <button class="sidebar-btn admin-side" data-tab="admin" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
@@ -521,6 +578,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">📋 申請</button>
+    <button class="tab-btn" id="proposal-tab-btn" onclick="switchTab('proposal',this)" style="display:none">📝 企画書</button>
     <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" onclick="switchTab('settings',this)">🔧 設定</button>
     <!-- 管理者のみ表示 -->
@@ -756,6 +814,190 @@ input,select{font-family:inherit;outline:none}
   <!-- マイページ -->
   <div class="content" id="tab-mypage" style="display:none">
     <div id="mypage-content"></div>
+  </div>
+
+  <!-- 企画書 -->
+  <div class="content" id="tab-proposal" style="display:none">
+    <!-- 一覧画面 -->
+    <div id="proposal-list-view">
+      <div class="prop-wrap">
+        <div class="prop-header">
+          <h2>企画書</h2>
+          <button class="btn-new-prop" onclick="openProposalForm()">＋ 新規作成</button>
+        </div>
+        <div id="proposal-list"><p class="prop-list-empty">企画書はまだありません</p></div>
+      </div>
+    </div>
+    <!-- フォーム画面 -->
+    <div id="proposal-form-view" style="display:none">
+      <div class="prop-form-wrap">
+        <div class="prop-form-header">
+          <button class="prop-form-back" onclick="showProposalList()">&lsaquo;</button>
+          <div class="prop-form-title" id="proposal-form-title">新規企画書</div>
+        </div>
+        <!-- Step1: 基本情報 -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header open" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">1</span>
+            <span class="prop-acc-label">基本情報</span>
+            <span class="prop-acc-badge">必須</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body open">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label class="prop-required">企画名</label>
+                <input type="text" id="prop-title" placeholder="企画のタイトルを入力">
+              </div>
+              <div class="prop-field">
+                <label>提出日</label>
+                <input type="date" id="prop-date">
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step2: 概要・背景・目的 -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">2</span>
+            <span class="prop-acc-label">概要・背景・目的</span>
+            <span class="prop-acc-badge">必須</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label class="prop-required">概要（サマリー）</label>
+                <textarea id="prop-summary" placeholder="企画の要点を数行で記入。決裁者はここだけ読んで判断することも多いため、簡潔にまとめてください"></textarea>
+              </div>
+              <div class="prop-field">
+                <label class="prop-required">背景・目的</label>
+                <textarea id="prop-background" placeholder="なぜこの企画が必要か。現状の課題、市場動向、きっかけとなった出来事など"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step3: 現状分析・企画内容 -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">3</span>
+            <span class="prop-acc-label">現状分析・企画内容</span>
+            <span class="prop-acc-badge">必須</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label>現状分析</label>
+                <textarea id="prop-analysis" placeholder="課題の具体的な内容（データ、数値があると説得力UP）。3C分析やSWOT分析など"></textarea>
+              </div>
+              <div class="prop-field">
+                <label class="prop-required">企画内容（提案の核）</label>
+                <textarea id="prop-content" placeholder="何を、どうやって実現するか。ターゲット、施策内容、差別化ポイントなど"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>ターゲット</label>
+                <textarea id="prop-target" placeholder="対象となる顧客層、市場セグメントなど" style="min-height:60px"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step4: スケジュール・体制 -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">4</span>
+            <span class="prop-acc-label">スケジュール・体制</span>
+            <span class="prop-acc-badge">任意</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label>スケジュール</label>
+                <textarea id="prop-schedule" placeholder="いつまでに何をするか（マイルストーン）"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>体制・役割分担</label>
+                <textarea id="prop-team" placeholder="誰が何を担当するか、必要なリソース（人員、外部パートナーなど）"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step5: 予算・KPI -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">5</span>
+            <span class="prop-acc-label">予算・KPI</span>
+            <span class="prop-acc-badge">任意</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label>予算・コスト</label>
+                <textarea id="prop-budget" placeholder="必要な費用の内訳、ROIや費用対効果の見込み"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>期待される効果・KPI</label>
+                <textarea id="prop-kpi" placeholder="定量的な目標（売上、利用率など）、定性的な効果（ブランド向上など）"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step6: リスク・まとめ -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">6</span>
+            <span class="prop-acc-label">リスクと対策・まとめ</span>
+            <span class="prop-acc-badge">任意</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label>リスクと対策</label>
+                <textarea id="prop-risk" placeholder="想定されるリスクとその対応策"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>まとめ・結論</label>
+                <textarea id="prop-conclusion" placeholder="改めて要点と次のアクションを明記"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- ボタン -->
+        <div class="prop-actions">
+          <button class="prop-btn-draft" onclick="doSaveProposal('下書き')">下書き保存</button>
+          <button class="prop-btn-submit" onclick="doSaveProposal('提出済み')">提出する</button>
+        </div>
+      </div>
+    </div>
+    <!-- 完了画面 -->
+    <div id="proposal-complete-view" style="display:none">
+      <div class="prop-complete">
+        <div class="prop-complete-icon">&#10004;&#65039;</div>
+        <h2 id="prop-complete-title">企画書を提出しました</h2>
+        <p>Kintoneにレコードが作成されました。<br>下のボタンで入力内容をAI用にコピーできます。</p>
+        <button class="prop-btn-copy" onclick="copyProposalForAI()">&#128203; AI用にコピー</button>
+        <br>
+        <button class="prop-btn-back" onclick="showProposalList()">一覧に戻る</button>
+      </div>
+    </div>
+    <!-- 詳細画面 -->
+    <div id="proposal-detail-view" style="display:none">
+      <div class="prop-form-wrap">
+        <div class="prop-form-header">
+          <button class="prop-form-back" onclick="showProposalList()">&lsaquo;</button>
+          <div class="prop-form-title" id="proposal-detail-title">企画書詳細</div>
+        </div>
+        <div id="proposal-detail-content"></div>
+        <div class="prop-detail-actions">
+          <button class="prop-btn-draft" onclick="editProposal()">編集</button>
+          <button class="prop-btn-copy" style="flex:1" onclick="copyProposalForAI()">&#128203; AI用にコピー</button>
+          <button style="padding:12px 16px;background:var(--red);color:white;border-radius:10px;font-size:0.82em;font-weight:700" onclick="doDeleteProposal()">削除</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 設定 -->
@@ -1592,6 +1834,9 @@ function showApp(opts){
   const isAdmin = currentUser.isAdmin;
   document.getElementById('admin-tab-btn').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('admin-sidebar-btn').style.display = isAdmin ? 'flex' : 'none';
+  const canSeeProposal = isAdmin || (currentUser.role && currentUser.role !== '一般');
+  document.getElementById('proposal-tab-btn').style.display = canSeeProposal ? 'block' : 'none';
+  document.getElementById('proposal-sidebar-btn').style.display = canSeeProposal ? 'flex' : 'none';
   buildFilterUI();
   switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   renderAll();
@@ -1705,7 +1950,7 @@ function openApplyApp(btn) {
 }
 
 function switchTab(tab, btn){
-  ['home','calendar','rooms','team','cars','inquiry','mypage','settings','admin'].forEach(t=>{
+  ['home','calendar','rooms','team','cars','inquiry','proposal','mypage','settings','admin'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -1713,7 +1958,7 @@ function switchTab(tab, btn){
   const sideBtn = document.querySelector(`.sidebar-btn[data-tab="${tab}"]`);
   if(sideBtn) sideBtn.classList.add('active');
   const tabBtns = document.querySelectorAll('.tab-btn');
-  const idx=['home','calendar','rooms','team','cars','inquiry','apply','mypage','settings','admin'].indexOf(tab);
+  const idx=['home','calendar','rooms','team','cars','inquiry','apply','proposal','mypage','settings','admin'].indexOf(tab);
   if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); }
   else                { _markNoticesAsSeen(); }
@@ -1721,6 +1966,7 @@ function switchTab(tab, btn){
   if(tab==='team')    renderTeam();
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
+  if(tab==='proposal') loadProposals();
   if(tab==='mypage')  renderMyPage();
   if(tab==='settings') renderSettings();
   if(tab==='admin')   loadAdminUsers();
@@ -4746,6 +4992,254 @@ calDate=new Date(); roomDate=new Date();
     }
   }
 })();
+
+// ===== 企画書タブ =====
+let _proposalList = [];
+let _currentProposal = null;
+
+function showProposalView(view) {
+  ['proposal-list-view','proposal-form-view','proposal-complete-view','proposal-detail-view'].forEach(id => {
+    document.getElementById(id).style.display = id === view ? 'block' : 'none';
+  });
+}
+
+function showProposalList() {
+  showProposalView('proposal-list-view');
+  loadProposals();
+}
+
+async function loadProposals() {
+  if (!GAS_URL) {
+    renderProposalList([
+      { id:'1', title:'新規事業：AIチャットボット導入', submitDate:'2026-07-20', status:'提出済み', summary:'社内問い合わせ対応をAIで自動化' },
+      { id:'2', title:'EC事業立ち上げ計画', submitDate:'2026-07-18', status:'下書き', summary:'既存製品のオンライン販売チャネル構築' },
+    ]);
+    return;
+  }
+  try {
+    const data = await api('getProposals', {}, '企画書を読み込み中...');
+    _proposalList = data;
+    renderProposalList(data);
+  } catch(e) {
+    showToast('企画書の読み込みに失敗しました');
+  }
+}
+
+function renderProposalList(list) {
+  const el = document.getElementById('proposal-list');
+  if (!list || !list.length) {
+    el.innerHTML = '<p class="prop-list-empty">企画書はまだありません。<br>「＋ 新規作成」から作成してください。</p>';
+    return;
+  }
+  el.innerHTML = list.map(p => {
+    const badgeCls = p.status === '下書き' ? 'draft' : p.status === 'AI生成済み' ? 'ai-done' : 'submitted';
+    return `<div class="prop-card" onclick="openProposalDetail('${p.id}')">
+      <div class="prop-card-title">${_esc(p.title || '（無題）')}</div>
+      <div class="prop-card-meta">
+        <span class="prop-badge ${badgeCls}">${_esc(p.status)}</span>
+        <span>${_esc(p.submitDate)}</span>
+        ${p.summary ? '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _esc(p.summary) + '</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function _esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function openProposalForm(editData) {
+  showProposalView('proposal-form-view');
+  document.getElementById('proposal-form-title').textContent = editData ? '企画書を編集' : '新規企画書';
+  document.getElementById('prop-title').value = editData?.title || '';
+  document.getElementById('prop-date').value = editData?.submitDate || new Date().toISOString().slice(0,10);
+  document.getElementById('prop-summary').value = editData?.summary || '';
+  document.getElementById('prop-background').value = editData?.background || '';
+  document.getElementById('prop-analysis').value = editData?.analysis || '';
+  document.getElementById('prop-content').value = editData?.content || '';
+  document.getElementById('prop-target').value = editData?.target || '';
+  document.getElementById('prop-schedule').value = editData?.schedule || '';
+  document.getElementById('prop-team').value = editData?.team || '';
+  document.getElementById('prop-budget').value = editData?.budget || '';
+  document.getElementById('prop-kpi').value = editData?.kpi || '';
+  document.getElementById('prop-risk').value = editData?.risk || '';
+  document.getElementById('prop-conclusion').value = editData?.conclusion || '';
+  _currentProposal = editData ? { ...editData } : null;
+}
+
+function togglePropAcc(header) {
+  header.classList.toggle('open');
+  header.nextElementSibling.classList.toggle('open');
+}
+
+function _collectProposalForm() {
+  const title = document.getElementById('prop-title').value.trim();
+  if (!title) { showToast('企画名を入力してください'); return null; }
+  const summary = document.getElementById('prop-summary').value.trim();
+  const background = document.getElementById('prop-background').value.trim();
+  const content = document.getElementById('prop-content').value.trim();
+  return {
+    id: _currentProposal?.id || null,
+    title,
+    submitDate: document.getElementById('prop-date').value || new Date().toISOString().slice(0,10),
+    summary,
+    background,
+    analysis: document.getElementById('prop-analysis').value.trim(),
+    content,
+    target: document.getElementById('prop-target').value.trim(),
+    schedule: document.getElementById('prop-schedule').value.trim(),
+    team: document.getElementById('prop-team').value.trim(),
+    budget: document.getElementById('prop-budget').value.trim(),
+    kpi: document.getElementById('prop-kpi').value.trim(),
+    risk: document.getElementById('prop-risk').value.trim(),
+    conclusion: document.getElementById('prop-conclusion').value.trim(),
+  };
+}
+
+async function doSaveProposal(status) {
+  const proposal = _collectProposalForm();
+  if (!proposal) return;
+  proposal.status = status;
+
+  if (status === '提出済み') {
+    if (!proposal.summary) { showToast('概要を入力してください'); return; }
+    if (!proposal.background) { showToast('背景・目的を入力してください'); return; }
+    if (!proposal.content) { showToast('企画内容を入力してください'); return; }
+  }
+
+  if (!GAS_URL) {
+    _currentProposal = { ...proposal, id: proposal.id || String(Date.now()) };
+    if (status === '提出済み') {
+      document.getElementById('prop-complete-title').textContent = '企画書を提出しました';
+      showProposalView('proposal-complete-view');
+    } else {
+      showToast('下書きを保存しました');
+      showProposalList();
+    }
+    return;
+  }
+
+  try {
+    const res = await api('saveProposal', { proposal }, '保存中...');
+    _currentProposal = { ...proposal, id: res.id };
+    if (status === '提出済み') {
+      document.getElementById('prop-complete-title').textContent = '企画書を提出しました';
+      showProposalView('proposal-complete-view');
+    } else {
+      showToast('下書きを保存しました');
+      showProposalList();
+    }
+  } catch(e) {
+    showToast('保存に失敗しました: ' + e.message);
+  }
+}
+
+async function openProposalDetail(id) {
+  if (!GAS_URL) {
+    const demo = _proposalList.find(p => p.id === id);
+    if (demo) {
+      _currentProposal = { ...demo, background:'現在、社内問い合わせの80%が定型的な質問であり、担当者の業務時間の約30%を占めている。', analysis:'月間問い合わせ件数：約500件\nうち定型質問：約400件\n1件あたり平均対応時間：15分', content:'社内向けAIチャットボットを導入し、定型質問の自動回答を実現する。\n既存のナレッジベースと連携し、24時間対応可能な体制を構築。', target:'全社員（約50名）', schedule:'Phase1（1-2ヶ月）：PoC\nPhase2（3-4ヶ月）：本番導入\nPhase3（5-6ヶ月）：定着・改善', team:'プロジェクトリーダー：畑村\nAI開発：外部ベンダー\n社内調整：総務部', budget:'初期導入費：50万円\n月額運用費：5万円\n年間ROI：約200%', kpi:'定型質問自動回答率：80%以上\n問い合わせ対応時間：50%削減\n社員満足度：4.0以上/5.0', risk:'1. AIの回答精度が低い場合 → 段階的導入で精度を検証\n2. 社員が使わない場合 → 使い方研修を実施', conclusion:'AIチャットボット導入により、問い合わせ対応コストの大幅削減と社員満足度向上が見込める。まずはPoCから開始し、効果を検証する。' };
+      renderProposalDetail(_currentProposal);
+    }
+    return;
+  }
+  try {
+    const data = await api('getProposalById', { proposalId: id }, '読み込み中...');
+    _currentProposal = data;
+    renderProposalDetail(data);
+  } catch(e) {
+    showToast('読み込みに失敗しました');
+  }
+}
+
+function renderProposalDetail(p) {
+  showProposalView('proposal-detail-view');
+  document.getElementById('proposal-detail-title').textContent = p.title || '（無題）';
+  const sections = [
+    { label:'概要', val: p.summary },
+    { label:'背景・目的', val: p.background },
+    { label:'現状分析', val: p.analysis },
+    { label:'企画内容', val: p.content },
+    { label:'ターゲット', val: p.target },
+    { label:'スケジュール', val: p.schedule },
+    { label:'体制・役割分担', val: p.team },
+    { label:'予算・コスト', val: p.budget },
+    { label:'期待される効果・KPI', val: p.kpi },
+    { label:'リスクと対策', val: p.risk },
+    { label:'まとめ・結論', val: p.conclusion },
+  ].filter(s => s.val);
+
+  const meta = `<div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;font-size:0.82em;color:var(--text2)">
+    <span class="prop-badge ${p.status==='下書き'?'draft':p.status==='AI生成済み'?'ai-done':'submitted'}">${_esc(p.status||'下書き')}</span>
+    <span>提出日: ${_esc(p.submitDate)}</span>
+    <span>提出者: ${_esc(p.submitter)}</span>
+  </div>`;
+
+  document.getElementById('proposal-detail-content').innerHTML = meta +
+    sections.map(s => `<div class="prop-detail-section"><h4>${_esc(s.label)}</h4><p>${_esc(s.val)}</p></div>`).join('');
+}
+
+function editProposal() {
+  if (_currentProposal) openProposalForm(_currentProposal);
+}
+
+async function doDeleteProposal() {
+  if (!_currentProposal?.id) return;
+  if (!confirm('この企画書を削除しますか？')) return;
+  if (!GAS_URL) { showToast('削除しました'); showProposalList(); return; }
+  try {
+    await api('deleteProposal', { proposalId: _currentProposal.id }, '削除中...');
+    showToast('削除しました');
+    showProposalList();
+  } catch(e) {
+    showToast('削除に失敗しました: ' + e.message);
+  }
+}
+
+function copyProposalForAI() {
+  const p = _currentProposal;
+  if (!p) { showToast('コピーするデータがありません'); return; }
+  const lines = [
+    '# 企画書',
+    '',
+    `## 企画名\n${p.title}`,
+    `\n## 提出日\n${p.submitDate}`,
+  ];
+  const fields = [
+    ['概要（サマリー）', p.summary],
+    ['背景・目的', p.background],
+    ['現状分析', p.analysis],
+    ['企画内容（提案の核）', p.content],
+    ['ターゲット', p.target],
+    ['スケジュール', p.schedule],
+    ['体制・役割分担', p.team],
+    ['予算・コスト', p.budget],
+    ['期待される効果・KPI', p.kpi],
+    ['リスクと対策', p.risk],
+    ['まとめ・結論', p.conclusion],
+  ];
+  fields.forEach(([label, val]) => {
+    if (val) lines.push(`\n## ${label}\n${val}`);
+  });
+  lines.push('\n---');
+  lines.push('上記の内容をもとに、新規事業の企画書をビジネス文書として整形・ブラッシュアップしてください。');
+  lines.push('構成は「表紙→概要→背景/目的→現状分析→企画内容→スケジュール→体制→予算→KPI→リスク→まとめ」の順でお願いします。');
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    showToast('AI用にクリップボードにコピーしました');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = lines.join('\n');
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('AI用にクリップボードにコピーしました');
+  });
+}
 </script>
 
 <!-- ===== Firebase SDK（Web Push通知用）===== -->
