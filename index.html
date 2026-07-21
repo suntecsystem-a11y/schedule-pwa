@@ -1803,6 +1803,7 @@ function showSessionExpiredDialog() {
         currentUser=r.data.user;
         _sessionExpired=false;_reloginPromise=null;
         el.remove();
+        showLoading('再接続中...');
         resolve();
       }catch(e){
         errEl.textContent=e.message==='LOGIN_LOCKED'?'🔒 ロック中。15分後に再試行してください':'社員番号またはPINが正しくありません';
@@ -1938,7 +1939,7 @@ async function loadEvents({ force = false, centerDate } = {}){
   _mergeToday(months);
   renderAll(); renderRoomTimeline(); renderTeam();
   checkApprovalNotifs();
-  loadDailyRest().then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); });
+  loadDailyRest().then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); renderDashboard(); });
 }
 
 // ===== タブ =====
@@ -2037,7 +2038,7 @@ function renderDashboard() {
     USERS.forEach(u => {
       const myEvs = events.filter(e => eventIncludesDate(e, ds) &&
         ((e.people||[]).includes(u.id) || e.userId === u.id));
-      const absent = ['出張','休暇','休み'].some(s => myEvs.some(e => e.type === s));
+      const absent = yasumiUsers.has(u.id) || ['出張','休暇','休み'].some(s => myEvs.some(e => e.type === s));
       if (!absent) presentCount++;
     });
   }
