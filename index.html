@@ -825,7 +825,7 @@ input,select{font-family:inherit;outline:none}
           <h2>企画書</h2>
           <button class="btn-new-prop" onclick="openProposalForm()">＋ 新規作成</button>
         </div>
-        <div id="proposal-list"><p class="prop-list-empty">企画書はまだありません</p></div>
+        <div id="proposal-list"><p class="prop-list-empty">過去に企画書を提出していません</p></div>
       </div>
     </div>
     <!-- フォーム画面 -->
@@ -5021,14 +5021,15 @@ async function loadProposals() {
     _proposalList = data;
     renderProposalList(data);
   } catch(e) {
-    showToast('企画書の読み込みに失敗しました');
+    _proposalList = [];
+    renderProposalList([]);
   }
 }
 
 function renderProposalList(list) {
   const el = document.getElementById('proposal-list');
   if (!list || !list.length) {
-    el.innerHTML = '<p class="prop-list-empty">企画書はまだありません。<br>「＋ 新規作成」から作成してください。</p>';
+    el.innerHTML = '<p class="prop-list-empty">過去に企画書を提出していません。<br>「＋ 新規作成」から作成してください。</p>';
     return;
   }
   el.innerHTML = list.map(p => {
