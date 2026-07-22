@@ -5279,38 +5279,48 @@ ${input}
 
 function _buildSlidePrompt(input) {
   return `あなたはプロのプレゼンテーションデザイナー兼経営コンサルタントです。
-以下の入力情報をもとに、経営層・決裁者向けの「新規事業企画プレゼン資料」を10〜15スライド構成で作成してください。
+以下の入力情報をもとに、経営層・決裁者向けの「新規事業企画プレゼン資料」をPowerPointファイル（.pptx）として作成してください。
 
-## 出力ルール
-- 各スライドを「スライドN：タイトル」の形式で記述してください
-- トーン：簡潔・インパクト重視・データドリブン
-- スライド構成：
-  1. 表紙（企画名、提出日、提出者）
-  2. アジェンダ（全体構成の目次）
+## 出力形式
+- 必ず .pptx ファイルとしてダウンロード可能な形で出力してください
+- テキストで説明するのではなく、実際のPowerPointファイルを生成してください
+
+## デザインルール
+- カラーテーマ：ネイビー（#1B2A4A）をメイン、白背景、アクセントにブルー（#2B7CE9）
+- フォント：タイトルは太字24〜32pt、本文は16〜20pt
+- 1スライド＝1メッセージ。箇条書きは3〜5項目、1項目20文字以内
+- 図表・チャート・アイコンを積極的に使い、文字だらけのスライドを避ける
+- 全スライド共通のヘッダー/フッターで統一感を出す
+
+## スライド構成（10〜15枚）
+  1. 表紙（企画名、提出日、提出者名）
+  2. アジェンダ（目次・全体構成）
   3. エグゼクティブサマリー（結論を先に。キーメッセージ3つ以内）
-  4. 背景・課題提起（「なぜ今か」を1スライドで伝える）
-  5. 現状分析（データ・グラフの提案を含める。Before/Afterの対比推奨）
-  6. 企画概要（What/How を図解で示すイメージを記載）
-  7. ターゲット・市場機会（ペルソナや市場規模）
-  8. 実施スケジュール（ガントチャート形式を推奨）
-  9. 推進体制（組織図イメージ）
-  10. 予算・ROI（費用対効果を視覚的に）
-  11. KPI・成果指標（ダッシュボード的な見せ方を推奨）
-  12. リスクと対策（リスクマトリクス）
-  13. まとめ・Next Step（承認後の具体アクション）
-- 各スライドには以下を記載：
-  - タイトル（端的に）
-  - キーメッセージ（そのスライドで伝えたいことを1文で）
-  - 本文（箇条書き3〜5項目。1項目は20文字以内が理想）
-  - ビジュアル提案（「ここに〇〇のグラフ」「〇〇のフロー図」等、図表の提案）
-  - スピーカーノート（プレゼン時に話す補足説明を2〜3文）
-- 入力が薄い・不足している項目は、文脈から合理的に推定・補完してください。補完した箇所は【※補完】と注記
-- 1スライド＝1メッセージの原則を守ってください
+  4. 背景・課題提起（「なぜ今やるのか」を端的に）
+  5. 現状分析（Before/After対比、データがあれば棒グラフ・円グラフで可視化）
+  6. 企画概要（What/How をフロー図や概念図で示す）
+  7. ターゲット・市場機会（ペルソナ像、市場規模）
+  8. 実施スケジュール（ガントチャートまたはロードマップ形式）
+  9. 推進体制（組織図形式で役割を明示）
+  10. 予算・ROI（表形式で費用内訳、投資対効果を視覚的に）
+  11. KPI・成果指標（目標数値をダッシュボード風に）
+  12. リスクと対策（リスクマトリクスまたは表形式）
+  13. まとめ・Next Step（承認後の具体的アクション）
+
+## 各スライドに含めるもの
+- タイトル（端的に）
+- キーメッセージ（そのスライドで最も伝えたいことを1文）
+- 本文・図表
+- スピーカーノート（プレゼン時の補足説明を2〜3文）
+
+## 補完ルール
+- 入力が薄い・不足している項目は文脈から合理的に推定・補完して作成してください
+- 数値データがない箇所は「〇〇（要確認）」のプレースホルダーを入れてください
 
 ## 入力情報
 ${input}
 
-上記をもとに、プレゼン資料の全スライド内容を作成してください。`;
+上記をもとに、PowerPointファイルを作成してください。`;
 }
 
 function showCopyFormatDialog() {
@@ -5323,7 +5333,7 @@ function showCopyFormatDialog() {
       <div style="font-size:1.05em;font-weight:700;margin-bottom:16px;text-align:center">AI用にコピー</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <button onclick="copyProposalForAI('doc')" style="padding:14px;background:var(--primary);color:white;border-radius:10px;font-size:0.92em;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">&#128196; ドキュメント用（A4企画書）</button>
-        <button onclick="copyProposalForAI('slide')" style="padding:14px;background:var(--orange);color:white;border-radius:10px;font-size:0.92em;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">&#128202; スライド用（プレゼン資料）</button>
+        <button onclick="copyProposalForAI('slide')" style="padding:14px;background:var(--orange);color:white;border-radius:10px;font-size:0.92em;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">&#128202; スライド用（PowerPoint生成）</button>
       </div>
       <button onclick="closeCopyFormatDialog()" style="width:100%;margin-top:12px;padding:10px;background:var(--bg);border-radius:10px;font-size:0.85em;color:var(--text2);font-weight:600">キャンセル</button>
     </div>`;
