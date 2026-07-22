@@ -5201,17 +5201,36 @@ async function doDeleteProposal() {
   }
 }
 
-function copyProposalForAI() {
+function copyProposalForAI(format) {
   const p = _currentProposal;
   if (!p) { showToast('コピーするデータがありません'); return; }
-  const lines = [
-    '# 企画書',
-    '',
-    `## 企画名\n${p.title}`,
-    `\n## 提出日\n${p.submitDate}`,
-  ];
+
+  if (!format) {
+    showCopyFormatDialog();
+    return;
+  }
+
+  const inputBlock = _buildProposalInputBlock(p);
+  const prompt = format === 'slide' ? _buildSlidePrompt(inputBlock) : _buildDocPrompt(inputBlock);
+
+  navigator.clipboard.writeText(prompt).then(() => {
+    showToast(format === 'slide' ? 'スライド用プロンプトをコピーしました' : 'ドキュメント用プロンプトをコピーしました');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = prompt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('クリップボードにコピーしました');
+  });
+  closeCopyFormatDialog();
+}
+
+function _buildProposalInputBlock(p) {
+  const lines = [`【企画名】${p.title}`, `【提出日】${p.submitDate}`];
   const fields = [
-    ['概要（サマリー）', p.summary],
+    ['概要', p.summary],
     ['背景・目的', p.background],
     ['現状分析', p.analysis],
     ['企画内容（提案の核）', p.content],
@@ -5224,23 +5243,99 @@ function copyProposalForAI() {
     ['まとめ・結論', p.conclusion],
   ];
   fields.forEach(([label, val]) => {
-    if (val) lines.push(`\n## ${label}\n${val}`);
+    if (val) lines.push(`\n【${label}】\n${val}`);
   });
-  lines.push('\n---');
-  lines.push('上記の内容をもとに、新規事業の企画書をビジネス文書として整形・ブラッシュアップしてください。');
-  lines.push('構成は「表紙→概要→背景/目的→現状分析→企画内容→スケジュール→体制→予算→KPI→リスク→まとめ」の順でお願いします。');
+  return lines.join('\n');
+}
 
-  navigator.clipboard.writeText(lines.join('\n')).then(() => {
-    showToast('AI用にクリップボードにコピーしました');
-  }).catch(() => {
-    const ta = document.createElement('textarea');
-    ta.value = lines.join('\n');
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast('AI用にクリップボードにコピーしました');
-  });
+function _buildDocPrompt(input) {
+  return `あなたはプロの経営コンサルタント兼ビジネスライターです。
+以下の入力情報をもとに、経営層・決裁者向けの「新規事業企画書」をA4で5〜8ページ程度のビジネス文書として作成してください。
+
+## 出力ルール
+- トーン：論理的・簡潔・説得力のあるビジネス文書調
+- 構成は以下の順番を厳守してください：
+  1. 表紙（企画名、提出日、提出者）
+  2. エグゼクティブサマリー（要点を箇条書き3〜5項目、忙しい決裁者はここだけ読む想定）
+  3. 背景・目的（なぜ今この企画が必要か、市場環境や社内課題を踏まえて）
+  4. 現状分析（定量データがあれば表やグラフの提案を含める）
+  5. 企画内容（What/How/Why を明確に。差別化ポイントを強調）
+  6. ターゲット（顧客像・市場規模があれば補足）
+  7. 実施スケジュール（マイルストーン形式、フェーズ分けを推奨）
+  8. 推進体制・役割分担
+  9. 予算・投資計画（費用内訳と投資対効果・ROI）
+  10. KPI・成果指標（定量KPIを必ず含め、測定方法も明記）
+  11. リスク分析と対策（リスク×影響度マトリクスの形式を推奨）
+  12. 結論・次のアクション（承認後の具体的な第一歩を明記）
+- 入力が薄い・不足している項目は、文脈から合理的に推定・補完して記述してください。補完した箇所は【※補完】と注記してください
+- 数値やデータがない箇所は「〇〇（要調査）」としてプレースホルダーを入れてください
+- 見出し・箇条書き・表を適切に使い、視認性を高めてください
+
+## 入力情報
+${input}
+
+上記をもとに、完成度の高い企画書を作成してください。`;
+}
+
+function _buildSlidePrompt(input) {
+  return `あなたはプロのプレゼンテーションデザイナー兼経営コンサルタントです。
+以下の入力情報をもとに、経営層・決裁者向けの「新規事業企画プレゼン資料」を10〜15スライド構成で作成してください。
+
+## 出力ルール
+- 各スライドを「スライドN：タイトル」の形式で記述してください
+- トーン：簡潔・インパクト重視・データドリブン
+- スライド構成：
+  1. 表紙（企画名、提出日、提出者）
+  2. アジェンダ（全体構成の目次）
+  3. エグゼクティブサマリー（結論を先に。キーメッセージ3つ以内）
+  4. 背景・課題提起（「なぜ今か」を1スライドで伝える）
+  5. 現状分析（データ・グラフの提案を含める。Before/Afterの対比推奨）
+  6. 企画概要（What/How を図解で示すイメージを記載）
+  7. ターゲット・市場機会（ペルソナや市場規模）
+  8. 実施スケジュール（ガントチャート形式を推奨）
+  9. 推進体制（組織図イメージ）
+  10. 予算・ROI（費用対効果を視覚的に）
+  11. KPI・成果指標（ダッシュボード的な見せ方を推奨）
+  12. リスクと対策（リスクマトリクス）
+  13. まとめ・Next Step（承認後の具体アクション）
+- 各スライドには以下を記載：
+  - タイトル（端的に）
+  - キーメッセージ（そのスライドで伝えたいことを1文で）
+  - 本文（箇条書き3〜5項目。1項目は20文字以内が理想）
+  - ビジュアル提案（「ここに〇〇のグラフ」「〇〇のフロー図」等、図表の提案）
+  - スピーカーノート（プレゼン時に話す補足説明を2〜3文）
+- 入力が薄い・不足している項目は、文脈から合理的に推定・補完してください。補完した箇所は【※補完】と注記
+- 1スライド＝1メッセージの原則を守ってください
+
+## 入力情報
+${input}
+
+上記をもとに、プレゼン資料の全スライド内容を作成してください。`;
+}
+
+function showCopyFormatDialog() {
+  let dlg = document.getElementById('copy-format-dialog');
+  if (!dlg) {
+    dlg = document.createElement('div');
+    dlg.id = 'copy-format-dialog';
+    dlg.className = 'modal-backdrop';
+    dlg.innerHTML = `<div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.25)">
+      <div style="font-size:1.05em;font-weight:700;margin-bottom:16px;text-align:center">AI用にコピー</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button onclick="copyProposalForAI('doc')" style="padding:14px;background:var(--primary);color:white;border-radius:10px;font-size:0.92em;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">&#128196; ドキュメント用（A4企画書）</button>
+        <button onclick="copyProposalForAI('slide')" style="padding:14px;background:var(--orange);color:white;border-radius:10px;font-size:0.92em;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">&#128202; スライド用（プレゼン資料）</button>
+      </div>
+      <button onclick="closeCopyFormatDialog()" style="width:100%;margin-top:12px;padding:10px;background:var(--bg);border-radius:10px;font-size:0.85em;color:var(--text2);font-weight:600">キャンセル</button>
+    </div>`;
+    dlg.onclick = e => { if (e.target === dlg) closeCopyFormatDialog(); };
+    document.body.appendChild(dlg);
+  }
+  dlg.classList.add('open');
+}
+
+function closeCopyFormatDialog() {
+  const dlg = document.getElementById('copy-format-dialog');
+  if (dlg) dlg.classList.remove('open');
 }
 </script>
 
