@@ -160,6 +160,11 @@
 
     .thread-count { font-size: 12px; color: #1a73e8; cursor: pointer; margin-top: 2px; display: block; }
     .thread-count:hover { text-decoration: underline; }
+    .msg-read-count { font-size: 11px; color: #aaa; cursor: pointer; margin-top: 2px; display: inline-block; user-select: none; }
+    .msg-read-count:hover { color: #1a73e8; }
+    .read-popup { position: fixed; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; padding: 10px 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 500; min-width: 120px; max-width: 260px; }
+    .read-popup-title { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
+    .read-popup-names { font-size: 12px; color: #666; line-height: 1.6; }
     .msg-date-divider { text-align: center; font-size: 12px; color: #aaa; margin: 12px 0; display: flex; align-items: center; gap: 10px; }
     .msg-date-divider::before, .msg-date-divider::after { content: ''; flex: 1; height: 1px; background: #e0e0e0; }
 
@@ -570,6 +575,10 @@
     <h3>📅 日程調整を作成</h3>
     <label class="modal-label">タイトル</label>
     <input type="text" id="schedulePollTitle" placeholder="例：来週の定例会議" style="margin-bottom:12px" />
+    <label class="modal-label">メンション（任意）</label>
+    <div id="scheduleMentionList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:32px;padding:6px;border:1.5px solid #ddd;border-radius:8px;"></div>
+    <input type="text" id="scheduleMentionInput" placeholder="名前で検索..." style="margin-bottom:12px" oninput="filterScheduleMention(this.value)" />
+    <div id="scheduleMentionSuggestions" style="display:none;border:1px solid #e0e0e0;border-radius:8px;max-height:160px;overflow-y:auto;margin-bottom:12px;"></div>
     <label class="modal-label">候補日時</label>
     <div class="schedule-options-list" id="scheduleOptionsList">
       <div class="schedule-option-row">
@@ -957,7 +966,7 @@
     if (visible.length && !currentChannel) selectChannel(visible[0]);
   }
 
-  function selectChannel(ch) {
+  async function selectChannel(ch) {
     currentChannel = ch;
     closeThread();
     document.getElementById('currentChannelName').textContent = (ch.is_private ? '🔒 ' : '# ') + ch.name;
@@ -965,9 +974,15 @@
     document.querySelectorAll('.channel-item').forEach(el => {
       const isActive = el.querySelector('.ch-name')?.textContent === ch.name;
       el.classList.toggle('active', isActive);
-      // 選択したチャンネルの未読バッジを即消す
       if (isActive) { const b = el.querySelector('.unread-badge'); if (b) b.remove(); }
     });
+    // チャンネルメンバー取得（既読者計算に使用）
+    if (ch.is_private) {
+      const { data: mem } = await sb.from('channel_members').select('user_id').eq('channel_id', ch.id);
+      cachedChannelMembers = (mem || []).map(m => m.user_id);
+    } else {
+      cachedChannelMembers = allUsers.map(u => u.id);
+    }
     markChannelRead(ch.id);
     loadMessages();
     subscribeChannel();
@@ -1287,7 +1302,8 @@
   }
 
   // ── 検索 ──────────────────────────────────────────
-  let cachedMsgs = [], cachedReplyCounts = {}, cachedReactionsMap = {}, cachedVoteResponsesMap = {};
+  let cachedMsgs = [], cachedReplyCounts = {}, cachedReactionsMap = {}, cachedVoteResponsesMap = {}, cachedMsgReadsMap = {};
+  let cachedChannelMembers = [];
 
   function toggleSearch() {
     const bar = document.getElementById('searchBar');
@@ -1296,7 +1312,7 @@
       document.getElementById('searchInput').focus();
     } else {
       document.getElementById('searchInput').value = '';
-      renderMessages(cachedMsgs, cachedReplyCounts, cachedReactionsMap);
+      renderMessages(cachedMsgs, cachedReplyCounts, cachedReactionsMap, '', cachedVoteResponsesMap, cachedMsgReadsMap);
     }
   }
 
@@ -1307,7 +1323,7 @@
     }
     const lower = q.toLowerCase();
     const filtered = cachedMsgs.filter(m => m.content && m.content.toLowerCase().includes(lower));
-    renderMessages(filtered, cachedReplyCounts, cachedReactionsMap, lower, cachedVoteResponsesMap);
+    renderMessages(filtered, cachedReplyCounts, cachedReactionsMap, lower, cachedVoteResponsesMap, cachedMsgReadsMap);
   }
 
   // ── 編集・削除 ────────────────────────────────────
@@ -1343,7 +1359,7 @@
 
     const msgs = data || [];
     const ids = msgs.map(m => m.id);
-    let replyCounts = {}, reactionsMap = {};
+    let replyCounts = {}, reactionsMap = {}, msgReadsMap = {};
 
     let voteResponsesMap = {};
     if (ids.length) {
@@ -1364,16 +1380,37 @@
           voteResponsesMap[r.message_id].push(r);
         });
       }
+
+      const { data: msgReads } = await sb.from('message_reads').select('message_id, user_id').in('message_id', ids);
+      (msgReads || []).forEach(r => {
+        if (!msgReadsMap[r.message_id]) msgReadsMap[r.message_id] = [];
+        msgReadsMap[r.message_id].push(r.user_id);
+      });
     }
+
+    // 自分が読んだことを記録（未記録のメッセージのみ）
+    const unrecorded = ids.filter(id => !(msgReadsMap[id] || []).includes(currentUser.id));
+    if (unrecorded.length) {
+      await sb.from('message_reads').upsert(
+        unrecorded.map(id => ({ message_id: id, user_id: currentUser.id })),
+        { onConflict: 'message_id,user_id' }
+      );
+      unrecorded.forEach(id => {
+        if (!msgReadsMap[id]) msgReadsMap[id] = [];
+        msgReadsMap[id].push(currentUser.id);
+      });
+    }
+
     cachedMsgs = msgs;
     cachedReplyCounts = replyCounts;
     cachedReactionsMap = reactionsMap;
     cachedVoteResponsesMap = voteResponsesMap;
+    cachedMsgReadsMap = msgReadsMap;
     const q = document.getElementById('searchInput')?.value || '';
     if (q.trim()) {
       filterMessages(q);
     } else {
-      renderMessages(msgs, replyCounts, reactionsMap, '', voteResponsesMap);
+      renderMessages(msgs, replyCounts, reactionsMap, '', voteResponsesMap, msgReadsMap);
     }
   }
 
@@ -1450,7 +1487,7 @@
     document.getElementById('colorPickerPop')?.classList.remove('open');
   });
 
-  function renderMessages(msgs, replyCounts = {}, reactionsMap = {}, searchQ = '', voteResponsesMap = {}) {
+  function renderMessages(msgs, replyCounts = {}, reactionsMap = {}, searchQ = '', voteResponsesMap = {}, msgReadsMap = {}) {
     const el = document.getElementById('messages');
     el.innerHTML = '';
     let lastDate = '';
@@ -1723,10 +1760,43 @@
         body.appendChild(tc);
       }
 
+      // 既読表示
+      const readers = msgReadsMap[msg.id] || [];
+      const readCount = readers.length;
+      if (readCount > 0) {
+        const unreadIds = cachedChannelMembers.filter(uid => !readers.includes(uid));
+        const unreadNames = unreadIds.map(uid => allUsers.find(u => u.id === uid)?.name).filter(Boolean);
+        const readEl = document.createElement('span');
+        readEl.className = 'msg-read-count';
+        readEl.textContent = `✓✓ ${readCount}`;
+        readEl.onclick = (e) => {
+          e.stopPropagation();
+          showReadPopup(e, unreadNames, readCount);
+        };
+        body.appendChild(readEl);
+      }
+
       group.appendChild(body);
       el.appendChild(group);
     });
     el.scrollTop = el.scrollHeight;
+  }
+
+  function showReadPopup(e, unreadNames, readCount) {
+    document.getElementById('readPopup')?.remove();
+    const popup = document.createElement('div');
+    popup.id = 'readPopup';
+    popup.className = 'read-popup';
+    if (unreadNames.length === 0) {
+      popup.innerHTML = `<div class="read-popup-title">✓✓ 全員既読（${readCount}人）</div>`;
+    } else {
+      popup.innerHTML = `<div class="read-popup-title">未読：${unreadNames.length}人</div><div class="read-popup-names">${unreadNames.join('・')}</div>`;
+    }
+    document.body.appendChild(popup);
+    const rect = e.target.getBoundingClientRect();
+    popup.style.left = Math.min(rect.left, window.innerWidth - popup.offsetWidth - 8) + 'px';
+    popup.style.top = (rect.top - popup.offsetHeight - 6) + 'px';
+    setTimeout(() => document.addEventListener('click', () => popup.remove(), { once: true }), 0);
   }
 
   function quoteMessage(msg) {
@@ -1844,10 +1914,41 @@
   function openSchedulePoll() {
     if (!currentChannel) { alert('チャンネルを選択してください'); return; }
     document.getElementById('schedulePollTitle').value = '';
+    document.getElementById('scheduleMentionInput').value = '';
+    document.getElementById('scheduleMentionList').innerHTML = '';
+    document.getElementById('scheduleMentionSuggestions').style.display = 'none';
     const list = document.getElementById('scheduleOptionsList');
     list.innerHTML = '';
     for (let i = 0; i < 3; i++) addScheduleOptionRow();
     openModal('schedulePollModal');
+  }
+
+  function filterScheduleMention(q) {
+    const sug = document.getElementById('scheduleMentionSuggestions');
+    const selected = getScheduleMentions();
+    const filtered = allUsers.filter(u => u.name.includes(q) && !selected.includes(u.name));
+    if (!q.trim() || filtered.length === 0) { sug.style.display = 'none'; return; }
+    sug.style.display = 'block';
+    sug.innerHTML = filtered.map(u =>
+      `<div style="padding:8px 12px;cursor:pointer;font-size:13px;" onmousedown="addScheduleMention('${u.name}')">${u.name}</div>`
+    ).join('');
+  }
+
+  function getScheduleMentions() {
+    return [...document.querySelectorAll('#scheduleMentionList .mention-chip')].map(c => c.dataset.name);
+  }
+
+  function addScheduleMention(name) {
+    const list = document.getElementById('scheduleMentionList');
+    if (getScheduleMentions().includes(name)) return;
+    const chip = document.createElement('span');
+    chip.className = 'mention-chip';
+    chip.dataset.name = name;
+    chip.style.cssText = 'background:#e8f0fe;color:#1a73e8;border-radius:12px;padding:3px 10px;font-size:12px;display:flex;align-items:center;gap:4px;';
+    chip.innerHTML = `@${name} <span style="cursor:pointer;font-weight:bold;" onclick="this.parentElement.remove()">×</span>`;
+    list.appendChild(chip);
+    document.getElementById('scheduleMentionInput').value = '';
+    document.getElementById('scheduleMentionSuggestions').style.display = 'none';
   }
 
   function addScheduleOptionRow() {
@@ -1878,9 +1979,11 @@
       options.push(time ? `${label} ${time}` : label);
     });
     if (options.length === 0) { alert('候補日時を1件以上入力してください'); return; }
+    const mentions = getScheduleMentions().map(n => `@${n}`).join(' ');
+    const content = mentions ? `📅 ${title}\n${mentions}` : `📅 ${title}`;
     await sb.from('messages').insert({
       channel_id: currentChannel.id, user_id: currentUser.id,
-      content: `📅 ${title}`, is_vote: true,
+      content, is_vote: true,
       vote_options: { type: 'schedule', question: title, options }
     });
     closeModal('schedulePollModal');
