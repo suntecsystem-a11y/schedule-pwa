@@ -3596,8 +3596,8 @@ function renderHome(){
 
   const viewBtns = `
     <div style="display:flex;gap:6px;margin-bottom:12px">
-      <button onclick="homeView='grid';renderHome()" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--primary);font-size:0.8em;font-weight:700;cursor:pointer;${homeView==='grid'?'background:var(--primary);color:white':'background:white;color:var(--primary)'">${t('home.grid')}</button>
-      <button onclick="homeView='cards';renderHome()" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--primary);font-size:0.8em;font-weight:700;cursor:pointer;${homeView==='cards'?'background:var(--primary);color:white':'background:white;color:var(--primary)'">${t('home.card')}</button>
+      <button onclick="homeView='grid';renderHome()" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--primary);font-size:0.8em;font-weight:700;cursor:pointer;`+(homeView==='grid'?'background:var(--primary);color:white':'background:white;color:var(--primary)')+`">`+t('home.grid')+`</button>
+      <button onclick="homeView='cards';renderHome()" style="padding:5px 14px;border-radius:20px;border:1.5px solid var(--primary);font-size:0.8em;font-weight:700;cursor:pointer;`+(homeView==='cards'?'background:var(--primary);color:white':'background:white;color:var(--primary)')+`">`+t('home.card')+`</button>
     </div>`;
 
   if(homeView === 'grid'){
