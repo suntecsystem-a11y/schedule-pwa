@@ -460,6 +460,34 @@ input,select{font-family:inherit;outline:none}
 .prop-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.15)}
 .prop-card-title{font-size:0.95em;font-weight:700;margin-bottom:4px}
 .prop-card-meta{font-size:0.78em;color:var(--text2);display:flex;gap:12px;align-items:center}
+.el-wrap{max-width:720px;margin:0 auto;padding:8px 0}
+.el-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.el-header h2{font-size:1.1em;font-weight:700}
+.el-card{background:white;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.el-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.el-card-title{font-size:0.95em;font-weight:700;margin-bottom:4px}
+.el-card-meta{font-size:0.78em;color:var(--text2);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.el-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:0.75em;font-weight:700}
+.el-badge-pass{background:#e8f5e9;color:#2e7d32}
+.el-badge-fail{background:#fbe9e7;color:#c62828}
+.el-badge-new{background:#e3f2fd;color:#1565c0}
+.el-quiz-wrap{max-width:720px;margin:0 auto;padding:16px 12px}
+.el-quiz-progress{font-size:0.8em;color:var(--text2);margin-bottom:8px}
+.el-quiz-question{font-size:1em;font-weight:700;margin-bottom:16px;line-height:1.6}
+.el-quiz-media{margin-bottom:16px;text-align:center}
+.el-quiz-media video,.el-quiz-media img{max-width:100%;border-radius:var(--radius)}
+.el-quiz-choice{display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer;transition:border-color .15s,background .15s}
+.el-quiz-choice:hover{border-color:var(--primary);background:var(--primary-light)}
+.el-quiz-choice.selected{border-color:var(--primary);background:var(--primary-light);font-weight:700}
+.el-quiz-choice.correct{border-color:#4caf50;background:#e8f5e9}
+.el-quiz-choice.wrong{border-color:#e53935;background:#fbe9e7}
+.el-quiz-explanation{background:#f5f5f5;border-radius:var(--radius);padding:12px 16px;margin-top:12px;font-size:0.85em;line-height:1.6}
+.el-result-wrap{max-width:720px;margin:0 auto;padding:32px 12px;text-align:center}
+.el-result-score{font-size:2.5em;font-weight:800;margin:16px 0}
+.el-result-label{font-size:1.2em;font-weight:700;margin-bottom:24px}
+.el-intro-wrap{max-width:720px;margin:0 auto;padding:16px 12px}
+.el-intro-media{margin:16px 0;text-align:center}
+.el-intro-media video,.el-intro-media img{max-width:100%;border-radius:var(--radius)}
 .prop-badge{font-size:0.72em;font-weight:700;padding:2px 8px;border-radius:10px;color:white}
 .prop-badge.draft{background:var(--text3)}
 .prop-badge.submitted{background:var(--blue)}
@@ -554,6 +582,7 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="inquiry" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span></button>
     <button class="sidebar-btn" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請 <span style="font-size:0.72em">（準備中）</span></span></button>
     <button class="sidebar-btn" data-tab="proposal" id="proposal-sidebar-btn" onclick="switchTab('proposal',this)" style="display:none"><span class="sidebar-icon">📝</span><span class="sidebar-label">企画書</span></button>
+    <button class="sidebar-btn" data-tab="elearning" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span></button>
     <button class="sidebar-btn" data-tab="mypage" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
     <button class="sidebar-btn" data-tab="settings" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span></button>
     <button class="sidebar-btn admin-side" data-tab="admin" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
@@ -583,6 +612,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">📋 申請</button>
     <button class="tab-btn" id="proposal-tab-btn" onclick="switchTab('proposal',this)" style="display:none">📝 企画書</button>
+    <button class="tab-btn" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
     <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" onclick="switchTab('settings',this)">🔧 設定</button>
     <!-- 管理者のみ表示 -->
@@ -1002,6 +1032,11 @@ input,select{font-family:inherit;outline:none}
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- eラーニング -->
+  <div class="content" id="tab-elearning" style="display:none">
+    <div id="elearning-content"></div>
   </div>
 
   <!-- 設定 -->
@@ -2628,6 +2663,9 @@ function showApp(opts){
   const canSeeProposal = isAdmin || (currentUser.role && currentUser.role !== '一般');
   document.getElementById('proposal-tab-btn').style.display = canSeeProposal ? 'block' : 'none';
   document.getElementById('proposal-sidebar-btn').style.display = canSeeProposal ? 'flex' : 'none';
+  const canSeeElearning = isAdmin || (currentUser.role && currentUser.role !== '一般');
+  document.getElementById('elearning-tab-btn').style.display = canSeeElearning ? 'block' : 'none';
+  document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
   buildFilterUI();
   switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   renderAll();
@@ -2741,7 +2779,7 @@ function openApplyApp(btn) {
 }
 
 function switchTab(tab, btn){
-  ['home','calendar','rooms','team','cars','inquiry','proposal','mypage','settings','admin'].forEach(t=>{
+  ['home','calendar','rooms','team','cars','inquiry','proposal','elearning','mypage','settings','admin'].forEach(t=>{
     document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -2749,7 +2787,7 @@ function switchTab(tab, btn){
   const sideBtn = document.querySelector(`.sidebar-btn[data-tab="${tab}"]`);
   if(sideBtn) sideBtn.classList.add('active');
   const tabBtns = document.querySelectorAll('.tab-btn');
-  const idx=['home','calendar','rooms','team','cars','inquiry','apply','proposal','mypage','settings','admin'].indexOf(tab);
+  const idx=['home','calendar','rooms','team','cars','inquiry','apply','proposal','elearning','mypage','settings','admin'].indexOf(tab);
   if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); }
   else                { _markNoticesAsSeen(); }
@@ -2758,6 +2796,7 @@ function switchTab(tab, btn){
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
   if(tab==='proposal') loadProposals();
+  if(tab==='elearning') loadElearningCourses();
   if(tab==='mypage')  renderMyPage();
   if(tab==='settings') renderSettings();
   if(tab==='admin')   loadAdminUsers();
@@ -6163,6 +6202,254 @@ function closeCopyFormatDialog() {
   const dlg = document.getElementById('copy-format-dialog');
   if (dlg) dlg.classList.remove('open');
 }
+
+// ============================================================
+// ===== eラーニングタブ =====
+// ============================================================
+
+let _elCourses = [];
+let _elHistory = [];
+const ELEARNING_PASS_THRESHOLD = 80;
+
+async function loadElearningCourses() {
+  const wrap = document.getElementById('elearning-content');
+  if (!GAS_URL) {
+    _elCourses = [
+      { id:'1', title:'安全教育 基礎', category:'安全教育', description:'安全教育の基礎を学びます', questionCount:3, introVideoUrl:'', introImageUrl:'', target:[] },
+      { id:'2', title:'業務手順 入門', category:'業務手順', description:'業務手順の基本を学びます', questionCount:2, introVideoUrl:'', introImageUrl:'', target:[] },
+    ];
+    _elHistory = [
+      { id:'1', courseId:'1', score:'100', date:'2026-07-20T10:00:00Z', passed:true },
+    ];
+    renderElearningList();
+    return;
+  }
+  try {
+    const [courses, history] = await Promise.all([
+      api('getElearningCourses', {}, '教材を読み込み中...'),
+      api('getElearningHistory', {}, ''),
+    ]);
+    _elCourses = courses;
+    _elHistory = history;
+    renderElearningList();
+  } catch (e) {
+    wrap.innerHTML = '<div class="el-wrap"><p style="color:var(--text2);font-size:0.85em">教材の読み込みに失敗しました</p></div>';
+  }
+}
+
+function renderElearningList() {
+  const wrap = document.getElementById('elearning-content');
+  const historyByCourse = {};
+  _elHistory.forEach(h => {
+    if (!historyByCourse[h.courseId] || new Date(h.date) > new Date(historyByCourse[h.courseId].date)) {
+      historyByCourse[h.courseId] = h;
+    }
+  });
+
+  let html = '<div class="el-wrap"><div class="el-header"><h2>📚 eラーニング</h2></div>';
+  if (!_elCourses.length) {
+    html += '<p style="color:var(--text2);font-size:0.85em">公開中の教材はありません</p>';
+  } else {
+    _elCourses.forEach(c => {
+      const h = historyByCourse[c.id];
+      let badge = '';
+      if (h) {
+        badge = h.passed
+          ? `<span class="el-badge el-badge-pass">合格 ${h.score}%</span>`
+          : `<span class="el-badge el-badge-fail">不合格 ${h.score}%</span>`;
+      } else {
+        badge = '<span class="el-badge el-badge-new">未受講</span>';
+      }
+      html += `<div class="el-card" onclick="openElearningCourse('${c.id}')">
+        <div class="el-card-title">${_esc(c.title)}</div>
+        <div class="el-card-meta">
+          <span>${_esc(c.category || '')}</span>
+          <span>問題数: ${c.questionCount}</span>
+          ${badge}
+        </div>
+      </div>`;
+    });
+  }
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+async function openElearningCourse(courseId) {
+  const wrap = document.getElementById('elearning-content');
+  let course;
+  if (!GAS_URL) {
+    course = {
+      id: courseId, title: 'デモ教材', category: '安全教育',
+      description: 'これはデモ教材です。',
+      introVideoUrl: '', introImageUrl: '',
+      questions: [
+        { id:'1', question:'安全帽は何色ですか？', videoUrl:'', imageUrl:'', choices:['白','赤','青','黄'], answer:'1', explanation:'安全帽は白色が標準です。' },
+        { id:'2', question:'消火器の色は？', videoUrl:'', imageUrl:'', choices:['赤','青','緑','黄'], answer:'1', explanation:'消火器は赤色です。' },
+        { id:'3', question:'避難経路の表示色は？', videoUrl:'', imageUrl:'', choices:['赤','黄','緑','青'], answer:'3', explanation:'避難経路は緑色で表示されます。' },
+      ],
+    };
+  } else {
+    try {
+      course = await api('getElearningCourse', { courseId }, '教材を読み込み中...');
+    } catch (e) {
+      showToast('教材の読み込みに失敗しました');
+      return;
+    }
+  }
+
+  if (!course.questions.length) {
+    showToast('この教材にはまだ問題が登録されていません');
+    return;
+  }
+
+  let introMedia = '';
+  if (course.introVideoUrl) {
+    introMedia = `<div class="el-intro-media"><video src="${_esc(course.introVideoUrl)}" controls playsinline style="max-height:360px"></video></div>`;
+  } else if (course.introImageUrl) {
+    introMedia = `<div class="el-intro-media"><img src="${_esc(course.introImageUrl)}" alt="教材画像"></div>`;
+  }
+
+  wrap.innerHTML = `<div class="el-intro-wrap">
+    <button onclick="loadElearningCourses()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">← 一覧に戻る</button>
+    <h2 style="font-size:1.1em;font-weight:700;margin-bottom:4px">${_esc(course.title)}</h2>
+    <p style="font-size:0.82em;color:var(--text2);margin-bottom:12px">${_esc(course.category || '')} ｜ 問題数: ${course.questions.length} ｜ 合格ライン: ${ELEARNING_PASS_THRESHOLD}%</p>
+    ${course.description ? `<div style="font-size:0.88em;line-height:1.7;margin-bottom:16px">${course.description}</div>` : ''}
+    ${introMedia}
+    <button class="btn-primary" style="width:100%;margin-top:16px" onclick='startElearningQuiz(${JSON.stringify(course).replace(/'/g,"&#39;")})'>受講を開始する</button>
+  </div>`;
+}
+
+function startElearningQuiz(course) {
+  const questions = [...course.questions].sort(() => Math.random() - 0.5);
+  const state = { course, questions, current: 0, answers: {}, answered: false };
+  window._elQuizState = state;
+  renderElearningQuiz();
+}
+
+function renderElearningQuiz() {
+  const s = window._elQuizState;
+  const q = s.questions[s.current];
+  const wrap = document.getElementById('elearning-content');
+  const num = s.current + 1;
+  const total = s.questions.length;
+
+  let media = '';
+  if (q.videoUrl) {
+    media = `<div class="el-quiz-media"><video src="${_esc(q.videoUrl)}" controls playsinline style="max-height:300px"></video></div>`;
+  } else if (q.imageUrl) {
+    media = `<div class="el-quiz-media"><img src="${_esc(q.imageUrl)}" alt="問題画像" style="max-height:300px"></div>`;
+  }
+
+  const selected = s.answers[s.current];
+  const answered = s.answered;
+
+  let choicesHtml = q.choices.map((c, i) => {
+    const idx = String(i + 1);
+    let cls = 'el-quiz-choice';
+    if (answered) {
+      if (idx === q.answer) cls += ' correct';
+      else if (idx === selected) cls += ' wrong';
+    } else if (idx === selected) {
+      cls += ' selected';
+    }
+    const disabled = answered ? 'disabled' : '';
+    return `<button class="${cls}" ${disabled} onclick="selectElearningChoice('${idx}')">${_esc(c)}</button>`;
+  }).join('');
+
+  let explanation = '';
+  if (answered && q.explanation) {
+    const isCorrect = selected === q.answer;
+    explanation = `<div class="el-quiz-explanation">
+      <div style="font-weight:700;margin-bottom:4px;color:${isCorrect ? '#2e7d32' : '#c62828'}">${isCorrect ? '⭕ 正解！' : '❌ 不正解'}</div>
+      ${_esc(q.explanation)}
+    </div>`;
+  }
+
+  let navHtml = '';
+  if (answered) {
+    if (s.current < s.questions.length - 1) {
+      navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="nextElearningQuestion()">次の問題へ →</button>`;
+    } else {
+      navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="finishElearningQuiz()">結果を見る</button>`;
+    }
+  } else {
+    navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="submitElearningAnswer()" ${selected ? '' : 'disabled'} id="el-submit-btn">回答する</button>`;
+  }
+
+  let progressBar = '';
+  const pct = Math.round((num / total) * 100);
+  progressBar = `<div style="background:#e0e0e0;border-radius:4px;height:6px;margin-bottom:12px"><div style="background:var(--primary);height:100%;border-radius:4px;width:${pct}%;transition:width .3s"></div></div>`;
+
+  wrap.innerHTML = `<div class="el-quiz-wrap">
+    <button onclick="confirmExitQuiz()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">← 中断して戻る</button>
+    <div class="el-quiz-progress">問題 ${num} / ${total}</div>
+    ${progressBar}
+    <div class="el-quiz-question">${_esc(q.question)}</div>
+    ${media}
+    ${choicesHtml}
+    ${explanation}
+    ${navHtml}
+  </div>`;
+}
+
+function selectElearningChoice(idx) {
+  const s = window._elQuizState;
+  if (s.answered) return;
+  s.answers[s.current] = idx;
+  renderElearningQuiz();
+}
+
+function submitElearningAnswer() {
+  const s = window._elQuizState;
+  if (!s.answers[s.current]) return;
+  s.answered = true;
+  renderElearningQuiz();
+}
+
+function nextElearningQuestion() {
+  const s = window._elQuizState;
+  s.current++;
+  s.answered = false;
+  renderElearningQuiz();
+}
+
+function confirmExitQuiz() {
+  if (confirm('受講を中断しますか？進捗は保存されません。')) {
+    loadElearningCourses();
+  }
+}
+
+async function finishElearningQuiz() {
+  const s = window._elQuizState;
+  let correct = 0;
+  s.questions.forEach((q, i) => {
+    if (s.answers[i] === q.answer) correct++;
+  });
+  const score = Math.round((correct / s.questions.length) * 100);
+  const passed = score >= ELEARNING_PASS_THRESHOLD;
+
+  if (GAS_URL) {
+    try {
+      await api('saveElearningResult', {
+        result: { courseId: s.course.id, score, passed }
+      }, '結果を保存中...');
+    } catch (e) {
+      showToast('結果の保存に失敗しました');
+    }
+  }
+
+  const wrap = document.getElementById('elearning-content');
+  wrap.innerHTML = `<div class="el-result-wrap">
+    <div style="font-size:3em;margin-bottom:8px">${passed ? '🎉' : '📖'}</div>
+    <h2 style="font-size:1.1em;font-weight:700;margin-bottom:4px">${_esc(s.course.title)}</h2>
+    <div class="el-result-score" style="color:${passed ? '#2e7d32' : '#c62828'}">${score}%</div>
+    <div class="el-result-label" style="color:${passed ? '#2e7d32' : '#c62828'}">${passed ? '合格' : '不合格'}</div>
+    <p style="font-size:0.85em;color:var(--text2);margin-bottom:24px">${correct} / ${s.questions.length} 問正解（合格ライン: ${ELEARNING_PASS_THRESHOLD}%）</p>
+    <button class="btn-primary" style="width:100%;margin-bottom:8px" onclick="openElearningCourse('${s.course.id}')">もう一度受講する</button>
+    <button style="width:100%;padding:12px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer" onclick="loadElearningCourses()">一覧に戻る</button>
+  </div>`;
+}
+
 </script>
 
 <!-- ===== Firebase SDK（Web Push通知用）===== -->
