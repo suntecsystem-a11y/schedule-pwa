@@ -235,21 +235,19 @@ input,select{font-family:inherit;outline:none}
 .mini-more{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:0.58em;color:var(--primary);font-weight:700;cursor:pointer}
 
 /* 週表示 */
-.week-grid{background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);max-height:560px;overflow-y:overlay;scrollbar-width:thin}
-.week-grid::-webkit-scrollbar{width:6px;background:transparent}
-.week-grid::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:3px}
-.week-header{display:grid;grid-template-columns:48px repeat(7,1fr);background:var(--primary);color:white;position:sticky;top:0;z-index:5}
+.week-grid{background:white;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);max-height:560px;overflow-y:auto}
+.week-header{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));background:var(--primary);color:white;position:sticky;top:0;z-index:5}
 .week-header-cell{text-align:center;padding:8px 2px;font-size:0.75em}
 .week-header-cell .wday{font-weight:600}
 .week-header-cell .wdate{font-size:1.1em;font-weight:700}
 .week-header-cell .wdate.today{background:rgba(255,255,255,.3);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin:0 auto}
-.week-allday-row,.week-leave-row{display:grid;grid-template-columns:48px repeat(7,1fr);border-bottom:1px solid var(--border);min-height:28px;background:#fafafa;position:sticky;z-index:4}
+.week-allday-row,.week-leave-row{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));border-bottom:1px solid var(--border);min-height:28px;background:#fafafa;position:sticky;z-index:4}
 .week-allday-row{top:var(--week-header-h,56px)}
 .week-leave-row{background:#fff8f8}
 .week-allday-label,.week-leave-label{font-size:0.65em;color:var(--text2);display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border)}
 .week-allday-cell,.week-leave-cell{border-right:1px solid var(--border);padding:2px;position:relative;min-height:28px}
 .week-allday-bar,.week-leave-bar{font-size:0.65em;color:white;border-radius:4px;padding:2px 5px;margin-bottom:1px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.week-body{display:grid;grid-template-columns:48px repeat(7,1fr)}
+.week-body{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr))}
 .time-col{font-size:0.68em;color:var(--text2);display:flex;flex-direction:column}
 .time-slot{border-bottom:1px solid var(--border);padding:2px 4px;display:flex;align-items:flex-start;flex:1;min-height:40px}
 .week-col{border-left:1px solid var(--border);display:flex;flex-direction:column}
