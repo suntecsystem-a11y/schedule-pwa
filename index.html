@@ -241,10 +241,11 @@ input,select{font-family:inherit;outline:none}
 .week-header-cell .wday{font-weight:600}
 .week-header-cell .wdate{font-size:1.1em;font-weight:700}
 .week-header-cell .wdate.today{background:rgba(255,255,255,.3);border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;margin:0 auto}
-.week-allday-row{display:grid;grid-template-columns:48px repeat(7,1fr);border-bottom:1px solid var(--border);min-height:28px;background:#fafafa}
-.week-allday-label{font-size:0.65em;color:var(--text2);display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border)}
-.week-allday-cell{border-right:1px solid var(--border);padding:2px;position:relative;min-height:28px}
-.week-allday-bar{font-size:0.65em;color:white;border-radius:4px;padding:2px 5px;margin-bottom:1px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.week-allday-row,.week-leave-row{display:grid;grid-template-columns:48px repeat(7,1fr);border-bottom:1px solid var(--border);min-height:28px;background:#fafafa}
+.week-leave-row{background:#fff8f8}
+.week-allday-label,.week-leave-label{font-size:0.65em;color:var(--text2);display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border)}
+.week-allday-cell,.week-leave-cell{border-right:1px solid var(--border);padding:2px;position:relative;min-height:28px}
+.week-allday-bar,.week-leave-bar{font-size:0.65em;color:white;border-radius:4px;padding:2px 5px;margin-bottom:1px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .week-body{display:grid;grid-template-columns:48px repeat(7,1fr);max-height:480px;overflow-y:auto}
 .time-col{font-size:0.68em;color:var(--text2)}
 .time-slot{height:40px;border-bottom:1px solid var(--border);padding:2px 4px;display:flex;align-items:flex-start}
@@ -2226,7 +2227,9 @@ function renderWeek(){
   const todayStr=fmtDate(new Date());const filtered=getFiltered();
   document.getElementById('cal-title').textContent=`${monday.getMonth()+1}/${monday.getDate()} 〜 ${days[6].getMonth()+1}/${days[6].getDate()}`;
   const wS=fmtDate(days[0]),wE=fmtDate(days[6]);
-  const alldayEvs=filtered.filter(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;return(!e.start||isMultiDay(e))&&es<=wE&&ee>=wS});
+  const WEEK_LEAVE_TYPES=['休暇','休み'];
+  const alldayEvs=filtered.filter(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;return(!e.start||isMultiDay(e))&&es<=wE&&ee>=wS&&!WEEK_LEAVE_TYPES.includes(e.type)});
+  const leaveEvs=filtered.filter(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;return WEEK_LEAVE_TYPES.includes(e.type)&&es<=wE&&ee>=wS});
   let html=`<div class="week-grid"><div class="week-header"><div class="week-header-cell"></div>
     ${days.map((d,i)=>{const ds=fmtDate(d);const isT=ds===todayStr;const hol=holidays.find(h=>h.date===ds);const isCompHol=!!hol;const natHName=jpNationalHolidays(d.getFullYear()).get(ds);const isHol=isCompHol||!!natHName;const holLabel=hol?.name||natHName||'';
       return`<div class="week-header-cell"${isCompHol?` style="background:#fff0f0"`:''}><div class="wday" style="${i===6||isHol?'color:var(--red)':i===5?'color:var(--blue)':''}">${['月','火','水','木','金','土','日'][i]}</div>
@@ -2244,12 +2247,24 @@ function renderWeek(){
     });
     html+=`</div>`;
   }
+  if(leaveEvs.length){
+    html+=`<div class="week-leave-row"><div class="week-leave-label">休暇</div>`;
+    days.forEach(day=>{
+      const ds=fmtDate(day);
+      html+=`<div class="week-leave-cell">${leaveEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
+        const ip=e.approvalStatus==='申請中';
+        const wStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
+        return`<div class="week-leave-bar" style="${wStyle}" onclick="openDetail('${e.id}')">${ip?'(仮) ':''}${typeIcon(e.type)}${esc(e.title||e.type)} ${esc(e.userName||'')}</div>`;
+      }).join('')}</div>`;
+    });
+    html+=`</div>`;
+  }
   html+=`<div class="week-body">`;
   for(let h=8;h<20;h++){
     html+=`<div class="time-col"><div class="time-slot">${h}:00</div></div>`;
     days.forEach(day=>{
       const ds=fmtDate(day);
-      const sEvs=filtered.filter(e=>e.start&&e.date===ds&&parseInt(e.start)===h);
+      const sEvs=filtered.filter(e=>e.start&&e.date===ds&&parseInt(e.start)===h&&!WEEK_LEAVE_TYPES.includes(e.type));
       const firstHalf=sEvs.filter(e=>{const m=parseInt((e.start||'').split(':')[1])||0;return m<30;});
       const secondHalf=sEvs.filter(e=>{const m=parseInt((e.start||'').split(':')[1])||0;return m>=30;});
       const renderEv=e=>{const ip=e.approvalStatus==='申請中';const wEvStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;return`<div class="week-event" style="${wEvStyle}" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?'(仮) ':''}${esc(e.title||e.type)}</div>`;};
