@@ -3518,7 +3518,7 @@ function renderHomeDayWidgets(){
           <div style="font-size:0.82em;font-weight:700;color:${busy?'#c62828':'#2e7d32'}">${busy?'🔴':'🟢'} ${room.name}</div>
           <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${subText}</div>
         </div>
-        ${busy?'':`<span style="font-size:0.72em;color:var(--primary);font-weight:700">${t('home.book')}</span>`}
+        ${busy?'':'<span style="font-size:0.72em;color:var(--primary);font-weight:700">'+t('home.book')+'</span>'}
       </div>`;
     }).join('');
   }
