@@ -249,9 +249,11 @@ input,select{font-family:inherit;outline:none}
 .time-col{font-size:0.68em;color:var(--text2)}
 .time-slot{height:40px;border-bottom:1px solid var(--border);padding:2px 4px;display:flex;align-items:flex-start}
 .week-col{border-left:1px solid var(--border)}
-.week-slot{height:40px;border-bottom:1px solid var(--border);position:relative;cursor:pointer}
+.week-slot{border-bottom:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column}
 .week-slot:hover{background:var(--primary-light)}
-.week-event{position:absolute;left:2px;right:2px;border-radius:4px;padding:2px 4px;font-size:0.65em;color:white;overflow:hidden;z-index:1;cursor:pointer}
+.week-half{min-height:20px;display:flex;flex-direction:column;gap:1px;padding:1px 0}
+.week-half+.week-half{border-top:1px dashed var(--border)}
+.week-event{border-radius:4px;padding:2px 4px;font-size:0.65em;color:white;overflow:hidden;z-index:1;cursor:pointer;white-space:nowrap;text-overflow:ellipsis}
 
 /* 日・イベントカード */
 .event-card{background:white;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);border-left:4px solid var(--primary);display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:transform .1s,box-shadow .15s;margin-bottom:10px}
@@ -2248,12 +2250,12 @@ function renderWeek(){
     days.forEach(day=>{
       const ds=fmtDate(day);
       const sEvs=filtered.filter(e=>e.start&&e.date===ds&&parseInt(e.start)===h);
+      const firstHalf=sEvs.filter(e=>{const m=parseInt((e.start||'').split(':')[1])||0;return m<30;});
+      const secondHalf=sEvs.filter(e=>{const m=parseInt((e.start||'').split(':')[1])||0;return m>=30;});
+      const renderEv=e=>{const ip=e.approvalStatus==='申請中';const wEvStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;return`<div class="week-event" style="${wEvStyle}" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?'(仮) ':''}${esc(e.title||e.type)}</div>`;};
       html+=`<div class="week-col"><div class="week-slot" onclick="onCellClick('${ds}')">
-        ${sEvs.map(e=>{
-          const ip=e.approvalStatus==='申請中';
-          const wEvStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
-          return`<div class="week-event" style="${wEvStyle}" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?'(仮) ':''}${esc(e.title||e.type)}</div>`;
-        }).join('')}
+        <div class="week-half">${firstHalf.map(renderEv).join('')}</div>
+        <div class="week-half">${secondHalf.map(renderEv).join('')}</div>
       </div></div>`;
     });
   }
