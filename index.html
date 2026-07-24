@@ -6606,10 +6606,16 @@ async function _resolveElVideo(uid, shareUrl, maxHeight) {
   const el = document.getElementById(uid);
   if (!el) return;
   try {
-    const res = await api('getSpTempUrl', { shareUrl }, null);
-    if (!res || !res.url) throw new Error('URL取得失敗');
-    el.innerHTML = `<video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(res.url)}"></video>`;
+    if (!GAS_URL) throw new Error('GAS未設定');
+    const sess = loadSession();
+    const body = JSON.stringify({ action:'getSpTempUrl', token: sess?.token, shareUrl });
+    const res = await fetch(GAS_URL, { method:'POST', body, redirect:'follow' });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'URL取得失敗');
+    if (!json.data || !json.data.url) throw new Error('URL取得失敗');
+    el.innerHTML = `<video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(json.data.url)}"></video>`;
   } catch(e) {
+    console.error('[eラーニング動画]', e.message, shareUrl);
     el.innerHTML = `<div style="background:#fff3e0;border-radius:var(--radius);padding:16px;text-align:center;border:1px solid #ffcc02">
       <div style="font-size:1.5em;margin-bottom:4px">⚠️</div>
       <div style="font-size:0.82em;color:#e65100">${t('el.video.fail')}</div>
