@@ -6278,8 +6278,10 @@ function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
   maxHeight = maxHeight || '360px';
   if (videoUrl) {
     return `<div class="el-quiz-media">
-      <iframe src="${_esc(videoUrl)}" style="width:100%;max-height:${maxHeight};aspect-ratio:16/9;border:none;border-radius:var(--radius)" allowfullscreen></iframe>
-      <a href="${_esc(videoUrl)}" target="_blank" rel="noopener" style="display:block;text-align:center;font-size:0.78em;color:var(--primary);margin-top:4px">動画を新しいタブで開く ↗</a>
+      <div onclick="window.open('${_esc(videoUrl)}','_blank')" style="background:#f0f4f8;border-radius:var(--radius);padding:32px 16px;text-align:center;cursor:pointer;border:2px dashed var(--border);transition:border-color .15s">
+        <div style="font-size:3em;margin-bottom:8px">🎬</div>
+        <div style="font-size:0.9em;font-weight:700;color:var(--primary)">動画を再生する（新しいタブで開きます）</div>
+      </div>
     </div>`;
   }
   if (imageUrl) {
