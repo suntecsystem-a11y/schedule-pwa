@@ -762,7 +762,7 @@ input,select{font-family:inherit;outline:none}
   <div id="tab-notice" style="display:none">
     <div style="max-width:680px;margin:0 auto;padding:16px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-        <h2 style="font-size:1em;font-weight:700;margin:0">📢 お知らせ</h2>
+        <h2 id="notice-header" style="font-size:1em;font-weight:700;margin:0">📢 お知らせ</h2>
         <button id="notice-add-btn" onclick="openNoticeModal()" style="display:none;padding:7px 16px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">＋ 投稿</button>
       </div>
       <div id="notice-list"></div>
@@ -774,7 +774,7 @@ input,select{font-family:inherit;outline:none}
     <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <h3 style="margin:0 0 16px;font-size:1em;font-weight:700" id="notice-modal-title">お知らせを投稿</h3>
       <div style="margin-bottom:12px">
-        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">重要度</label>
+        <label id="notice-importance-label" style="font-size:0.82em;font-weight:600;color:var(--text2)">重要度</label>
         <select id="notice-importance" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
           <option value="通常">通常</option>
           <option value="重要">🔶 重要</option>
@@ -782,16 +782,16 @@ input,select{font-family:inherit;outline:none}
         </select>
       </div>
       <div style="margin-bottom:12px">
-        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">タイトル</label>
+        <label id="notice-title-label" style="font-size:0.82em;font-weight:600;color:var(--text2)">タイトル</label>
         <input id="notice-title" type="text" placeholder="タイトルを入力" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;background:var(--bg)">
       </div>
       <div style="margin-bottom:20px">
-        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">本文</label>
+        <label id="notice-body-label" style="font-size:0.82em;font-weight:600;color:var(--text2)">本文</label>
         <textarea id="notice-body" rows="5" placeholder="本文を入力" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit"></textarea>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
-        <button onclick="submitNotice()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">投稿</button>
+        <button id="notice-cancel-btn" onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
+        <button id="notice-submit-btn" onclick="submitNotice()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">投稿</button>
       </div>
     </div>
   </div>
@@ -802,8 +802,8 @@ input,select{font-family:inherit;outline:none}
       <!-- ファイル選択 -->
       <div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <p style="font-size:0.85em;font-weight:700;color:var(--text2);margin:0">参照ファイル（SharePoint）</p>
-          <button onclick="loadInquiryFiles()" style="font-size:0.78em;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--primary);cursor:pointer">更新</button>
+          <p id="inq-files-label" style="font-size:0.85em;font-weight:700;color:var(--text2);margin:0">参照ファイル（SharePoint）</p>
+          <button id="inq-refresh-btn" onclick="loadInquiryFiles()" style="font-size:0.78em;padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--primary);cursor:pointer">更新</button>
         </div>
         <div id="inquiry-file-list" style="background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px;min-height:48px;font-size:0.83em;color:var(--text2)">
           <span id="inquiry-file-placeholder">「更新」を押すとファイル一覧を取得します</span>
@@ -816,8 +816,8 @@ input,select{font-family:inherit;outline:none}
           style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text)">
           <span style="font-size:1.4em">📓</span>
           <div>
-            <div style="font-weight:700;font-size:0.9em">NotebookLMで詳しく調べる</div>
-            <div style="font-size:0.78em;color:var(--text2)">Googleログインが必要です</div>
+            <div id="inq-notebooklm-title" style="font-weight:700;font-size:0.9em">NotebookLMで詳しく調べる</div>
+            <div id="inq-notebooklm-sub" style="font-size:0.78em;color:var(--text2)">Googleログインが必要です</div>
           </div>
           <span style="margin-left:auto;color:var(--text2);font-size:0.85em">↗</span>
         </a>
@@ -825,7 +825,7 @@ input,select{font-family:inherit;outline:none}
 
       <!-- チャット履歴 -->
       <div id="inquiry-chat" style="background:var(--surface);border:1.5px solid var(--border);border-radius:14px;padding:14px;min-height:200px;max-height:420px;overflow-y:auto;margin-bottom:14px;display:flex;flex-direction:column;gap:12px">
-        <div style="text-align:center;color:var(--text2);font-size:0.85em;padding:20px 0">
+        <div id="inq-welcome" style="text-align:center;color:var(--text2);font-size:0.85em;padding:20px 0">
           💬 社内規定・マニュアル・FAQ をもとに回答します
         </div>
       </div>
@@ -841,7 +841,7 @@ input,select{font-family:inherit;outline:none}
           送信
         </button>
       </div>
-      <p style="font-size:0.75em;color:var(--text2);margin-top:6px">Shift+Enterで改行 / Enterで送信</p>
+      <p id="inq-hint-text" style="font-size:0.75em;color:var(--text2);margin-top:6px">Shift+Enterで改行 / Enterで送信</p>
     </div>
   </div>
 
@@ -1541,9 +1541,10 @@ ja:{
 'team.board':'在籍ボード','team.dept':'📋 部署ごと','team.search':'🔍 名前で検索...',
 'team.nobody':'該当するメンバーがいません','team.holiday':'休日',
 'team.present':'{n}/{total}名在席','team.schedule':'予定なし',
+'team.other':'その他','team.dept.header':'{month}月{day}日（{dow}）の予定',
 // メンバー詳細
 'member.rest.off':'🛌 休み解除','member.rest.on':'🛌 休みにする',
-'member.add.event':'＋ この人の予定を追加',
+'member.add.event':'＋ この人の予定を追加','member.edit':'編集',
 // 予定モーダル
 'ev.add':'新しい予定を追加','ev.edit':'予定を編集','ev.copy':'予定をコピーして作成',
 'ev.title.ph':'タイトルを追加','ev.allday':'終日','ev.depart':'出発日','ev.return':'帰社日',
@@ -1561,6 +1562,15 @@ ja:{
 'ev.approver.required.msg':'承認者を選択してください',
 'ev.saved':'予定を追加しました','ev.updated':'予定を更新しました','ev.deleted':'予定を削除しました',
 'ev.repeat.result':'{n}件登録しました','ev.repeat.skip':'（{n}件は会議室重複のためスキップ）',
+'ev.rental.none':'（レンタルなし）','ev.people.all':'全員','ev.people.none':'未選択',
+'ev.people.conflict':'⚠️ 予定が重なっています','ev.people.nodate':'日付を先に選んでください',
+'ev.timeline.hour':'{h}時','ev.people.schedule.title':'📊 参加者の当日スケジュール',
+'ev.people.select':'参加者を選んでください',
+'ev.room.capacity':'定員{n}名','ev.room.conflict':'⚠️ 予約あり',
+'ev.room.selected':'✓ 選択中','ev.room.available':'空き',
+'ev.room.timeline.title':'📊 当日の予約状況','ev.room.reserved':'予約中',
+'ev.general.conflict':'⚠️ 重複している予約があります',
+'ev.approver.format':'{name}（{dept}・{role}）',
 // 予定詳細
 'detail.status.pending':'⏳ 申請中','detail.status.approved':'✅ 承認済',
 'detail.status.rejected':'❌ 否認',
@@ -1600,6 +1610,7 @@ ja:{
 'notice.title.required':'タイトルを入力してください','notice.body.required':'本文を入力してください',
 'notice.posted':'お知らせを投稿しました','notice.updated.msg':'お知らせを更新しました',
 'notice.delete.confirm':'このお知らせを削除しますか？','notice.deleted':'削除しました',
+'notice.load.error':'⚠️ 読み込みエラー: {msg}','notice.add.btn':'＋ 投稿',
 // 管理
 'admin.members':'👤 メンバー管理','admin.pin.reissue':'（PIN再発行）',
 'admin.search':'名前・社員番号で検索...','admin.retired':'退職者','admin.no.match':'該当者がいません',
@@ -1608,6 +1619,8 @@ ja:{
 'admin.pin.issue':'発行する','admin.pin.error':'4桁以上の数字を入力してください',
 'admin.pin.done':'✅ PINを更新しました','admin.pin.updating':'PIN更新中...',
 'admin.loading':'メンバー一覧を読み込み中...',
+'admin.pin.confirm.msg':'{name}（{empId}）のPINを再発行します',
+'admin.pin.demo.done':'✅ {empId} のPINを更新しました（デモ）',
 // 設定
 'settings.title':'🔧 設定','settings.holiday':'📅 休日カレンダーの拠点',
 'settings.color':'🎨 配色モード','settings.color.normal':'通常',
@@ -1696,6 +1709,17 @@ ja:{
 'inq.desc':'💬 社内規定・マニュアル・FAQ をもとに回答します',
 'inq.placeholder':'質問を入力してください','inq.send':'送信','inq.hint':'Shift+Enterで改行 / Enterで送信',
 'inq.sending':'送信中...','inq.thinking':'考え中...',
+'inq.notebooklm':'NotebookLMで詳しく調べる','inq.notebooklm.sub':'Googleログインが必要です',
+'inq.files.fail':'ファイル一覧の取得に失敗しました','inq.files.empty':'ファイルがありません',
+'inq.error':'⚠️ エラー: {msg}',
+// ロード・通知
+'ev.loading':'予定を読み込み中...','ev.load.fail':'⚠️ 予定の読み込みに失敗: {msg}',
+'car.load.fail':'⚠️ 車データ読み込み失敗: {msg}',
+'push.not.supported':'このブラウザは通知非対応です',
+'push.sw.unsupported':'ServiceWorker非対応のためPush通知を使えません',
+'push.denied':'⚠️ 通知が拒否されています。ブラウザのサイト設定でリセットしてください',
+'push.default.title':'通知','push.not.granted':'プッシュ通知が許可されませんでした',
+'push.init.error':'⚠️ 通知初期化エラー: {msg}',
 },
 vi:{
 'nav.home':'Trang chủ','nav.calendar':'Lịch','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
@@ -1756,8 +1780,9 @@ vi:{
 'team.board':'Điểm danh','team.dept':'📋 Theo phòng ban','team.search':'🔍 Tìm theo tên...',
 'team.nobody':'Không tìm thấy','team.holiday':'Ngày nghỉ',
 'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch',
+'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
 'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
-'member.add.event':'＋ Thêm lịch cho người này',
+'member.add.event':'＋ Thêm lịch cho người này','member.edit':'Sửa',
 'ev.add':'Thêm lịch mới','ev.edit':'Sửa lịch','ev.copy':'Sao chép lịch',
 'ev.title.ph':'Thêm tiêu đề','ev.allday':'Cả ngày','ev.depart':'Ngày đi','ev.return':'Ngày về',
 'ev.depart.time':'Giờ đi','ev.return.time':'Giờ về',
@@ -1774,6 +1799,15 @@ vi:{
 'ev.approver.required.msg':'Vui lòng chọn người phê duyệt',
 'ev.saved':'Đã thêm lịch','ev.updated':'Đã cập nhật lịch','ev.deleted':'Đã xóa lịch',
 'ev.repeat.result':'Đã tạo {n} mục','ev.repeat.skip':'({n} mục bị trùng phòng đã bỏ qua)',
+'ev.rental.none':'(Không thuê)','ev.people.all':'Tất cả','ev.people.none':'Chưa chọn',
+'ev.people.conflict':'⚠️ Trùng lịch','ev.people.nodate':'Vui lòng chọn ngày trước',
+'ev.timeline.hour':'{h}h','ev.people.schedule.title':'📊 Lịch trong ngày của thành viên',
+'ev.people.select':'Vui lòng chọn thành viên',
+'ev.room.capacity':'Sức chứa {n}','ev.room.conflict':'⚠️ Đã đặt',
+'ev.room.selected':'✓ Đã chọn','ev.room.available':'Trống',
+'ev.room.timeline.title':'📊 Tình trạng đặt phòng','ev.room.reserved':'Đã đặt',
+'ev.general.conflict':'⚠️ Có lịch bị trùng',
+'ev.approver.format':'{name} ({dept} - {role})',
 'detail.status.pending':'⏳ Đang chờ','detail.status.approved':'✅ Đã duyệt',
 'detail.status.rejected':'❌ Từ chối',
 'detail.approval':'Trạng thái','detail.approver':'Người duyệt','detail.approver.assigned':'Người duyệt chỉ định',
@@ -1810,6 +1844,7 @@ vi:{
 'notice.title.required':'Vui lòng nhập tiêu đề','notice.body.required':'Vui lòng nhập nội dung',
 'notice.posted':'Đã đăng thông báo','notice.updated.msg':'Đã cập nhật thông báo',
 'notice.delete.confirm':'Xóa thông báo này?','notice.deleted':'Đã xóa',
+'notice.load.error':'⚠️ Lỗi tải: {msg}','notice.add.btn':'＋ Đăng',
 'admin.members':'👤 Quản lý thành viên','admin.pin.reissue':'(Cấp lại PIN)',
 'admin.search':'Tìm theo tên, mã NV...','admin.retired':'Đã nghỉ việc','admin.no.match':'Không tìm thấy',
 'admin.is.admin':'Quản trị viên','admin.empId':'Mã NV:','admin.pin.btn':'Cấp lại PIN',
@@ -1817,6 +1852,8 @@ vi:{
 'admin.pin.issue':'Cấp','admin.pin.error':'Vui lòng nhập ít nhất 4 chữ số',
 'admin.pin.done':'✅ Đã cập nhật PIN','admin.pin.updating':'Đang cập nhật PIN...',
 'admin.loading':'Đang tải danh sách...',
+'admin.pin.confirm.msg':'Cấp lại PIN cho {name} ({empId})',
+'admin.pin.demo.done':'✅ Đã cập nhật PIN của {empId} (demo)',
 'settings.title':'🔧 Cài đặt','settings.holiday':'📅 Địa điểm lịch nghỉ',
 'settings.color':'🎨 Chế độ màu','settings.color.normal':'Bình thường',
 'settings.color.p':'Loại P・D','settings.color.t':'Loại T',
@@ -1899,6 +1936,16 @@ vi:{
 'inq.desc':'💬 Trả lời dựa trên quy định, hướng dẫn nội bộ',
 'inq.placeholder':'Nhập câu hỏi','inq.send':'Gửi','inq.hint':'Shift+Enter: xuống dòng / Enter: gửi',
 'inq.sending':'Đang gửi...','inq.thinking':'Đang suy nghĩ...',
+'inq.notebooklm':'Tìm hiểu chi tiết bằng NotebookLM','inq.notebooklm.sub':'Cần đăng nhập Google',
+'inq.files.fail':'Không thể tải danh sách tệp','inq.files.empty':'Không có tệp',
+'inq.error':'⚠️ Lỗi: {msg}',
+'ev.loading':'Đang tải lịch...','ev.load.fail':'⚠️ Không thể tải lịch: {msg}',
+'car.load.fail':'⚠️ Không thể tải dữ liệu xe: {msg}',
+'push.not.supported':'Trình duyệt không hỗ trợ thông báo',
+'push.sw.unsupported':'Không thể dùng Push vì không hỗ trợ ServiceWorker',
+'push.denied':'⚠️ Thông báo bị từ chối. Hãy đặt lại trong cài đặt trang',
+'push.default.title':'Thông báo','push.not.granted':'Push chưa được cho phép',
+'push.init.error':'⚠️ Lỗi khởi tạo thông báo: {msg}',
 },
 ne:{
 'nav.home':'गृहपृष्ठ','nav.calendar':'पात्रो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
@@ -1959,8 +2006,9 @@ ne:{
 'team.board':'उपस्थिति बोर्ड','team.dept':'📋 विभाग अनुसार','team.search':'🔍 नामले खोज्नुहोस्...',
 'team.nobody':'कोही भेटिएन','team.holiday':'बिदा',
 'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन',
+'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
 'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
-'member.add.event':'＋ यो व्यक्तिको तालिका थप्नुहोस्',
+'member.add.event':'＋ यो व्यक्तिको तालिका थप्नुहोस्','member.edit':'सम्पादन',
 'ev.add':'नयाँ तालिका थप्नुहोस्','ev.edit':'तालिका सम्पादन','ev.copy':'तालिका प्रतिलिपि',
 'ev.title.ph':'शीर्षक थप्नुहोस्','ev.allday':'दिनभर','ev.depart':'प्रस्थान मिति','ev.return':'फिर्ती मिति',
 'ev.depart.time':'प्रस्थान समय','ev.return.time':'फिर्ती समय',
@@ -1977,6 +2025,15 @@ ne:{
 'ev.approver.required.msg':'स्वीकृतकर्ता छान्नुहोस्',
 'ev.saved':'तालिका थपियो','ev.updated':'तालिका अपडेट भयो','ev.deleted':'तालिका मेटियो',
 'ev.repeat.result':'{n} वटा सिर्जना भयो','ev.repeat.skip':'({n} वटा कोठा दोहोरिएको कारण छोडियो)',
+'ev.rental.none':'(भाडामा छैन)','ev.people.all':'सबै','ev.people.none':'छानिएको छैन',
+'ev.people.conflict':'⚠️ तालिका दोहोरिएको छ','ev.people.nodate':'पहिले मिति छान्नुहोस्',
+'ev.timeline.hour':'{h}बजे','ev.people.schedule.title':'📊 सहभागीको आजको तालिका',
+'ev.people.select':'सहभागी छान्नुहोस्',
+'ev.room.capacity':'क्षमता {n} जना','ev.room.conflict':'⚠️ बुक भइसकेको',
+'ev.room.selected':'✓ छानिएको','ev.room.available':'खाली',
+'ev.room.timeline.title':'📊 आजको बुकिङ स्थिति','ev.room.reserved':'बुक गरिएको',
+'ev.general.conflict':'⚠️ दोहोरिएको बुकिङ छ',
+'ev.approver.format':'{name} ({dept} - {role})',
 'detail.status.pending':'⏳ प्रतीक्षामा','detail.status.approved':'✅ स्वीकृत',
 'detail.status.rejected':'❌ अस्वीकृत',
 'detail.approval':'स्वीकृति स्थिति','detail.approver':'स्वीकृतकर्ता','detail.approver.assigned':'तोकिएको स्वीकृतकर्ता',
@@ -2013,6 +2070,7 @@ ne:{
 'notice.title.required':'शीर्षक लेख्नुहोस्','notice.body.required':'विवरण लेख्नुहोस्',
 'notice.posted':'सूचना पोस्ट भयो','notice.updated.msg':'सूचना अपडेट भयो',
 'notice.delete.confirm':'यो सूचना मेट्ने?','notice.deleted':'मेटियो',
+'notice.load.error':'⚠️ लोड त्रुटि: {msg}','notice.add.btn':'＋ पोस्ट',
 'admin.members':'👤 सदस्य व्यवस्थापन','admin.pin.reissue':'(PIN पुन: जारी)',
 'admin.search':'नाम, कर्मचारी नं ले खोज्नुहोस्...','admin.retired':'अवकाश प्राप्त','admin.no.match':'भेटिएन',
 'admin.is.admin':'प्रशासक','admin.empId':'कर्मचारी नं:','admin.pin.btn':'PIN पुन: जारी',
@@ -2020,6 +2078,8 @@ ne:{
 'admin.pin.issue':'जारी गर्नुहोस्','admin.pin.error':'कम्तीमा ४ अंक लेख्नुहोस्',
 'admin.pin.done':'✅ PIN अपडेट भयो','admin.pin.updating':'PIN अपडेट हुँदैछ...',
 'admin.loading':'सदस्य सूची लोड हुँदैछ...',
+'admin.pin.confirm.msg':'{name} ({empId}) को PIN पुन: जारी गर्नुहोस्',
+'admin.pin.demo.done':'✅ {empId} को PIN अपडेट भयो (डेमो)',
 'settings.title':'🔧 सेटिङ','settings.holiday':'📅 बिदा पात्रो स्थान',
 'settings.color':'🎨 रंग मोड','settings.color.normal':'सामान्य',
 'settings.color.p':'P・D प्रकार','settings.color.t':'T प्रकार',
@@ -2102,6 +2162,16 @@ ne:{
 'inq.desc':'💬 आन्तरिक नियम र गाइडको आधारमा जवाफ दिन्छ',
 'inq.placeholder':'प्रश्न लेख्नुहोस्','inq.send':'पठाउनुहोस्','inq.hint':'Shift+Enter: नयाँ लाइन / Enter: पठाउनुहोस्',
 'inq.sending':'पठाइँदैछ...','inq.thinking':'सोच्दैछ...',
+'inq.notebooklm':'NotebookLM मा विस्तृत खोज्नुहोस्','inq.notebooklm.sub':'Google लगइन आवश्यक छ',
+'inq.files.fail':'फाइल सूची लोड गर्न सकिएन','inq.files.empty':'फाइल छैन',
+'inq.error':'⚠️ त्रुटि: {msg}',
+'ev.loading':'तालिका लोड गर्दै...','ev.load.fail':'⚠️ तालिका लोड गर्न सकिएन: {msg}',
+'car.load.fail':'⚠️ गाडी डाटा लोड गर्न सकिएन: {msg}',
+'push.not.supported':'यो ब्राउजरले सूचना समर्थन गर्दैन',
+'push.sw.unsupported':'ServiceWorker नभएको कारण Push सूचना प्रयोग गर्न सकिँदैन',
+'push.denied':'⚠️ सूचना अस्वीकार गरिएको छ। ब्राउजर सेटिङमा रिसेट गर्नुहोस्',
+'push.default.title':'सूचना','push.not.granted':'Push सूचना अनुमति दिइएन',
+'push.init.error':'⚠️ सूचना प्रारम्भ त्रुटि: {msg}',
 }
 };
 function t(key,params){
@@ -2239,6 +2309,9 @@ function applyLanguage(lang){
   const _ebs=document.getElementById('btn-save-event');if(_ebs)_ebs.textContent=t('common.save');
   const _edsl=document.getElementById('date-start-label');if(_edsl)_edsl.textContent=t('ev.depart');
   const _edel=document.getElementById('date-end-label');if(_edel)_edel.textContent=t('ev.return');
+  const _tsl=document.getElementById('time-start-label');if(_tsl)_tsl.textContent=t('ev.depart.time');
+  const _tel=document.getElementById('time-end-label');if(_tel)_tel.textContent=t('ev.return.time');
+  const _gcw=document.getElementById('general-conflict-warn');if(_gcw)_gcw.textContent=t('ev.general.conflict');
   // 種別select
   const _evt=document.getElementById('ev-type');
   if(_evt){const cv=_evt.value;_evt.innerHTML=['会議室','打ち合わせ','外出','出張','休暇','在宅'].map(v=>`<option value="${v}">${TYPE_ICON[v]||''} ${tType(v)}</option>`).join('');_evt.value=cv;}
@@ -2248,6 +2321,32 @@ function applyLanguage(lang){
   const _erel=document.querySelector('#repeat-end-wrap label');if(_erel)_erel.textContent=t('ev.repeat.end');
   // 承認者select先頭option
   const _eap=document.getElementById('ev-approver');if(_eap&&_eap.options[0])_eap.options[0].textContent=t('ev.approver.select');
+  // お知らせ
+  const _nh=document.getElementById('notice-header');if(_nh)_nh.textContent=t('notice.title');
+  const _nab=document.getElementById('notice-add-btn');if(_nab)_nab.textContent=t('notice.add.btn');
+  const _nmt=document.getElementById('notice-modal-title');if(_nmt)_nmt.textContent=t('notice.post');
+  const _nil=document.getElementById('notice-importance-label');if(_nil)_nil.textContent=t('notice.importance');
+  const _ni=document.getElementById('notice-importance');
+  if(_ni){const cv=_ni.value;_ni.innerHTML=`<option value="通常">${t('notice.normal')}</option><option value="重要">${t('notice.important')}</option><option value="緊急">${t('notice.urgent')}</option>`;_ni.value=cv;}
+  const _ntl=document.getElementById('notice-title-label');if(_ntl)_ntl.textContent=t('notice.title.label');
+  const _nti=document.getElementById('notice-title');if(_nti)_nti.placeholder=t('notice.title.ph');
+  const _nbl=document.getElementById('notice-body-label');if(_nbl)_nbl.textContent=t('notice.body');
+  const _nb=document.getElementById('notice-body');if(_nb)_nb.placeholder=t('notice.body.ph');
+  const _ncb=document.getElementById('notice-cancel-btn');if(_ncb)_ncb.textContent=t('common.cancel');
+  const _nsb=document.getElementById('notice-submit-btn');if(_nsb)_nsb.textContent=t('notice.post.btn');
+  // 問い合わせ
+  const _ifl=document.getElementById('inq-files-label');if(_ifl)_ifl.textContent=t('inq.files');
+  const _irb=document.getElementById('inq-refresh-btn');if(_irb)_irb.textContent=t('inq.refresh');
+  const _ifp=document.getElementById('inquiry-file-placeholder');if(_ifp)_ifp.textContent=t('inq.files.init');
+  const _int=document.getElementById('inq-notebooklm-title');if(_int)_int.textContent=t('inq.notebooklm');
+  const _ins=document.getElementById('inq-notebooklm-sub');if(_ins)_ins.textContent=t('inq.notebooklm.sub');
+  const _iw=document.getElementById('inq-welcome');if(_iw)_iw.textContent=t('inq.desc');
+  const _ii=document.getElementById('inquiry-input');if(_ii)_ii.placeholder=t('inq.placeholder');
+  const _isb=document.getElementById('inquiry-send-btn');if(_isb&&!_isb.disabled)_isb.textContent=t('inq.send');
+  const _iht=document.getElementById('inq-hint-text');if(_iht)_iht.textContent=t('inq.hint');
+  // ローディング
+  const _lt=document.getElementById('loading-text');if(_lt)_lt.textContent=t('common.loading');
+  const _lc=document.getElementById('loading-cancel');if(_lc)_lc.textContent=t('common.cancel');
   renderAll();
   renderSettings();
   buildFilterUI();
@@ -2357,7 +2456,7 @@ async function api(action, data={}, loadingMsg='処理中...'){
   }
 })();
 
-function showLoading(msg='読み込み中...'){
+function showLoading(msg){if(!msg)msg=t('common.loading');
   document.getElementById('loading-text').textContent = msg;
   document.getElementById('loading').classList.add('show');
 }
@@ -2748,7 +2847,7 @@ async function loadEvents({ force = false, centerDate } = {}){
   const rangeEnd   = fmtDate(new Date(center.getFullYear(), center.getMonth()+2, 0));
 
   try {
-    showLoading('予定を読み込み中...');
+    showLoading(t('ev.loading'));
     const data = await api('getEvents', { rangeStart, rangeEnd });
     if(token !== _loadToken){ hideLoading(); return; }
     events = data;
@@ -2760,7 +2859,7 @@ async function loadEvents({ force = false, centerDate } = {}){
     });
   } catch(err) {
     if(token !== _loadToken){ hideLoading(); return; }
-    if(err.message !== 'SESSION_EXPIRED') showToast('⚠️ 予定の読み込みに失敗: ' + err.message);
+    if(err.message !== 'SESSION_EXPIRED') showToast(t('ev.load.fail',{msg:err.message}));
   } finally {
     hideLoading();
   }
@@ -3296,10 +3395,11 @@ function renderTeam(){
   </div>`;
 
   // 部署でグループ化
-  const allMembersByDept = members.reduce((acc,m)=>{ const d=m.dept||'その他'; (acc[d]=acc[d]||[]).push(m); return acc; },{});
-  const depts=[...new Set(filtered.map(m=>m.dept||'その他'))];
+  const _other=t('team.other');
+  const allMembersByDept = members.reduce((acc,m)=>{ const d=m.dept||_other; (acc[d]=acc[d]||[]).push(m); return acc; },{});
+  const depts=[...new Set(filtered.map(m=>m.dept||_other))];
   grid.innerHTML=header+depts.map(dept=>{
-    const deptMembers=filtered.filter(m=>(m.dept||'その他')===dept);
+    const deptMembers=filtered.filter(m=>(m.dept||_other)===dept);
     const deptAll=allMembersByDept[dept]||deptMembers;
     const inOffice=deptAll.filter(m=>m.status==='在席').length;
     const ratioColor=inOffice===deptAll.length?'var(--green)':inOffice===0?'var(--red)':'var(--orange)';
@@ -3340,7 +3440,7 @@ function renderTeamDeptView() {
   const isNatHoliday = !!_deptNatName;
   const isHoliday = isCompHoliday||isNatHoliday;
   const holName   = _deptHol?.name || _deptNatName || '';
-  const dow = '日月火水木金土'[d.getDay()];
+  const dow = tDow((d.getDay()+6)%7);
 
   const members = USERS.map(u => {
     const myEvs = events.filter(e =>
@@ -3367,31 +3467,31 @@ function renderTeamDeptView() {
     return { ...u, status, todayEvs };
   });
 
-  const depts = [...new Set(USERS.map(m => m.dept || 'その他'))];
+  const depts = [...new Set(USERS.map(m => m.dept || t('team.other')))];
   const grid = document.getElementById('team-grid');
 
   const header = `<div style="font-size:0.82em;color:var(--text2);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
-    <span>${d.getMonth()+1}月${d.getDate()}日（${dow}）の予定</span>
-    ${isHoliday ? `<span style="background:#fce4ec;color:var(--red);border-radius:8px;padding:2px 8px;font-size:0.88em">🎌 ${holName||'休日'}</span>` : ''}
+    <span>${t('team.dept.header',{month:d.getMonth()+1,day:d.getDate(),dow:dow})}</span>
+    ${isHoliday ? `<span style="background:#fce4ec;color:var(--red);border-radius:8px;padding:2px 8px;font-size:0.88em">🎌 ${holName||t('team.holiday')}</span>` : ''}
   </div>`;
 
   grid.innerHTML = header + depts.map(dept => {
-    const deptMembers = members.filter(m => (m.dept||'その他') === dept);
+    const deptMembers = members.filter(m => (m.dept||t('team.other')) === dept);
     if (!deptMembers.length) return '';
     const rows = deptMembers.map(m => {
       const color = STATUS_COLOR[m.status] || '#9e9e9e';
       const evList = m.todayEvs.length
         ? m.todayEvs.map(e => {
-            const time = e.start ? `${e.start}${e.end?'–'+e.end:''}` : '終日';
+            const time = e.start ? `${e.start}${e.end?'–'+e.end:''}` : t('common.allday');
             const dot  = `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[e.type]||'#9e9e9e'};margin-right:4px;flex-shrink:0;margin-top:3px"></span>`;
             return `<span style="display:flex;align-items:flex-start;gap:2px;font-size:0.78em;color:var(--text2);margin-top:2px">${dot}${time} ${esc(e.title||e.type)}</span>`;
           }).join('')
-        : `<span style="font-size:0.78em;color:var(--text2);margin-top:2px">予定なし</span>`;
+        : `<span style="font-size:0.78em;color:var(--text2);margin-top:2px">${t('team.schedule')}</span>`;
       return `<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
         <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;margin-top:5px"></div>
         <div style="width:80px;flex-shrink:0">
           <div style="font-size:0.88em;font-weight:700">${esc(m.name)}</div>
-          <span class="status-badge status-${m.status}" style="font-size:0.68em;margin-top:2px">${m.status}</span>
+          <span class="status-badge status-${m.status}" style="font-size:0.68em;margin-top:2px">${tType(m.status)}</span>
         </div>
         <div style="flex:1;min-width:0">${evList}</div>
       </div>`;
@@ -3417,7 +3517,7 @@ function renderMemberWeek(){
   const userId = mpUserId;
   const days = getMpWeekDates(mpWeekOffset);
   const today = fmtDate(new Date());
-  const dayNames = ['月','火','水','木','金','土','日'];
+  const dayNames = Array.from({length:7},(_,i)=>tDow(i));
   const d0=days[0], d6=days[6];
   document.getElementById('mp-week-label').textContent =
     `${d0.getMonth()+1}/${d0.getDate()} 〜 ${d6.getMonth()+1}/${d6.getDate()}`;
@@ -3439,15 +3539,15 @@ function renderMemberWeek(){
       <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
         <span style="font-size:0.75em;font-weight:700;color:${dayColor};min-width:14px">${dayNames[i]}</span>
         <span style="font-size:0.75em;color:${dayColor}">${dt.getMonth()+1}/${dt.getDate()}</span>
-        ${isToday?'<span style="font-size:0.6em;background:var(--primary);color:white;padding:1px 5px;border-radius:4px">今日</span>':''}
+        ${isToday?'<span style="font-size:0.6em;background:var(--primary);color:white;padding:1px 5px;border-radius:4px">'+t('common.today')+'</span>':''}
         ${holLabel?`<span style="font-size:0.65em;color:#f44336">${esc(holLabel)}</span>`:''}
       </div>`;
     if(!dayEvs.length){
-      html += `<div style="font-size:0.75em;color:var(--text3);padding-left:20px">${(isSat||isSun||isHol)?'休日':'−'}</div>`;
+      html += `<div style="font-size:0.75em;color:var(--text3);padding-left:20px">${(isSat||isSun||isHol)?t('team.holiday'):'−'}</div>`;
     } else {
       html += dayEvs.map(e=>`<div style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;background:${STATUS_COLOR[e.type]||'#eee'}18;border-left:2px solid ${STATUS_COLOR[e.type]||'#ccc'};margin-left:20px;margin-bottom:3px;font-size:0.78em">
-        <div style="flex:1"><strong>${e.type}</strong>${e.title?'　'+e.title:''}${e.start?`<span style="color:var(--text2);margin-left:4px">${e.start}〜${e.end}</span>`:''}</div>
-        ${(isAdmin||(currentUser.role&&currentUser.role!=='一般'))?`<button onclick="closeMemberPopup();openEditModal('${e.id}')" style="font-size:0.65em;padding:2px 6px;border-radius:5px;background:var(--primary-light);color:var(--primary);font-weight:700;flex-shrink:0">編集</button>`:''}
+        <div style="flex:1"><strong>${tType(e.type)}</strong>${e.title?'　'+e.title:''}${e.start?`<span style="color:var(--text2);margin-left:4px">${e.start}〜${e.end}</span>`:''}</div>
+        ${(isAdmin||(currentUser.role&&currentUser.role!=='一般'))?`<button onclick="closeMemberPopup();openEditModal('${e.id}')" style="font-size:0.65em;padding:2px 6px;border-radius:5px;background:var(--primary-light);color:var(--primary);font-weight:700;flex-shrink:0">`+t('member.edit')+`</button>`:''}
       </div>`).join('');
     }
     html += '</div>';
@@ -3470,7 +3570,7 @@ function openMemberDetail(userId){
   document.getElementById('mp-name').textContent = u.name;
   document.getElementById('mp-dept').textContent = u.dept||'';
   const badge = document.getElementById('mp-status-badge');
-  badge.textContent = status; badge.style.background = color+'22'; badge.style.color = color;
+  badge.textContent = tType(status); badge.style.background = color+'22'; badge.style.color = color;
   renderMemberWeek();
   const isAdmin = currentUser.isAdmin;
   const adminEl = document.getElementById('mp-admin-btns');
@@ -3479,10 +3579,10 @@ function openMemberDetail(userId){
     adminEl.innerHTML = `
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         ${isYasumi
-          ? `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#fbe9e7;color:#ff7043;font-weight:700;font-size:0.85em;border:1.5px solid #ff7043">🛌 休み解除</button>`
-          : `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#ff7043;color:white;font-weight:700;font-size:0.85em">🛌 休みにする</button>`
+          ? `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#fbe9e7;color:#ff7043;font-weight:700;font-size:0.85em;border:1.5px solid #ff7043">`+t('member.rest.off')+`</button>`
+          : `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#ff7043;color:white;font-weight:700;font-size:0.85em">`+t('member.rest.on')+`</button>`
         }
-        <button onclick="closeMemberPopup();openAddModalForUser('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:var(--primary);color:white;font-weight:700;font-size:0.85em">＋ この人の予定を追加</button>
+        <button onclick="closeMemberPopup();openAddModalForUser('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:var(--primary);color:white;font-weight:700;font-size:0.85em">`+t('member.add.event')+`</button>
       </div>`;
   } else {
     adminEl.innerHTML = '';
@@ -3847,7 +3947,7 @@ function filterAdminUsers(){
 }
 function openPinModal(empId, name){
   pinTargetEmpId = empId;
-  document.getElementById('pin-modal-content').innerHTML=`<p style="font-size:0.88em;color:var(--text2)">${name}（${empId}）のPINを再発行します</p>`;
+  document.getElementById('pin-modal-content').innerHTML=`<p style="font-size:0.88em;color:var(--text2)">${t('admin.pin.confirm.msg',{name:name,empId:empId})}</p>`;
   document.getElementById('new-pin-input').value='';
   openModal('pin-modal-backdrop');
 }
@@ -3855,7 +3955,7 @@ async function doSetPin(){
   const newPin = document.getElementById('new-pin-input').value.trim();
   if(!newPin||newPin.length<4){showToast(t('admin.pin.error'));return}
   if(!GAS_URL){
-    showToast(`✅ ${pinTargetEmpId} のPINを更新しました（デモ）`);
+    showToast(t('admin.pin.demo.done',{empId:pinTargetEmpId}));
     closeModal('pin-modal-backdrop');
     return;
   }
@@ -4026,7 +4126,7 @@ function renderRentalSelect(){
   document.getElementById('rental-checkboxes').innerHTML=`
     <select id="rental-select" onchange="selectedRental=this.value"
       style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;background:white">
-      <option value="">（レンタルなし）</option>
+      <option value="">${t('ev.rental.none')}</option>
       ${opts}
     </select>`;
   document.getElementById('rental-select').value = selectedRental;
@@ -4034,13 +4134,13 @@ function renderRentalSelect(){
 function renderApproverSelect(){
   const sel=document.getElementById('ev-approver');if(!sel)return;
   const cur=sel.value;
-  sel.innerHTML='<option value="">選択してください</option>';
+  sel.innerHTML='<option value="">'+t('ev.approver.select')+'</option>';
   const approvers=USERS.filter(u=>u.role&&u.role!=='一般'&&u.id!==currentUser.id);
   approvers.sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')||(a.name||'').localeCompare(b.name||''));
   approvers.forEach(u=>{
     const o=document.createElement('option');
     o.value=u.id;
-    o.textContent=`${u.name}（${u.dept||''}・${u.role||''}）`;
+    o.textContent=t('ev.approver.format',{name:u.name,dept:u.dept||'',role:u.role||''});
     sel.appendChild(o);
   });
   if(cur)sel.value=cur;
@@ -4078,7 +4178,7 @@ function renderPeoplePicker(){
   if(gc){
     const allIds=USERS.map(u=>u.id);
     const allActive=allIds.length>0&&allIds.every(id=>selectedPeople.has(id));
-    gc.innerHTML=`<div class="people-group-chip${allActive?' active':''}" onclick="togglePeopleGroup('all')">全員</div>`+
+    gc.innerHTML=`<div class="people-group-chip${allActive?' active':''}" onclick="togglePeopleGroup('all')">${t('ev.people.all')}</div>`+
       depts.map(d=>{
         const ids=USERS.filter(u=>u.dept===d).map(u=>u.id);
         const active=ids.length>0&&ids.every(id=>selectedPeople.has(id));
@@ -4091,7 +4191,7 @@ function renderPeoplePicker(){
     `<div class="people-chip${selectedPeople.has(u.id)?' selected':''}" onclick="togglePerson('${u.id}',this)">${u.name}</div>`).join('');
   const sel=[...selectedPeople].map(id=>USERS.find(u=>u.id===id)?.name).filter(Boolean);
   const summary=document.getElementById('people-summary');
-  if(summary) summary.textContent=sel.length?sel.join('、'):'未選択';
+  if(summary) summary.textContent=sel.length?sel.join('、'):t('ev.people.none');
 }
 function togglePeopleGroup(group){
   const ids=group==='all'?USERS.map(u=>u.id):USERS.filter(u=>u.dept===group).map(u=>u.id);
@@ -4146,7 +4246,7 @@ function checkParticipantConflicts(){
     }
   });
   if (conflicts.length) {
-    warn.innerHTML = '⚠️ 予定が重なっています<br>' + conflicts.map(c=>`<span style="display:block;margin-top:3px;font-size:0.9em">・${c}</span>`).join('');
+    warn.innerHTML = t('ev.people.conflict')+'<br>' + conflicts.map(c=>`<span style="display:block;margin-top:3px;font-size:0.9em">・${c}</span>`).join('');
     warn.style.display = 'block';
   } else {
     warn.style.display = 'none';
@@ -4155,7 +4255,7 @@ function checkParticipantConflicts(){
 function updatePeopleSummary(){
   const sel=[...selectedPeople].map(id=>USERS.find(u=>u.id===id)?.name).filter(Boolean);
   const summary=document.getElementById('people-summary');
-  if(summary) summary.textContent=sel.length?sel.join('、'):'未選択';
+  if(summary) summary.textContent=sel.length?sel.join('、'):t('ev.people.none');
 }
 
 let peopleSchedOpen=false;
@@ -4172,7 +4272,7 @@ function renderPeopleSchedule(){
   if(!peopleSchedOpen) return;
 
   const date=document.getElementById('ev-date')?.value||document.getElementById('ev-start-date')?.value||'';
-  if(!date){ document.getElementById('people-schedule-content').innerHTML='<p style="font-size:0.82em;color:var(--text2)">日付を先に選んでください</p>'; return; }
+  if(!date){ document.getElementById('people-schedule-content').innerHTML='<p style="font-size:0.82em;color:var(--text2)">'+t('ev.people.nodate')+'</p>'; return; }
 
   const TL_START=8, TL_END=20, TL_HOURS=TL_END-TL_START;
   const toPos=t=>{
@@ -4208,10 +4308,10 @@ function renderPeopleSchedule(){
     </div>`;
   }).join('');
 
-  const hoursRow=`<div class="room-tl-hours">${Array.from({length:7},(_,i)=>`<span>${TL_START+i*2}時</span>`).join('')}</div>`;
+  const hoursRow=`<div class="room-tl-hours">${Array.from({length:7},(_,i)=>`<span>${t('ev.timeline.hour',{h:TL_START+i*2})}</span>`).join('')}</div>`;
   document.getElementById('people-schedule-content').innerHTML=html
-    ? `<div style="font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px">📊 参加者の当日スケジュール</div>${html}${hoursRow}`
-    : '<p style="font-size:0.82em;color:var(--text2)">参加者を選んでください</p>';
+    ? `<div style="font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px">${t('ev.people.schedule.title')}</div>${html}${hoursRow}`
+    : '<p style="font-size:0.82em;color:var(--text2)">'+t('ev.people.select')+'</p>';
 }
 function renderRoomPicker(){
   const date=document.getElementById('ev-date').value;
@@ -4221,8 +4321,8 @@ function renderRoomPicker(){
     const conflict=events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===r.id&&e.date===date&&start<e.end&&end>e.start);
     const sel=selectedRoom===r.id;
     return`<div class="room-card${conflict?' conflict':sel?' selected':''}" onclick="${conflict?'':'selectRoom(\''+r.id+'\',this)'}">
-      <div class="room-name">${r.name}</div><div class="room-floor">${r.floor}　定員${r.capacity}名</div>
-      <div class="room-status">${conflict?'⚠️ 予約あり':sel?'✓ 選択中':'空き'}</div>
+      <div class="room-name">${r.name}</div><div class="room-floor">${r.floor}　${t('ev.room.capacity',{n:r.capacity})}</div>
+      <div class="room-status">${conflict?t('ev.room.conflict'):sel?t('ev.room.selected'):t('ev.room.available')}</div>
     </div>`;
   }).join('');
   // ミニタイムライン描画
@@ -4242,13 +4342,13 @@ function renderRoomTimelineMini(date, selStart, selEnd){
   const nowLeft=toPos(selStart), nowRight=toPos(selEnd);
   const hasNow=nowLeft!==null&&nowRight!==null&&selStart&&selEnd;
 
-  el.innerHTML=`<div style="font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px">📊 当日の予約状況</div>`+
+  el.innerHTML=`<div style="font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px">${t('ev.room.timeline.title')}</div>`+
   ROOMS.map(r=>{
     const revs=roomEvs.filter(e=>e.room===r.id);
     const blocks=revs.map(e=>{
       const l=toPos(e.start),r2=toPos(e.end);
       if(l===null||r2===null) return '';
-      const title=(e.title||'予約中')+' '+e.start+'〜'+e.end;
+      const title=(e.title||t('ev.room.reserved'))+' '+e.start+'〜'+e.end;
       return`<div class="room-tl-block" style="left:${l}%;width:${r2-l}%;background:#e53935;border-radius:3px" title="${title}"></div>`;
     }).join('');
     const isSel=selectedRoom===r.id;
@@ -4257,7 +4357,7 @@ function renderRoomTimelineMini(date, selStart, selEnd){
       <div class="room-tl-name" style="${isSel?'color:var(--primary);font-weight:800':''}">${isSel?'✓ ':''}${r.name}（${r.floor}）</div>
       <div class="room-tl-bar" data-room="${r.id}">${blocks}${nowBar}</div>
       <div class="room-tl-hours">
-        ${Array.from({length:7},(_,i)=>`<span>${TL_START+i*2}時</span>`).join('')}
+        ${Array.from({length:7},(_,i)=>`<span>${t('ev.timeline.hour',{h:TL_START+i*2})}</span>`).join('')}
       </div>
     </div>`;
   }).join('');
@@ -4555,7 +4655,7 @@ async function loadNotices() {
     _notices = await api('getNotices', {}, '');
     renderNotices();
   } catch(e) {
-    list.innerHTML = `<p style="color:var(--text2);font-size:0.82em;margin:0">⚠️ 読み込みエラー: ${e.message}</p>`;
+    list.innerHTML = `<p style="color:var(--text2);font-size:0.82em;margin:0">${t('notice.load.error',{msg:e.message})}</p>`;
   }
 }
 
@@ -4600,8 +4700,8 @@ function renderNotices() {
   const unread = _notices.filter(n => !seen.has(n.id)).length;
   _updateNoticeBadge(unread);
   const IMPORTANCE_STYLE = {
-    '緊急': { bg:'#ffebee', border:'#e53935', badge:'🔴 緊急', badgeBg:'#e53935' },
-    '重要': { bg:'#fff8e1', border:'#fb8c00', badge:'🔶 重要', badgeBg:'#fb8c00' },
+    '緊急': { bg:'#ffebee', border:'#e53935', badge:t('notice.urgent'), badgeBg:'#e53935' },
+    '重要': { bg:'#fff8e1', border:'#fb8c00', badge:t('notice.important'), badgeBg:'#fb8c00' },
     '通常': { bg:'white',   border:'var(--border)', badge:'', badgeBg:'' },
   };
   list.innerHTML = _notices.map(n => {
@@ -4664,7 +4764,7 @@ async function submitNotice() {
     showToast(_editingNoticeId ? t('notice.updated.msg') : t('notice.posted'));
     loadNotices();
   } catch(e) {
-    showToast('⚠️ エラー: ' + e.message);
+    showToast(t('inq.error',{msg:e.message}));
   }
 }
 
@@ -4675,7 +4775,7 @@ async function deleteNoticeConfirm(noticeId) {
     showToast(t('notice.deleted'));
     loadNotices();
   } catch(e) {
-    showToast('⚠️ エラー: ' + e.message);
+    showToast(t('inq.error',{msg:e.message}));
   }
 }
 
@@ -4697,7 +4797,7 @@ async function loadInquiryFiles() {
     _renderInquiryFileList();
     _inquiryLoaded = true;
   } catch(e) {
-    if (placeholder) placeholder.textContent = 'ファイル一覧の取得に失敗しました（SharePoint未設定の場合はそのまま質問できます）';
+    if (placeholder) placeholder.textContent = t('inq.files.fail');
   }
 }
 
@@ -4705,7 +4805,7 @@ function _renderInquiryFileList() {
   const list = document.getElementById('inquiry-file-list');
   if (!list) return;
   if (!_inquiryFiles.length) {
-    list.innerHTML = '<span style="color:var(--text2)">ファイルがありません（SharePoint未設定の場合は設定後に取得できます）</span>';
+    list.innerHTML = '<span style="color:var(--text2)">'+t('inq.files.empty')+'</span>';
     return;
   }
   list.innerHTML = _inquiryFiles.map(f => {
@@ -4735,18 +4835,18 @@ async function sendInquiry() {
 
   const btn = document.getElementById('inquiry-send-btn');
   btn.disabled = true;
-  btn.textContent = '送信中...';
-  const thinkingId = _addInquiryBubble('ai', '考え中...');
+  btn.textContent = t('inq.sending');
+  const thinkingId = _addInquiryBubble('ai', t('inq.thinking'));
 
   try {
     const fileIds = Array.from(_selectedFileIds);
     const result = await api('askQuestion', { question, fileIds }, '');
     _updateInquiryBubble(thinkingId, result.answer);
   } catch(e) {
-    _updateInquiryBubble(thinkingId, '⚠️ エラー: ' + e.message);
+    _updateInquiryBubble(thinkingId, t('inq.error',{msg:e.message}));
   } finally {
     btn.disabled = false;
-    btn.textContent = '送信';
+    btn.textContent = t('inq.send');
   }
 }
 
@@ -5275,7 +5375,7 @@ async function loadCarData({ force = false } = {}) {
   }
 
   try {
-    showLoading('社用車データを読み込み中...');
+    showLoading(t('car.loading'));
     const [masters, dests, evs] = await Promise.all([
       api('getCarMasters', {}),
       api('getDestinations', {}),
@@ -5284,7 +5384,7 @@ async function loadCarData({ force = false } = {}) {
     carMasters = masters; carDestinations = dests; carEvents = evs;
     carDataLastFetched = Date.now();
   } catch(err) {
-    showToast('⚠️ 車データ読み込み失敗: ' + err.message);
+    showToast(t('car.load.fail',{msg:err.message}));
   } finally { hideLoading(); renderCarInUseBanner(); renderDashboard(); checkCarConfirmNotifs(); }
 }
 
@@ -6487,17 +6587,17 @@ async function initPushNotifications() {
   }
   if (!GAS_URL) { console.log('[Push] GAS_URL未設定のためスキップ'); return; }
   if (!('Notification' in window)) {
-    showToast('このブラウザは通知非対応です');
+    showToast(t('push.not.supported'));
     return;
   }
   if (!('serviceWorker' in navigator)) {
-    showToast('ServiceWorker非対応のためPush通知を使えません');
+    showToast(t('push.sw.unsupported'));
     return;
   }
 
   // すでに拒否済みの場合はユーザーに案内する
   if (Notification.permission === 'denied') {
-    showToast('⚠️ 通知が拒否されています。ブラウザのサイト設定でリセットしてください');
+    showToast(t('push.denied'));
     console.log('[Push] 通知が denied 状態のためスキップ');
     return;
   }
@@ -6510,7 +6610,7 @@ async function initPushNotifications() {
     _fcmMessaging = firebase.messaging();
 
     _fcmMessaging.onMessage(payload => {
-      const title = payload.notification?.title || '通知';
+      const title = payload.notification?.title || t('push.default.title');
       const body  = payload.notification?.body  || '';
       showToast(`🔔 ${title}：${body}`);
       // お知らせ通知ならホームのリストを再読込
@@ -6526,7 +6626,7 @@ async function initPushNotifications() {
     console.log('[Push] 通知許可結果: ' + permission);
 
     if (permission !== 'granted') {
-      showToast('プッシュ通知が許可されませんでした');
+      showToast(t('push.not.granted'));
       return;
     }
 
@@ -6542,7 +6642,7 @@ async function initPushNotifications() {
     }
   } catch(err) {
     console.warn('[Push] エラー:', err.message);
-    showToast('⚠️ 通知初期化エラー: ' + err.message);
+    showToast(t('push.init.error',{msg:err.message}));
   }
 }
 
