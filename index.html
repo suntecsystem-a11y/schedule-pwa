@@ -1505,6 +1505,7 @@ ja:{
 'common.type':'📌 種別','common.name.search':'名前で検索...',
 'common.offline':'📵 オフラインです。ネットワーク接続を確認してください。',
 'common.offline.short':'📵 オフラインです',
+'filter.active':'{n}件適用中',
 'common.error':'エラーが発生しました','common.timeout':'⚠️ 通信がタイムアウトしました',
 // 種別
 'type.room':'会議室','type.meeting':'打ち合わせ','type.out':'外出','type.trip':'出張',
@@ -1720,6 +1721,75 @@ ja:{
 'push.denied':'⚠️ 通知が拒否されています。ブラウザのサイト設定でリセットしてください',
 'push.default.title':'通知','push.not.granted':'プッシュ通知が許可されませんでした',
 'push.init.error':'⚠️ 通知初期化エラー: {msg}',
+'release.note.1':'📅 マイページに自分の予定だけが見えるカレンダーを追加しました',
+'release.note.2':'📋 予定の詳細画面から「コピー」ボタンで同じ内容の予定をすぐ作成できます',
+'release.note.3':'🏢 予定登録時、会議室の時間帯をバーのドラッグで簡単に調整できるようになりました',
+'release.note.4':'🎌 マイページのカレンダーに祝日名を表示するようにしました',
+'release.note.5':'⚙️ 設定タブを追加しました',
+'release.note.6':'🏣 拠点ごとに休日カレンダーを切り替えられるようになりました',
+'release.note.7':'🎨 色覚特性に合わせた配色モードを選べるようになりました',
+'rules.schedule.title':'予定の登録',
+'rules.schedule.1':'予定は遅くとも当日の朝までに登録する',
+'rules.schedule.2':'タイトルは具体的に書く',
+'rules.schedule.2.ex':'× 「会議」 → ○ 「○○社 見積もり打ち合わせ」',
+'rules.schedule.3':'予定が変更・中止になったらその日のうちに削除または修正する',
+'rules.people.title':'参加者の登録',
+'rules.people.1':'<b>会議室予約・打ち合わせ</b>：参加メンバーを必ず登録する（在籍ボードに反映される）',
+'rules.people.2':'<b>休暇</b>：自分だけでOK（参加者の追加は不要）',
+'rules.approval.title':'承認が必要な予定（外出・出張・在宅）',
+'rules.approval.1':'<b>一般社員</b>：保存時に承認者を選択する',
+'rules.approval.2':'<b>主任以上</b>：承認不要（自動で承認済になる）',
+'rules.repeat.title':'繰り返し予定',
+'rules.repeat.1':'定例会議や毎週の在宅勤務などに使用する',
+'rules.repeat.2':'最大3ヶ月先まで一括登録される',
+'rules.repeat.3':'定例が終了・変更になったら<b>不要な将来の予定を手動で削除する</b>',
+'rules.repeat.4':'会議室予約の繰り返しでは、重複する日は自動でスキップされる',
+'rules.room.title':'会議室',
+'rules.room.1':'予約は先着順（同じ時間帯には1件しか入らない）',
+'rules.room.2':'使わなくなった予約は必ず削除する',
+'rules.board.title':'在籍ボード',
+'rules.board.1':'登録した予定から自動で反映される（手動操作は不要）',
+'rules.board.2':'急な外出などで先に登録できない場合は、戻り次第すぐに登録する',
+'rules.account.title':'アカウント',
+'rules.account.1':'PINコードは他人に教えない',
+'rules.account.2':'PINを忘れた場合は管理者に再発行を依頼する',
+'demo.approve.disabled':'デモモードでは承認できません',
+'demo.reject.disabled':'デモモードでは却下できません',
+'common.error.toast':'⚠️ {msg}',
+'nav.elearning':'eラーニング',
+'el.title':'📚 eラーニング',
+'el.loading':'教材を読み込み中...',
+'el.load.fail':'教材の読み込みに失敗しました',
+'el.empty':'公開中の教材はありません',
+'el.pass':'合格 {score}%',
+'el.fail':'不合格 {score}%',
+'el.new':'未受講',
+'el.questions':'問題数: {n}',
+'el.video.loading':'動画を読み込み中...',
+'el.video.fail':'動画の読み込みに失敗しました',
+'el.video.open':'ブラウザで開く',
+'el.no.questions':'この教材にはまだ問題が登録されていません',
+'el.back':'← 一覧に戻る',
+'el.meta':'問題数: {n} ｜ 合格ライン: {threshold}%',
+'el.start':'受講を開始する',
+'el.correct':'⭕ 正解！',
+'el.wrong':'❌ 不正解',
+'el.next':'次の問題へ →',
+'el.view.result':'結果を見る',
+'el.answer':'回答する',
+'el.exit.back':'← 中断して戻る',
+'el.progress':'問題 {num} / {total}',
+'el.exit.title':'受講を中断しますか？',
+'el.exit.desc':'進捗は保存されません。',
+'el.exit.cancel':'キャンセル',
+'el.exit.confirm':'中断する',
+'el.saving':'結果を保存中...',
+'el.save.fail':'結果の保存に失敗しました',
+'el.result.pass':'合格',
+'el.result.fail':'不合格',
+'el.result.detail':'{correct} / {total} 問正解（合格ライン: {threshold}%）',
+'el.retry':'もう一度受講する',
+'el.back.list':'一覧に戻る',
 },
 vi:{
 'nav.home':'Trang chủ','nav.calendar':'Lịch','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
@@ -1749,6 +1819,7 @@ vi:{
 'common.filter':'🔍 Bộ lọc','common.member':'👤 Thành viên',
 'common.type':'📌 Loại','common.name.search':'Tìm theo tên...',
 'common.offline':'📵 Ngoại tuyến. Vui lòng kiểm tra kết nối mạng.',
+'filter.active':'{n} đang áp dụng',
 'common.offline.short':'📵 Ngoại tuyến',
 'common.error':'Đã xảy ra lỗi','common.timeout':'⚠️ Kết nối quá thời gian',
 'type.room':'Phòng họp','type.meeting':'Họp','type.out':'Ra ngoài','type.trip':'Công tác',
@@ -1946,6 +2017,75 @@ vi:{
 'push.denied':'⚠️ Thông báo bị từ chối. Hãy đặt lại trong cài đặt trang',
 'push.default.title':'Thông báo','push.not.granted':'Push chưa được cho phép',
 'push.init.error':'⚠️ Lỗi khởi tạo thông báo: {msg}',
+'release.note.1':'📅 Đã thêm lịch cá nhân vào Trang cá nhân',
+'release.note.2':'📋 Sao chép lịch từ màn hình chi tiết bằng nút "Sao chép"',
+'release.note.3':'🏢 Kéo thanh thời gian để dễ dàng điều chỉnh phòng họp',
+'release.note.4':'🎌 Hiển thị tên ngày lễ trên lịch Trang cá nhân',
+'release.note.5':'⚙️ Đã thêm tab Cài đặt',
+'release.note.6':'🏣 Chuyển đổi lịch nghỉ theo chi nhánh',
+'release.note.7':'🎨 Chọn chế độ màu phù hợp với đặc điểm thị giác',
+'rules.schedule.title':'Đăng ký lịch',
+'rules.schedule.1':'Đăng ký lịch muộn nhất vào buổi sáng trong ngày',
+'rules.schedule.2':'Viết tiêu đề cụ thể',
+'rules.schedule.2.ex':'× "Họp" → ○ "Họp báo giá công ty ○○"',
+'rules.schedule.3':'Xóa hoặc sửa ngay trong ngày nếu lịch thay đổi hoặc hủy',
+'rules.people.title':'Đăng ký người tham gia',
+'rules.people.1':'<b>Đặt phòng họp / Họp</b>: Bắt buộc đăng ký thành viên (hiển thị trên bảng điểm danh)',
+'rules.people.2':'<b>Nghỉ phép</b>: Chỉ cần bản thân (không cần thêm người)',
+'rules.approval.title':'Lịch cần phê duyệt (Ra ngoài / Công tác / Làm tại nhà)',
+'rules.approval.1':'<b>Nhân viên</b>: Chọn người phê duyệt khi lưu',
+'rules.approval.2':'<b>Trưởng nhóm trở lên</b>: Không cần phê duyệt (tự động duyệt)',
+'rules.repeat.title':'Lịch lặp lại',
+'rules.repeat.1':'Dùng cho họp định kỳ hoặc làm tại nhà hàng tuần',
+'rules.repeat.2':'Đăng ký hàng loạt tối đa 3 tháng tới',
+'rules.repeat.3':'Khi lịch kết thúc hoặc thay đổi, <b>xóa thủ công lịch tương lai không cần thiết</b>',
+'rules.repeat.4':'Đặt phòng họp lặp lại sẽ tự động bỏ qua ngày trùng',
+'rules.room.title':'Phòng họp',
+'rules.room.1':'Đặt trước theo thứ tự (mỗi khung giờ chỉ 1 đặt)',
+'rules.room.2':'Xóa đặt phòng khi không còn sử dụng',
+'rules.board.title':'Bảng điểm danh',
+'rules.board.1':'Tự động cập nhật từ lịch đã đăng ký (không cần thao tác)',
+'rules.board.2':'Ra ngoài gấp thì đăng ký ngay khi quay lại',
+'rules.account.title':'Tài khoản',
+'rules.account.1':'Không chia sẻ mã PIN cho người khác',
+'rules.account.2':'Quên PIN thì yêu cầu quản trị viên cấp lại',
+'demo.approve.disabled':'Không thể phê duyệt trong chế độ demo',
+'demo.reject.disabled':'Không thể từ chối trong chế độ demo',
+'common.error.toast':'⚠️ {msg}',
+'nav.elearning':'eLearning',
+'el.title':'📚 eLearning',
+'el.loading':'Đang tải tài liệu...',
+'el.load.fail':'Không thể tải tài liệu',
+'el.empty':'Chưa có tài liệu nào',
+'el.pass':'Đạt {score}%',
+'el.fail':'Không đạt {score}%',
+'el.new':'Chưa học',
+'el.questions':'Số câu hỏi: {n}',
+'el.video.loading':'Đang tải video...',
+'el.video.fail':'Không thể tải video',
+'el.video.open':'Mở trên trình duyệt',
+'el.no.questions':'Tài liệu này chưa có câu hỏi',
+'el.back':'← Quay lại danh sách',
+'el.meta':'Số câu hỏi: {n} ｜ Điểm đạt: {threshold}%',
+'el.start':'Bắt đầu học',
+'el.correct':'⭕ Chính xác!',
+'el.wrong':'❌ Sai',
+'el.next':'Câu tiếp theo →',
+'el.view.result':'Xem kết quả',
+'el.answer':'Trả lời',
+'el.exit.back':'← Dừng và quay lại',
+'el.progress':'Câu {num} / {total}',
+'el.exit.title':'Dừng bài học?',
+'el.exit.desc':'Tiến độ sẽ không được lưu.',
+'el.exit.cancel':'Hủy',
+'el.exit.confirm':'Dừng',
+'el.saving':'Đang lưu kết quả...',
+'el.save.fail':'Không thể lưu kết quả',
+'el.result.pass':'Đạt',
+'el.result.fail':'Không đạt',
+'el.result.detail':'{correct} / {total} câu đúng (Điểm đạt: {threshold}%)',
+'el.retry':'Học lại',
+'el.back.list':'Quay lại danh sách',
 },
 ne:{
 'nav.home':'गृहपृष्ठ','nav.calendar':'पात्रो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
@@ -1975,6 +2115,7 @@ ne:{
 'common.filter':'🔍 फिल्टर','common.member':'👤 सदस्य',
 'common.type':'📌 प्रकार','common.name.search':'नामले खोज्नुहोस्...',
 'common.offline':'📵 अफलाइन। नेटवर्क जाँच गर्नुहोस्।',
+'filter.active':'{n} लागू',
 'common.offline.short':'📵 अफलाइन',
 'common.error':'त्रुटि भयो','common.timeout':'⚠️ जडान समय सकियो',
 'type.room':'बैठक कोठा','type.meeting':'बैठक','type.out':'बाहिर','type.trip':'व्यापार यात्रा',
@@ -2172,6 +2313,75 @@ ne:{
 'push.denied':'⚠️ सूचना अस्वीकार गरिएको छ। ब्राउजर सेटिङमा रिसेट गर्नुहोस्',
 'push.default.title':'सूचना','push.not.granted':'Push सूचना अनुमति दिइएन',
 'push.init.error':'⚠️ सूचना प्रारम्भ त्रुटि: {msg}',
+'release.note.1':'📅 मेरो पृष्ठमा व्यक्तिगत पात्रो थपियो',
+'release.note.2':'📋 विवरण स्क्रिनबाट "कपी" बटनले तालिका प्रतिलिपि गर्नुहोस्',
+'release.note.3':'🏢 बैठक कोठाको समय बार ड्र्यागले सजिलै समायोजन गर्नुहोस्',
+'release.note.4':'🎌 मेरो पृष्ठको पात्रोमा बिदाको नाम देखाइयो',
+'release.note.5':'⚙️ सेटिङ ट्याब थपियो',
+'release.note.6':'🏣 शाखा अनुसार बिदा पात्रो स्विच गर्नुहोस्',
+'release.note.7':'🎨 दृष्टि विशेषताका लागि रंग मोड छान्नुहोस्',
+'rules.schedule.title':'तालिका दर्ता',
+'rules.schedule.1':'त्यस दिनको बिहान सम्ममा तालिका दर्ता गर्नुहोस्',
+'rules.schedule.2':'शीर्षक विशिष्ट लेख्नुहोस्',
+'rules.schedule.2.ex':'× "बैठक" → ○ "○○ कम्पनी अनुमान छलफल"',
+'rules.schedule.3':'तालिका परिवर्तन वा रद्द भएमा त्यही दिन मेटाउनुहोस् वा सच्याउनुहोस्',
+'rules.people.title':'सहभागी दर्ता',
+'rules.people.1':'<b>बैठक कोठा/छलफल</b>: सदस्यहरू अनिवार्य दर्ता गर्नुहोस् (उपस्थिति बोर्डमा देखिन्छ)',
+'rules.people.2':'<b>बिदा</b>: आफू मात्र पर्याप्त (सहभागी थप्न पर्दैन)',
+'rules.approval.title':'स्वीकृति चाहिने तालिका (बाहिर/व्यापार यात्रा/घरबाट)',
+'rules.approval.1':'<b>सामान्य कर्मचारी</b>: सेभ गर्दा स्वीकृतिकर्ता छान्नुहोस्',
+'rules.approval.2':'<b>सुपरभाइजर माथि</b>: स्वीकृति अनावश्यक (स्वचालित स्वीकृत)',
+'rules.repeat.title':'दोहोरिने तालिका',
+'rules.repeat.1':'नियमित बैठक वा साप्ताहिक घरबाट कामका लागि प्रयोग',
+'rules.repeat.2':'अधिकतम ३ महिना अगाडि सम्म एकैपटक दर्ता',
+'rules.repeat.3':'समाप्त वा परिवर्तन भएमा <b>भविष्यका अनावश्यक तालिका म्यानुअल मेटाउनुहोस्</b>',
+'rules.repeat.4':'बैठक कोठा दोहोरिने बुकिङमा दोहोरिएको दिन स्वचालित स्किप',
+'rules.room.title':'बैठक कोठा',
+'rules.room.1':'पहिले आउनेलाई पहिले (एक समयमा १ मात्र)',
+'rules.room.2':'प्रयोग नगर्ने बुकिङ अनिवार्य मेटाउनुहोस्',
+'rules.board.title':'उपस्थिति बोर्ड',
+'rules.board.1':'दर्ता गरिएको तालिकाबाट स्वचालित प्रतिबिम्बित (म्यानुअल अनावश्यक)',
+'rules.board.2':'अचानक बाहिर जानु परेमा फर्केपछि तुरुन्तै दर्ता गर्नुहोस्',
+'rules.account.title':'खाता',
+'rules.account.1':'PIN कोड अरूलाई नदिनुहोस्',
+'rules.account.2':'PIN बिर्सनुभयो भने प्रशासकसँग पुन: जारी अनुरोध गर्नुहोस्',
+'demo.approve.disabled':'डेमो मोडमा स्वीकृति दिन सकिँदैन',
+'demo.reject.disabled':'डेमो मोडमा अस्वीकार गर्न सकिँदैन',
+'common.error.toast':'⚠️ {msg}',
+'nav.elearning':'eLearning',
+'el.title':'📚 eLearning',
+'el.loading':'शिक्षा सामग्री लोड गर्दै...',
+'el.load.fail':'शिक्षा सामग्री लोड गर्न सकिएन',
+'el.empty':'प्रकाशित सामग्री छैन',
+'el.pass':'उत्तीर्ण {score}%',
+'el.fail':'अनुत्तीर्ण {score}%',
+'el.new':'नपढेको',
+'el.questions':'प्रश्न संख्या: {n}',
+'el.video.loading':'भिडियो लोड गर्दै...',
+'el.video.fail':'भिडियो लोड गर्न सकिएन',
+'el.video.open':'ब्राउजरमा खोल्नुहोस्',
+'el.no.questions':'यस सामग्रीमा अझै प्रश्नहरू छैनन्',
+'el.back':'← सूचीमा फर्कनुहोस्',
+'el.meta':'प्रश्न: {n} ｜ उत्तीर्ण रेखा: {threshold}%',
+'el.start':'अध्ययन सुरु गर्नुहोस्',
+'el.correct':'⭕ सही!',
+'el.wrong':'❌ गलत',
+'el.next':'अर्को प्रश्न →',
+'el.view.result':'नतिजा हेर्नुहोस्',
+'el.answer':'जवाफ दिनुहोस्',
+'el.exit.back':'← रोक्नुहोस् र फर्कनुहोस्',
+'el.progress':'प्रश्न {num} / {total}',
+'el.exit.title':'अध्ययन रोक्ने?',
+'el.exit.desc':'प्रगति सुरक्षित हुँदैन।',
+'el.exit.cancel':'रद्द',
+'el.exit.confirm':'रोक्नुहोस्',
+'el.saving':'नतिजा सुरक्षित गर्दै...',
+'el.save.fail':'नतिजा सुरक्षित गर्न सकिएन',
+'el.result.pass':'उत्तीर्ण',
+'el.result.fail':'अनुत्तीर्ण',
+'el.result.detail':'{correct} / {total} सही (उत्तीर्ण रेखा: {threshold}%)',
+'el.retry':'फेरि पढ्नुहोस्',
+'el.back.list':'सूचीमा फर्कनुहोस्',
 }
 };
 function t(key,params){
@@ -2191,7 +2401,7 @@ function applyLanguage(lang){
   document.querySelector('.sidebar-logo-text').textContent=t('app.title');
   document.querySelector('.topbar-title').textContent='📅 '+t('app.title');
   const sideLabels=document.querySelectorAll('.sidebar-label');
-  const navKeys=['nav.home','nav.calendar','nav.rooms','nav.team','nav.cars','nav.inquiry','nav.apply','nav.proposal','nav.mypage','nav.settings','nav.admin'];
+  const navKeys=['nav.home','nav.calendar','nav.rooms','nav.team','nav.cars','nav.inquiry','nav.apply','nav.proposal','nav.elearning','nav.mypage','nav.settings','nav.admin'];
   const prepIdx=[4,5,6];
   sideLabels.forEach((el,i)=>{
     if(navKeys[i]){
@@ -2200,8 +2410,8 @@ function applyLanguage(lang){
     }
   });
   const tabBtns=document.querySelectorAll('#tab-nav .tab-btn');
-  const tabEmoji=['🏠','📅','🏢','🏢','🚗','💬','📋','📝','👤','🔧','⚙️'];
-  const tabKeys=['nav.home','nav.calendar','nav.rooms','nav.team.short','nav.cars.short','nav.inquiry','nav.apply','nav.proposal','nav.mypage','nav.settings','nav.admin'];
+  const tabEmoji=['🏠','📅','🏢','🏢','🚗','💬','📋','📝','📚','👤','🔧','⚙️'];
+  const tabKeys=['nav.home','nav.calendar','nav.rooms','nav.team.short','nav.cars.short','nav.inquiry','nav.apply','nav.proposal','nav.elearning','nav.mypage','nav.settings','nav.admin'];
   tabBtns.forEach((btn,i)=>{
     if(!tabKeys[i])return;
     const badge=btn.querySelector('.notif-badge,span[id]');
@@ -2410,7 +2620,8 @@ let _apiAbort=null;
 let _sessionExpired=false;
 let _reloginPromise=null;
 function cancelApiRequest(){if(_apiAbort){_apiAbort.abort();_apiAbort=null}}
-async function api(action, data={}, loadingMsg='処理中...'){
+async function api(action, data={}, loadingMsg){
+  if(!loadingMsg)loadingMsg=t('common.processing');
   showLoading(loadingMsg);
   _apiAbort=new AbortController();
   const timer=setTimeout(()=>{if(_apiAbort)_apiAbort.abort()},30000);
@@ -2431,7 +2642,7 @@ async function api(action, data={}, loadingMsg='処理中...'){
         await showSessionExpiredDialog();
         return api(action, data, loadingMsg);
       }
-      throw new Error(result.error || 'エラーが発生しました');
+      throw new Error(result.error || t('common.error'));
     }
     return result.data;
   } catch(e){
@@ -2496,7 +2707,7 @@ function shortHolName(n){return n.replace(/記念の日$|感謝の日$|誕生日
   const banner = document.createElement('div');
   banner.id = 'offline-banner';
   banner.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;z-index:8000;background:#ef4444;color:#fff;text-align:center;padding:8px;font-size:0.88em;font-weight:600';
-  banner.textContent = '📵 オフラインです。ネットワーク接続を確認してください。';
+  banner.textContent = t('common.offline');
   document.addEventListener('DOMContentLoaded', () => document.body.appendChild(banner));
   function update() {
     banner.style.display = navigator.onLine ? 'none' : 'block';
@@ -2601,7 +2812,7 @@ function buildFilterUI(){
   const cnt = filterPeople.size + filterTypes.size;
   const badge = document.getElementById('filter-badge');
   badge.style.display = cnt ? 'inline-flex' : 'none';
-  badge.textContent = `${cnt}件適用中`;
+  badge.textContent = t('filter.active',{n:cnt});
 
   // 折りたたみ時のサマリー（選択中メンバー名を小さく表示）
   const summary = document.getElementById('filter-summary');
@@ -2722,7 +2933,7 @@ function showSessionExpiredDialog() {
       try{
         const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'login',empId,pin}),redirect:'follow'});
         const r=await res.json();
-        if(!r.ok) throw new Error(r.error||'ログイン失敗');
+        if(!r.ok) throw new Error(r.error||t('session.failed'));
         saveSession(r.data.token,r.data.user);
         currentUser=r.data.user;
         _sessionExpired=false;_reloginPromise=null;
@@ -2782,7 +2993,7 @@ function showReleaseNotes(){
   ol.innerHTML=`<div style="background:white;border-radius:var(--radius);padding:24px 20px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
     <div style="font-size:1.1em;font-weight:700;margin-bottom:4px">${t('release.title',{version:APP_VERSION})}</div>
     <div style="font-size:0.78em;color:var(--text2);margin-bottom:14px">${t('release.subtitle')}</div>
-    <ul style="margin:0 0 18px;padding-left:1.3em;font-size:0.9em;line-height:1.8">${RELEASE_NOTES.map(n=>'<li>'+n+'</li>').join('')}</ul>
+    <ul style="margin:0 0 18px;padding-left:1.3em;font-size:0.9em;line-height:1.8">${RELEASE_NOTES.map((_,i)=>'<li>'+t('release.note.'+(i+1))+'</li>').join('')}</ul>
     <button class="btn-primary" style="width:100%" onclick="localStorage.setItem('release_seen','${APP_VERSION}');this.closest('div[style*=fixed]').remove()">OK</button>
   </div>`;
   document.body.appendChild(ol);
@@ -3741,7 +3952,7 @@ function renderHome(){
 
   if(homeView === 'grid'){
     // ===== グリッド表示（予定ある人だけ） =====
-    const depts = [...new Set(USERS.map(u=>u.dept||'その他'))];
+    const _other=t('team.other');const depts = [...new Set(USERS.map(u=>u.dept||_other))];
     const headerCols = days.map(d => {
       const dt = new Date(d+'T00:00:00');
       const dow = tDow((dt.getDay()+6)%7);
@@ -3756,7 +3967,7 @@ function renderHome(){
     }).join('');
 
     const rows = depts.map(dept => {
-      const deptUsers = userEvents.filter(({u}) => (u.dept||'その他')===dept && true);
+      const deptUsers = userEvents.filter(({u}) => (u.dept||_other)===dept && true);
       const activeUsers = deptUsers.filter(({hasAny}) => hasAny);
       if(!activeUsers.length) return '';
       // 役職が「一般」以外の人を上に
@@ -3914,7 +4125,7 @@ async function loadAdminUsers(){
   try {
     adminAllUsers = await api('adminGetUsers', {}, t('admin.loading'));
     renderAdminUsers();
-  } catch(err){ showToast('⚠️ '+err.message) }
+  } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
 function renderAdminUsers(keyword=''){
   const kw=keyword.toLowerCase();
@@ -3963,7 +4174,7 @@ async function doSetPin(){
     await api('adminSetPin', {empId:pinTargetEmpId, pin:newPin}, t('admin.pin.updating'));
     showToast(t('admin.pin.done'));
     closeModal('pin-modal-backdrop');
-  } catch(err){ showToast('⚠️ '+err.message) }
+  } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
 
 // ===== 予定追加モーダル =====
@@ -4505,7 +4716,7 @@ async function doSaveEvent(){
       if(result.repeatSkipped>0) savedMsg+=t('ev.repeat.skip',{n:result.repeatSkipped});
     }
     showToast(savedMsg);
-  } catch(err){ showToast('⚠️ '+err.message) }
+  } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
 
 async function doDeleteEvent(){
@@ -4520,7 +4731,7 @@ async function doDeleteEvent(){
     closeModal('add-modal-backdrop');
     await loadEvents({ force: true });
     showToast(t('ev.deleted'));
-  } catch(err){ showToast('⚠️ '+err.message) }
+  } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
 
 // ===== 詳細モーダル =====
@@ -4608,27 +4819,27 @@ function openDetail(id){
 
 // ===== 承認・却下アクション =====
 async function approveEventAction(eventId) {
-  if (!GAS_URL) { showToast('デモモードでは承認できません'); return; }
+  if (!GAS_URL) { showToast(t('demo.approve.disabled')); return; }
   try {
     await api('approveEvent', { eventId }, t('detail.approving'));
     closeModal('detail-modal-backdrop');
     await loadEvents({ force: true });
     showToast(t('detail.approved.msg'));
     renderMyPage();
-  } catch(err) { showToast('⚠️ ' + err.message); }
+  } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
 }
 
 async function rejectEventAction(eventId) {
   const reason = prompt(t('detail.reject.prompt')) ?? null;
   if (reason === null) return; // キャンセル
-  if (!GAS_URL) { showToast('デモモードでは却下できません'); return; }
+  if (!GAS_URL) { showToast(t('demo.reject.disabled')); return; }
   try {
     await api('rejectEvent', { eventId, reason }, t('detail.rejecting'));
     closeModal('detail-modal-backdrop');
     await loadEvents({ force: true });
     showToast(t('detail.rejected.msg'));
     renderMyPage();
-  } catch(err) { showToast('⚠️ ' + err.message); }
+  } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
 }
 
 function openModal(id){ document.getElementById(id).classList.add('open') }
@@ -5154,49 +5365,49 @@ function renderMyPage() {
       </div>
       <div class="rules-body" style="display:none;font-size:0.82em;color:var(--text);line-height:1.7">
 
-        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">予定の登録</div>
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.schedule.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
-          <li>予定は遅くとも当日の朝までに登録する</li>
-          <li>タイトルは具体的に書く<br><span style="color:var(--text2);font-size:0.9em">× 「会議」 → ○ 「○○社 見積もり打ち合わせ」</span></li>
-          <li>予定が変更・中止になったらその日のうちに削除または修正する</li>
+          <li>${t('rules.schedule.1')}</li>
+          <li>${t('rules.schedule.2')}<br><span style="color:var(--text2);font-size:0.9em">${t('rules.schedule.2.ex')}</span></li>
+          <li>${t('rules.schedule.3')}</li>
         </ul>
 
-        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">参加者の登録</div>
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.people.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
-          <li><b>会議室予約・打ち合わせ</b>：参加メンバーを必ず登録する（在籍ボードに反映される）</li>
-          <li><b>休暇</b>：自分だけでOK（参加者の追加は不要）</li>
+          <li>${t('rules.people.1')}</li>
+          <li>${t('rules.people.2')}</li>
         </ul>
 
-        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">承認が必要な予定（外出・出張・在宅）</div>
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.approval.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
-          <li><b>一般社員</b>：保存時に承認者を選択する</li>
-          <li><b>主任以上</b>：承認不要（自動で承認済になる）</li>
+          <li>${t('rules.approval.1')}</li>
+          <li>${t('rules.approval.2')}</li>
         </ul>
 
-        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">繰り返し予定</div>
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.repeat.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
-          <li>定例会議や毎週の在宅勤務などに使用する</li>
-          <li>最大3ヶ月先まで一括登録される</li>
-          <li>定例が終了・変更になったら<b>不要な将来の予定を手動で削除する</b></li>
-          <li>会議室予約の繰り返しでは、重複する日は自動でスキップされる</li>
+          <li>${t('rules.repeat.1')}</li>
+          <li>${t('rules.repeat.2')}</li>
+          <li>${t('rules.repeat.3')}</li>
+          <li>${t('rules.repeat.4')}</li>
         </ul>
 
-        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">会議室</div>
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.room.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
-          <li>予約は先着順（同じ時間帯には1件しか入らない）</li>
-          <li>使わなくなった予約は必ず削除する</li>
+          <li>${t('rules.room.1')}</li>
+          <li>${t('rules.room.2')}</li>
         </ul>
 
-        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">在籍ボード</div>
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.board.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
-          <li>登録した予定から自動で反映される（手動操作は不要）</li>
-          <li>急な外出などで先に登録できない場合は、戻り次第すぐに登録する</li>
+          <li>${t('rules.board.1')}</li>
+          <li>${t('rules.board.2')}</li>
         </ul>
 
-        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">アカウント</div>
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.account.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
-          <li>PINコードは他人に教えない</li>
-          <li>PINを忘れた場合は管理者に再発行を依頼する</li>
+          <li>${t('rules.account.1')}</li>
+          <li>${t('rules.account.2')}</li>
         </ul>
 
       </div>
@@ -5775,7 +5986,7 @@ async function doSaveCarEvent() {
     if (!carEditingId) ev.id = result.id;
     await loadCarData({ force: true }); renderCarView(); closeCarModal();
     showToast(carEditingId ? t('car.updated.msg') : t('car.saved'));
-  } catch(err) { showToast('⚠️ ' + err.message); }
+  } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
 }
 async function doCarReturn(id) {
   const ev = carEvents.find(e=>e.id===id); if(!ev) return;
@@ -5790,7 +6001,7 @@ async function doCarReturn(id) {
     await loadCarData({ force: true }); renderCarView();
     closeModal('car-detail-backdrop');
     showToast('🏠 ' + t('car.returned'));
-  } catch(err){ showToast('⚠️ '+err.message); }
+  } catch(err){ showToast(t('common.error.toast',{msg:err.message})); }
 }
 async function doDeleteCarEvent() {
   if (!carEditingId) return;
@@ -5802,7 +6013,7 @@ async function doDeleteCarEvent() {
     await api('deleteCarEvent', {eventId:carEditingId}, t('car.deleting'));
     await loadCarData({ force: true }); renderCarView(); closeCarModal();
     showToast(t('car.deleted'));
-  } catch(err) { showToast('⚠️ ' + err.message); }
+  } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
 }
 
 // ----- 詳細 -----
@@ -5896,8 +6107,8 @@ async function captureCarPhoto() {
       renderCarPhotos();
       stopCarCamera();
       showToast(t('car.uploaded'));
-    } else { showToast('⚠️ ' + (result.error || t('car.upload.fail'))); }
-  } catch(err) { showToast('⚠️ ' + err.message); }
+    } else { showToast(t('common.error.toast',{msg:result.error||t('car.upload.fail')})); }
+  } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
   finally { hideLoading(); }
 }
 function renderCarPhotos() {
@@ -6326,14 +6537,14 @@ async function loadElearningCourses() {
   }
   try {
     const [courses, history] = await Promise.all([
-      api('getElearningCourses', {}, '教材を読み込み中...'),
+      api('getElearningCourses', {}, t('el.loading')),
       api('getElearningHistory', {}, ''),
     ]);
     _elCourses = courses;
     _elHistory = history;
     renderElearningList();
   } catch (e) {
-    wrap.innerHTML = '<div class="el-wrap"><p style="color:var(--text2);font-size:0.85em">教材の読み込みに失敗しました</p></div>';
+    wrap.innerHTML = '<div class="el-wrap"><p style="color:var(--text2);font-size:0.85em">'+t('el.load.fail')+'</p></div>';
   }
 }
 
@@ -6346,25 +6557,25 @@ function renderElearningList() {
     }
   });
 
-  let html = '<div class="el-wrap"><div class="el-header"><h2>📚 eラーニング</h2></div>';
+  let html = '<div class="el-wrap"><div class="el-header"><h2>'+t('el.title')+'</h2></div>';
   if (!_elCourses.length) {
-    html += '<p style="color:var(--text2);font-size:0.85em">公開中の教材はありません</p>';
+    html += '<p style="color:var(--text2);font-size:0.85em">'+t('el.empty')+'</p>';
   } else {
     _elCourses.forEach(c => {
       const h = historyByCourse[c.id];
       let badge = '';
       if (h) {
         badge = h.passed
-          ? `<span class="el-badge el-badge-pass">合格 ${h.score}%</span>`
-          : `<span class="el-badge el-badge-fail">不合格 ${h.score}%</span>`;
+          ? '<span class="el-badge el-badge-pass">'+t('el.pass',{score:h.score})+'</span>'
+          : '<span class="el-badge el-badge-fail">'+t('el.fail',{score:h.score})+'</span>';
       } else {
-        badge = '<span class="el-badge el-badge-new">未受講</span>';
+        badge = '<span class="el-badge el-badge-new">'+t('el.new')+'</span>';
       }
       html += `<div class="el-card" onclick="openElearningCourse('${c.id}')">
         <div class="el-card-title">${_esc(c.title)}</div>
         <div class="el-card-meta">
           <span>${_esc(c.category || '')}</span>
-          <span>問題数: ${c.questionCount}</span>
+          <span>${t('el.questions',{n:c.questionCount})}</span>
           ${badge}
         </div>
       </div>`;
@@ -6377,10 +6588,12 @@ function renderElearningList() {
 function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
   maxHeight = maxHeight || '360px';
   if (videoUrl) {
-    return `<div class="el-quiz-media">
-      <div onclick="window.open('${_esc(videoUrl)}','_blank')" style="background:#f0f4f8;border-radius:var(--radius);padding:32px 16px;text-align:center;cursor:pointer;border:2px dashed var(--border);transition:border-color .15s">
-        <div style="font-size:3em;margin-bottom:8px">🎬</div>
-        <div style="font-size:0.9em;font-weight:700;color:var(--primary)">動画を再生する（新しいタブで開きます）</div>
+    const uid = 'elv_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    setTimeout(() => _resolveElVideo(uid, videoUrl, maxHeight), 0);
+    return `<div class="el-quiz-media" id="${uid}">
+      <div style="background:#f0f4f8;border-radius:var(--radius);padding:32px 16px;text-align:center;border:2px dashed var(--border)">
+        <div style="font-size:2em;margin-bottom:8px">⏳</div>
+        <div style="font-size:0.85em;color:var(--text2)">${t('el.video.loading')}</div>
       </div>
     </div>`;
   }
@@ -6388,6 +6601,21 @@ function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
     return `<div class="el-quiz-media"><img src="${_esc(imageUrl)}" alt="" style="max-height:${maxHeight}"></div>`;
   }
   return '';
+}
+async function _resolveElVideo(uid, shareUrl, maxHeight) {
+  const el = document.getElementById(uid);
+  if (!el) return;
+  try {
+    const res = await api('getSpTempUrl', { shareUrl }, null);
+    if (!res || !res.url) throw new Error('URL取得失敗');
+    el.innerHTML = `<video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(res.url)}"></video>`;
+  } catch(e) {
+    el.innerHTML = `<div style="background:#fff3e0;border-radius:var(--radius);padding:16px;text-align:center;border:1px solid #ffcc02">
+      <div style="font-size:1.5em;margin-bottom:4px">⚠️</div>
+      <div style="font-size:0.82em;color:#e65100">${t('el.video.fail')}</div>
+      <button onclick="window.open('${_esc(shareUrl)}','_blank')" style="margin-top:8px;background:none;border:1px solid var(--primary);color:var(--primary);border-radius:var(--radius);padding:6px 16px;cursor:pointer;font-size:0.82em">${t('el.video.open')}</button>
+    </div>`;
+  }
 }
 
 async function openElearningCourse(courseId) {
@@ -6406,27 +6634,27 @@ async function openElearningCourse(courseId) {
     };
   } else {
     try {
-      course = await api('getElearningCourse', { courseId }, '教材を読み込み中...');
+      course = await api('getElearningCourse', { courseId }, t('el.loading'));
     } catch (e) {
-      showToast('教材の読み込みに失敗しました');
+      showToast(t('el.load.fail'));
       return;
     }
   }
 
   if (!course.questions.length) {
-    showToast('この教材にはまだ問題が登録されていません');
+    showToast(t('el.no.questions'));
     return;
   }
 
   window._elPendingCourse = course;
 
   wrap.innerHTML = `<div class="el-intro-wrap">
-    <button onclick="loadElearningCourses()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">← 一覧に戻る</button>
+    <button onclick="loadElearningCourses()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">${t('el.back')}</button>
     <h2 style="font-size:1.1em;font-weight:700;margin-bottom:4px">${_esc(course.title)}</h2>
-    <p style="font-size:0.82em;color:var(--text2);margin-bottom:12px">${_esc(course.category || '')} ｜ 問題数: ${course.questions.length} ｜ 合格ライン: ${ELEARNING_PASS_THRESHOLD}%</p>
+    <p style="font-size:0.82em;color:var(--text2);margin-bottom:12px">${_esc(course.category || '')} ｜ ${t('el.meta',{n:course.questions.length,threshold:ELEARNING_PASS_THRESHOLD})}</p>
     ${course.description ? `<div style="font-size:0.88em;line-height:1.7;margin-bottom:16px">${course.description}</div>` : ''}
     ${_elMediaHtml(course.introVideoUrl, course.introImageUrl, '360px')}
-    <button class="btn-primary" style="width:100%;margin-top:16px" onclick="startElearningQuiz(window._elPendingCourse)">受講を開始する</button>
+    <button class="btn-primary" style="width:100%;margin-top:16px" onclick="startElearningQuiz(window._elPendingCourse)">${t('el.start')}</button>
   </div>`;
 }
 
@@ -6466,7 +6694,7 @@ function renderElearningQuiz() {
   if (answered && q.explanation) {
     const isCorrect = selected === q.answer;
     explanation = `<div class="el-quiz-explanation">
-      <div style="font-weight:700;margin-bottom:4px;color:${isCorrect ? '#2e7d32' : '#c62828'}">${isCorrect ? '⭕ 正解！' : '❌ 不正解'}</div>
+      <div style="font-weight:700;margin-bottom:4px;color:${isCorrect ? '#2e7d32' : '#c62828'}">${isCorrect ? t('el.correct') : t('el.wrong')}</div>
       ${_esc(q.explanation)}
     </div>`;
   }
@@ -6474,12 +6702,12 @@ function renderElearningQuiz() {
   let navHtml = '';
   if (answered) {
     if (s.current < s.questions.length - 1) {
-      navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="nextElearningQuestion()">次の問題へ →</button>`;
+      navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="nextElearningQuestion()">${t('el.next')}</button>`;
     } else {
-      navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="finishElearningQuiz()">結果を見る</button>`;
+      navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="finishElearningQuiz()">${t('el.view.result')}</button>`;
     }
   } else {
-    navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="submitElearningAnswer()" ${selected ? '' : 'disabled'} id="el-submit-btn">回答する</button>`;
+    navHtml = `<button class="btn-primary" style="width:100%;margin-top:16px" onclick="submitElearningAnswer()" ${selected ? '' : 'disabled'} id="el-submit-btn">${t('el.answer')}</button>`;
   }
 
   let progressBar = '';
@@ -6487,8 +6715,8 @@ function renderElearningQuiz() {
   progressBar = `<div style="background:#e0e0e0;border-radius:4px;height:6px;margin-bottom:12px"><div style="background:var(--primary);height:100%;border-radius:4px;width:${pct}%;transition:width .3s"></div></div>`;
 
   wrap.innerHTML = `<div class="el-quiz-wrap">
-    <button onclick="confirmExitQuiz()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">← 中断して戻る</button>
-    <div class="el-quiz-progress">問題 ${num} / ${total}</div>
+    <button onclick="confirmExitQuiz()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">${t('el.exit.back')}</button>
+    <div class="el-quiz-progress">${t('el.progress',{num:num,total:total})}</div>
     ${progressBar}
     <div class="el-quiz-question">${_esc(q.question)}</div>
     ${media}
@@ -6524,11 +6752,11 @@ function confirmExitQuiz() {
   ol.id = 'el-exit-confirm';
   ol.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
   ol.innerHTML = `<div style="background:white;border-radius:var(--radius);padding:24px 20px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
-    <div style="font-size:1em;font-weight:700;margin-bottom:8px">受講を中断しますか？</div>
-    <div style="font-size:0.85em;color:var(--text2);margin-bottom:20px">進捗は保存されません。</div>
+    <div style="font-size:1em;font-weight:700;margin-bottom:8px">${t('el.exit.title')}</div>
+    <div style="font-size:0.85em;color:var(--text2);margin-bottom:20px">${t('el.exit.desc')}</div>
     <div style="display:flex;gap:8px">
-      <button style="flex:1;padding:10px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer;font-weight:600" onclick="document.getElementById('el-exit-confirm').remove()">キャンセル</button>
-      <button class="btn-primary" style="flex:1" onclick="document.getElementById('el-exit-confirm').remove();loadElearningCourses()">中断する</button>
+      <button style="flex:1;padding:10px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer;font-weight:600" onclick="document.getElementById('el-exit-confirm').remove()">${t('el.exit.cancel')}</button>
+      <button class="btn-primary" style="flex:1" onclick="document.getElementById('el-exit-confirm').remove();loadElearningCourses()">${t('el.exit.confirm')}</button>
     </div>
   </div>`;
   document.body.appendChild(ol);
@@ -6547,9 +6775,9 @@ async function finishElearningQuiz() {
     try {
       await api('saveElearningResult', {
         result: { courseId: s.course.id, score, passed }
-      }, '結果を保存中...');
+      }, t('el.saving'));
     } catch (e) {
-      showToast('結果の保存に失敗しました');
+      showToast(t('el.save.fail'));
     }
   }
 
@@ -6558,10 +6786,10 @@ async function finishElearningQuiz() {
     <div style="font-size:3em;margin-bottom:8px">${passed ? '🎉' : '📖'}</div>
     <h2 style="font-size:1.1em;font-weight:700;margin-bottom:4px">${_esc(s.course.title)}</h2>
     <div class="el-result-score" style="color:${passed ? '#2e7d32' : '#c62828'}">${score}%</div>
-    <div class="el-result-label" style="color:${passed ? '#2e7d32' : '#c62828'}">${passed ? '合格' : '不合格'}</div>
-    <p style="font-size:0.85em;color:var(--text2);margin-bottom:24px">${correct} / ${s.questions.length} 問正解（合格ライン: ${ELEARNING_PASS_THRESHOLD}%）</p>
-    <button class="btn-primary" style="width:100%;margin-bottom:8px" onclick="openElearningCourse('${s.course.id}')">もう一度受講する</button>
-    <button style="width:100%;padding:12px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer" onclick="loadElearningCourses()">一覧に戻る</button>
+    <div class="el-result-label" style="color:${passed ? '#2e7d32' : '#c62828'}">${passed ? t('el.result.pass') : t('el.result.fail')}</div>
+    <p style="font-size:0.85em;color:var(--text2);margin-bottom:24px">${t('el.result.detail',{correct:correct,total:s.questions.length,threshold:ELEARNING_PASS_THRESHOLD})}</p>
+    <button class="btn-primary" style="width:100%;margin-bottom:8px" onclick="openElearningCourse('${s.course.id}')">${t('el.retry')}</button>
+    <button style="width:100%;padding:12px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer" onclick="loadElearningCourses()">${t('el.back.list')}</button>
   </div>`;
 }
 
