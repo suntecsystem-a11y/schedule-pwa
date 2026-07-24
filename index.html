@@ -6589,6 +6589,10 @@ function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
   maxHeight = maxHeight || '360px';
   if (videoUrl) {
     const uid = 'elv_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const cached = window._elVideoCache && window._elVideoCache[videoUrl];
+    if (cached) {
+      return `<div class="el-quiz-media"><video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(cached)}"></video></div>`;
+    }
     setTimeout(() => _resolveElVideo(uid, videoUrl, maxHeight), 0);
     return `<div class="el-quiz-media" id="${uid}">
       <div style="background:#f0f4f8;border-radius:var(--radius);padding:32px 16px;text-align:center;border:2px dashed var(--border)">
@@ -6613,6 +6617,8 @@ async function _resolveElVideo(uid, shareUrl, maxHeight) {
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || 'URL取得失敗');
     if (!json.data || !json.data.url) throw new Error('URL取得失敗');
+    if (!window._elVideoCache) window._elVideoCache = {};
+    window._elVideoCache[shareUrl] = json.data.url;
     el.innerHTML = `<video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(json.data.url)}"></video>`;
   } catch(e) {
     console.error('[eラーニング動画]', e.message, shareUrl);
