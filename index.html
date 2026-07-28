@@ -61,7 +61,7 @@ input,select{font-family:inherit;outline:none}
 @media(min-width:900px){
   .content{max-width:1400px;padding:20px 28px}
   .month-week-row{height:240px}
-  .week-body{max-height:calc(100vh - 180px)}
+  .week-grid{max-height:calc(100vh - 180px)}
   .ev-layer{top:35px}
   .cell-num{font-size:0.82em;width:26px;height:26px}
   .month-cell .holiday-name{font-size:0.7em;left:30px;line-height:26px}
@@ -248,14 +248,11 @@ input,select{font-family:inherit;outline:none}
 .week-allday-cell,.week-leave-cell{border-left:1px solid var(--border);padding:2px;position:relative;min-height:28px;overflow:hidden}
 .week-allday-bar,.week-leave-bar{font-size:0.65em;color:white;border-radius:4px;padding:2px 5px;margin-bottom:1px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .week-body{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr))}
-.time-col{font-size:0.68em;color:var(--text2);display:flex;flex-direction:column}
-.time-slot{border-bottom:1px solid var(--border);padding:2px 4px;display:flex;align-items:flex-start;flex:1;min-height:40px}
-.week-col{border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-.week-slot{border-bottom:1px solid var(--border);cursor:pointer;display:grid;grid-template-rows:1fr 1fr;flex:1}
-.week-slot:hover{background:var(--primary-light)}
-.week-half{min-height:20px;display:flex;flex-direction:column;gap:1px;padding:1px 0}
-.week-half+.week-half{border-top:1px dashed var(--border)}
-.week-event{border-radius:4px;padding:2px 4px;font-size:0.65em;color:white;overflow:hidden;z-index:1;cursor:pointer;white-space:nowrap;text-overflow:ellipsis}
+.week-time-col{display:flex;flex-direction:column}
+.week-time-label{height:48px;font-size:0.68em;color:var(--text2);display:flex;align-items:flex-start;justify-content:center;padding-top:2px;border-bottom:1px solid var(--border);box-sizing:border-box}
+.week-day-col{border-left:1px solid var(--border);position:relative;cursor:pointer}
+.week-hour-line{height:48px;border-bottom:1px solid var(--border);box-sizing:border-box}
+.week-event{position:absolute;border-radius:4px;padding:3px 4px;font-size:0.65em;color:white;overflow:hidden;z-index:2;cursor:pointer;white-space:normal;word-break:break-word;line-height:1.3;box-sizing:border-box;border-right:2px solid rgba(255,255,255,0.4)}
 
 /* 日・イベントカード */
 .event-card{background:white;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);border-left:4px solid var(--primary);display:flex;align-items:flex-start;gap:12px;cursor:pointer;transition:transform .1s,box-shadow .15s;margin-bottom:10px}
@@ -3381,21 +3378,38 @@ function renderWeek(){
     });
     html+=`</div>`;
   }
+  const HOUR_PX=48, START_H=8, END_H=20, TOTAL_H=END_H-START_H;
   html+=`<div class="week-body">`;
-  for(let h=8;h<20;h++){
-    html+=`<div class="time-col"><div class="time-slot">${h}:00</div></div>`;
-    days.forEach(day=>{
-      const ds=fmtDate(day);
-      const sEvs=filtered.filter(e=>e.start&&e.date===ds&&parseInt(e.start)===h&&!WEEK_LEAVE_TYPES.includes(e.type));
-      const firstHalf=sEvs.filter(e=>{const m=parseInt((e.start||'').split(':')[1])||0;return m<30;});
-      const secondHalf=sEvs.filter(e=>{const m=parseInt((e.start||'').split(':')[1])||0;return m>=30;});
-      const renderEv=e=>{const ip=e.approvalStatus==='申請中';const wEvStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;return`<div class="week-event" style="${wEvStyle}" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?t('cal.pending'):''}${esc(e.title||e.type)}</div>`;};
-      html+=`<div class="week-col"><div class="week-slot" onclick="onCellClick('${ds}')">
-        <div class="week-half">${firstHalf.map(renderEv).join('')}</div>
-        <div class="week-half">${secondHalf.map(renderEv).join('')}</div>
-      </div></div>`;
+  html+=`<div class="week-time-col">${Array.from({length:TOTAL_H},(_,i)=>`<div class="week-time-label">${START_H+i}:00</div>`).join('')}</div>`;
+  days.forEach(day=>{
+    const ds=fmtDate(day);
+    const dayEvs=filtered.filter(e=>e.start&&e.end&&e.date===ds&&!WEEK_LEAVE_TYPES.includes(e.type)&&!isMultiDay(e));
+    const evRects=dayEvs.map(e=>{
+      const sm=timeToMins(e.start), em=timeToMins(e.end);
+      const top=Math.max(0,(sm-START_H*60))*HOUR_PX/60;
+      const bot=Math.min(TOTAL_H*60,(em-START_H*60))*HOUR_PX/60;
+      return{e,top,height:Math.max(bot-top,18),sm,em:Math.max(em,sm+15)};
     });
-  }
+    evRects.sort((a,b)=>a.sm-b.sm||b.height-a.height);
+    const cols=[];
+    evRects.forEach(r=>{
+      let placed=false;
+      for(let c=0;c<cols.length;c++){
+        if(cols[c].every(o=>r.sm>=o.em||r.em<=o.sm)){cols[c].push(r);r.col=c;placed=true;break;}
+      }
+      if(!placed){r.col=cols.length;cols.push([r]);}
+    });
+    const totalCols=cols.length||1;
+    html+=`<div class="week-day-col" onclick="onCellClick('${ds}')">`;
+    html+=Array.from({length:TOTAL_H},()=>`<div class="week-hour-line"></div>`).join('');
+    evRects.forEach(r=>{
+      const e=r.e, ip=e.approvalStatus==='申請中';
+      const bg=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
+      const w=100/totalCols, l=r.col*w;
+      html+=`<div class="week-event" style="${bg};top:${r.top}px;height:${r.height}px;left:${l}%;width:${w}%" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?t('cal.pending'):''}${typeIcon(e.type)} ${esc(e.title||tType(e.type))}</div>`;
+    });
+    html+=`</div>`;
+  });
   html+=`</div></div>`;
   document.getElementById('cal-content').innerHTML=html;
 }
