@@ -1457,16 +1457,12 @@ const RENTAL_TYPES = ['外出','出張','在宅']; // レンタル申請対象�
 const PHOTO_GAS_URL  = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVuUrgwqBPr7UfFcWrFrXsfXcCR1eUo_siMsWahjSgxnU7LMjWRtM/exec';
 
 // ===== リリースノート設定 =====
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 const SHOW_RELEASE_NOTES = true;
 const RELEASE_NOTES = [
-  '📅 マイページに自分の予定だけが見えるカレンダーを追加しました',
-  '📋 予定の詳細画面から「コピー」ボタンで同じ内容の予定をすぐ作成できます',
-  '🏢 予定登録時、会議室の時間帯をバーのドラッグで簡単に調整できるようになりました',
-  '🎌 マイページのカレンダーに祝日名を表示するようにしました',
-  '⚙️ 設定タブを追加しました',
-  '🏣 拠点ごとに休日カレンダーを切り替えられるようになりました',
-  '🎨 色覚特性に合わせた配色モードを選べるようになりました',
+  '🌐 設定ページに言語設定を追加しました（ベトナム語・ネパール語に対応）',
+  '🤝 予定の種別に「来社」を追加しました',
+  '📋 有休の場合のみ、KingOfTimeで申請すると自動でカレンダーに有休が追加されます（反映まで最大1〜2時間かかる場合があります。1.2時間たっても申請した有給がカレンダーに追加されていない場合のみ手動で登録をお願いします）',
 ];
 
 // ===== 多言語対応 =====
@@ -1723,13 +1719,9 @@ ja:{
 'push.denied':'⚠️ 通知が拒否されています。ブラウザのサイト設定でリセットしてください',
 'push.default.title':'通知','push.not.granted':'プッシュ通知が許可されませんでした',
 'push.init.error':'⚠️ 通知初期化エラー: {msg}',
-'release.note.1':'📅 マイページに自分の予定だけが見えるカレンダーを追加しました',
-'release.note.2':'📋 予定の詳細画面から「コピー」ボタンで同じ内容の予定をすぐ作成できます',
-'release.note.3':'🏢 予定登録時、会議室の時間帯をバーのドラッグで簡単に調整できるようになりました',
-'release.note.4':'🎌 マイページのカレンダーに祝日名を表示するようにしました',
-'release.note.5':'⚙️ 設定タブを追加しました',
-'release.note.6':'🏣 拠点ごとに休日カレンダーを切り替えられるようになりました',
-'release.note.7':'🎨 色覚特性に合わせた配色モードを選べるようになりました',
+'release.note.1':'🌐 設定ページに言語設定を追加しました（ベトナム語・ネパール語に対応）',
+'release.note.2':'🤝 予定の種別に「来社」を追加しました',
+'release.note.3':'📋 有休の場合のみ、KingOfTimeで申請すると自動でカレンダーに有休が追加されます（反映まで最大1〜2時間かかる場合があります。追加されない場合のみ手動で登録をお願いします）',
 'rules.schedule.title':'予定の登録',
 'rules.schedule.1':'予定は遅くとも当日の朝までに登録する',
 'rules.schedule.2':'タイトルは具体的に書く',
@@ -2019,13 +2011,9 @@ vi:{
 'push.denied':'⚠️ Thông báo bị từ chối. Hãy đặt lại trong cài đặt trang',
 'push.default.title':'Thông báo','push.not.granted':'Push chưa được cho phép',
 'push.init.error':'⚠️ Lỗi khởi tạo thông báo: {msg}',
-'release.note.1':'📅 Đã thêm lịch cá nhân vào Trang cá nhân',
-'release.note.2':'📋 Sao chép lịch từ màn hình chi tiết bằng nút "Sao chép"',
-'release.note.3':'🏢 Kéo thanh thời gian để dễ dàng điều chỉnh phòng họp',
-'release.note.4':'🎌 Hiển thị tên ngày lễ trên lịch Trang cá nhân',
-'release.note.5':'⚙️ Đã thêm tab Cài đặt',
-'release.note.6':'🏣 Chuyển đổi lịch nghỉ theo chi nhánh',
-'release.note.7':'🎨 Chọn chế độ màu phù hợp với đặc điểm thị giác',
+'release.note.1':'🌐 Đã thêm cài đặt ngôn ngữ vào trang Cài đặt (hỗ trợ tiếng Việt và tiếng Nepal)',
+'release.note.2':'🤝 Đã thêm loại lịch "Đến công ty"',
+'release.note.3':'📋 Chỉ với nghỉ phép có lương: khi nộp đơn trên KingOfTime, nghỉ phép sẽ tự động thêm vào lịch (có thể mất 1-2 giờ. Chỉ đăng ký thủ công nếu không được thêm)',
 'rules.schedule.title':'Đăng ký lịch',
 'rules.schedule.1':'Đăng ký lịch muộn nhất vào buổi sáng trong ngày',
 'rules.schedule.2':'Viết tiêu đề cụ thể',
@@ -2315,13 +2303,9 @@ ne:{
 'push.denied':'⚠️ सूचना अस्वीकार गरिएको छ। ब्राउजर सेटिङमा रिसेट गर्नुहोस्',
 'push.default.title':'सूचना','push.not.granted':'Push सूचना अनुमति दिइएन',
 'push.init.error':'⚠️ सूचना प्रारम्भ त्रुटि: {msg}',
-'release.note.1':'📅 मेरो पृष्ठमा व्यक्तिगत पात्रो थपियो',
-'release.note.2':'📋 विवरण स्क्रिनबाट "कपी" बटनले तालिका प्रतिलिपि गर्नुहोस्',
-'release.note.3':'🏢 बैठक कोठाको समय बार ड्र्यागले सजिलै समायोजन गर्नुहोस्',
-'release.note.4':'🎌 मेरो पृष्ठको पात्रोमा बिदाको नाम देखाइयो',
-'release.note.5':'⚙️ सेटिङ ट्याब थपियो',
-'release.note.6':'🏣 शाखा अनुसार बिदा पात्रो स्विच गर्नुहोस्',
-'release.note.7':'🎨 दृष्टि विशेषताका लागि रंग मोड छान्नुहोस्',
+'release.note.1':'🌐 सेटिङ पृष्ठमा भाषा सेटिङ थपियो (भियतनामी र नेपाली समर्थित)',
+'release.note.2':'🤝 तालिका प्रकारमा "कार्यालय भ्रमण" थपियो',
+'release.note.3':'📋 तलबी बिदाको लागि मात्र: KingOfTimeमा आवेदन गर्दा पात्रोमा स्वचालित रूपमा थपिन्छ (१-२ घण्टा लाग्न सक्छ। थपिएन भने मात्र आफैं दर्ता गर्नुहोस्)',
 'rules.schedule.title':'तालिका दर्ता',
 'rules.schedule.1':'त्यस दिनको बिहान सम्ममा तालिका दर्ता गर्नुहोस्',
 'rules.schedule.2':'शीर्षक विशिष्ट लेख्नुहोस्',
