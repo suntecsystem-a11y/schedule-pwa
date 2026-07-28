@@ -279,6 +279,7 @@ input,select{font-family:inherit;outline:none}
 .status-会議中{background:#e8eaf6;color:#1a237e}
 .status-休み{background:#fbe9e7;color:#bf360c}
 .status-在席{background:#f5f5f5;color:#616161}
+.status-来社{background:#e0f2f1;color:#004d40}
 
 /* チーム */
 .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
@@ -1080,6 +1081,7 @@ input,select{font-family:inherit;outline:none}
             <option value="出張">✈️ 出張</option>
             <option value="休暇">🌴 休暇</option>
             <option value="在宅">🏠 在宅</option>
+            <option value="来社">🤝 来社</option>
           </select>
         </div>
         <span style="color:var(--text2);font-size:0.8em">▼</span>
@@ -1428,13 +1430,13 @@ const ROOMS = [
   {id:'1階会議室', name:'1階会議室', floor:'1F', capacity:8},
   {id:'2階会議室', name:'2階会議室', floor:'2F', capacity:4},
 ];
-const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休み','在宅'];
+const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休み','在宅','来社'];
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅'];
 const COLOR_PALETTES = {
-  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','在席':'#ccc','会議中':'#9fa8da'},
-  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','在席':'#ccc','会議中':'#90a4ae'},
-  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','在席':'#ccc','会議中':'#e57373'},
+  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','在席':'#ccc','会議中':'#9fa8da'},
+  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','来社':'#26a69a','在席':'#ccc','会議中':'#90a4ae'},
+  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','来社':'#009688','在席':'#ccc','会議中':'#e57373'},
 };
 let colorMode = localStorage.getItem('sch_color_mode') || 'normal';
 const STATUS_COLOR = {...COLOR_PALETTES.normal};
@@ -1448,7 +1450,7 @@ function applyColorMode(mode) {
 }
 Object.assign(STATUS_COLOR, COLOR_PALETTES[colorMode] || COLOR_PALETTES.normal);
 const MULTIDAY_TYPES = ['出張','休暇','休み','在宅'];
-const TIMED_TYPES    = ['会議室','打ち合わせ','外出'];
+const TIMED_TYPES    = ['会議室','打ち合わせ','外出','来社'];
 const ALLDAY_TOGGLE_TYPES = ['出張','休暇','在宅','外出'];
 const RENTAL_TYPES = ['外出','出張','在宅']; // レンタル申請対象の種別
 // 写真アップロード用GAS（既存のアルコールチェッカーと共用）
@@ -1509,7 +1511,7 @@ ja:{
 'common.error':'エラーが発生しました','common.timeout':'⚠️ 通信がタイムアウトしました',
 // 種別
 'type.room':'会議室','type.meeting':'打ち合わせ','type.out':'外出','type.trip':'出張',
-'type.leave':'休暇','type.rest':'休み','type.remote':'在宅',
+'type.leave':'休暇','type.rest':'休み','type.remote':'在宅','type.visit':'来社',
 'type.busy':'会議中','type.present':'在席',
 // ホーム
 'home.today.schedule':'📅 今日の予定','home.room.avail':'🏢 会議室の空き',
@@ -1823,7 +1825,7 @@ vi:{
 'common.offline.short':'📵 Ngoại tuyến',
 'common.error':'Đã xảy ra lỗi','common.timeout':'⚠️ Kết nối quá thời gian',
 'type.room':'Phòng họp','type.meeting':'Họp','type.out':'Ra ngoài','type.trip':'Công tác',
-'type.leave':'Nghỉ phép','type.rest':'Nghỉ','type.remote':'Tại nhà',
+'type.leave':'Nghỉ phép','type.rest':'Nghỉ','type.remote':'Tại nhà','type.visit':'Đến công ty',
 'type.busy':'Đang họp','type.present':'Có mặt',
 'home.today.schedule':'📅 Lịch hôm nay','home.room.avail':'🏢 Phòng họp trống',
 'home.car.avail':'🚗 Xe trống (hôm nay)','home.notice':'📢 Thông báo',
@@ -2119,7 +2121,7 @@ ne:{
 'common.offline.short':'📵 अफलाइन',
 'common.error':'त्रुटि भयो','common.timeout':'⚠️ जडान समय सकियो',
 'type.room':'बैठक कोठा','type.meeting':'बैठक','type.out':'बाहिर','type.trip':'व्यापार यात्रा',
-'type.leave':'बिदा','type.rest':'आराम','type.remote':'घरबाट काम',
+'type.leave':'बिदा','type.rest':'आराम','type.remote':'घरबाट काम','type.visit':'कार्यालय भ्रमण',
 'type.busy':'बैठकमा','type.present':'उपस्थित',
 'home.today.schedule':'📅 आजको तालिका','home.room.avail':'🏢 खाली कोठा',
 'home.car.avail':'🚗 खाली गाडी (आज)','home.notice':'📢 सूचना',
@@ -2390,7 +2392,7 @@ function t(key,params){
   return s.replace(/\{(\w+)\}/g,(_,k)=>params[k]!=null?params[k]:_);
 }
 function tType(type){
-  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','在宅':'type.remote','会議中':'type.busy','在席':'type.present'};
+  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','在宅':'type.remote','来社':'type.visit','会議中':'type.busy','在席':'type.present'};
   return m[type]?t(m[type]):type;
 }
 function tDow(i){return[t('common.mon'),t('common.tue'),t('common.wed'),t('common.thu'),t('common.fri'),t('common.sat'),t('common.sun')][i];}
@@ -2524,7 +2526,7 @@ function applyLanguage(lang){
   const _gcw=document.getElementById('general-conflict-warn');if(_gcw)_gcw.textContent=t('ev.general.conflict');
   // 種別select
   const _evt=document.getElementById('ev-type');
-  if(_evt){const cv=_evt.value;_evt.innerHTML=['会議室','打ち合わせ','外出','出張','休暇','在宅'].map(v=>`<option value="${v}">${TYPE_ICON[v]||''} ${tType(v)}</option>`).join('');_evt.value=cv;}
+  if(_evt){const cv=_evt.value;_evt.innerHTML=['会議室','打ち合わせ','外出','出張','休暇','在宅','来社'].map(v=>`<option value="${v}">${TYPE_ICON[v]||''} ${tType(v)}</option>`).join('');_evt.value=cv;}
   // 繰り返しselect
   const _evr=document.getElementById('ev-repeat');
   if(_evr){const cv=_evr.value;_evr.innerHTML=`<option value="">${t('ev.repeat.none')}</option><option value="daily">${t('ev.repeat.daily')}</option><option value="weekday">${t('ev.repeat.weekday')}</option><option value="weekly">${t('ev.repeat.weekly')}</option><option value="monthly">${t('ev.repeat.monthly')}</option>`;_evr.value=cv;}
@@ -2682,7 +2684,7 @@ function uid(){ return 'e'+Date.now()+Math.random().toString(36).slice(2,6) }
 // "HH:MM" → 分数値（時刻比較用）
 function timeToMins(t){ if(!t) return 0; const[h,m]=(t+':0').split(':'); return +h*60+(+m||0) }
 function userName(id){ return USERS.find(u=>u.id===id)?.name || id }
-const TYPE_ICON = {会議室:'🏢',外出:'🚶',出張:'✈️',休暇:'🌴',在宅:'🏠',打ち合わせ:'💬'};
+const TYPE_ICON = {会議室:'🏢',外出:'🚶',出張:'✈️',休暇:'🌴',在宅:'🏠',打ち合わせ:'💬',来社:'🤝'};
 function typeIcon(t){ return TYPE_ICON[t]||'📌' }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200) }
 function jpNationalHolidays(y){
@@ -3533,7 +3535,7 @@ function renderRoomTimeline(){
 
 // ===== 在籍ボード =====
 // 会議室・打ち合わせは時刻チェックあり、それ以外は日付のみで判定
-const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','打ち合わせ','会議中'];
+const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','打ち合わせ','会議中'];
 const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢'};
 
 function renderTeam(){
