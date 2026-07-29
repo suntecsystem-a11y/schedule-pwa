@@ -263,6 +263,12 @@
     .input-row { display: flex; gap: 8px; align-items: flex-end; }
     .input-row textarea { flex: 1; padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 20px; font-size: 14px; resize: none; outline: none; max-height: 120px; font-family: inherit; line-height: 1.5; }
     .input-row textarea:focus { border-color: #1a73e8; }
+    .msg-input-div { flex: 1; padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 20px; font-size: 14px; outline: none; max-height: 120px; min-height: 40px; font-family: inherit; line-height: 1.5; overflow-y: auto; word-break: break-word; }
+    .msg-input-div:focus { border-color: #1a73e8; }
+    .msg-input-div:empty::before { content: attr(data-placeholder); color: #aaa; pointer-events: none; }
+    .msg-input-div b, .msg-input-div strong { font-weight: bold; }
+    .msg-input-div i, .msg-input-div em { font-style: italic; }
+    .msg-input-div s, .msg-input-div strike { text-decoration: line-through; }
     .file-input-btn { width: 36px; height: 36px; background: #f0f0f0; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
     .file-input-btn:hover { background: #e0e0e0; }
     .send-btn { width: 40px; height: 40px; background: #1a73e8; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -420,8 +426,10 @@
             <input type="file" id="stampImageInput" style="display:none" onchange="onStampImageSelected()" accept="image/*" />
             <button class="file-input-btn" onclick="document.getElementById('fileInput').click()" title="ファイル添付">📎</button>
             <button class="file-input-btn" onclick="openSchedulePoll()" title="日程調整">📅</button>
-            <textarea id="msgInput" placeholder="メッセージを入力（Shift+Enterで改行）@で宛先指定" rows="1"
-              oninput="onMsgInput(this)" onkeydown="handleKey(event,'main')"></textarea>
+            <div id="msgInput" class="msg-input-div" contenteditable="true"
+              data-placeholder="メッセージを入力（Shift+Enterで改行）@で宛先指定"
+              oninput="onMsgInput(this)" onkeydown="handleKey(event,'main')"
+              onpaste="onMsgPaste(event)"></div>
             <button class="send-btn" onclick="sendMessage()">
               <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
             </button>
@@ -1447,35 +1455,38 @@
   }
 
   function applyFmt(type) {
-    const ta = document.getElementById('msgInput');
-    const start = ta.selectionStart, end = ta.selectionEnd;
-    const selected = ta.value.substring(start, end);
-    const map = { bold: '**', italic: '*', strike: '~~', highlight: '==' };
-    const marker = map[type];
-    const inner = selected || 'テキスト';
-    const newText = marker + inner + marker;
-    ta.value = ta.value.substring(0, start) + newText + ta.value.substring(end);
-    ta.focus();
-    if (!selected) {
-      ta.selectionStart = start + marker.length;
-      ta.selectionEnd = start + marker.length + inner.length;
-    } else {
-      ta.selectionStart = start;
-      ta.selectionEnd = start + newText.length;
-    }
-    autoResize(ta);
+    const div = document.getElementById('msgInput');
+    div.focus();
+    if (type === 'bold') document.execCommand('bold', false, null);
+    else if (type === 'italic') document.execCommand('italic', false, null);
+    else if (type === 'strike') document.execCommand('strikeThrough', false, null);
+    else if (type === 'highlight') document.execCommand('hiliteColor', false, '#fff176');
   }
 
   function applyColor(color) {
-    const ta = document.getElementById('msgInput');
-    const start = ta.selectionStart, end = ta.selectionEnd;
-    const selected = ta.value.substring(start, end);
-    const inner = selected || 'テキスト';
-    const newText = `[c:${color}]${inner}[/c]`;
-    ta.value = ta.value.substring(0, start) + newText + ta.value.substring(end);
-    ta.focus();
+    const div = document.getElementById('msgInput');
+    div.focus();
+    document.execCommand('foreColor', false, color);
     document.getElementById('colorPickerPop').classList.remove('open');
-    autoResize(ta);
+  }
+
+  function htmlToContent(html) {
+    return html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<div>/gi, '\n').replace(/<\/div>/gi, '')
+      .replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**')
+      .replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**')
+      .replace(/<i>([\s\S]*?)<\/i>/gi, '*$1*')
+      .replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*')
+      .replace(/<s>([\s\S]*?)<\/s>/gi, '~~$1~~')
+      .replace(/<strike>([\s\S]*?)<\/strike>/gi, '~~$1~~')
+      .replace(/<del>([\s\S]*?)<\/del>/gi, '~~$1~~')
+      .replace(/<mark[^>]*>([\s\S]*?)<\/mark>/gi, '==$1==')
+      .replace(/<span[^>]*background-color:\s*rgb\(255,\s*241,\s*118\)[^>]*>([\s\S]*?)<\/span>/gi, '==$1==')
+      .replace(/<span[^>]*color:\s*([^;"]+)[^>]*>([\s\S]*?)<\/span>/gi, '[c:$1]$2[/c]')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .trim();
   }
 
   function toggleColorPicker(e) {
@@ -1838,11 +1849,11 @@
   // ── メッセージ送信 ─────────────────────────────────
   async function sendMessage() {
     const input = document.getElementById('msgInput');
-    const content = input.value.trim();
+    const content = htmlToContent(input.innerHTML);
     if (!content && !selectedFile) return;
     if (!currentChannel) return;
 
-    input.value = ''; input.style.height = 'auto';
+    input.innerHTML = '';
     hideMentionSuggestions();
 
     // 投票コマンド検出: /vote 質問 選択肢1 選択肢2 ...
@@ -2232,10 +2243,12 @@
 
   // ── メンション ────────────────────────────────────
   function onMsgInput(el) {
-    autoResize(el);
-    const val = el.value;
-    const pos = el.selectionStart;
-    const before = val.substring(0, pos);
+    const sel = window.getSelection();
+    if (!sel.rangeCount) { hideMentionSuggestions(); return; }
+    const range = sel.getRangeAt(0).cloneRange();
+    range.collapse(true);
+    range.setStart(el, 0);
+    const before = range.toString();
     const atIdx = before.lastIndexOf('@');
     if (atIdx >= 0 && !before.substring(atIdx + 1).includes(' ')) {
       mentionQuery = before.substring(atIdx + 1).toLowerCase();
@@ -2244,6 +2257,12 @@
       if (filtered.length) { showMentionSuggestions(filtered); return; }
     }
     hideMentionSuggestions();
+  }
+
+  function onMsgPaste(e) {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
   }
 
   function showMentionSuggestions(users) {
@@ -2265,10 +2284,39 @@
 
   function insertMention(name) {
     const input = document.getElementById('msgInput');
-    const val = input.value;
-    const pos = input.selectionStart;
-    input.value = val.substring(0, mentionStart) + '@' + name + ' ' + val.substring(pos);
     input.focus();
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    // @から現在位置までを削除して@nameに置換
+    const fullRange = document.createRange();
+    // テキストノードを走査して@位置を特定
+    let charCount = 0, found = false;
+    function findNode(node) {
+      if (found) return;
+      if (node.nodeType === 3) {
+        const len = node.textContent.length;
+        if (charCount + len > mentionStart) {
+          fullRange.setStart(node, mentionStart - charCount);
+          found = true;
+        }
+        charCount += len;
+      } else {
+        node.childNodes.forEach(findNode);
+      }
+    }
+    findNode(input);
+    if (found) {
+      fullRange.setEnd(range.endContainer, range.endOffset);
+      fullRange.deleteContents();
+      const textNode = document.createTextNode('@' + name + ' ');
+      fullRange.insertNode(textNode);
+      const newRange = document.createRange();
+      newRange.setStartAfter(textNode);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
     hideMentionSuggestions();
   }
 
@@ -2300,6 +2348,9 @@
       e.preventDefault();
       if (target === 'main') sendMessage();
       else sendThreadReply();
+    } else if (e.key === 'Enter' && e.shiftKey && target === 'main') {
+      e.preventDefault();
+      document.execCommand('insertLineBreak');
     }
   }
 
