@@ -1436,7 +1436,7 @@
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/~~(.+?)~~/g, '<del>$1</del>')
       .replace(/==(.+?)==/g, '<mark style="background:#fff176;color:#333;padding:0 2px;border-radius:2px;">$1</mark>')
-      .replace(/\[c:([a-zA-Z#0-9]+)\](.+?)\[\/c\]/g, '<span style="color:$1">$2</span>');
+      .replace(/\[c:([^\]]+)\](.+?)\[\/c\]/g, '<span style="color:$1">$2</span>');
   }
 
   // ── テキスト書式 ──────────────────────────────────
