@@ -1436,7 +1436,7 @@
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
       .replace(/~~(.+?)~~/g, '<del>$1</del>')
       .replace(/==(.+?)==/g, '<mark style="background:#fff176;color:#333;padding:0 2px;border-radius:2px;">$1</mark>')
-      .replace(/\[c:([^\]]+)\](.+?)\[\/c\]/g, '<span style="color:$1">$2</span>');
+      .replace(/\[c:([^\]]+)\]([\s\S]+?)\[\/c\]/g, '<span style="color:$1">$2</span>');
   }
 
   // ── テキスト書式 ──────────────────────────────────
@@ -1496,22 +1496,25 @@
   }
 
   function htmlToContent(html) {
+    if (!html) return '';
     return html
       .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<div>/gi, '\n').replace(/<\/div>/gi, '')
-      .replace(/<b>([\s\S]*?)<\/b>/gi, '**$1**')
-      .replace(/<strong>([\s\S]*?)<\/strong>/gi, '**$1**')
-      .replace(/<i>([\s\S]*?)<\/i>/gi, '*$1*')
-      .replace(/<em>([\s\S]*?)<\/em>/gi, '*$1*')
-      .replace(/<s>([\s\S]*?)<\/s>/gi, '~~$1~~')
-      .replace(/<strike>([\s\S]*?)<\/strike>/gi, '~~$1~~')
-      .replace(/<del>([\s\S]*?)<\/del>/gi, '~~$1~~')
+      .replace(/<div[^>]*>/gi, '\n').replace(/<\/div>/gi, '')
+      .replace(/<p[^>]*>/gi, '\n').replace(/<\/p>/gi, '')
+      .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**')
+      .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**')
+      .replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*')
+      .replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*')
+      .replace(/<s[^>]*>([\s\S]*?)<\/s>/gi, '~~$1~~')
+      .replace(/<strike[^>]*>([\s\S]*?)<\/strike>/gi, '~~$1~~')
+      .replace(/<del[^>]*>([\s\S]*?)<\/del>/gi, '~~$1~~')
       .replace(/<mark[^>]*>([\s\S]*?)<\/mark>/gi, '==$1==')
-      .replace(/<span[^>]*background-color:\s*rgb\(255,\s*241,\s*118\)[^>]*>([\s\S]*?)<\/span>/gi, '==$1==')
-      .replace(/<span[^>]*color:\s*([^;"]+)[^>]*>([\s\S]*?)<\/span>/gi, '[c:$1]$2[/c]')
+      .replace(/<span[^>]*background(?:-color)?:[^;]*rgb\(255,\s*241,\s*118\)[^>]*>([\s\S]*?)<\/span>/gi, '==$1==')
+      .replace(/<span[^>]*color:\s*([^;"]+?)\s*[;"'][^>]*>([\s\S]*?)<\/span>/gi, (_, c, t) => `[c:${c.trim()}]${t}[/c]`)
+      .replace(/<font[^>]*color="([^"]+)"[^>]*>([\s\S]*?)<\/font>/gi, '[c:$1]$2[/c]')
       .replace(/<[^>]+>/g, '')
       .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
-      .trim();
+      .replace(/^\n+/, '').trim();
   }
 
   function toggleColorPicker(e) {
@@ -1874,7 +1877,9 @@
   // ── メッセージ送信 ─────────────────────────────────
   async function sendMessage() {
     const input = document.getElementById('msgInput');
-    const content = htmlToContent(input.innerHTML);
+    let content;
+    try { content = htmlToContent(input.innerHTML); }
+    catch(e) { content = (input.innerText || '').trim(); }
     if (!content && !selectedFile) return;
     if (!currentChannel) return;
 
