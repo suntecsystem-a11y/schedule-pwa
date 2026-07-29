@@ -232,8 +232,9 @@
 
     /* テキスト書式ツールバー */
     .fmt-toolbar { display: flex; gap: 3px; padding: 4px 0 2px; flex-wrap: wrap; align-items: center; }
-    .fmt-btn { background: none; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px; padding: 2px 8px; color: #555; line-height: 1.5; }
+    .fmt-btn { background: none; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px; padding: 2px 8px; color: #555; line-height: 1.5; transition: background .1s, border-color .1s; }
     .fmt-btn:hover { background: #f0f0f0; border-color: #bbb; }
+    .fmt-btn.active { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; }
     .fmt-color-wrap { position: relative; }
     .color-picker-pop { position: absolute; background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); padding: 8px; display: none; z-index: 100; flex-wrap: wrap; gap: 6px; width: 150px; bottom: calc(100% + 4px); left: 0; }
     .color-picker-pop.open { display: flex; }
@@ -411,12 +412,12 @@
             <button onclick="clearFile()">×</button>
           </div>
           <div class="fmt-toolbar" id="fmtToolbar">
-            <button class="fmt-btn" onclick="applyFmt('bold')" title="太字"><b>B</b></button>
-            <button class="fmt-btn" onclick="applyFmt('italic')" title="斜体"><i>I</i></button>
-            <button class="fmt-btn" onclick="applyFmt('strike')" title="取り消し線"><s>S</s></button>
-            <button class="fmt-btn" onclick="applyFmt('highlight')" title="ハイライト" style="background:#fff176;border-color:#ddd;">H</button>
+            <button class="fmt-btn" data-fmt="bold" onclick="applyFmt('bold')" title="太字"><b>B</b></button>
+            <button class="fmt-btn" data-fmt="italic" onclick="applyFmt('italic')" title="斜体"><i>I</i></button>
+            <button class="fmt-btn" data-fmt="strike" onclick="applyFmt('strike')" title="取り消し線"><s>S</s></button>
+            <button class="fmt-btn" data-fmt="highlight" onclick="applyFmt('highlight')" title="ハイライト" style="background:#fff176;border-color:#ddd;">H</button>
             <div class="fmt-color-wrap">
-              <button class="fmt-btn" onclick="toggleColorPicker(event)" title="文字色">🎨 色</button>
+              <button class="fmt-btn" id="currentColorBtn" onclick="toggleColorPicker(event)" title="文字色">🎨 色</button>
               <div id="colorPickerPop" class="color-picker-pop"></div>
             </div>
           </div>
@@ -1454,6 +1455,28 @@
     ).join('') + `<div class="color-dot" style="background:#333;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;" title="黒" onclick="applyColor('#333')">A</div>`;
   }
 
+  function updateFmtButtons() {
+    const btns = document.querySelectorAll('#fmtToolbar .fmt-btn[data-fmt]');
+    btns.forEach(btn => {
+      const fmt = btn.dataset.fmt;
+      let active = false;
+      if (fmt === 'bold') active = document.queryCommandState('bold');
+      else if (fmt === 'italic') active = document.queryCommandState('italic');
+      else if (fmt === 'strike') active = document.queryCommandState('strikeThrough');
+      else if (fmt === 'highlight') {
+        const bg = document.queryCommandValue('hiliteColor') || document.queryCommandValue('backColor');
+        active = bg.includes('255, 241, 118') || bg === 'rgb(255, 241, 118)' || bg === '#fff176';
+      }
+      btn.classList.toggle('active', active);
+    });
+    // 色ボタンに現在の文字色を反映
+    const colorBtn = document.getElementById('currentColorBtn');
+    if (colorBtn) {
+      const color = document.queryCommandValue('foreColor');
+      colorBtn.style.borderBottom = color && color !== 'rgb(0, 0, 0)' ? `3px solid ${color}` : '3px solid transparent';
+    }
+  }
+
   function applyFmt(type) {
     const div = document.getElementById('msgInput');
     div.focus();
@@ -1461,6 +1484,7 @@
     else if (type === 'italic') document.execCommand('italic', false, null);
     else if (type === 'strike') document.execCommand('strikeThrough', false, null);
     else if (type === 'highlight') document.execCommand('hiliteColor', false, '#fff176');
+    updateFmtButtons();
   }
 
   function applyColor(color) {
@@ -1468,6 +1492,7 @@
     div.focus();
     document.execCommand('foreColor', false, color);
     document.getElementById('colorPickerPop').classList.remove('open');
+    updateFmtButtons();
   }
 
   function htmlToContent(html) {
@@ -2258,6 +2283,15 @@
     }
     hideMentionSuggestions();
   }
+
+  document.addEventListener('selectionchange', () => {
+    const div = document.getElementById('msgInput');
+    if (!div) return;
+    const sel = window.getSelection();
+    if (sel.rangeCount && div.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      updateFmtButtons();
+    }
+  });
 
   function onMsgPaste(e) {
     e.preventDefault();
