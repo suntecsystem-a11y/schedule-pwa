@@ -3391,21 +3391,31 @@ function renderWeek(){
       return{e,top,height:Math.max(bot-top,18),sm,em:Math.max(em,sm+15)};
     });
     evRects.sort((a,b)=>a.sm-b.sm||b.height-a.height);
-    const cols=[];
+    const clusters=[];
     evRects.forEach(r=>{
-      let placed=false;
-      for(let c=0;c<cols.length;c++){
-        if(cols[c].every(o=>r.sm>=o.em||r.em<=o.sm)){cols[c].push(r);r.col=c;placed=true;break;}
+      let merged=null;
+      for(const cl of clusters){
+        if(cl.some(o=>r.sm<o.em&&r.em>o.sm)){merged=cl;break;}
       }
-      if(!placed){r.col=cols.length;cols.push([r]);}
+      if(merged) merged.push(r); else clusters.push([r]);
     });
-    const totalCols=cols.length||1;
+    clusters.forEach(cl=>{
+      const cols=[];
+      cl.forEach(r=>{
+        let placed=false;
+        for(let c=0;c<cols.length;c++){
+          if(cols[c].every(o=>r.sm>=o.em||r.em<=o.sm)){cols[c].push(r);r.col=c;placed=true;break;}
+        }
+        if(!placed){r.col=cols.length;cols.push([r]);}
+      });
+      cl.forEach(r=>r.totalCols=cols.length);
+    });
     html+=`<div class="week-day-col" onclick="onCellClick('${ds}')">`;
     html+=Array.from({length:TOTAL_H},()=>`<div class="week-hour-line"></div>`).join('');
     evRects.forEach(r=>{
       const e=r.e, ip=e.approvalStatus==='申請中';
       const bg=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
-      const w=100/totalCols, l=r.col*w;
+      const w=100/r.totalCols, l=r.col*w;
       html+=`<div class="week-event" style="${bg};top:${r.top}px;height:${r.height}px;left:${l}%;width:${w}%" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?t('cal.pending'):''}${typeIcon(e.type)} ${esc(e.title||tType(e.type))}</div>`;
     });
     html+=`</div>`;
