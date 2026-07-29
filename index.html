@@ -3408,14 +3408,23 @@ function renderWeek(){
         }
         if(!placed){r.col=cols.length;cols.push([r]);}
       });
-      cl.forEach(r=>r.totalCols=cols.length);
+      const nc=cols.length;
+      cl.forEach(r=>{
+        r.totalCols=nc;
+        let span=1;
+        for(let c=r.col+1;c<nc;c++){
+          if(cols[c].some(o=>r.sm<o.em&&r.em>o.sm)) break;
+          span++;
+        }
+        r.span=span;
+      });
     });
     html+=`<div class="week-day-col" onclick="onCellClick('${ds}')">`;
     html+=Array.from({length:TOTAL_H},()=>`<div class="week-hour-line"></div>`).join('');
     evRects.forEach(r=>{
       const e=r.e, ip=e.approvalStatus==='申請中';
       const bg=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
-      const w=100/r.totalCols, l=r.col*w;
+      const w=100*r.span/r.totalCols, l=r.col*100/r.totalCols;
       html+=`<div class="week-event" style="${bg};top:${r.top}px;height:${r.height}px;left:${l}%;width:${w}%" onclick="event.stopPropagation();openDetail('${e.id}')">${ip?t('cal.pending'):''}${typeIcon(e.type)} ${esc(e.title||tType(e.type))}</div>`;
     });
     html+=`</div>`;
