@@ -871,128 +871,169 @@ input,select{font-family:inherit;outline:none}
         <div class="prop-accordion">
           <div class="prop-acc-header open" onclick="togglePropAcc(this)">
             <span class="prop-acc-num">1</span>
-            <span class="prop-acc-label" id="prop-step1-label">基本情報</span>
-            <span class="prop-acc-badge" id="prop-step1-badge">必須</span>
+            <span class="prop-acc-label">基本情報</span>
+            <span class="prop-acc-badge">必須</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body open">
             <div class="prop-acc-inner">
               <div class="prop-field">
-                <label class="prop-required" id="prop-title-label">企画名</label>
+                <label class="prop-required">企画名</label>
                 <input type="text" id="prop-title" placeholder="企画のタイトルを入力">
               </div>
               <div class="prop-field">
-                <label id="prop-date-label">提出日</label>
+                <label>コンセプト・キャッチコピー</label>
+                <input type="text" id="prop-concept" placeholder="例：「問い合わせゼロの職場を、AIでつくる。」">
+              </div>
+              <div class="prop-field">
+                <label>提出日</label>
                 <input type="date" id="prop-date">
               </div>
             </div>
           </div>
         </div>
-        <!-- Step2: 概要・背景・目的 -->
+        <!-- Step2: 概要・背景 -->
         <div class="prop-accordion">
           <div class="prop-acc-header" onclick="togglePropAcc(this)">
             <span class="prop-acc-num">2</span>
-            <span class="prop-acc-label" id="prop-step2-label">概要・背景・目的</span>
-            <span class="prop-acc-badge" id="prop-step2-badge">必須</span>
+            <span class="prop-acc-label">概要・背景</span>
+            <span class="prop-acc-badge">必須</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body">
             <div class="prop-acc-inner">
               <div class="prop-field">
-                <label class="prop-required" id="prop-summary-label">概要（サマリー）</label>
-                <textarea id="prop-summary" placeholder="企画の要点を数行で記入。決裁者はここだけ読んで判断することも多いため、簡潔にまとめてください"></textarea>
+                <label class="prop-required">概要（サマリー）</label>
+                <textarea id="prop-summary" placeholder="企画の要点を数行で。決裁者はここだけ読んで判断することも多い"></textarea>
               </div>
               <div class="prop-field">
-                <label class="prop-required" id="prop-bg-label">背景・目的</label>
-                <textarea id="prop-background" placeholder="なぜこの企画が必要か。現状の課題、市場動向、きっかけとなった出来事など"></textarea>
+                <label class="prop-required">背景・目的</label>
+                <textarea id="prop-background" placeholder="なぜこの企画が必要か。現状の課題、市場動向、きっかけなど"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>課題データ・出典</label>
+                <textarea id="prop-challengeData" placeholder="課題を裏付ける数値データと出典&#10;例：月間問い合わせ500件、うち定型400件（社内調査2026年）&#10;例：対応コスト月80時間×人件費3,000円＝年間288万円"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <!-- Step3: 現状分析・企画内容 -->
+        <!-- Step3: 市場・競合分析 -->
         <div class="prop-accordion">
           <div class="prop-acc-header" onclick="togglePropAcc(this)">
             <span class="prop-acc-num">3</span>
-            <span class="prop-acc-label" id="prop-step3-label">現状分析・企画内容</span>
-            <span class="prop-acc-badge" id="prop-step3-badge">必須</span>
+            <span class="prop-acc-label">市場・競合分析</span>
+            <span class="prop-acc-badge">任意</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body">
             <div class="prop-acc-inner">
               <div class="prop-field">
-                <label id="prop-analysis-label">現状分析</label>
-                <textarea id="prop-analysis" placeholder="課題の具体的な内容（データ、数値があると説得力UP）。3C分析やSWOT分析など"></textarea>
+                <label>市場規模</label>
+                <textarea id="prop-marketSize" placeholder="対象市場の規模・成長率と出典&#10;例：国内AIチャットボット市場 約300億円（2025年、〇〇調査）" style="min-height:60px"></textarea>
               </div>
               <div class="prop-field">
-                <label class="prop-required" id="prop-content-label">企画内容（提案の核）</label>
-                <textarea id="prop-content" placeholder="何を、どうやって実現するか。ターゲット、施策内容、差別化ポイントなど"></textarea>
+                <label>競合分析</label>
+                <textarea id="prop-competitors" placeholder="主な競合サービス・製品と、それぞれの強み・弱み&#10;例：A社 — 低価格だがカスタマイズ性低い&#10;例：B社 — 高機能だが導入コスト高い"></textarea>
               </div>
               <div class="prop-field">
-                <label id="prop-target-label">ターゲット</label>
-                <textarea id="prop-target" placeholder="対象となる顧客層、市場セグメントなど" style="min-height:60px"></textarea>
+                <label>自社ポジショニング</label>
+                <textarea id="prop-positioning" placeholder="競合と比べた自社の立ち位置・差別化ポイント&#10;例：価格帯は中程度だが、社内ナレッジとの連携で回答精度が圧倒的に高い" style="min-height:60px"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <!-- Step4: スケジュール・体制 -->
+        <!-- Step4: ペルソナ・企画内容 -->
         <div class="prop-accordion">
           <div class="prop-acc-header" onclick="togglePropAcc(this)">
             <span class="prop-acc-num">4</span>
-            <span class="prop-acc-label" id="prop-step4-label">スケジュール・体制</span>
-            <span class="prop-acc-badge" id="prop-step4-badge">任意</span>
+            <span class="prop-acc-label">ペルソナ・企画内容</span>
+            <span class="prop-acc-badge">必須</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body">
             <div class="prop-acc-inner">
               <div class="prop-field">
-                <label id="prop-schedule-label">スケジュール</label>
-                <textarea id="prop-schedule" placeholder="いつまでに何をするか（マイルストーン）"></textarea>
+                <label>ペルソナ（ターゲット像）</label>
+                <textarea id="prop-target" placeholder="想定するユーザー像を具体的に&#10;例：総務部 田中さん（30代）入社5年目、問い合わせ対応が本来業務を圧迫&#10;ニーズ：定型質問を自動化し、本来業務に集中したい"></textarea>
               </div>
               <div class="prop-field">
-                <label id="prop-team-label">体制・役割分担</label>
-                <textarea id="prop-team" placeholder="誰が何を担当するか、必要なリソース（人員、外部パートナーなど）"></textarea>
+                <label class="prop-required">企画内容（提案の核）</label>
+                <textarea id="prop-content" placeholder="何を、どうやって実現するか&#10;施策内容、主要機能、差別化ポイントなど"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <!-- Step5: 予算・KPI -->
+        <!-- Step5: スケジュール・体制 -->
         <div class="prop-accordion">
           <div class="prop-acc-header" onclick="togglePropAcc(this)">
             <span class="prop-acc-num">5</span>
-            <span class="prop-acc-label" id="prop-step5-label">予算・KPI</span>
-            <span class="prop-acc-badge" id="prop-step5-badge">任意</span>
+            <span class="prop-acc-label">スケジュール・体制</span>
+            <span class="prop-acc-badge">任意</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body">
             <div class="prop-acc-inner">
               <div class="prop-field">
-                <label id="prop-budget-label">予算・コスト</label>
-                <textarea id="prop-budget" placeholder="必要な費用の内訳、ROIや費用対効果の見込み"></textarea>
+                <label>スケジュール</label>
+                <textarea id="prop-schedule" placeholder="いつまでに何をするか（マイルストーン）&#10;例：Phase1（1-2月）PoC → Phase2（3-4月）本番導入"></textarea>
               </div>
               <div class="prop-field">
-                <label id="prop-kpi-label">期待される効果・KPI</label>
-                <textarea id="prop-kpi" placeholder="定量的な目標（売上、利用率など）、定性的な効果（ブランド向上など）"></textarea>
+                <label>体制・役割分担</label>
+                <textarea id="prop-team" placeholder="誰が何を担当するか、必要なリソース"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <!-- Step6: リスク・まとめ -->
+        <!-- Step6: 予算・収益 -->
         <div class="prop-accordion">
           <div class="prop-acc-header" onclick="togglePropAcc(this)">
             <span class="prop-acc-num">6</span>
-            <span class="prop-acc-label" id="prop-step6-label">リスクと対策・まとめ</span>
-            <span class="prop-acc-badge" id="prop-step6-badge">任意</span>
+            <span class="prop-acc-label">予算・収益</span>
+            <span class="prop-acc-badge">任意</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body">
             <div class="prop-acc-inner">
               <div class="prop-field">
-                <label id="prop-risk-label">リスクと対策</label>
-                <textarea id="prop-risk" placeholder="想定されるリスクとその対応策"></textarea>
+                <label>予算・初期投資</label>
+                <textarea id="prop-budget" placeholder="必要な費用の内訳&#10;例：初期導入費50万、月額運用費5万"></textarea>
               </div>
               <div class="prop-field">
-                <label id="prop-conclusion-label">まとめ・結論</label>
-                <textarea id="prop-conclusion" placeholder="改めて要点と次のアクションを明記"></textarea>
+                <label>価格・売上試算</label>
+                <textarea id="prop-priceSales" placeholder="価格設定と売上見込み&#10;例：本体価格〇〇円、初年度売上見込み〇〇万円"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>シナリオ別試算</label>
+                <textarea id="prop-scenarios" placeholder="保守的／標準／楽観の3パターン&#10;例：保守的 — 年間売上500万（採用率30%）&#10;例：標準 — 年間売上800万（採用率50%）&#10;例：楽観 — 年間売上1200万（採用率70%）"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Step7: KPI・リスク・まとめ -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">7</span>
+            <span class="prop-acc-label">KPI・リスク・まとめ</span>
+            <span class="prop-acc-badge">任意</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label>KPI・成果指標</label>
+                <textarea id="prop-kpi" placeholder="定量KPIと測定方法&#10;例：主指標 — 自動回答率80%以上&#10;例：参考指標 — 社員満足度4.0以上/5.0"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>リスクと対策</label>
+                <textarea id="prop-risk" placeholder="想定リスクと対応策&#10;例：AI精度不足 → 段階的導入で検証"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>まとめ・結論</label>
+                <textarea id="prop-conclusion" placeholder="改めて要点と、承認後の具体的な次のアクション"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>今後の課題・未確定事項</label>
+                <textarea id="prop-futureTasks" placeholder="現時点で未確定の事項、次に調査・決定すべきこと&#10;例：ベンダー選定（3社比較中）&#10;例：セキュリティ審査（情シス確認待ち）"></textarea>
               </div>
             </div>
           </div>
@@ -6242,18 +6283,25 @@ function openProposalForm(editData) {
   showProposalView('proposal-form-view');
   document.getElementById('proposal-form-title').textContent = editData ? t('prop.edit.title') : t('prop.new');
   document.getElementById('prop-title').value = editData?.title || '';
+  document.getElementById('prop-concept').value = editData?.concept || '';
   document.getElementById('prop-date').value = editData?.submitDate || new Date().toISOString().slice(0,10);
   document.getElementById('prop-summary').value = editData?.summary || '';
   document.getElementById('prop-background').value = editData?.background || '';
-  document.getElementById('prop-analysis').value = editData?.analysis || '';
-  document.getElementById('prop-content').value = editData?.content || '';
+  document.getElementById('prop-challengeData').value = editData?.challengeData || '';
+  document.getElementById('prop-marketSize').value = editData?.marketSize || '';
+  document.getElementById('prop-competitors').value = editData?.competitors || '';
+  document.getElementById('prop-positioning').value = editData?.positioning || '';
   document.getElementById('prop-target').value = editData?.target || '';
+  document.getElementById('prop-content').value = editData?.content || '';
   document.getElementById('prop-schedule').value = editData?.schedule || '';
   document.getElementById('prop-team').value = editData?.team || '';
   document.getElementById('prop-budget').value = editData?.budget || '';
+  document.getElementById('prop-priceSales').value = editData?.priceSales || '';
+  document.getElementById('prop-scenarios').value = editData?.scenarios || '';
   document.getElementById('prop-kpi').value = editData?.kpi || '';
   document.getElementById('prop-risk').value = editData?.risk || '';
   document.getElementById('prop-conclusion').value = editData?.conclusion || '';
+  document.getElementById('prop-futureTasks').value = editData?.futureTasks || '';
   _currentProposal = editData ? { ...editData } : null;
 }
 
@@ -6265,24 +6313,28 @@ function togglePropAcc(header) {
 function _collectProposalForm() {
   const title = document.getElementById('prop-title').value.trim();
   if (!title) { showToast(t('prop.title.required')); return null; }
-  const summary = document.getElementById('prop-summary').value.trim();
-  const background = document.getElementById('prop-background').value.trim();
-  const content = document.getElementById('prop-content').value.trim();
   return {
     id: _currentProposal?.id || null,
     title,
+    concept: document.getElementById('prop-concept').value.trim(),
     submitDate: document.getElementById('prop-date').value || new Date().toISOString().slice(0,10),
-    summary,
-    background,
-    analysis: document.getElementById('prop-analysis').value.trim(),
-    content,
+    summary: document.getElementById('prop-summary').value.trim(),
+    background: document.getElementById('prop-background').value.trim(),
+    challengeData: document.getElementById('prop-challengeData').value.trim(),
+    marketSize: document.getElementById('prop-marketSize').value.trim(),
+    competitors: document.getElementById('prop-competitors').value.trim(),
+    positioning: document.getElementById('prop-positioning').value.trim(),
     target: document.getElementById('prop-target').value.trim(),
+    content: document.getElementById('prop-content').value.trim(),
     schedule: document.getElementById('prop-schedule').value.trim(),
     team: document.getElementById('prop-team').value.trim(),
     budget: document.getElementById('prop-budget').value.trim(),
+    priceSales: document.getElementById('prop-priceSales').value.trim(),
+    scenarios: document.getElementById('prop-scenarios').value.trim(),
     kpi: document.getElementById('prop-kpi').value.trim(),
     risk: document.getElementById('prop-risk').value.trim(),
     conclusion: document.getElementById('prop-conclusion').value.trim(),
+    futureTasks: document.getElementById('prop-futureTasks').value.trim(),
   };
 }
 
@@ -6346,17 +6398,24 @@ function renderProposalDetail(p) {
   showProposalView('proposal-detail-view');
   document.getElementById('proposal-detail-title').textContent = p.title || t('prop.untitled');
   const sections = [
-    { label:t('prop.sec.summary'), val: p.summary },
-    { label:t('prop.sec.background'), val: p.background },
-    { label:t('prop.sec.analysis'), val: p.analysis },
-    { label:t('prop.sec.content'), val: p.content },
-    { label:t('prop.sec.target'), val: p.target },
-    { label:t('prop.sec.schedule'), val: p.schedule },
-    { label:t('prop.sec.team'), val: p.team },
-    { label:t('prop.sec.budget'), val: p.budget },
-    { label:t('prop.sec.kpi'), val: p.kpi },
-    { label:t('prop.sec.risk'), val: p.risk },
-    { label:t('prop.sec.conclusion'), val: p.conclusion },
+    { label:'コンセプト', val: p.concept },
+    { label:'概要', val: p.summary },
+    { label:'背景・目的', val: p.background },
+    { label:'課題データ・出典', val: p.challengeData },
+    { label:'市場規模', val: p.marketSize },
+    { label:'競合分析', val: p.competitors },
+    { label:'自社ポジショニング', val: p.positioning },
+    { label:'ペルソナ', val: p.target },
+    { label:'企画内容', val: p.content },
+    { label:'スケジュール', val: p.schedule },
+    { label:'体制・役割分担', val: p.team },
+    { label:'予算・初期投資', val: p.budget },
+    { label:'価格・売上試算', val: p.priceSales },
+    { label:'シナリオ別試算', val: p.scenarios },
+    { label:'KPI・成果指標', val: p.kpi },
+    { label:'リスクと対策', val: p.risk },
+    { label:'まとめ・結論', val: p.conclusion },
+    { label:'今後の課題', val: p.futureTasks },
   ].filter(s => s.val);
 
   const meta = `<div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;font-size:0.82em;color:var(--text2)">
@@ -6413,19 +6472,27 @@ function copyProposalForAI(format) {
 }
 
 function _buildProposalInputBlock(p) {
-  const lines = [`【企画名】${p.title}`, `【提出日】${p.submitDate}`];
+  const lines = [`【企画名】${p.title}`];
+  if (p.concept) lines.push(`【コンセプト】${p.concept}`);
+  lines.push(`【提出日】${p.submitDate}`);
   const fields = [
     ['概要', p.summary],
     ['背景・目的', p.background],
-    ['現状分析', p.analysis],
+    ['課題データ・出典', p.challengeData],
+    ['市場規模', p.marketSize],
+    ['競合分析', p.competitors],
+    ['自社ポジショニング', p.positioning],
+    ['ペルソナ（ターゲット像）', p.target],
     ['企画内容（提案の核）', p.content],
-    ['ターゲット', p.target],
     ['スケジュール', p.schedule],
     ['体制・役割分担', p.team],
-    ['予算・コスト', p.budget],
-    ['期待される効果・KPI', p.kpi],
+    ['予算・初期投資', p.budget],
+    ['価格・売上試算', p.priceSales],
+    ['シナリオ別試算', p.scenarios],
+    ['KPI・成果指標', p.kpi],
     ['リスクと対策', p.risk],
     ['まとめ・結論', p.conclusion],
+    ['今後の課題・未確定事項', p.futureTasks],
   ];
   fields.forEach(([label, val]) => {
     if (val) lines.push(`\n【${label}】\n${val}`);
@@ -6440,18 +6507,19 @@ function _buildDocPrompt(input) {
 ## 出力ルール
 - トーン：論理的・簡潔・説得力のあるビジネス文書調
 - 構成は以下の順番を厳守してください：
-  1. 表紙（企画名、提出日、提出者）
+  1. 表紙（企画名、コンセプト、提出日、提出者）
   2. エグゼクティブサマリー（要点を箇条書き3〜5項目、忙しい決裁者はここだけ読む想定）
-  3. 背景・目的（なぜ今この企画が必要か、市場環境や社内課題を踏まえて）
-  4. 現状分析（定量データがあれば表やグラフの提案を含める）
-  5. 企画内容（What/How/Why を明確に。差別化ポイントを強調）
-  6. ターゲット（顧客像・市場規模があれば補足）
+  3. 背景・目的（なぜ今この企画が必要か、課題データ・出典を含めて）
+  4. 市場・競合分析（市場規模、競合比較、自社ポジショニング。データがあれば表やグラフで可視化）
+  5. ペルソナ（具体的なユーザー像とニーズ）
+  6. 企画内容（What/How/Why を明確に。差別化ポイントを強調）
   7. 実施スケジュール（マイルストーン形式、フェーズ分けを推奨）
   8. 推進体制・役割分担
-  9. 予算・投資計画（費用内訳と投資対効果・ROI）
+  9. 予算・収益計画（初期投資、価格・売上試算、シナリオ別試算を含む）
   10. KPI・成果指標（定量KPIを必ず含め、測定方法も明記）
   11. リスク分析と対策（リスク×影響度マトリクスの形式を推奨）
   12. 結論・次のアクション（承認後の具体的な第一歩を明記）
+  13. 今後の課題・未確定事項（残課題と次に調査・決定すべきこと）
 - 入力が薄い・不足している項目は、文脈から合理的に推定・補完して記述してください。補完した箇所は【※補完】と注記してください
 - 数値やデータがない箇所は「〇〇（要調査）」としてプレースホルダーを入れてください
 - 見出し・箇条書き・表を適切に使い、視認性を高めてください
@@ -6477,20 +6545,22 @@ function _buildSlidePrompt(input) {
 - 図表・チャート・アイコンを積極的に使い、文字だらけのスライドを避ける
 - 全スライド共通のヘッダー/フッターで統一感を出す
 
-## スライド構成（10〜15枚）
-  1. 表紙（企画名、提出日、提出者名）
+## スライド構成（12〜16枚）
+  1. 表紙（企画名、コンセプト、提出日、提出者名）
   2. アジェンダ（目次・全体構成）
   3. エグゼクティブサマリー（結論を先に。キーメッセージ3つ以内）
-  4. 背景・課題提起（「なぜ今やるのか」を端的に）
-  5. 現状分析（Before/After対比、データがあれば棒グラフ・円グラフで可視化）
-  6. 企画概要（What/How をフロー図や概念図で示す）
-  7. ターゲット・市場機会（ペルソナ像、市場規模）
+  4. 背景・課題提起（「なぜ今やるのか」を端的に。課題データを可視化）
+  5. 市場・競合分析（市場規模、競合比較表、ポジショニングマップ）
+  6. ペルソナ（具体的なユーザー像をビジュアルで。ニーズと課題）
+  7. 企画概要（What/How をフロー図や概念図で示す）
   8. 実施スケジュール（ガントチャートまたはロードマップ形式）
   9. 推進体制（組織図形式で役割を明示）
-  10. 予算・ROI（表形式で費用内訳、投資対効果を視覚的に）
-  11. KPI・成果指標（目標数値をダッシュボード風に）
-  12. リスクと対策（リスクマトリクスまたは表形式）
-  13. まとめ・Next Step（承認後の具体的アクション）
+  10. 予算・初期投資（表形式で費用内訳）
+  11. 収益試算（価格・売上試算、シナリオ別試算を表やグラフで対比）
+  12. KPI・成果指標（目標数値をダッシュボード風に）
+  13. リスクと対策（リスクマトリクスまたは表形式）
+  14. まとめ・Next Step（承認後の具体的アクション）
+  15. 今後の課題（未確定事項と次に決めるべきこと）
 
 ## 各スライドに含めるもの
 - タイトル（端的に）
