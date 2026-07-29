@@ -1464,8 +1464,8 @@
       else if (fmt === 'italic') active = document.queryCommandState('italic');
       else if (fmt === 'strike') active = document.queryCommandState('strikeThrough');
       else if (fmt === 'highlight') {
-        const bg = document.queryCommandValue('hiliteColor') || document.queryCommandValue('backColor');
-        active = bg.includes('255, 241, 118') || bg === 'rgb(255, 241, 118)' || bg === '#fff176';
+        const bg = document.queryCommandValue('backColor') || document.queryCommandValue('hiliteColor');
+        active = bg ? (bg.includes('255, 241, 118') || bg === '#fff176') : false;
       }
       btn.classList.toggle('active', active);
     });
@@ -1483,7 +1483,11 @@
     if (type === 'bold') document.execCommand('bold', false, null);
     else if (type === 'italic') document.execCommand('italic', false, null);
     else if (type === 'strike') document.execCommand('strikeThrough', false, null);
-    else if (type === 'highlight') document.execCommand('hiliteColor', false, '#fff176');
+    else if (type === 'highlight') {
+      const bg = document.queryCommandValue('backColor') || document.queryCommandValue('hiliteColor');
+      const isActive = bg ? (bg.includes('255, 241, 118') || bg === '#fff176') : false;
+      document.execCommand('hiliteColor', false, isActive ? 'transparent' : '#fff176');
+    }
     updateFmtButtons();
   }
 
