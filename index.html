@@ -4089,7 +4089,7 @@ function renderHome(){
           const pills = evs.map(e => {
             if(e._yasumi) return `<span style="font-size:0.72em;padding:2px 6px;border-radius:10px;background:#eeeeee;color:#757575;font-weight:700">${t('home.rest')}</span>`;
             const col = STATUS_COLOR[e.type]||'#9e9e9e';
-            const timeStr = e.start ? ` ${e.start}〜${e.end}` : '';
+            const timeStr = (e.start && !MULTIDAY_TYPES.includes(e.type)) ? ` ${e.start}〜${e.end}` : '';
             return `<span style="font-size:0.72em;font-weight:700;padding:2px 7px;border-radius:10px;background:${col};color:white;white-space:nowrap">${tType(e.type)}${timeStr}</span>`;
           }).join('<br>');
           return `<td style="padding:4px;border-bottom:1px solid var(--border);border-left:1px solid var(--border)">${pills}</td>`;
@@ -4133,14 +4133,15 @@ function renderHome(){
             if(!typeMap[_restKey]) typeMap[_restKey] = { col:'#eeeeee', textCol:'#757575', names:[], timeStr:'' };
             typeMap[_restKey].names.push(u.name);
           } else {
-            const key = e.type + (e.start ? `__${e.start}〜${e.end}` : '');
+            const isMulti = MULTIDAY_TYPES.includes(e.type);
+            const key = e.type + (!isMulti && e.start ? `__${e.start}〜${e.end}` : '');
             if(!typeMap[key]) {
               typeMap[key] = {
                 col: STATUS_COLOR[e.type]||'#9e9e9e',
                 textCol: 'white',
                 label: tType(e.type),
                 names: [],
-                timeStr: e.start ? `<span style="font-size:0.75em;opacity:.85"> ${e.start}〜${e.end}</span>` : '',
+                timeStr: (!isMulti && e.start) ? `<span style="font-size:0.75em;opacity:.85"> ${e.start}〜${e.end}</span>` : '',
               };
             }
             typeMap[key].names.push(u.name);
