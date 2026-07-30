@@ -8,13 +8,13 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-comp
 
 // ★ index.html の FIREBASE_CONFIG と同じ値を入力してください
 const firebaseConfig = {
-  apiKey: "AIzaSyBMG6fINn2vbt2FEkKYqHCCmox_eEg3buE",
-  authDomain: "schedule-tsuchi.firebaseapp.com",
-  projectId: "schedule-tsuchi",
-  storageBucket: "schedule-tsuchi.firebasestorage.app",
-  messagingSenderId: "552213355620",
-  appId: "1:552213355620:web:de1d5461780559e6149371",
-  measurementId: "G-C33WKRJ2DH"
+  apiKey: "AIzaSyB87kKVgi-MADbg5vzijiEv5H8jhJpb1mg",
+  authDomain: "schedule-tsuchi0.firebaseapp.com",
+  projectId: "schedule-tsuchi0",
+  storageBucket: "schedule-tsuchi0.firebasestorage.app",
+  messagingSenderId: "469856571712",
+  appId: "1:469856571712:web:8a41974c196994b642aaa5",
+  measurementId: "G-58RVVHY50P"
 };
 
 firebase.initializeApp(firebaseConfig);
