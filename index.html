@@ -278,6 +278,32 @@ input,select{font-family:inherit;outline:none}
 .status-在席{background:#f5f5f5;color:#616161}
 .status-来社{background:#e0f2f1;color:#004d40}
 
+/* 安否確認 */
+.safety-banner{background:#fff3e0;border:2px solid #ff9800;border-radius:var(--radius);padding:16px;margin-bottom:8px}
+.safety-banner.answered{background:#e8f5e9;border-color:#4caf50}
+.safety-banner-title{font-size:1em;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.safety-answer-btns{display:flex;gap:8px;margin:12px 0 0}
+.safety-answer-btn{flex:1;padding:12px 8px;border-radius:8px;border:2px solid;font-weight:700;font-size:0.9em;cursor:pointer;transition:opacity 0.2s}
+.safety-answer-btn:hover{opacity:0.85}
+.safety-answer-btn.safe{background:#e8f5e9;border-color:#4caf50;color:#2e7d32}
+.safety-answer-btn.damaged{background:#ffebee;border-color:#f44336;color:#c62828}
+.safety-answer-btn.other{background:#f3e5f5;border-color:#9c27b0;color:#6a1b9a}
+.safety-answer-btn.selected{box-shadow:inset 0 0 0 3px rgba(0,0,0,0.15)}
+.safety-summary{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.safety-stat{flex:1;min-width:70px;text-align:center;padding:8px 4px;border-radius:8px;background:white;box-shadow:var(--shadow)}
+.safety-stat-num{font-size:1.4em;font-weight:700}
+.safety-stat-label{font-size:0.7em;color:var(--text2);margin-top:2px}
+.safety-detail-section{margin-top:12px;background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)}
+.safety-detail-title{font-size:0.82em;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.safety-person-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.82em}
+.safety-person-row:last-child{border-bottom:none}
+.safety-send-btn{padding:6px 16px;border-radius:8px;border:2px solid #ff9800;background:#fff3e0;color:#e65100;font-weight:700;font-size:0.78em;cursor:pointer}
+.safety-send-btn:hover{background:#ffe0b2}
+.safety-action-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.safety-action-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:white;font-size:0.78em;font-weight:600;cursor:pointer}
+.safety-action-btn:hover{background:var(--hover)}
+.safety-action-btn.danger{border-color:#f44336;color:#c62828}
+
 /* チーム */
 .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .member-card{background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);text-align:center}
@@ -620,6 +646,8 @@ input,select{font-family:inherit;outline:none}
 
   <!-- ホーム -->
   <div class="content" id="tab-home">
+    <!-- 安否確認エリア -->
+    <div id="safety-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
     <!-- お知らせエリア -->
     <div style="max-width:900px;margin:0 auto;padding:12px 12px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px" id="home-top-grid">
       <!-- 今日の自分の予定 -->
@@ -790,6 +818,32 @@ input,select{font-family:inherit;outline:none}
       <div style="display:flex;gap:10px;justify-content:flex-end">
         <button id="notice-cancel-btn" onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
         <button id="notice-submit-btn" onclick="submitNotice()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">投稿</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 安否確認 発信モーダル -->
+  <div id="safety-send-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <h3 style="margin:0 0 16px;font-size:1em;font-weight:700">🚨 安否確認を発信</h3>
+      <div style="margin-bottom:12px">
+        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">災害種別</label>
+        <select id="safety-disaster-type" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
+          <option value="地震">🌏 地震</option>
+          <option value="台風">🌀 台風</option>
+          <option value="その他">⚠️ その他</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:0.82em;font-weight:600;color:var(--text2)">メッセージ（任意）</label>
+        <textarea id="safety-message" rows="3" placeholder="社員への連絡事項があれば入力" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit"></textarea>
+      </div>
+      <div style="background:#fff3e0;border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:0.8em;color:#e65100">
+        ⚠️ 全社員にプッシュ通知が送信されます
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="closeSafetySendModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
+        <button id="safety-send-submit-btn" onclick="submitSafetyCheck()" style="padding:8px 18px;border-radius:10px;border:none;background:#e65100;color:white;font-weight:700;font-size:0.9em;cursor:pointer">発信する</button>
       </div>
     </div>
   </div>
@@ -3006,6 +3060,7 @@ function showApp(opts){
   // loadCarData(); // 車タブ未リリースのため一時停止（ホームの車ウィジェットも非表示）
   loadHolidays();
   loadRentalMasters();
+  loadSafetyCheck();
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
@@ -4908,6 +4963,190 @@ function closeModalIfBackdrop(e,id){ if(e.target.id===id) closeModal(id) }
 
 // ============================================================
 // ===== お知らせ掲示板 =====
+// ============================================================
+// ===== 安否確認 =====
+// ============================================================
+let _safetyData = null;
+
+async function loadSafetyCheck() {
+  const area = document.getElementById('safety-check-area');
+  if (!area) return;
+  try {
+    const res = await callGAS({ action: 'getSafetyCheck' });
+    _safetyData = res;
+    renderSafetyCheck();
+  } catch(e) {
+    Logger('安否確認取得エラー: ' + e.message);
+  }
+}
+
+function renderSafetyCheck() {
+  const area = document.getElementById('safety-check-area');
+  if (!area) return;
+  const data = _safetyData;
+  const isManager = currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般');
+
+  if (!data || !data.active) {
+    if (isManager) {
+      area.style.display = '';
+      area.innerHTML = `<div style="display:flex;justify-content:flex-end;margin-bottom:4px">
+        <button class="safety-send-btn" onclick="openSafetySendModal()">🚨 安否確認を発信</button>
+      </div>`;
+    } else {
+      area.style.display = 'none';
+      area.innerHTML = '';
+    }
+    return;
+  }
+
+  area.style.display = '';
+  const a = data.active;
+  const my = data.myAnswer;
+  const s = data.summary;
+  const typeIcon = a.disasterType === '地震' ? '🌏' : a.disasterType === '台風' ? '🌀' : '⚠️';
+  const sentTime = a.sentAt ? new Date(a.sentAt).toLocaleString('ja-JP', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+
+  let html = '';
+
+  if (!my) {
+    html += `<div class="safety-banner">
+      <div class="safety-banner-title">${typeIcon} 【安否確認】${esc(a.disasterType)}</div>
+      <div style="font-size:0.82em;color:var(--text2);margin-bottom:4px">${sentTime} ${esc(a.senderName)}より発信</div>
+      ${a.message ? `<div style="font-size:0.85em;margin:8px 0;padding:8px 10px;background:rgba(255,152,0,0.1);border-radius:6px">${esc(a.message)}</div>` : ''}
+      <div style="font-size:0.85em;font-weight:600;margin-top:8px">あなたの安否を回答してください</div>
+      <div class="safety-answer-btns">
+        <button class="safety-answer-btn safe" onclick="submitSafetyAnswer('無事')">✅ 無事</button>
+        <button class="safety-answer-btn damaged" onclick="submitSafetyAnswer('被害あり')">🆘 被害あり</button>
+        <button class="safety-answer-btn other" onclick="submitSafetyAnswer('その他')">💬 その他</button>
+      </div>
+      <div style="margin-top:8px">
+        <input id="safety-note-input" type="text" placeholder="備考（任意）" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85em;box-sizing:border-box;background:var(--bg)">
+      </div>
+    </div>`;
+  } else {
+    const ansLabel = my.answer === '無事' ? '✅ 無事' : my.answer === '被害あり' ? '🆘 被害あり' : '💬 その他';
+    html += `<div class="safety-banner answered">
+      <div class="safety-banner-title">${typeIcon} 【安否確認】${esc(a.disasterType)} — 回答済み</div>
+      <div style="font-size:0.85em">あなたの回答: <strong>${ansLabel}</strong>${my.note ? ' — ' + esc(my.note) : ''}</div>
+    </div>`;
+  }
+
+  html += `<div class="safety-summary">
+    <div class="safety-stat"><div class="safety-stat-num" style="color:#2e7d32">${s.safe}</div><div class="safety-stat-label">無事</div></div>
+    <div class="safety-stat"><div class="safety-stat-num" style="color:#c62828">${s.damaged}</div><div class="safety-stat-label">被害あり</div></div>
+    <div class="safety-stat"><div class="safety-stat-num" style="color:#6a1b9a">${s.other}</div><div class="safety-stat-label">その他</div></div>
+    <div class="safety-stat"><div class="safety-stat-num" style="color:#e65100">${s.unanswered}</div><div class="safety-stat-label">未回答</div></div>
+  </div>`;
+
+  if (isManager) {
+    if (data.unanswered && data.unanswered.length > 0) {
+      html += `<div class="safety-detail-section">
+        <div class="safety-detail-title">
+          <span>📋 未回答者（${data.unanswered.length}名）</span>
+          <button class="safety-action-btn" onclick="resendSafetyNotif()">🔔 再通知</button>
+        </div>`;
+      const byDept = {};
+      data.unanswered.forEach(u => { (byDept[u.dept] = byDept[u.dept] || []).push(u); });
+      Object.keys(byDept).sort().forEach(dept => {
+        html += `<div style="font-size:0.75em;font-weight:600;color:var(--text2);margin:8px 0 4px">${esc(dept)}</div>`;
+        byDept[dept].forEach(u => {
+          html += `<div class="safety-person-row"><span>${esc(u.name)}</span></div>`;
+        });
+      });
+      html += `</div>`;
+    }
+
+    if (data.answers && data.answers.length > 0) {
+      const damaged = data.answers.filter(a => a.answer !== '無事');
+      if (damaged.length > 0) {
+        html += `<div class="safety-detail-section">
+          <div class="safety-detail-title"><span>🆘 被害あり・その他の回答（${damaged.length}名）</span></div>`;
+        damaged.forEach(a => {
+          const icon = a.answer === '被害あり' ? '🆘' : '💬';
+          html += `<div class="safety-person-row">
+            <span>${icon}</span>
+            <span style="font-weight:600">${esc(a.name)}</span>
+            <span style="color:var(--text2)">${esc(a.dept)}</span>
+            ${a.note ? `<span style="margin-left:auto;color:var(--text2)">「${esc(a.note)}」</span>` : ''}
+          </div>`;
+        });
+        html += `</div>`;
+      }
+    }
+
+    html += `<div class="safety-action-row">
+      <button class="safety-action-btn danger" onclick="confirmCloseSafetyCheck('${a.id}')">🛑 安否確認を終了</button>
+    </div>`;
+  }
+
+  area.innerHTML = html;
+}
+
+function openSafetySendModal() {
+  document.getElementById('safety-disaster-type').value = '地震';
+  document.getElementById('safety-message').value = '';
+  document.getElementById('safety-send-modal').style.display = 'flex';
+}
+function closeSafetySendModal() {
+  document.getElementById('safety-send-modal').style.display = 'none';
+}
+
+async function submitSafetyCheck() {
+  const btn = document.getElementById('safety-send-submit-btn');
+  btn.disabled = true; btn.textContent = '送信中...';
+  try {
+    const disasterType = document.getElementById('safety-disaster-type').value;
+    const message = document.getElementById('safety-message').value;
+    await callGAS({ action: 'sendSafetyCheck', disasterType, message });
+    closeSafetySendModal();
+    await loadSafetyCheck();
+  } catch(e) {
+    alert('発信エラー: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '発信する';
+  }
+}
+
+async function submitSafetyAnswer(answer) {
+  if (!_safetyData?.active) return;
+  const noteEl = document.getElementById('safety-note-input');
+  const note = noteEl ? noteEl.value : '';
+  const btns = document.querySelectorAll('.safety-answer-btn');
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+  try {
+    await callGAS({ action: 'answerSafetyCheck', safetyId: _safetyData.active.id, answer, note });
+    await loadSafetyCheck();
+  } catch(e) {
+    alert('回答エラー: ' + e.message);
+    btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+  }
+}
+
+async function resendSafetyNotif() {
+  if (!_safetyData?.active) return;
+  if (!confirm('未回答者にプッシュ通知を再送信しますか？')) return;
+  try {
+    const res = await callGAS({ action: 'resendSafetyNotif', safetyId: _safetyData.active.id });
+    alert(`${res.sent}名に再通知しました`);
+  } catch(e) {
+    alert('再通知エラー: ' + e.message);
+  }
+}
+
+function confirmCloseSafetyCheck(safetyId) {
+  if (!confirm('安否確認を終了しますか？\n終了すると回答バナーが表示されなくなります。')) return;
+  closeSafetyCheckAction(safetyId);
+}
+
+async function closeSafetyCheckAction(safetyId) {
+  try {
+    await callGAS({ action: 'closeSafetyCheck', safetyId });
+    await loadSafetyCheck();
+  } catch(e) {
+    alert('終了エラー: ' + e.message);
+  }
+}
+
 // ============================================================
 let _notices = [];
 let _editingNoticeId = null;
