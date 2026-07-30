@@ -4974,10 +4974,10 @@ async function loadSafetyCheck() {
   try {
     const res = await callGAS({ action: 'getSafetyCheck' });
     _safetyData = res;
-    renderSafetyCheck();
   } catch(e) {
-    Logger('安否確認取得エラー: ' + e.message);
+    _safetyData = { active: null };
   }
+  renderSafetyCheck();
 }
 
 function renderSafetyCheck() {
