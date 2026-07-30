@@ -801,11 +801,12 @@ async function openNewModal() {
   try {
     approverData = await gas({ action: 'getApprovers', token: currentToken });
   } catch(e) { /* 取得失敗時は申請時にエラー表示 */ }
+  if (document.getElementById('new-type').value) renderNewFields();
 }
 
 function getApproverSectionHTML() {
   if (!approverData) return '<div style="margin-top:14px;padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 承認者情報を取得中です。しばらくお待ちください。</div>';
-  const shuninUp = (approverData.selectableApprovers || []).filter(a => a.role === '主任' || a.role === '課長' || a.role === '部長' || a.role === '取締役' || a.role === '社長');
+  const shuninUp = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
   const isSelf = id => !approverData.isIppan && id === currentUser.id;
   const options = shuninUp.map(a =>
     `<option value="${a.id}">${a.name}${isSelf(a.id) ? '（自分・自動承認）' : ''} [${a.role}]</option>`
