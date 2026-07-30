@@ -174,7 +174,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div class="filter-bar">
       <select id="filter-type" onchange="applyFilter()">
         <option value="">すべての種別</option>
-        <option value="leave">🌴 休暇申請</option>
+        <!-- <option value="leave">🌴 休暇申請</option> -->
         <option value="expense">💴 出張費精算</option>
         <option value="other">📝 その他</option>
       </select>
@@ -214,7 +214,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <label>申請種別</label>
     <select id="new-type" onchange="renderNewFields()">
       <option value="">選択してください</option>
-      <option value="leave">🌴 休暇申請</option>
+      <!-- <option value="leave">🌴 休暇申請</option> -->
       <option value="expense">💴 出張費精算</option>
       <option value="other">📝 その他</option>
     </select>
@@ -492,7 +492,7 @@ function renderList(el, records) {
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
           <div class="card-sub">${r.applicantName || r.applicantId} ・ ${r.applicationDate || r.appliedAt || ''}</div>
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${r.destination || ''}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
-          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); return `<div class="card-sub">${c.leave_type || c.title || ''} ${c.start ? c.start + '〜' + c.end : ''}</div>`; } catch { return ''; } })() : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
@@ -773,10 +773,16 @@ async function reApply(appType, r) {
   try {
     const c = JSON.parse(r.content || '{}');
     if (appType === 'leave') {
-      if (c.leave_type) document.getElementById('f-leave-type').value = c.leave_type;
+      // if (c.leave_type) document.getElementById('f-leave-type').value = c.leave_type;
       if (c.start) document.getElementById('f-leave-start').value = c.start;
       if (c.end)   document.getElementById('f-leave-end').value   = c.end;
       if (c.note)  document.getElementById('f-leave-note').value  = c.note;
+      if (c.allDay === false) {
+        document.getElementById('f-leave-allday').checked = false;
+        toggleLeaveTime();
+        if (c.startTime) document.getElementById('f-leave-start-time').value = c.startTime;
+        if (c.endTime)   document.getElementById('f-leave-end-time').value   = c.endTime;
+      }
     } else if (appType === 'other') {
       if (c.title) document.getElementById('f-other-title').value = c.title;
       if (c.body)  document.getElementById('f-other-body').value  = c.body;
@@ -799,14 +805,9 @@ async function openNewModal() {
 
 function getApproverSectionHTML() {
   if (!approverData) return '<div style="margin-top:14px;padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 承認者情報を取得中です。しばらくお待ちください。</div>';
-  if (approverData.isIppan && approverData.sameDeptShunin && approverData.sameDeptShunin.length > 0) {
-    const names = approverData.sameDeptShunin.map(a => a.name).join('、');
-    return `<div style="margin-top:14px;padding:10px;background:#e8f5e9;border-radius:8px;font-size:13px;">
-      <span style="color:#2e7d32;">✔ 承認者：${names}に通知されます</span>
-    </div>`;
-  }
+  const shuninUp = (approverData.selectableApprovers || []).filter(a => a.role === '主任' || a.role === '課長' || a.role === '部長' || a.role === '取締役' || a.role === '社長');
   const isSelf = id => !approverData.isIppan && id === currentUser.id;
-  const options = (approverData.selectableApprovers || []).map(a =>
+  const options = shuninUp.map(a =>
     `<option value="${a.id}">${a.name}${isSelf(a.id) ? '（自分・自動承認）' : ''} [${a.role}]</option>`
   ).join('');
   return `<label>承認者 <span style="color:var(--danger)">*</span></label>
@@ -816,17 +817,35 @@ function getApproverSectionHTML() {
     </select>`;
 }
 
+function toggleLeaveTime() {
+  const allDay = document.getElementById('f-leave-allday').checked;
+  document.getElementById('leave-start-time-wrap').style.display = allDay ? 'none' : '';
+  document.getElementById('leave-end-time-wrap').style.display = allDay ? 'none' : '';
+}
+
 function renderNewFields() {
   const type = document.getElementById('new-type').value;
   const el   = document.getElementById('new-type-fields');
   if (type === 'leave') {
     el.innerHTML = `
+      <!-- 休暇種別は一時的に非表示
       <label>休暇種別</label>
       <select id="f-leave-type">
         <option>有給休暇</option><option>特別休暇</option><option>慶弔休暇</option><option>その他</option>
       </select>
+      -->
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;">
+        <input type="checkbox" id="f-leave-allday" checked onchange="toggleLeaveTime()">
+        <span>終日</span>
+      </label>
       <label>開始日</label><input type="date" id="f-leave-start">
+      <div id="leave-start-time-wrap" style="display:none;">
+        <label>開始時間</label><input type="time" id="f-leave-start-time" value="09:00">
+      </div>
       <label>終了日</label><input type="date" id="f-leave-end">
+      <div id="leave-end-time-wrap" style="display:none;">
+        <label>終了時間</label><input type="time" id="f-leave-end-time" value="18:00">
+      </div>
       <label>理由・備考（任意）</label><textarea id="f-leave-note" placeholder="任意"></textarea>
       ${getApproverSectionHTML()}
     `;
@@ -1010,12 +1029,16 @@ async function submitNew() {
       const start = document.getElementById('f-leave-start').value;
       const end   = document.getElementById('f-leave-end').value;
       if (!start || !end) throw new Error('日付を入力してください');
+      const allDay = document.getElementById('f-leave-allday').checked;
+      const startTime = allDay ? '' : document.getElementById('f-leave-start-time').value;
+      const endTime   = allDay ? '' : document.getElementById('f-leave-end-time').value;
+      if (!allDay && (!startTime || !endTime)) throw new Error('時間を入力してください');
       items = [
-        { label: '休暇種別', value: document.getElementById('f-leave-type').value },
-        { label: '開始日',   value: start },
-        { label: '終了日',   value: end },
-        { label: '備考',     value: document.getElementById('f-leave-note').value || 'なし' },
-        { label: '承認者',   value: _getApproverDisplayName() },
+        { label: '期間', value: allDay ? '終日' : `${startTime} 〜 ${endTime}` },
+        { label: '開始日', value: start },
+        { label: '終了日', value: end },
+        { label: '備考',   value: document.getElementById('f-leave-note').value || 'なし' },
+        { label: '承認者', value: _getApproverDisplayName() },
       ];
       warning = await _checkLeaveOverlap(start, end);
     } else if (type === 'expense') {
@@ -1054,9 +1077,6 @@ async function submitNew() {
 }
 
 function _getApproverDisplayName() {
-  if (approverData && approverData.isIppan && approverData.sameDeptShunin?.length > 0) {
-    return approverData.sameDeptShunin.map(a => a.name).join('、');
-  }
   const sel = document.getElementById('f-approver-id');
   if (!sel || !sel.value) return '（未選択）';
   return sel.options[sel.selectedIndex]?.text || sel.value;
@@ -1103,10 +1123,14 @@ async function submitLeave() {
   const start = document.getElementById('f-leave-start').value;
   const end   = document.getElementById('f-leave-end').value;
   if (!start || !end) throw new Error('日付を入力してください');
+  const allDay = document.getElementById('f-leave-allday').checked;
   const approverEmpId = _getSelectedApproverEmpId();
   const content = JSON.stringify({
-    leave_type: document.getElementById('f-leave-type').value,
+    // leave_type: document.getElementById('f-leave-type').value,
     start, end,
+    allDay,
+    startTime: allDay ? '' : document.getElementById('f-leave-start-time').value,
+    endTime:   allDay ? '' : document.getElementById('f-leave-end-time').value,
     note: document.getElementById('f-leave-note').value,
   });
   await gas({ action: 'saveApply', token: currentToken, appType: 'leave', applyData: { applicantName: currentUser.name, content, approverEmpId } });
@@ -1144,10 +1168,6 @@ async function submitOther() {
 }
 
 function _getSelectedApproverEmpId() {
-  // 同部署主任自動割当の場合は空文字を返す（GAS側で解決）
-  if (approverData && approverData.isIppan && approverData.sameDeptShunin && approverData.sameDeptShunin.length > 0) {
-    return '';
-  }
   const sel = document.getElementById('f-approver-id');
   if (!sel || !sel.value) throw new Error('承認者を選択してください');
   return sel.value;
@@ -1159,7 +1179,7 @@ function _getSelectedApproverEmpId() {
 function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝' }[t] || '📋'; }
 function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請' }[t] || t; }
 function contentFieldLabel(k) {
-  return { leave_type:'休暇種別', start:'開始日', end:'終了日', note:'備考', title:'件名', body:'内容' }[k] || k;
+  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容' }[k] || k;
 }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
