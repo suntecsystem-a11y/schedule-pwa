@@ -930,10 +930,10 @@ input,select{font-family:inherit;outline:none}
           <button class="prop-form-back" onclick="showProposalList()">&lsaquo;</button>
           <div class="prop-form-title" id="proposal-form-title">新規企画書</div>
         </div>
-        <!-- A. 企画の核 -->
+        <!-- 1回目：企画の核（Q1-Q4） -->
         <div class="prop-accordion">
           <div class="prop-acc-header open" onclick="togglePropAcc(this)">
-            <span class="prop-acc-num">A</span>
+            <span class="prop-acc-num">1</span>
             <span class="prop-acc-label">企画の核</span>
             <span class="prop-acc-badge">必須</span>
             <span class="prop-acc-arrow">▼</span>
@@ -954,119 +954,110 @@ input,select{font-family:inherit;outline:none}
                 <textarea id="prop-whatForWhom" placeholder="例：爬虫類飼育者向けに、温度・湿度を自動管理するIoTデバイスを開発。&#10;飼育環境の手動管理の手間と事故リスクを解消する。"></textarea>
               </div>
               <div class="prop-field">
-                <label>Q3. なぜ自分がこれをやりたいのか？</label>
-                <span class="prop-hint">個人的な動機・きっかけ。誰と一緒に考えたか（共同発案者がいれば）。</span>
+                <label>Q3. なぜ自分がこれをやりたいのか？共同発案者はいるか？</label>
+                <span class="prop-hint">個人的な動機・きっかけ。誰と一緒に考えたか。</span>
                 <textarea id="prop-motivation" placeholder="例：自分自身が爬虫類を飼育しており、温度管理で失敗した経験から…&#10;共同発案者：製造部の〇〇と開発" style="min-height:60px"></textarea>
               </div>
-            </div>
-          </div>
-        </div>
-        <!-- B. 事業としての位置づけ -->
-        <div class="prop-accordion">
-          <div class="prop-acc-header" onclick="togglePropAcc(this)">
-            <span class="prop-acc-num">B</span>
-            <span class="prop-acc-label">事業としての位置づけ</span>
-            <span class="prop-acc-badge">必須</span>
-            <span class="prop-acc-arrow">▼</span>
-          </div>
-          <div class="prop-acc-body">
-            <div class="prop-acc-inner">
               <div class="prop-field">
                 <label>Q4. 既存事業と統合するのか、独立した新規事業か？</label>
-                <span class="prop-hint">販売名義・ブランドは何にするか（自社名義か、別ブランドか）も含めて。</span>
-                <textarea id="prop-businessType" placeholder="例：独立した新規事業（PoC）として開始。&#10;販売名義は新ブランド「REPTEMP」で展開予定。" style="min-height:60px"></textarea>
-              </div>
-              <div class="prop-field">
-                <label>Q5. 販売名義・ブランドはどうするか？</label>
-                <span class="prop-hint">ブランド名の方向性（英語/日本語、既存製品名との連続性）。</span>
-                <textarea id="prop-brandName" placeholder="例：英語ブランド名「REPTEMP」／自社名義で販売&#10;既存の〇〇シリーズとは別ライン" style="min-height:60px"></textarea>
-              </div>
-              <div class="prop-field">
-                <label class="prop-required">Q6. 最終的にどこで・どう届けて事業として成立させたいか？</label>
-                <span class="prop-hint">小売・EC・卸・法人営業、月額課金・ライセンス・代理店経由など手段は限定しません。</span>
-                <textarea id="prop-businessGoal" placeholder="例：自社ECサイト＋Amazonでの直販がメイン。&#10;将来的にペットショップへの卸売も検討。"></textarea>
-              </div>
-              <div class="prop-field">
-                <label>Q7. 本格展開の前に、需要をどう確かめるつもりか？</label>
-                <span class="prop-hint">先行受注・パイロット販売・クラウドファンディング・無料トライアル・LOI取得・ヒアリング・ウェイトリスト等。そもそも検証する予定があるかも含めて。</span>
-                <textarea id="prop-validation" placeholder="例：Makuakeでクラウドファンディング（目標50万円）&#10;例：既存顧客10社にヒアリング＋LOI取得&#10;例：まだ未定、検証方法から相談したい"></textarea>
+                <textarea id="prop-businessType" placeholder="例：独立した新規事業（PoC）として開始&#10;例：既存の〇〇事業に統合して展開" style="min-height:60px"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <!-- C. ターゲットと価格 -->
+        <!-- 2回目：事業モデルと価格（Q5-Q8） -->
         <div class="prop-accordion">
           <div class="prop-acc-header" onclick="togglePropAcc(this)">
-            <span class="prop-acc-num">C</span>
-            <span class="prop-acc-label">ターゲットと価格</span>
+            <span class="prop-acc-num">2</span>
+            <span class="prop-acc-label">事業モデルと価格</span>
             <span class="prop-acc-badge">必須</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body">
             <div class="prop-acc-inner">
               <div class="prop-field">
+                <label class="prop-required">Q5. 最終的にどこで・どう届けて事業として成立させたいか？</label>
+                <span class="prop-hint">小売・EC・卸・法人営業、月額課金・ライセンス・代理店経由など。有形/無形問わず手段は限定しません。</span>
+                <textarea id="prop-businessGoal" placeholder="例：自社ECサイト＋Amazonでの直販がメイン&#10;例：法人への直接営業＋代理店経由&#10;例：月額課金のSaaSモデル"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>Q6. 本格展開の前に、需要をどう確かめるつもりか？</label>
+                <span class="prop-hint">先行受注・パイロット販売・クラウドファンディング・無料トライアル・β版提供・LOI取得・ヒアリング・ウェイトリスト等。検証する予定があるかも含めて。</span>
+                <textarea id="prop-validation" placeholder="例：Makuakeでクラウドファンディング（目標50万円）&#10;例：既存顧客10社にヒアリング＋LOI取得&#10;例：まだ未定、検証方法から相談したい"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>Q7. 販売名義・ブランドはどうするか？</label>
+                <span class="prop-hint">自社名義、既存ブランドとの紐付け、新ブランド名など。</span>
+                <textarea id="prop-brandName" placeholder="例：自社名義でそのまま販売&#10;例：新ブランド「REPTEMP」を立ち上げ&#10;例：既存の〇〇シリーズに追加" style="min-height:60px"></textarea>
+              </div>
+              <div class="prop-field">
                 <label>Q8. 想定する価格・料金体系は？</label>
-                <span class="prop-hint">買い切りか、月額/年額の継続課金か、従量課金か、本体+オプション構成か等。仮説でもOK。</span>
-                <textarea id="prop-pricing" placeholder="例：本体 29,800円（買い切り）＋ アプリ月額 980円&#10;例：まだ決めていない、仮で〇〇円くらい" style="min-height:60px"></textarea>
-              </div>
-              <div class="prop-field">
-                <label>Q9. ターゲットは1種類か複数か？それぞれの属性は？</label>
-                <span class="prop-hint">個人向けなら年齢・家族構成・年収帯等。法人向けなら業種・規模・決裁者の役職等。</span>
-                <textarea id="prop-target" placeholder="例：メイン — 20〜40代の爬虫類飼育者（年収400〜600万）&#10;サブ — ペットショップ（中小規模、仕入れ担当者向け）"></textarea>
-              </div>
-              <div class="prop-field">
-                <label>Q10. 意識している競合・類似製品/サービスは？</label>
-                <span class="prop-hint">実在の集客チャネルも含めて。</span>
-                <textarea id="prop-competitors" placeholder="例：A社「〇〇」— 低価格だがアプリ連携なし&#10;例：B社「〇〇」— 高機能だが爬虫類に特化していない&#10;集客チャネル：爬虫類専門誌、X（旧Twitter）"></textarea>
+                <span class="prop-hint">買い切り／月額・年額の継続課金／従量課金／本体+オプション構成。仮説でもOK。</span>
+                <textarea id="prop-pricing" placeholder="例：本体 29,800円（買い切り）＋ アプリ月額 980円&#10;例：月額 9,800円のサブスクリプション&#10;例：まだ決めていない" style="min-height:60px"></textarea>
               </div>
             </div>
           </div>
         </div>
-        <!-- D. 実現手段・裏付け資料 -->
+        <!-- 3回目：ターゲットと競合（Q9-Q12） -->
         <div class="prop-accordion">
           <div class="prop-acc-header" onclick="togglePropAcc(this)">
-            <span class="prop-acc-num">D</span>
-            <span class="prop-acc-label">実現手段・裏付け資料</span>
+            <span class="prop-acc-num">3</span>
+            <span class="prop-acc-label">ターゲットと競合</span>
+            <span class="prop-acc-badge">必須</span>
+            <span class="prop-acc-arrow">▼</span>
+          </div>
+          <div class="prop-acc-body">
+            <div class="prop-acc-inner">
+              <div class="prop-field">
+                <label>Q9. ターゲットは1セグメントのみか、複数か？</label>
+                <span class="prop-hint">例：初心者層＋上級者層のように複数ある場合はすべて挙げてください。</span>
+                <textarea id="prop-targetSegments" placeholder="例：1セグメントのみ（個人の爬虫類飼育者）&#10;例：複数 — メイン：個人飼育者、サブ：ペットショップ" style="min-height:60px"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>Q10. ターゲットの属性は？</label>
+                <span class="prop-hint">個人向けなら年齢・家族構成・年収帯等。法人向けなら業種・規模・決裁者の役職等。</span>
+                <textarea id="prop-target" placeholder="例：20〜40代男性、年収400〜600万、持ち家、爬虫類飼育歴3年以上&#10;例：中小製造業（従業員50名以下）、生産管理部門長が決裁者"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>Q11. 意識している競合・類似製品/サービスは？</label>
+                <span class="prop-hint">特に意識している競合がなければ「なし」でOK。AI側で調査します。</span>
+                <textarea id="prop-competitors" placeholder="例：A社「〇〇」— 低価格だがアプリ連携なし&#10;例：B社「〇〇」— 高機能だが爬虫類に特化していない&#10;例：特に意識している競合はいない"></textarea>
+              </div>
+              <div class="prop-field">
+                <label>Q12. 原価・コスト構造がわかる資料はあるか？</label>
+                <span class="prop-hint">有形ならBOM・部材表、無形なら人件費・外注費・システム利用料等の積算。あればAIが実データで原価計算します。</span>
+                <textarea id="prop-costStructure" placeholder="例：部材費 約8,000円（センサー3,000 + 基板2,000 + 筐体3,000）&#10;例：外注費 月30万（デザイン＋開発）&#10;例：まだない、仮説で進めてほしい"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 4回目：実現手段・スケール（Q13-Q16） -->
+        <div class="prop-accordion">
+          <div class="prop-acc-header" onclick="togglePropAcc(this)">
+            <span class="prop-acc-num">4</span>
+            <span class="prop-acc-label">実現手段・スケール</span>
             <span class="prop-acc-badge">あれば精度UP</span>
             <span class="prop-acc-arrow">▼</span>
           </div>
           <div class="prop-acc-body">
             <div class="prop-acc-inner">
               <div class="prop-field">
-                <label>Q11. 原価・コスト構造がわかる資料はあるか？</label>
-                <span class="prop-hint">有形商材ならBOM・部材表、無形商材なら人件費・外注費・システム利用料の積算等。</span>
-                <textarea id="prop-costStructure" placeholder="例：部材費 約8,000円（センサー3,000 + 基板2,000 + 筐体3,000）&#10;例：外注費 月30万（デザイン＋開発）&#10;例：まだ見積もりなし"></textarea>
-              </div>
-              <div class="prop-field">
-                <label>Q12. イメージ画像・モックアップはあるか？</label>
+                <label>Q13. イメージ画像・モックアップはあるか？</label>
                 <span class="prop-hint">完成イメージ・UIモックアップ・利用シーンの写真等。AIにファイルを渡す際にここの情報を参照します。</span>
-                <textarea id="prop-mockupDesc" placeholder="例：3Dレンダリング画像あり（別途ファイルで渡す）&#10;例：手書きスケッチのみ&#10;例：なし、AIに生成してほしい" style="min-height:60px"></textarea>
+                <textarea id="prop-mockupDesc" placeholder="例：3Dレンダリング画像あり（別途ファイルで渡す）&#10;例：画面キャプチャ・UIモックアップがある&#10;例：まだない" style="min-height:60px"></textarea>
               </div>
               <div class="prop-field">
-                <label>Q13. 実行体制は？</label>
-                <span class="prop-hint">誰が何を担当するか。複数プロジェクトを抱えているなど稼働の制約があれば。</span>
-                <textarea id="prop-team" placeholder="例：企画・営業 — 自分（週3日稼働可）&#10;例：開発 — 外部委託（〇〇社に見積もり中）&#10;例：デザイン — 社内の〇〇が兼務"></textarea>
+                <label>Q14. 実行体制・稼働の制約は？</label>
+                <span class="prop-hint">誰が何を担当するか。複数プロジェクトを抱えているなど制約があれば。</span>
+                <textarea id="prop-team" placeholder="例：企画・営業 — 自分（週3日稼働可）&#10;例：開発 — 外部委託（〇〇社に見積もり中）&#10;例：自分ひとりで担当（制約は特にない）"></textarea>
               </div>
               <div class="prop-field">
-                <label>Q14. 業界特有の法規制で懸念していることは？</label>
-                <span class="prop-hint">なければAI側で一般的なリスクを調査します。</span>
-                <textarea id="prop-regulations" placeholder="例：電気用品安全法（PSE）の取得が必要かも&#10;例：食品衛生法の対象になるか要確認&#10;例：特になし／わからない" style="min-height:60px"></textarea>
+                <label>Q15. 業界特有の法規制で懸念していることは？</label>
+                <span class="prop-hint">なければAI側で調査します。「特にない」でもOK。</span>
+                <textarea id="prop-regulations" placeholder="例：電気用品安全法（PSE）の取得が必要かも&#10;例：食品衛生法の対象になるか要確認&#10;例：特になし／わからない（調べてほしい）" style="min-height:60px"></textarea>
               </div>
-            </div>
-          </div>
-        </div>
-        <!-- E. スケール感 -->
-        <div class="prop-accordion">
-          <div class="prop-acc-header" onclick="togglePropAcc(this)">
-            <span class="prop-acc-num">E</span>
-            <span class="prop-acc-label">スケール感</span>
-            <span class="prop-acc-badge">必須</span>
-            <span class="prop-acc-arrow">▼</span>
-          </div>
-          <div class="prop-acc-body">
-            <div class="prop-acc-inner">
               <div class="prop-field">
-                <label class="prop-required">Q15. 小規模PoC・技術検証としてか、本格的な事業計画としてか？</label>
+                <label class="prop-required">Q16. 小規模PoC・技術検証としてか、本格的な事業計画としてか？</label>
                 <span class="prop-hint">財務モデルの精緻さや前提の置き方が変わります。</span>
                 <textarea id="prop-scale" placeholder="例：まずは小規模PoCで市場の反応を見たい&#10;例：本格的な事業計画として、3年の収支を出したい" style="min-height:60px"></textarea>
               </div>
@@ -6540,9 +6531,10 @@ function openProposalForm(editData) {
   showProposalView('proposal-form-view');
   document.getElementById('proposal-form-title').textContent = editData ? t('prop.edit.title') : t('prop.new');
   const fields = [
-    'title','whatForWhom','motivation','businessType','brandName',
-    'businessGoal','validation','pricing','target','competitors',
-    'costStructure','mockupDesc','team','regulations','scale'
+    'title','whatForWhom','motivation','businessType',
+    'businessGoal','validation','brandName','pricing',
+    'targetSegments','target','competitors','costStructure',
+    'mockupDesc','team','regulations','scale'
   ];
   fields.forEach(f => {
     const el = document.getElementById('prop-' + f);
@@ -6561,9 +6553,10 @@ function _collectProposalForm() {
   const title = document.getElementById('prop-title').value.trim();
   if (!title) { showToast(t('prop.title.required')); return null; }
   const fields = [
-    'whatForWhom','motivation','businessType','brandName',
-    'businessGoal','validation','pricing','target','competitors',
-    'costStructure','mockupDesc','team','regulations','scale'
+    'whatForWhom','motivation','businessType',
+    'businessGoal','validation','brandName','pricing',
+    'targetSegments','target','competitors','costStructure',
+    'mockupDesc','team','regulations','scale'
   ];
   const data = {
     id: _currentProposal?.id || null,
@@ -6618,7 +6611,7 @@ async function openProposalDetail(id) {
   if (!GAS_URL) {
     const demo = _proposalList.find(p => p.id === id);
     if (demo) {
-      _currentProposal = { ...demo, whatForWhom:'社内問い合わせの80%を占める定型質問を自動回答するAIチャットボットを、全社員（約50名）向けに導入する。', motivation:'担当者の業務時間の約30%が定型質問対応に費やされている現状を毎日実感しており、自動化したい。', businessType:'既存のIT基盤に統合。自社名義で社内ツールとして展開。', brandName:'自社名義（社内ツール）', businessGoal:'社内ヘルプデスクの自動化→問い合わせ対応コスト50%削減', validation:'Phase1として2ヶ月のPoC実施→定型質問の自動回答率を測定', pricing:'初期導入費50万円＋月額運用費5万円', target:'全社員（約50名）、特に問い合わせ対応の多い総務・管理部門', competitors:'社外チャットボットSaaS（ChatPlus等）— 月額5万円〜、社内ナレッジに未対応', team:'PL：畑村、AI開発：外部ベンダー、社内調整：総務部', scale:'小規模PoCから開始し、効果検証後に本格導入判断' };
+      _currentProposal = { ...demo, whatForWhom:'社内問い合わせの80%を占める定型質問を自動回答するAIチャットボットを、全社員（約50名）向けに導入する。', motivation:'担当者の業務時間の約30%が定型質問対応に費やされている現状を毎日実感しており、自動化したい。', businessType:'既存のIT基盤に統合', businessGoal:'社内ヘルプデスクの自動化→問い合わせ対応コスト50%削減', validation:'Phase1として2ヶ月のPoC実施→定型質問の自動回答率を測定', brandName:'自社名義（社内ツール）', pricing:'初期導入費50万円＋月額運用費5万円', targetSegments:'1セグメントのみ（全社員）', target:'全社員（約50名）、特に問い合わせ対応の多い総務・管理部門', competitors:'社外チャットボットSaaS（ChatPlus等）— 月額5万円〜、社内ナレッジに未対応', team:'PL：畑村、AI開発：外部ベンダー、社内調整：総務部', scale:'小規模PoCから開始し、効果検証後に本格導入判断' };
       renderProposalDetail(_currentProposal);
     }
     return;
@@ -6636,20 +6629,21 @@ function renderProposalDetail(p) {
   showProposalView('proposal-detail-view');
   document.getElementById('proposal-detail-title').textContent = p.title || t('prop.untitled');
   const sections = [
-    { label:'何を、誰のために、どんな課題を解決するか', val: p.whatForWhom },
-    { label:'個人の思い・動機', val: p.motivation },
-    { label:'事業の位置づけ', val: p.businessType },
-    { label:'販売名義・ブランド', val: p.brandName },
-    { label:'事業の想定（最終着地）', val: p.businessGoal },
-    { label:'需要検証の方法', val: p.validation },
-    { label:'価格・料金体系', val: p.pricing },
-    { label:'ターゲット', val: p.target },
-    { label:'競合・類似製品', val: p.competitors },
-    { label:'原価・コスト構造', val: p.costStructure },
-    { label:'イメージ画像・モックアップ', val: p.mockupDesc },
-    { label:'実行体制', val: p.team },
-    { label:'法規制の懸念', val: p.regulations },
-    { label:'スケール感', val: p.scale },
+    { label:'Q2. 何を、誰のために、どんな課題を解決するか', val: p.whatForWhom },
+    { label:'Q3. 個人の思い・動機', val: p.motivation },
+    { label:'Q4. 事業の位置づけ', val: p.businessType },
+    { label:'Q5. 最終着地点', val: p.businessGoal },
+    { label:'Q6. 需要検証の方法', val: p.validation },
+    { label:'Q7. 販売名義・ブランド', val: p.brandName },
+    { label:'Q8. 価格・料金体系', val: p.pricing },
+    { label:'Q9. ターゲットセグメント', val: p.targetSegments },
+    { label:'Q10. ターゲット属性', val: p.target },
+    { label:'Q11. 競合・類似製品', val: p.competitors },
+    { label:'Q12. 原価・コスト構造', val: p.costStructure },
+    { label:'Q13. イメージ画像・モックアップ', val: p.mockupDesc },
+    { label:'Q14. 実行体制', val: p.team },
+    { label:'Q15. 法規制の懸念', val: p.regulations },
+    { label:'Q16. スケール感', val: p.scale },
   ].filter(s => s.val);
 
   const meta = `<div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;font-size:0.82em;color:var(--text2)">
@@ -6706,22 +6700,23 @@ function copyProposalForAI(format) {
 }
 
 function _buildProposalInputBlock(p) {
-  const lines = [`【企画名】${p.title}`, `【提出日】${p.submitDate}`];
+  const lines = [`【Q1. 企画名】${p.title}`, `【提出日】${p.submitDate}`];
   const fields = [
     ['Q2. 何を、誰のために、どんな課題を解決するか', p.whatForWhom],
-    ['Q3. 個人の思い・動機', p.motivation],
+    ['Q3. なぜ自分がやりたいか・共同発案者', p.motivation],
     ['Q4. 既存事業統合 or 独立新規事業', p.businessType],
-    ['Q5. 販売名義・ブランド', p.brandName],
-    ['Q6. 事業の想定（最終着地）', p.businessGoal],
-    ['Q7. 需要検証の方法', p.validation],
+    ['Q5. 最終着地点（どこで・どう届けるか）', p.businessGoal],
+    ['Q6. 需要検証の方法', p.validation],
+    ['Q7. 販売名義・ブランド', p.brandName],
     ['Q8. 価格・料金体系', p.pricing],
-    ['Q9. ターゲット', p.target],
-    ['Q10. 競合・類似製品', p.competitors],
-    ['Q11. 原価・コスト構造', p.costStructure],
-    ['Q12. イメージ画像・モックアップ', p.mockupDesc],
-    ['Q13. 実行体制', p.team],
-    ['Q14. 法規制の懸念', p.regulations],
-    ['Q15. スケール感（PoC or 本格事業計画）', p.scale],
+    ['Q9. ターゲットセグメント数', p.targetSegments],
+    ['Q10. ターゲット属性', p.target],
+    ['Q11. 競合・類似製品', p.competitors],
+    ['Q12. 原価・コスト構造', p.costStructure],
+    ['Q13. イメージ画像・モックアップ', p.mockupDesc],
+    ['Q14. 実行体制・稼働の制約', p.team],
+    ['Q15. 法規制の懸念', p.regulations],
+    ['Q16. スケール感（PoC or 本格事業計画）', p.scale],
   ];
   fields.forEach(([label, val]) => {
     if (val) lines.push(`\n【${label}】\n${val}`);
@@ -6793,9 +6788,10 @@ function _buildDocPrompt(input) {
 - 見出し・箇条書き・表を適切に使い、視認性を高めてください
 - ユーザーが入力していない項目はあなたの調査結果で埋めてください。補完箇所は【※AI調査】と注記
 - 数値の整合性（原価 < 売価、投資回収期間の妥当性等）を必ず検証し、矛盾があれば指摘してください
-- Q15の回答（スケール感）に応じて財務モデルの精緻さを調整してください（PoC→概算レベル、本格計画→詳細試算）
+- Q16の回答（スケール感）に応じて財務モデルの精緻さを調整してください（PoC→概算レベル、本格計画→詳細試算）
+- Q5（最終着地点）とQ6（需要検証）は別の問い。Q5＝最終ゴール、Q6＝そこに至る前の検証手段。企画書内でも混同しないこと
 
-## ユーザーの回答（15問）
+## ユーザーの回答（16問）
 ${input}
 
 上記をもとに、完成度の高い企画書を作成してください。`;
@@ -6905,7 +6901,7 @@ function _buildSlidePrompt(input) {
 - 原価 < 売価の整合性が取れていること
 - 全スライドのフォント・色が統一されていること
 
-## ユーザーの回答（15問）
+## ユーザーの回答（16問）
 ${input}
 
 上記をもとに、実際のチャート・グラフ・アイコンを含むPowerPointファイルを生成してください。`;
