@@ -9,7 +9,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --primary:#5c6bc0;--primary-dark:#3949ab;--primary-light:#e8eaf6;
-  --bg:#f5f6fa;--border:#e0e0e0;--text:#212121;--text2:#757575;--text3:#bdbdbd;
+  --bg:#f5f6fa;--surface:#ffffff;--border:#e0e0e0;--text:#212121;--text2:#757575;--text3:#bdbdbd;
   --red:#e53935;--green:#43a047;--orange:#fb8c00;--blue:#1e88e5;--purple:#8e24aa;
   --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.10);
 }
@@ -798,7 +798,7 @@ input,select{font-family:inherit;outline:none}
     <div style="max-width:680px;margin:0 auto;padding:16px 12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <h2 id="notice-header" style="font-size:1em;font-weight:700;margin:0">📢 お知らせ</h2>
-        <button id="notice-add-btn" onclick="openNoticeModal()" style="display:none;padding:7px 16px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">＋ 投稿</button>
+        <button id="notice-tab-add-btn" onclick="openNoticeModal()" style="display:none;padding:7px 16px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">＋ 投稿</button>
       </div>
       <div id="notice-list"></div>
     </div>
@@ -1397,6 +1397,28 @@ input,select{font-family:inherit;outline:none}
       <div style="padding:0 16px">
         <div class="conflict-warn" id="car-conflict-warn">⚠️ <span id="car-conflict-text">この時間帯は他の予約があります</span></div>
       </div>
+      <!-- スケジュール連動（外出/出張） -->
+      <div class="ev-row" id="car-schedule-row">
+        <div class="ev-row-icon">📋</div>
+        <div class="ev-row-content">
+          <div class="ev-row-label" id="car-schedule-label">スケジュール種別</div>
+          <select id="car-schedule-type" style="width:100%;border:none;outline:none;font-size:0.92em;font-family:inherit;background:transparent;-webkit-appearance:none;appearance:none">
+            <option value="外出">外出</option>
+            <option value="出張">出張</option>
+          </select>
+        </div>
+        <span style="color:var(--text2);font-size:0.8em">▼</span>
+      </div>
+      <!-- 承認者（一般のみ表示） -->
+      <div class="ev-row" id="car-approver-row" style="display:none">
+        <div class="ev-row-icon">👤</div>
+        <div class="ev-row-content">
+          <div class="ev-row-label" id="car-approver-label">承認者を選択 <span style="color:#e53935;font-size:0.8em">（必須）</span></div>
+          <select id="car-approver" onchange="updateCarSaveButtonState()" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;font-family:inherit;background:white;color:var(--text)">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+      </div>
       <!-- 申請済み確認欄 -->
       <div class="ev-row">
         <div class="ev-row-icon">✅</div>
@@ -1735,8 +1757,8 @@ ja:{
 // 企画書
 'prop.loading':'企画書を読み込み中...','prop.empty':'過去に企画書を提出していません。\n「＋ 新規作成」から作成してください。',
 'prop.untitled':'（無題）','prop.new':'新規企画書','prop.edit.title':'企画書を編集',
-'prop.title.required':'企画名を入力してください','prop.summary.required':'概要を入力してください',
-'prop.bg.required':'背景・目的を入力してください','prop.content.required':'企画内容を入力してください',
+'prop.title.required':'企画名を入力してください','prop.summary.required':'Q2（何を、誰のために）を入力してください',
+'prop.bg.required':'Q5（最終着地点）を入力してください','prop.content.required':'企画内容を入力してください',
 'prop.submitted':'企画書を提出しました','prop.draft.saved':'下書きを保存しました',
 'prop.save.fail':'保存に失敗しました','prop.load.fail':'読み込みに失敗しました',
 'prop.delete.confirm':'この企画書を削除しますか？','prop.deleted':'削除しました',
@@ -1782,6 +1804,7 @@ ja:{
 // ロード・通知
 'ev.loading':'予定を読み込み中...','ev.load.fail':'⚠️ 予定の読み込みに失敗: {msg}',
 'car.load.fail':'⚠️ 車データ読み込み失敗: {msg}',
+'car.sched.label':'スケジュール種別','car.sched.applied':'{type}も申請しました','car.sched.auto':'{type}も登録しました','car.sched.fail':'連動スケジュールの作成に失敗しました',
 'push.not.supported':'このブラウザは通知非対応です',
 'push.sw.unsupported':'ServiceWorker非対応のためPush通知を使えません',
 'push.denied':'⚠️ 通知が拒否されています。ブラウザのサイト設定でリセットしてください',
@@ -2033,8 +2056,8 @@ vi:{
 'car.memo.ph':'Ghi chú (tùy chọn)','car.delete.text':'Xóa đặt chỗ này',
 'prop.loading':'Đang tải đề xuất...','prop.empty':'Chưa có đề xuất nào.\nNhấn "＋ Tạo mới" để bắt đầu.',
 'prop.untitled':'(Chưa đặt tên)','prop.new':'Đề xuất mới','prop.edit.title':'Sửa đề xuất',
-'prop.title.required':'Vui lòng nhập tên đề xuất','prop.summary.required':'Vui lòng nhập tóm tắt',
-'prop.bg.required':'Vui lòng nhập bối cảnh/mục đích','prop.content.required':'Vui lòng nhập nội dung',
+'prop.title.required':'Vui lòng nhập tên đề xuất','prop.summary.required':'Vui lòng nhập Q2 (cho ai, giải quyết vấn đề gì)',
+'prop.bg.required':'Vui lòng nhập Q5 (đích đến cuối cùng)','prop.content.required':'Vui lòng nhập nội dung',
 'prop.submitted':'Đã nộp đề xuất','prop.draft.saved':'Đã lưu bản nháp',
 'prop.save.fail':'Lưu thất bại','prop.load.fail':'Tải thất bại',
 'prop.delete.confirm':'Xóa đề xuất này?','prop.deleted':'Đã xóa',
@@ -2077,6 +2100,7 @@ vi:{
 'inq.error':'⚠️ Lỗi: {msg}',
 'ev.loading':'Đang tải lịch...','ev.load.fail':'⚠️ Không thể tải lịch: {msg}',
 'car.load.fail':'⚠️ Không thể tải dữ liệu xe: {msg}',
+'car.sched.label':'Loại lịch trình','car.sched.applied':'Đã gửi yêu cầu {type}','car.sched.auto':'Đã đăng ký {type}','car.sched.fail':'Không thể tạo lịch trình liên kết',
 'push.not.supported':'Trình duyệt không hỗ trợ thông báo',
 'push.sw.unsupported':'Không thể dùng Push vì không hỗ trợ ServiceWorker',
 'push.denied':'⚠️ Thông báo bị từ chối. Hãy đặt lại trong cài đặt trang',
@@ -2328,8 +2352,8 @@ ne:{
 'car.memo.ph':'टिप्पणी (ऐच्छिक)','car.delete.text':'यो बुकिङ मेट्नुहोस्',
 'prop.loading':'प्रस्ताव लोड हुँदैछ...','prop.empty':'अहिलेसम्म प्रस्ताव पेश गरिएको छैन।\n"＋ नयाँ" बाट सुरु गर्नुहोस्।',
 'prop.untitled':'(शीर्षक छैन)','prop.new':'नयाँ प्रस्ताव','prop.edit.title':'प्रस्ताव सम्पादन',
-'prop.title.required':'प्रस्ताव नाम लेख्नुहोस्','prop.summary.required':'सारांश लेख्नुहोस्',
-'prop.bg.required':'पृष्ठभूमि/उद्देश्य लेख्नुहोस्','prop.content.required':'सामग्री लेख्नुहोस्',
+'prop.title.required':'प्रस्ताव नाम लेख्नुहोस्','prop.summary.required':'Q2 (कसको लागि, कुन समस्या समाधान) लेख्नुहोस्',
+'prop.bg.required':'Q5 (अन्तिम लक्ष्य) लेख्नुहोस्','prop.content.required':'सामग्री लेख्नुहोस्',
 'prop.submitted':'प्रस्ताव पेश भयो','prop.draft.saved':'ड्राफ्ट सुरक्षित भयो',
 'prop.save.fail':'सुरक्षित गर्न असफल','prop.load.fail':'लोड गर्न असफल',
 'prop.delete.confirm':'यो प्रस्ताव मेट्ने?','prop.deleted':'मेटियो',
@@ -2372,6 +2396,7 @@ ne:{
 'inq.error':'⚠️ त्रुटि: {msg}',
 'ev.loading':'तालिका लोड गर्दै...','ev.load.fail':'⚠️ तालिका लोड गर्न सकिएन: {msg}',
 'car.load.fail':'⚠️ गाडी डाटा लोड गर्न सकिएन: {msg}',
+'car.sched.label':'तालिका प्रकार','car.sched.applied':'{type} पनि आवेदन गरियो','car.sched.auto':'{type} पनि दर्ता गरियो','car.sched.fail':'लिंक तालिका सिर्जना गर्न सकिएन',
 'push.not.supported':'यो ब्राउजरले सूचना समर्थन गर्दैन',
 'push.sw.unsupported':'ServiceWorker नभएको कारण Push सूचना प्रयोग गर्न सकिँदैन',
 'push.denied':'⚠️ सूचना अस्वीकार गरिएको छ। ब्राउजर सेटिङमा रिसेट गर्नुहोस्',
@@ -2510,31 +2535,6 @@ function applyLanguage(lang){
   // 企画書タブ
   const _ph=document.getElementById('prop-header-title');if(_ph)_ph.textContent=t('prop.header');
   const _pnb=document.getElementById('prop-new-btn');if(_pnb)_pnb.textContent=t('prop.new.btn');
-  const _ps1=document.getElementById('prop-step1-label');if(_ps1)_ps1.textContent=t('prop.step1');
-  const _ps1b=document.getElementById('prop-step1-badge');if(_ps1b)_ps1b.textContent=t('prop.required');
-  const _ps2=document.getElementById('prop-step2-label');if(_ps2)_ps2.textContent=t('prop.step2');
-  const _ps2b=document.getElementById('prop-step2-badge');if(_ps2b)_ps2b.textContent=t('prop.required');
-  const _ps3=document.getElementById('prop-step3-label');if(_ps3)_ps3.textContent=t('prop.step3');
-  const _ps3b=document.getElementById('prop-step3-badge');if(_ps3b)_ps3b.textContent=t('prop.required');
-  const _ps4=document.getElementById('prop-step4-label');if(_ps4)_ps4.textContent=t('prop.step4');
-  const _ps4b=document.getElementById('prop-step4-badge');if(_ps4b)_ps4b.textContent=t('prop.optional');
-  const _ps5=document.getElementById('prop-step5-label');if(_ps5)_ps5.textContent=t('prop.step5');
-  const _ps5b=document.getElementById('prop-step5-badge');if(_ps5b)_ps5b.textContent=t('prop.optional');
-  const _ps6=document.getElementById('prop-step6-label');if(_ps6)_ps6.textContent=t('prop.step6');
-  const _ps6b=document.getElementById('prop-step6-badge');if(_ps6b)_ps6b.textContent=t('prop.optional');
-  const _ptl=document.getElementById('prop-title-label');if(_ptl)_ptl.textContent=t('prop.title.label');
-  const _pdl=document.getElementById('prop-date-label');if(_pdl)_pdl.textContent=t('prop.date');
-  const _psl=document.getElementById('prop-summary-label');if(_psl)_psl.textContent=t('prop.summary.label');
-  const _pbl=document.getElementById('prop-bg-label');if(_pbl)_pbl.textContent=t('prop.bg.label');
-  const _pal=document.getElementById('prop-analysis-label');if(_pal)_pal.textContent=t('prop.analysis.label');
-  const _pcl=document.getElementById('prop-content-label');if(_pcl)_pcl.textContent=t('prop.content.label');
-  const _ptgl=document.getElementById('prop-target-label');if(_ptgl)_ptgl.textContent=t('prop.target.label');
-  const _pscl=document.getElementById('prop-schedule-label');if(_pscl)_pscl.textContent=t('prop.schedule.label');
-  const _ptml=document.getElementById('prop-team-label');if(_ptml)_ptml.textContent=t('prop.team.label');
-  const _pbdl=document.getElementById('prop-budget-label');if(_pbdl)_pbdl.textContent=t('prop.budget.label');
-  const _pkl=document.getElementById('prop-kpi-label');if(_pkl)_pkl.textContent=t('prop.kpi.label');
-  const _prl=document.getElementById('prop-risk-label');if(_prl)_prl.textContent=t('prop.risk.label');
-  const _pccl=document.getElementById('prop-conclusion-label');if(_pccl)_pccl.textContent=t('prop.conclusion.label');
   const _pdb=document.getElementById('prop-draft-btn');if(_pdb)_pdb.textContent=t('prop.btn.draft');
   const _psb=document.getElementById('prop-submit-btn');if(_psb)_psb.textContent=t('prop.btn.submit');
   const _pcd=document.getElementById('prop-complete-desc');if(_pcd)_pcd.innerHTML=t('prop.complete.desc').replace('\n','<br>');
@@ -2564,6 +2564,10 @@ function applyLanguage(lang){
   const _cdl=document.getElementById('car-dest-label');if(_cdl)_cdl.textContent=t('car.dest');
   const _cdil=document.getElementById('car-dist-label');if(_cdil)_cdil.textContent=t('car.dist');
   const _cdpl=document.getElementById('car-depart-label');if(_cdpl)_cdpl.textContent=t('car.depart.short');
+  const _csl=document.getElementById('car-schedule-label');if(_csl)_csl.textContent=t('car.sched.label');
+  const _cal=document.getElementById('car-approver-label');if(_cal)_cal.innerHTML=t('ev.approver')+' <span style="color:#e53935;font-size:0.8em">'+t('ev.approver.required')+'</span>';
+  const _cst=document.getElementById('car-schedule-type');if(_cst){const cv=_cst.value;_cst.innerHTML=['外出','出張'].map(v=>`<option value="${v}">${tType(v)}</option>`).join('');_cst.value=cv;}
+  const _cap=document.getElementById('car-approver');if(_cap&&_cap.options[0])_cap.options[0].textContent=t('ev.approver.select');
   // 予定モーダル
   const _eti=document.getElementById('ev-title');if(_eti)_eti.placeholder=t('ev.title.ph');
   const _eal=document.getElementById('ev-allday-label');if(_eal)_eal.textContent=t('ev.allday');
@@ -3175,6 +3179,7 @@ function switchTab(tab, btn){
   // カレンダータブ以外は今日基準で取得し、ホーム等で今月の予定が欠けるのを防ぐ
   if(tab !== 'mypage') {
     loadEvents(tab !== 'calendar' ? { centerDate: new Date() } : undefined).then(() => {
+      if (!currentUser) return;
       if(tab==='home'){ renderHome(); renderHomeDayWidgets(); }
       if(tab==='team') renderTeam();
       const carCount = getPendingNotifs().length;
@@ -3634,6 +3639,7 @@ const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','
 const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢'};
 
 function renderTeam(){
+  if (!currentUser) return;
   if (teamView === 'dept') { renderTeamDeptView(); return; }
   const ds=fmtDate(new Date());
   const d=parseDate(ds);
@@ -3901,6 +3907,7 @@ function closeMemberPopup(){ document.getElementById('member-popup').style.displ
 
 // ===== ホーム（週間スタッフビュー） =====
 function renderHomeDayWidgets(){
+  if (!currentUser) return;
   const today = fmtDate(new Date());
   const now = new Date();
   const hNow = now.getHours() + now.getMinutes()/60;
@@ -4013,6 +4020,7 @@ function renderHomeDayWidgets(){
 }
 
 function renderHome(){
+  if (!currentUser) return;
   const el = document.getElementById('home-content');
   if(!el) return;
 
@@ -4654,7 +4662,7 @@ function renderRoomPicker(){
   const start=document.getElementById('ev-start').value;
   const end=document.getElementById('ev-end').value;
   document.getElementById('room-picker').innerHTML=ROOMS.map(r=>{
-    const conflict=events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===r.id&&e.date===date&&start<e.end&&end>e.start);
+    const conflict=events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===r.id&&eventIncludesDate(e,date)&&start<e.end&&end>e.start);
     const sel=selectedRoom===r.id;
     return`<div class="room-card${conflict?' conflict':sel?' selected':''}" onclick="${conflict?'':'selectRoom(\''+r.id+'\',this)'}">
       <div class="room-name">${r.name}</div><div class="room-floor">${r.floor}　${t('ev.room.capacity',{n:r.capacity})}</div>
@@ -4674,7 +4682,7 @@ function renderRoomTimelineMini(date, selStart, selEnd){
     const [h,m]=t.split(':').map(Number);
     return Math.max(0,Math.min(100,((h+m/60-TL_START)/TL_HOURS)*100));
   };
-  const roomEvs=events.filter(e=>e.id!==editingId&&e.type==='会議室'&&e.date===date&&e.room&&e.start&&e.end);
+  const roomEvs=events.filter(e=>e.id!==editingId&&e.type==='会議室'&&eventIncludesDate(e,date)&&e.room&&e.start&&e.end);
   const nowLeft=toPos(selStart), nowRight=toPos(selEnd);
   const hasNow=nowLeft!==null&&nowRight!==null&&selStart&&selEnd;
 
@@ -4798,7 +4806,7 @@ async function doSaveEvent(){
   if(useRange&&endDate<startDate){showToast(t('ev.date.order'));return}
   if(showTime&&start&&end&&end<=start&&startDate===endDate){showToast(t('ev.time.order'));return}
   if(type==='会議室'&&!selectedRoom){showToast(t('ev.room.required'));return}
-  if(type==='会議室'&&events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===selectedRoom&&e.date===date&&start<e.end&&end>e.start)){
+  if(type==='会議室'&&events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===selectedRoom&&eventIncludesDate(e,date)&&start<e.end&&end>e.start)){
     showToast(t('ev.conflict'));return;
   }
   const editApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
@@ -5406,6 +5414,7 @@ function _escHtml(s) {
 // ============================================================
 let _mypageCM=null,_mypageSD=null;
 function renderMyPage() {
+  if (!currentUser) return;
   const today = fmtDate(new Date());
   if(!_mypageCM) _mypageCM=new Date(new Date().getFullYear(),new Date().getMonth(),1);
   if(!_mypageSD) _mypageSD=today;
@@ -6165,6 +6174,14 @@ function openCarAddModal(dateStr, carName) {
   document.getElementById('car-endat').value = '';
   document.getElementById('car-endat-row').style.display = 'none';
   checkCarConflict();
+  document.getElementById('car-schedule-row').style.display = 'flex';
+  document.getElementById('car-schedule-type').value = '外出';
+  populateCarScheduleType('外出');
+  const _needsCa = currentUser && currentUser.role === '一般';
+  document.getElementById('car-approver-row').style.display = _needsCa ? 'flex' : 'none';
+  if (_needsCa) renderCarApproverSelect();
+  document.getElementById('car-approver').value = '';
+  updateCarSaveButtonState();
   openModal('car-modal-backdrop');
 }
 
@@ -6189,11 +6206,48 @@ function openCarEditModal(id) {
   renderCarPhotos();
   checkCarConflict();
   checkCarAlcohol();
+  document.getElementById('car-schedule-row').style.display = 'none';
+  document.getElementById('car-approver-row').style.display = 'none';
+  updateCarSaveButtonState();
   closeModal('car-detail-backdrop');
   openModal('car-modal-backdrop');
 }
 
 function closeCarModal() { stopCarCamera(); closeModal('car-modal-backdrop'); }
+
+// ----- スケジュール連動 -----
+function populateCarScheduleType(selected) {
+  const sel = document.getElementById('car-schedule-type');
+  sel.innerHTML = ['外出','出張'].map(v =>
+    `<option value="${v}" ${v===selected?'selected':''}>${tType(v)}</option>`
+  ).join('');
+}
+function renderCarApproverSelect() {
+  const sel = document.getElementById('car-approver');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">' + t('ev.approver.select') + '</option>';
+  const approvers = USERS.filter(u => u.role && u.role !== '一般' && u.id !== currentUser.id);
+  approvers.sort((a, b) => (a.dept || '').localeCompare(b.dept || '') || (a.name || '').localeCompare(b.name || ''));
+  approvers.forEach(u => {
+    const o = document.createElement('option');
+    o.value = u.id;
+    o.textContent = t('ev.approver.format', {name: u.name, dept: u.dept || '', role: u.role || ''});
+    sel.appendChild(o);
+  });
+  if (cur) sel.value = cur;
+}
+function updateCarSaveButtonState() {
+  const btn = document.getElementById('car-btn-save');
+  if (!btn) return;
+  const schedRow = document.getElementById('car-schedule-row');
+  const isNew = schedRow && schedRow.style.display !== 'none';
+  const need = isNew && currentUser && currentUser.role === '一般';
+  const ok = !need || !!document.getElementById('car-approver')?.value;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '0.4';
+  btn.style.pointerEvents = ok ? '' : 'none';
+}
 
 // ----- セレクト生成 -----
 function populateCarSelect(selected) {
@@ -6264,6 +6318,11 @@ async function doSaveCarEvent() {
   if (!start) { showToast(t('car.depart.required')); return; }
   if (!end)   { showToast(t('car.return.required')); return; }
   if (end <= start) { showToast(t('car.return.order')); return; }
+  const isNewCar = !carEditingId;
+  const schedType = isNewCar ? document.getElementById('car-schedule-type').value : '';
+  const needsCarApprover = isNewCar && currentUser && currentUser.role === '一般';
+  const carApprover = needsCarApprover ? document.getElementById('car-approver').value : '';
+  if (needsCarApprover && !carApprover) { showToast(t('ev.approver.required.msg')); return; }
   const sUtc = datetimeLocalToUtc(start), eUtc = datetimeLocalToUtc(end);
   const carConflict = carEvents.some(ev =>
     ev.id !== carEditingId && ev.carName === car &&
@@ -6292,7 +6351,26 @@ async function doSaveCarEvent() {
   }
   try {
     const result = await api('saveCarEvent', {event:ev}, carEditingId?t('car.updating'):t('car.saving'));
-    if (!carEditingId) ev.id = result.id;
+    if (isNewCar) ev.id = result.id;
+    // 新規: 連動スケジュールイベント作成
+    if (isNewCar && schedType) {
+      const [startDate, startTime] = start.split('T');
+      const [endDate, endTime] = end.split('T');
+      const schedEv = {
+        type: schedType,
+        title: dest,
+        startDate, endDate, start: startTime, end: endTime,
+        people: [], rentals: [], memo: '',
+        selectedApprover: carApprover,
+      };
+      try {
+        const sr = await api('saveEvent', {event: schedEv}, '');
+        if (sr.approvalStatus === '承認済') showToast(t('car.sched.auto', {type: tType(schedType)}));
+        else showToast(t('car.sched.applied', {type: tType(schedType)}));
+      } catch(se) {
+        showToast(t('car.sched.fail'));
+      }
+    }
     await loadCarData({ force: true }); renderCarView(); closeCarModal();
     showToast(carEditingId ? t('car.updated.msg') : t('car.saved'));
   } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
@@ -6727,11 +6805,11 @@ function _buildProposalInputBlock(p) {
 
 function _buildDocPrompt(input) {
   return `あなたはプロの経営コンサルタント兼ビジネスライターです。
-以下の「15問の回答」をもとに、経営層・決裁者向けの「新商品・新規事業企画書」をA4で8〜12ページ程度のビジネス文書として作成してください。
+以下の「16問の回答」をもとに、経営層・決裁者向けの「新商品・新規事業企画書」をA4で8〜12ページ程度のビジネス文書として作成してください。
 
 ## 重要：あなたが自律的に調査・補完すること
 
-ユーザーの回答は15問分のみです。以下の情報はあなたが自律的にWeb検索・推定して補完してください：
+ユーザーの回答は16問分のみです。以下の情報はあなたが自律的にWeb検索・推定して補完してください：
 - **市場規模**：商材カテゴリの国内/世界市場規模、成長率、出典（信頼できるソースを明記）
 - **競合の詳細分析**：ユーザーが挙げた競合＋あなたが見つけた競合の価格・機能・強み・弱み
 - **法規制**：業界特有の法規制・認証要件（PSE、食品衛生法、薬機法等）
@@ -6800,7 +6878,7 @@ ${input}
 
 function _buildSlidePrompt(input) {
   return `あなたはプロのプレゼンテーションデザイナー兼経営コンサルタントです。
-以下の「15問の回答」をもとに、経営層・決裁者向けの「新商品・新規事業企画プレゼン資料」をPowerPointファイル（.pptx）として作成してください。
+以下の「16問の回答」をもとに、経営層・決裁者向けの「新商品・新規事業企画プレゼン資料」をPowerPointファイル（.pptx）として作成してください。
 
 ## 出力形式
 - 必ず .pptx ファイルとしてダウンロード可能な形で出力してください
@@ -6809,7 +6887,7 @@ function _buildSlidePrompt(input) {
 
 ## 重要：あなたが自律的に調査・補完すること
 
-ユーザーの回答は15問分のみです。以下はあなたが自律的にWeb検索・推定して補完してください：
+ユーザーの回答は16問分のみです。以下はあなたが自律的にWeb検索・推定して補完してください：
 - **市場規模**：信頼できるソースから数値・成長率を取得し、グラフ化
 - **競合の詳細**：ユーザーが挙げた競合＋追加競合を比較表にまとめる
 - **法規制**：業界特有の法規制・認証要件を調査
