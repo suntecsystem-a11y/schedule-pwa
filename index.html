@@ -2565,7 +2565,7 @@ function applyLanguage(lang){
   const _cdil=document.getElementById('car-dist-label');if(_cdil)_cdil.textContent=t('car.dist');
   const _cdpl=document.getElementById('car-depart-label');if(_cdpl)_cdpl.textContent=t('car.depart.short');
   const _csl=document.getElementById('car-schedule-label');if(_csl)_csl.textContent=t('car.sched.label');
-  const _cal=document.getElementById('car-approver-label');if(_cal)_cal.innerHTML=t('ev.approver')+' <span style="color:#e53935;font-size:0.8em">'+t('ev.approver.required')+'</span>';
+  const _capl=document.getElementById('car-approver-label');if(_capl)_capl.innerHTML=t('ev.approver')+' <span style="color:#e53935;font-size:0.8em">'+t('ev.approver.required')+'</span>';
   const _cst=document.getElementById('car-schedule-type');if(_cst){const cv=_cst.value;_cst.innerHTML=['外出','出張'].map(v=>`<option value="${v}">${tType(v)}</option>`).join('');_cst.value=cv;}
   const _cap=document.getElementById('car-approver');if(_cap&&_cap.options[0])_cap.options[0].textContent=t('ev.approver.select');
   // 予定モーダル
