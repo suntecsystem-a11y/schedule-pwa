@@ -176,6 +176,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
         <option value="">すべての種別</option>
         <!-- <option value="leave">🌴 休暇申請</option> -->
         <option value="expense">💴 出張費精算</option>
+        <option value="rental">📱 端末貸出</option>
         <option value="other">📝 その他</option>
       </select>
       <select id="filter-status" onchange="applyFilter()">
@@ -216,6 +217,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
       <option value="">選択してください</option>
       <!-- <option value="leave">🌴 休暇申請</option> -->
       <option value="expense">💴 出張費精算</option>
+      <option value="rental">📱 端末貸出</option>
       <option value="other">📝 その他</option>
     </select>
     <div id="new-type-fields"></div>
@@ -372,15 +374,17 @@ async function loadTab(name) {
   try {
     let records = [];
     if (name === 'mine') {
-      const [applyLeave, applyOther, expenses] = await Promise.all([
+      const [applyLeave, applyOther, applyRental, expenses] = await Promise.all([
         gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
         gas({ action: 'getApply', token: currentToken, appType: 'other' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'rental' }),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
-        ...(applyLeave || []).map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther || []).map(r => ({ ...r, _appType: 'other' })),
-        ...(expenses   || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...(applyRental || []).map(r => ({ ...r, _appType: 'rental' })),
+        ...(expenses    || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // ⑤ サマリー表示
       const summaryEl = document.getElementById('mine-summary');
@@ -401,24 +405,28 @@ async function loadTab(name) {
       const promises = [
         gas({ action: 'getApplyForApproval', token: currentToken, appType: 'leave' }),
         gas({ action: 'getApplyForApproval', token: currentToken, appType: 'other' }),
+        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'rental' }),
       ];
       if (currentUser.isAdmin) promises.push(gas({ action: 'getExpenses', token: currentToken }));
-      const [applyLeave, applyOther, expenses] = await Promise.all(promises);
+      const [applyLeave, applyOther, applyRental, expenses] = await Promise.all(promises);
       records = [
-        ...(applyLeave || []).map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther || []).map(r => ({ ...r, _appType: 'other' })),
+        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...(applyRental || []).map(r => ({ ...r, _appType: 'rental' })),
         ...((expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' }))),
       ];
     } else if (name === 'all') {
-      const [applyLeave, applyOther, expenses] = await Promise.all([
+      const [applyLeave, applyOther, applyRental, expenses] = await Promise.all([
         gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
         gas({ action: 'getApply', token: currentToken, appType: 'other' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'rental' }),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
-        ...(applyLeave || []).map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther || []).map(r => ({ ...r, _appType: 'other' })),
-        ...(expenses   || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...(applyRental || []).map(r => ({ ...r, _appType: 'rental' })),
+        ...(expenses    || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // 申請日で降順ソート
       records.sort((a, b) => (b.applicationDate || b.appliedAt || '').localeCompare(a.applicationDate || a.appliedAt || ''));
@@ -492,7 +500,7 @@ function renderList(el, records) {
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
           <div class="card-sub">${r.applicantName || r.applicantId} ・ ${r.applicationDate || r.appliedAt || ''}</div>
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${r.destination || ''}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
-          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = [c.pc, c.mobile].filter(Boolean).join(' / '); return `<div class="card-sub">${devs}${c.start ? ' ' + c.start + '〜' + c.end : ''}</div>`; } const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
@@ -655,7 +663,7 @@ async function doApprove(appType, id) {
   } catch (e) { showToast('失敗: ' + e.message); }
 }
 
-function printExpensePDF(r) {
+async function printExpensePDF(r) {
   const detailRows = (r.details || []).map(d => `
     <tr>
       <td>${d.date||''}</td><td>${d.category||''}</td><td>${d.facility||''}</td>
@@ -663,9 +671,24 @@ function printExpensePDF(r) {
       <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
       <td>${d.memo||''}</td>
     </tr>`).join('');
-  const receipts = (r.receipts || []).map(p =>
-    `<img src="${p.url}" style="max-width:180px;max-height:140px;margin:4px;border:1px solid #ccc;">`
-  ).join('');
+  let receiptsHtml = '';
+  if (r.receipts && r.receipts.length) {
+    showToast('領収書画像を読み込み中...');
+    const imgs = await Promise.all(r.receipts.map(async p => {
+      try {
+        const resp = await fetch(p.url);
+        const blob = await resp.blob();
+        return await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(`<img src="${reader.result}" style="max-width:180px;max-height:140px;margin:4px;border:1px solid #ccc;">`);
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        return `<a href="${p.url}" target="_blank">📎 領収書リンク</a>`;
+      }
+    }));
+    receiptsHtml = imgs.join('');
+  }
   const win = window.open('', '_blank');
   win.document.write(`<!DOCTYPE html><html lang="ja"><head>
     <meta charset="UTF-8">
@@ -695,7 +718,7 @@ function printExpensePDF(r) {
       <tbody>${detailRows}</tbody>
     </table>
     <div class="total">合計金額：${Number(r.totalAmount||0).toLocaleString()} 円</div>
-    ${receipts ? `<div class="section">領収書</div><div>${receipts}</div>` : ''}
+    ${receiptsHtml ? `<div class="section">領収書</div><div>${receiptsHtml}</div>` : ''}
     <br><button onclick="window.print()">🖨 印刷</button>
   </body></html>`);
   win.document.close();
@@ -886,6 +909,24 @@ function renderNewFields() {
     `;
     addDetailRow();
     receiptPhotos = [];
+  } else if (type === 'rental') {
+    el.innerHTML = `
+      <div id="rental-loading" style="padding:10px;font-size:13px;color:var(--text-sub);">端末情報を取得中...</div>
+      <div id="rental-fields" style="display:none;">
+        <label>PC（任意）</label>
+        <select id="f-rental-pc"><option value="">借りない</option></select>
+        <label>携帯（任意）</label>
+        <select id="f-rental-mobile"><option value="">借りない</option></select>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><label>利用開始日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-start"></div>
+          <div><label>返却予定日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-end"></div>
+        </div>
+        <label>利用目的（任意）</label><input type="text" id="f-rental-purpose" placeholder="例: 出張用">
+        <label>備考（任意）</label><textarea id="f-rental-note" placeholder="任意"></textarea>
+        ${getApproverSectionHTML()}
+      </div>
+    `;
+    loadRentalMasters();
   } else if (type === 'other') {
     el.innerHTML = `
       <label>件名</label><input type="text" id="f-other-title" placeholder="申請の件名">
@@ -894,6 +935,28 @@ function renderNewFields() {
     `;
   } else {
     el.innerHTML = '';
+  }
+}
+
+let rentalMasters = [];
+async function loadRentalMasters() {
+  try {
+    rentalMasters = await gas({ action: 'getRentalMasters', token: currentToken }) || [];
+    const pcSel = document.getElementById('f-rental-pc');
+    const mobSel = document.getElementById('f-rental-mobile');
+    rentalMasters.forEach(m => {
+      const opt = `<option value="${m.deviceType}">${m.deviceType}</option>`;
+      const t = (m.purpose || m.deviceType || '').toLowerCase();
+      if (t.includes('pc') || t.includes('パソコン') || t.includes('ノート')) {
+        pcSel.insertAdjacentHTML('beforeend', opt);
+      } else {
+        mobSel.insertAdjacentHTML('beforeend', opt);
+      }
+    });
+    document.getElementById('rental-loading').style.display = 'none';
+    document.getElementById('rental-fields').style.display = '';
+  } catch(e) {
+    document.getElementById('rental-loading').textContent = '⚠ 端末情報の取得に失敗しました';
   }
 }
 
@@ -1052,6 +1115,24 @@ async function submitNew() {
         { label: '行先',     value: dest },
         { label: '合計金額', value: document.getElementById('expense-total-display')?.textContent || '0円' },
       ];
+    } else if (type === 'rental') {
+      const pc     = document.getElementById('f-rental-pc').value;
+      const mobile = document.getElementById('f-rental-mobile').value;
+      const start  = document.getElementById('f-rental-start').value;
+      const end    = document.getElementById('f-rental-end').value;
+      if (!pc && !mobile) throw new Error('貸出端末を1つ以上選択してください');
+      if (!start || !end) throw new Error('利用期間を入力してください');
+      const pcLabel  = pc ? document.getElementById('f-rental-pc').options[document.getElementById('f-rental-pc').selectedIndex].text : '';
+      const mobLabel = mobile ? document.getElementById('f-rental-mobile').options[document.getElementById('f-rental-mobile').selectedIndex].text : '';
+      items = [
+        { label: 'PC', value: pcLabel || '借りない' },
+        { label: '携帯', value: mobLabel || '借りない' },
+        { label: '利用開始日', value: start },
+        { label: '返却予定日', value: end },
+        { label: '利用目的', value: document.getElementById('f-rental-purpose').value || 'なし' },
+        { label: '備考', value: document.getElementById('f-rental-note').value || 'なし' },
+        { label: '承認者', value: _getApproverDisplayName() },
+      ];
     } else {
       const title = document.getElementById('f-other-title').value.trim();
       if (!title) throw new Error('件名を入力してください');
@@ -1068,6 +1149,7 @@ async function submitNew() {
     try {
       if (type === 'leave') await submitLeave();
       else if (type === 'expense') await submitExpense();
+      else if (type === 'rental') await submitRental();
       else await submitOther();
       closeModal('modal-confirm');
       closeModal('modal-new');
@@ -1160,6 +1242,26 @@ async function submitExpense() {
   }});
 }
 
+async function submitRental() {
+  const pc     = document.getElementById('f-rental-pc').value;
+  const mobile = document.getElementById('f-rental-mobile').value;
+  if (!pc && !mobile) throw new Error('貸出端末を1つ以上選択してください');
+  const start = document.getElementById('f-rental-start').value;
+  const end   = document.getElementById('f-rental-end').value;
+  if (!start || !end) throw new Error('利用期間を入力してください');
+  const approverEmpId = _getSelectedApproverEmpId();
+  const pcLabel  = pc ? document.getElementById('f-rental-pc').options[document.getElementById('f-rental-pc').selectedIndex].text : '';
+  const mobLabel = mobile ? document.getElementById('f-rental-mobile').options[document.getElementById('f-rental-mobile').selectedIndex].text : '';
+  const content = JSON.stringify({
+    pc: pcLabel, pcId: pc,
+    mobile: mobLabel, mobileId: mobile,
+    start, end,
+    purpose: document.getElementById('f-rental-purpose').value,
+    note: document.getElementById('f-rental-note').value,
+  });
+  await gas({ action: 'saveApply', token: currentToken, appType: 'rental', applyData: { applicantName: currentUser.name, content, approverEmpId } });
+}
+
 async function submitOther() {
   const title = document.getElementById('f-other-title').value.trim();
   if (!title) throw new Error('件名を入力してください');
@@ -1177,10 +1279,10 @@ function _getSelectedApproverEmpId() {
 // ===================================================
 // ユーティリティ
 // ===================================================
-function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝' }[t] || '📋'; }
-function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請' }[t] || t; }
+function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝', rental:'📱' }[t] || '📋'; }
+function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請', rental:'端末貸出' }[t] || t; }
 function contentFieldLabel(k) {
-  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容' }[k] || k;
+  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', pc:'PC', mobile:'携帯', pcId:'PC ID', mobileId:'携帯ID', purpose:'利用目的' }[k] || k;
 }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
