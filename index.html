@@ -495,7 +495,7 @@ input,select{font-family:inherit;outline:none}
 .el-wrap{max-width:720px;margin:0 auto;padding:8px 0}
 .el-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .el-header h2{font-size:1.1em;font-weight:700}
-.el-card{background:white;border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.el-card{background:var(--surface-2);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
 .el-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.15)}
 .el-card-title{font-size:0.95em;font-weight:700;margin-bottom:4px}
 .el-card-meta{font-size:0.78em;color:var(--text2);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -508,12 +508,12 @@ input,select{font-family:inherit;outline:none}
 .el-quiz-question{font-size:1em;font-weight:700;margin-bottom:16px;line-height:1.6}
 .el-quiz-media{margin-bottom:16px;text-align:center}
 .el-quiz-media video,.el-quiz-media img{max-width:100%;border-radius:var(--radius)}
-.el-quiz-choice{display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer;transition:border-color .15s,background .15s}
+.el-quiz-choice{display:block;width:100%;text-align:left;padding:12px 16px;margin-bottom:8px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface-2);font-size:0.9em;cursor:pointer;transition:border-color .15s,background .15s}
 .el-quiz-choice:hover{border-color:var(--primary);background:var(--primary-light)}
 .el-quiz-choice.selected{border-color:var(--primary);background:var(--primary-light);font-weight:700}
 .el-quiz-choice.correct{border-color:#4caf50;background:#e8f5e9}
 .el-quiz-choice.wrong{border-color:#e53935;background:#fbe9e7}
-.el-quiz-explanation{background:#f5f5f5;border-radius:var(--radius);padding:12px 16px;margin-top:12px;font-size:0.85em;line-height:1.6}
+.el-quiz-explanation{background:var(--surface-1);border-radius:var(--radius);padding:12px 16px;margin-top:12px;font-size:0.85em;line-height:1.6}
 .el-result-wrap{max-width:720px;margin:0 auto;padding:32px 12px;text-align:center}
 .el-result-score{font-size:2.5em;font-weight:800;margin:16px 0}
 .el-result-label{font-size:1.2em;font-weight:700;margin-bottom:24px}
@@ -1870,6 +1870,8 @@ ja:{
 'el.exit.confirm':'中断する',
 'el.saving':'結果を保存中...',
 'el.save.fail':'結果の保存に失敗しました',
+'el.save.retry':'再保存',
+'el.saved':'保存しました',
 'el.result.pass':'合格',
 'el.result.fail':'不合格',
 'el.result.detail':'{correct} / {total} 問正解（合格ライン: {threshold}%）',
@@ -2166,6 +2168,8 @@ vi:{
 'el.exit.confirm':'Dừng',
 'el.saving':'Đang lưu kết quả...',
 'el.save.fail':'Không thể lưu kết quả',
+'el.save.retry':'Lưu lại',
+'el.saved':'Đã lưu',
 'el.result.pass':'Đạt',
 'el.result.fail':'Không đạt',
 'el.result.detail':'{correct} / {total} câu đúng (Điểm đạt: {threshold}%)',
@@ -2462,6 +2466,8 @@ ne:{
 'el.exit.confirm':'रोक्नुहोस्',
 'el.saving':'नतिजा सुरक्षित गर्दै...',
 'el.save.fail':'नतिजा सुरक्षित गर्न सकिएन',
+'el.save.retry':'पुन: सुरक्षित',
+'el.saved':'सुरक्षित भयो',
 'el.result.pass':'उत्तीर्ण',
 'el.result.fail':'अनुत्तीर्ण',
 'el.result.detail':'{correct} / {total} सही (उत्तीर्ण रेखा: {threshold}%)',
@@ -3171,7 +3177,7 @@ function switchTab(tab, btn){
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
   if(tab==='proposal') loadProposals();
-  if(tab==='elearning') loadElearningCourses();
+  if(tab==='elearning') { if(window._elQuizState && !confirm(t('el.exit.desc'))) return; window._elQuizState = null; loadElearningCourses(); }
   if(tab==='mypage')  renderMyPage();
   if(tab==='settings') renderSettings();
   if(tab==='admin')   loadAdminUsers();
@@ -7086,7 +7092,9 @@ function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
   maxHeight = maxHeight || '360px';
   if (videoUrl) {
     const uid = 'elv_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-    const cached = window._elVideoCache && window._elVideoCache[videoUrl];
+    const entry = window._elVideoCache && window._elVideoCache[videoUrl];
+    const cached = entry && (Date.now() - entry.ts < 50 * 60 * 1000) ? entry.url : null;
+    if (!cached && entry) delete window._elVideoCache[videoUrl];
     if (cached) {
       return `<div class="el-quiz-media"><video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(cached)}"></video></div>`;
     }
@@ -7115,7 +7123,7 @@ async function _resolveElVideo(uid, shareUrl, maxHeight) {
     if (!json.ok) throw new Error(json.error || 'URL取得失敗');
     if (!json.data || !json.data.url) throw new Error('URL取得失敗');
     if (!window._elVideoCache) window._elVideoCache = {};
-    window._elVideoCache[shareUrl] = json.data.url;
+    window._elVideoCache[shareUrl] = { url: json.data.url, ts: Date.now() };
     el.innerHTML = `<video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(json.data.url)}"></video>`;
   } catch(e) {
     console.error('[eラーニング動画]', e.message, shareUrl);
@@ -7150,7 +7158,7 @@ async function openElearningCourse(courseId) {
     }
   }
 
-  if (!course.questions.length) {
+  if (!course.questions || !course.questions.length) {
     showToast(t('el.no.questions'));
     return;
   }
@@ -7161,14 +7169,15 @@ async function openElearningCourse(courseId) {
     <button onclick="loadElearningCourses()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">${t('el.back')}</button>
     <h2 style="font-size:1.1em;font-weight:700;margin-bottom:4px">${_esc(course.title)}</h2>
     <p style="font-size:0.82em;color:var(--text2);margin-bottom:12px">${_esc(course.category || '')} ｜ ${t('el.meta',{n:course.questions.length,threshold:ELEARNING_PASS_THRESHOLD})}</p>
-    ${course.description ? `<div style="font-size:0.88em;line-height:1.7;margin-bottom:16px">${course.description}</div>` : ''}
+    ${course.description ? `<div style="font-size:0.88em;line-height:1.7;margin-bottom:16px">${_esc(course.description)}</div>` : ''}
     ${_elMediaHtml(course.introVideoUrl, course.introImageUrl, '360px')}
     <button class="btn-primary" style="width:100%;margin-top:16px" onclick="startElearningQuiz(window._elPendingCourse)">${t('el.start')}</button>
   </div>`;
 }
 
 function startElearningQuiz(course) {
-  const questions = [...course.questions].sort(() => Math.random() - 0.5);
+  const questions = [...course.questions];
+  for (let i = questions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questions[i], questions[j]] = [questions[j], questions[i]]; }
   const state = { course, questions, current: 0, answers: {}, answered: false };
   window._elQuizState = state;
   renderElearningQuiz();
@@ -7176,6 +7185,7 @@ function startElearningQuiz(course) {
 
 function renderElearningQuiz() {
   const s = window._elQuizState;
+  if (!s) return;
   const q = s.questions[s.current];
   const wrap = document.getElementById('elearning-content');
   const num = s.current + 1;
@@ -7187,6 +7197,7 @@ function renderElearningQuiz() {
   const answered = s.answered;
 
   let choicesHtml = q.choices.map((c, i) => {
+    if (!c || !c.trim()) return '';
     const idx = String(i + 1);
     let cls = 'el-quiz-choice';
     if (answered) {
@@ -7237,34 +7248,36 @@ function renderElearningQuiz() {
 
 function selectElearningChoice(idx) {
   const s = window._elQuizState;
-  if (s.answered) return;
+  if (!s || s.answered) return;
   s.answers[s.current] = idx;
   renderElearningQuiz();
 }
 
 function submitElearningAnswer() {
   const s = window._elQuizState;
-  if (!s.answers[s.current]) return;
+  if (!s || !s.answers[s.current]) return;
   s.answered = true;
   renderElearningQuiz();
 }
 
 function nextElearningQuestion() {
   const s = window._elQuizState;
+  if (!s) return;
   s.current++;
   s.answered = false;
   renderElearningQuiz();
 }
 
 function confirmExitQuiz() {
+  if (document.getElementById('el-exit-confirm')) return;
   const ol = document.createElement('div');
   ol.id = 'el-exit-confirm';
   ol.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px';
-  ol.innerHTML = `<div style="background:white;border-radius:var(--radius);padding:24px 20px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+  ol.innerHTML = `<div style="background:var(--surface-2);border-radius:var(--radius);padding:24px 20px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2)">
     <div style="font-size:1em;font-weight:700;margin-bottom:8px">${t('el.exit.title')}</div>
     <div style="font-size:0.85em;color:var(--text2);margin-bottom:20px">${t('el.exit.desc')}</div>
     <div style="display:flex;gap:8px">
-      <button style="flex:1;padding:10px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer;font-weight:600" onclick="document.getElementById('el-exit-confirm').remove()">${t('el.exit.cancel')}</button>
+      <button style="flex:1;padding:10px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface-2);font-size:0.9em;cursor:pointer;font-weight:600" onclick="document.getElementById('el-exit-confirm').remove()">${t('el.exit.cancel')}</button>
       <button class="btn-primary" style="flex:1" onclick="document.getElementById('el-exit-confirm').remove();loadElearningCourses()">${t('el.exit.confirm')}</button>
     </div>
   </div>`;
@@ -7273,6 +7286,7 @@ function confirmExitQuiz() {
 
 async function finishElearningQuiz() {
   const s = window._elQuizState;
+  if (!s) return;
   let correct = 0;
   s.questions.forEach((q, i) => {
     if (s.answers[i] === q.answer) correct++;
@@ -7280,13 +7294,14 @@ async function finishElearningQuiz() {
   const score = Math.round((correct / s.questions.length) * 100);
   const passed = score >= ELEARNING_PASS_THRESHOLD;
 
+  let saveFailed = false;
   if (GAS_URL) {
     try {
       await api('saveElearningResult', {
         result: { courseId: s.course.id, score, passed }
       }, t('el.saving'));
     } catch (e) {
-      showToast(t('el.save.fail'));
+      saveFailed = true;
     }
   }
 
@@ -7297,8 +7312,12 @@ async function finishElearningQuiz() {
     <div class="el-result-score" style="color:${passed ? '#2e7d32' : '#c62828'}">${score}%</div>
     <div class="el-result-label" style="color:${passed ? '#2e7d32' : '#c62828'}">${passed ? t('el.result.pass') : t('el.result.fail')}</div>
     <p style="font-size:0.85em;color:var(--text2);margin-bottom:24px">${t('el.result.detail',{correct:correct,total:s.questions.length,threshold:ELEARNING_PASS_THRESHOLD})}</p>
+    ${saveFailed ? `<div style="background:#fff3e0;border:1px solid #ffcc02;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span style="font-size:0.85em;color:#e65100">${t('el.save.fail')}</span>
+      <button onclick="(async()=>{try{await api('saveElearningResult',{result:{courseId:'${s.course.id}',score:${score},passed:${passed}}},t('el.saving'));this.closest('div').innerHTML='<span style=\\'font-size:0.85em;color:#2e7d32\\'>' + t('el.saved') + '</span>'}catch(e){showToast(t('el.save.fail'))}})()" style="white-space:nowrap;background:none;border:1px solid #e65100;color:#e65100;border-radius:var(--radius);padding:6px 14px;cursor:pointer;font-size:0.82em;font-weight:600">${t('el.save.retry')}</button>
+    </div>` : ''}
     <button class="btn-primary" style="width:100%;margin-bottom:8px" onclick="openElearningCourse('${s.course.id}')">${t('el.retry')}</button>
-    <button style="width:100%;padding:12px;border:2px solid var(--border);border-radius:var(--radius);background:white;font-size:0.9em;cursor:pointer" onclick="loadElearningCourses()">${t('el.back.list')}</button>
+    <button style="width:100%;padding:12px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface-2);font-size:0.9em;cursor:pointer" onclick="loadElearningCourses()">${t('el.back.list')}</button>
   </div>`;
 }
 
