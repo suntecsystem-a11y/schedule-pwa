@@ -2979,7 +2979,7 @@ function showSessionExpiredDialog() {
     const el=document.createElement('div');
     el.id='session-expired-dialog';
     el.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-    const empVal=currentUser?.empId||'';
+    const empVal=currentUser?.id||'';
     el.innerHTML=`
       <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
         <div style="font-size:2em;margin-bottom:10px">⏱️</div>
@@ -3623,9 +3623,7 @@ function renderRoomTimeline(){
           <button onclick="openRoomBookingModal('${room.id}')" style="font-size:0.72em;padding:4px 10px;border-radius:8px;background:var(--primary-light);color:var(--primary);font-weight:700">${t('room.reserve')}</button>
         </div>
         <div style="display:flex;gap:3px;overflow-x:auto;padding-bottom:4px">
-          ${hours.map(h=>{const ev=rEvs.find(e=>parseInt(e.start)<=h&&parseInt(e.end)>h);
-            const hStr=String(h).padStart(2,'0')+':00';
-            const hEndStr=String(h+1).padStart(2,'0')+':00';
+          ${hours.map(h=>{const hStr=String(h).padStart(2,'0')+':00';const hEndStr=String(h+1).padStart(2,'0')+':00';const ev=rEvs.find(e=>e.start<hEndStr&&e.end>hStr);
             return`<div style="flex-shrink:0;width:42px;height:38px;border-radius:6px;background:${ev?STATUS_COLOR['会議室']:'#f0f4f8'};border:1px solid ${ev?'transparent':'var(--border)'};display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:0.6em;color:${ev?'white':'var(--text2)'};font-weight:600;transition:opacity .15s" onmouseover="if(!${!!ev})this.style.background='#e8eaf6'" onmouseout="if(!${!!ev})this.style.background='#f0f4f8'" onclick="${ev?`openDetail('${ev.id}')`:`openRoomBookingModal('${room.id}','${hStr}','${hEndStr}')`}">${h}:00<br>${ev?t('room.booked'):'＋'}</div>`;}).join('')}
         </div>
         ${rEvs.map(e=>`<div style="margin-top:8px;font-size:0.8em;padding:8px 10px;border-radius:8px;background:var(--primary-light);cursor:pointer" onclick="openDetail('${e.id}')">
