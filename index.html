@@ -2947,16 +2947,16 @@ function demoLogin(empId, pin){
 }
 
 function initDemoData(){
-  const t=fmtDate(new Date()),t1=fmtDate(addDays(new Date(),1)),t3=fmtDate(addDays(new Date(),3)),t5=fmtDate(addDays(new Date(),5));
+  const td=fmtDate(new Date()),t1=fmtDate(addDays(new Date(),1)),t3=fmtDate(addDays(new Date(),3)),t5=fmtDate(addDays(new Date(),5));
   events=[
-    {id:'e1',type:'会議室',title:'週次MTG',date:t,startDate:t,endDate:t,start:'10:00',end:'11:00',room:'r1f',people:['1001','1002','1003'],memo:'',userId:'1001'},
-    {id:'e2',type:'出張',title:'東京出張',date:t,startDate:t,endDate:t3,start:'',end:'',room:null,people:['1004'],memo:'新幹線利用',userId:'1004'},
-    {id:'e3',type:'在宅',title:'在宅勤務',date:t,startDate:t,endDate:t1,start:'',end:'',room:null,people:['1005'],memo:'',userId:'1005'},
-    {id:'e4',type:'会議室',title:'採用面談',date:t1,startDate:t1,endDate:t1,start:'14:00',end:'15:00',room:'r2f',people:['1004','1002'],memo:'',userId:'1004'},
+    {id:'e1',type:'会議室',title:'週次MTG',date:td,startDate:td,endDate:td,start:'10:00',end:'11:00',room:'1階会議室',people:['1001','1002','1003'],memo:'',userId:'1001'},
+    {id:'e2',type:'出張',title:'東京出張',date:td,startDate:td,endDate:t3,start:'',end:'',room:null,people:['1004'],memo:'新幹線利用',userId:'1004'},
+    {id:'e3',type:'在宅',title:'在宅勤務',date:td,startDate:td,endDate:t1,start:'',end:'',room:null,people:['1005'],memo:'',userId:'1005'},
+    {id:'e4',type:'会議室',title:'採用面談',date:t1,startDate:t1,endDate:t1,start:'14:00',end:'15:00',room:'2階会議室',people:['1004','1002'],memo:'',userId:'1004'},
     {id:'e5',type:'外出',title:'取引先訪問',date:t1,startDate:t1,endDate:t1,start:'13:00',end:'17:00',room:null,people:['1001'],memo:'株式会社○○',userId:'1001'},
     {id:'e6',type:'休暇',title:'有給休暇',date:t3,startDate:t3,endDate:t5,start:'',end:'',room:null,people:['1003'],memo:'',userId:'1003'},
-    {id:'e7',type:'打ち合わせ',title:'企画会議',date:t,startDate:t,endDate:t,start:'14:00',end:'15:00',room:null,people:['1001','1003'],memo:'',userId:'1001'},
-    {id:'e8',type:'外出',title:'銀行',date:t,startDate:t,endDate:t,start:'15:00',end:'16:00',room:null,people:['1002'],memo:'',userId:'1002'},
+    {id:'e7',type:'打ち合わせ',title:'企画会議',date:td,startDate:td,endDate:td,start:'14:00',end:'15:00',room:null,people:['1001','1003'],memo:'',userId:'1001'},
+    {id:'e8',type:'外出',title:'銀行',date:td,startDate:td,endDate:td,start:'15:00',end:'16:00',room:null,people:['1002'],memo:'',userId:'1002'},
   ];
 }
 
@@ -3084,9 +3084,9 @@ function doLogout(){
 // カレンダーが今日と違う月を表示中でも、在籍率・ホーム等で今日のデータが必要。
 // キャッシュに今月データがあれば events にマージして常に今日の予定を参照可能にする。
 function _mergeToday(fetchedMonths){
-  const t=new Date();
+  const now=new Date();
   [-1,0,1].forEach(d=>{
-    const dt=new Date(t.getFullYear(),t.getMonth()+d,1);
+    const dt=new Date(now.getFullYear(),now.getMonth()+d,1);
     const ym=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
     if(!fetchedMonths.includes(ym)&&eventsCache[ym]){
       const ids=new Set(events.map(e=>e.id));
@@ -3137,7 +3137,13 @@ async function loadEvents({ force = false, centerDate } = {}){
     months.forEach(ym => { eventsCache[ym] = { fetchedAt: now, data: [] }; });
     data.forEach(e => {
       const ym = (e.startDate || e.date || '').slice(0, 7);
-      if (eventsCache[ym]) eventsCache[ym].data.push(e);
+      if (eventsCache[ym]) {
+        eventsCache[ym].data.push(e);
+      } else {
+        const endYm = (e.endDate || '').slice(0, 7);
+        const target = months.find(m => m >= ym && m <= endYm) || months[0];
+        if (eventsCache[target]) eventsCache[target].data.push(e);
+      }
     });
   } catch(err) {
     if(token !== _loadToken){ hideLoading(); return; }
@@ -3160,8 +3166,8 @@ function openApplyApp(btn) {
 }
 
 function switchTab(tab, btn){
-  ['home','calendar','rooms','team','cars','inquiry','proposal','elearning','mypage','settings','admin'].forEach(t=>{
-    document.getElementById('tab-'+t).style.display=t===tab?'block':'none';
+  ['home','calendar','rooms','team','cars','inquiry','proposal','elearning','mypage','settings','admin'].forEach(tb=>{
+    document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.remove('active'));
@@ -3385,7 +3391,7 @@ function renderMonth(){
       const natHName=_nm.get(ds);const natH=!!natHName;
       const anyHol=hol||natH;const holLabel=hol?.name||natHName||'';
       html+=`<div class="month-cell${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
-        <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6||anyHol?' sun holiday':anyHol?' holiday':''}">${day.getDate()}</div>
+        <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6?' sun':''}${anyHol?' holiday':''}">${day.getDate()}</div>
         ${holLabel?`<span class="holiday-name">${esc(holLabel)}</span><span class="holiday-short">${esc(shortHolName(holLabel))}</span>`:''}
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">${t('cal.overflow',{n:ov.overflow})}</div>`:''}
       </div>`;
@@ -3657,8 +3663,9 @@ function renderTeam(){
   const isHoliday=isCompHoliday||isNatHoliday;
   const holName=_teamHol?.name||_teamNatName||'';
 
-  // 全員のステータスを優先度順に計算
-  const members=USERS.map(u=>{
+  // 全員のステータスを優先度順に計算（パートナーは在籍ボード対象外）
+  const teamUsers=USERS.filter(u=>!u.isPartner);
+  const members=teamUsers.map(u=>{
     const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&(e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id))&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
     const nowMins=timeToMins(nowTime);
     const isNowInEvent=(e)=>{
@@ -3760,7 +3767,8 @@ function renderTeamDeptView() {
   const holName   = _deptHol?.name || _deptNatName || '';
   const dow = tDow((d.getDay()+6)%7);
 
-  const members = USERS.map(u => {
+  const teamUsers = USERS.filter(u=>!u.isPartner);
+  const members = teamUsers.map(u => {
     const myEvs = events.filter(e =>
       eventIncludesDate(e, ds) && (e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id)) &&
       e.approvalStatus !== '申請中' && e.approvalStatus !== '否認');
@@ -3785,7 +3793,7 @@ function renderTeamDeptView() {
     return { ...u, status, todayEvs };
   });
 
-  const depts = [...new Set(USERS.map(m => m.dept || t('team.other')))];
+  const depts = [...new Set(teamUsers.map(m => m.dept || t('team.other')))];
   const grid = document.getElementById('team-grid');
 
   const header = `<div style="font-size:0.82em;color:var(--text2);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
@@ -4412,21 +4420,21 @@ function copyEvent(id){
   openModal('add-modal-backdrop');
 }
 function onTypeChange(){
-  const t=document.getElementById('ev-type').value;
-  const hasAlldayToggle=ALLDAY_TOGGLE_TYPES.includes(t);
-  const isRoom=t==='会議室';
+  const typ=document.getElementById('ev-type').value;
+  const hasAlldayToggle=ALLDAY_TOGGLE_TYPES.includes(typ);
+  const isRoom=typ==='会議室';
   document.getElementById('allday-row').style.display=hasAlldayToggle?'flex':'none';
   if(!hasAlldayToggle) document.getElementById('ev-allday').checked=false;
   updateAlldayToggleVisual();applyAlldayLayout();
   document.getElementById('room-row').style.display=isRoom?'flex':'none';
-  document.getElementById('rental-row').style.display=RENTAL_TYPES.includes(t)?'flex':'none';
+  document.getElementById('rental-row').style.display=RENTAL_TYPES.includes(typ)?'flex':'none';
   const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
-  const needsApprover=APPROVAL_TYPES.includes(t)&&currentUser&&currentUser.role==='一般'&&!editingApproved;
+  const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&currentUser.role==='一般'&&!editingApproved;
   document.getElementById('approver-row').style.display=needsApprover?'flex':'none';
   if(needsApprover)renderApproverSelect();
   updateSaveButtonState();
   if(isRoom)checkRoomConflict();
-  if(RENTAL_TYPES.includes(t))renderRentalSelect();
+  if(RENTAL_TYPES.includes(typ))renderRentalSelect();
 }
 function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); }
 function updateAlldayToggleVisual(){
@@ -4437,17 +4445,17 @@ function updateAlldayToggleVisual(){
   if(bg) bg.style.background=c?'var(--primary)':'#ccc';
 }
 function applyAlldayLayout(){
-  const t=document.getElementById('ev-type').value;
+  const typ=document.getElementById('ev-type').value;
   const allday=document.getElementById('ev-allday').checked;
-  const hasToggle=ALLDAY_TOGGLE_TYPES.includes(t);
+  const hasToggle=ALLDAY_TOGGLE_TYPES.includes(typ);
   if(!hasToggle){
-    const isMulti=MULTIDAY_TYPES.includes(t), isTimed=TIMED_TYPES.includes(t);
+    const isMulti=MULTIDAY_TYPES.includes(typ), isTimed=TIMED_TYPES.includes(typ);
     document.getElementById('date-single-row').style.display=isMulti?'none':'flex';
     document.getElementById('date-range-row').style.display=isMulti?'flex':'none';
     document.getElementById('time-row').style.display=isTimed?'flex':'none';
     return;
   }
-  const isBizTrip=t==='出張'&&!allday;
+  const isBizTrip=typ==='出張'&&!allday;
   document.getElementById('date-range-labels').style.display=isBizTrip?'block':'none';
   document.getElementById('time-labels').style.display=isBizTrip?'block':'none';
   if(allday){
@@ -4455,7 +4463,7 @@ function applyAlldayLayout(){
     document.getElementById('date-range-row').style.display='flex';
     document.getElementById('time-row').style.display='none';
   } else {
-    if(t==='出張'){
+    if(typ==='出張'){
       document.getElementById('date-single-row').style.display='none';
       document.getElementById('date-range-row').style.display='flex';
       document.getElementById('time-row').style.display='flex';
@@ -6462,7 +6470,7 @@ async function startCarCamera() {
   } catch(err) { showToast(t('car.camera.error') + ': ' + err.message); }
 }
 function stopCarCamera() {
-  if (carStream) { carStream.getTracks().forEach(t => t.stop()); carStream = null; }
+  if (carStream) { carStream.getTracks().forEach(tr => tr.stop()); carStream = null; }
   const v = document.getElementById('car-video');
   if (v) { v.srcObject = null; v.style.display = 'none'; }
   const cb = document.getElementById('car-camera-btn');
