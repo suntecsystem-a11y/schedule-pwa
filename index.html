@@ -2683,7 +2683,7 @@ let editingId = null, detailId = null, selectedRoom = null;
 // イベントキャッシュ: { 'YYYY-MM': { fetchedAt: ms, data: [] } }
 const eventsCache = {};
 const EVENTS_CACHE_TTL = 10 * 60 * 1000; // 10分
-let selectedRental = ''; // 選択中の備品レンタル（app958から取得）
+let selectedRentals = []; // 選択中の備品レンタル（複数選択可）
 // 社用車
 let carEvents = [], carMasters = [], carDestinations = [];
 let carDate = new Date(), carView = 'month';
@@ -4417,7 +4417,7 @@ function openAddModal(dateStr){
   document.getElementById('ev-end').value='10:00';
   document.getElementById('ev-title').value='';
   document.getElementById('ev-memo').value='';
-  selectedRental='';
+  selectedRentals=[];
   document.getElementById('ev-approver').value='';
   document.getElementById('ev-repeat').value='';
   document.getElementById('repeat-end-wrap').style.display='none';
@@ -4450,7 +4450,7 @@ function openEditModal(id){
   document.getElementById('ev-start').value=e.start||'09:00';
   document.getElementById('ev-end').value=e.end||'10:00';
   document.getElementById('ev-memo').value=e.memo||'';
-  selectedRental=(e.rentals||[])[0]||'';
+  selectedRentals=[...(e.rentals||[])];
   if(e.approvedBy&&e.approvalStatus==='申請中'){
     document.getElementById('ev-approver').value=e.approvedBy;
   } else {
@@ -4483,7 +4483,7 @@ function copyEvent(id){
   document.getElementById('ev-start').value=e.start||'09:00';
   document.getElementById('ev-end').value=e.end||'10:00';
   document.getElementById('ev-memo').value=e.memo||'';
-  selectedRental=(e.rentals||[])[0]||'';
+  selectedRentals=[...(e.rentals||[])];
   document.getElementById('ev-approver').value='';
   document.getElementById('ev-repeat').value='';
   document.getElementById('repeat-end-wrap').style.display='none';
@@ -4556,17 +4556,19 @@ function applyAlldayLayout(){
   }
 }
 function renderRentalSelect(){
-  const opts = rentalMasters.map(m => {
-    const val = `${m.deviceType} / ${m.purpose}`;
-    return `<option value="${val}" ${selectedRental===val?'selected':''}>${m.deviceType} / ${m.purpose}</option>`;
-  }).join('');
-  document.getElementById('rental-checkboxes').innerHTML=`
-    <select id="rental-select" onchange="selectedRental=this.value"
-      style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;background:white">
-      <option value="">${t('ev.rental.none')}</option>
-      ${opts}
-    </select>`;
-  document.getElementById('rental-select').value = selectedRental;
+  const items=rentalMasters.map(m=>`${m.deviceType} / ${m.purpose}`);
+  document.getElementById('rental-checkboxes').innerHTML=items.length?items.map(item=>{
+    const checked=selectedRentals.includes(item);
+    const eid=item.replace(/[^a-zA-Z0-9]/g,'_');
+    return`<label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;cursor:pointer;font-size:0.9em">
+      <input type="checkbox" id="rental_${eid}" ${checked?'checked':''} onchange="toggleRentalItem(this.checked,'${item.replace(/'/g,"\\'")}')" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer">
+      ${item}</label>`;
+  }).join(''):`<span style="font-size:0.85em;color:var(--text3)">${t('ev.rental.none')}</span>`;
+}
+function toggleRentalItem(checked,item){
+  const idx=selectedRentals.indexOf(item);
+  if(checked&&idx<0) selectedRentals.push(item);
+  if(!checked&&idx>=0) selectedRentals.splice(idx,1);
 }
 function renderApproverSelect(){
   const sel=document.getElementById('ev-approver');if(!sel)return;
@@ -4912,7 +4914,7 @@ async function doSaveEvent(){
     date, startDate, endDate, start, end,
     room:type==='会議室'?selectedRoom:null,
     people:[...selectedPeople],
-    rentals:RENTAL_TYPES.includes(type)&&selectedRental?[selectedRental]:[],
+    rentals:RENTAL_TYPES.includes(type)?[...selectedRentals]:[],
     memo:document.getElementById('ev-memo').value.trim(),
     userId:editingId?(events.find(e=>e.id===editingId)?.userId||currentUser.id):currentUser.id,
     selectedApprover,
