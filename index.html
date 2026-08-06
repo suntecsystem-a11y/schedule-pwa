@@ -3377,7 +3377,7 @@ function renderCarInUseBanner() {
 }
 
 function renderTypeLegend(){
-  const LEGEND_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','在宅'];
+  const LEGEND_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','在宅','来社'];
   const el = document.getElementById('type-legend');
   if(!el) return;
   el.innerHTML = LEGEND_TYPES.map(tp=>{
