@@ -377,7 +377,7 @@ async function loadTab(name) {
       const [applyLeave, applyOther, applyRental, expenses] = await Promise.all([
         gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
         gas({ action: 'getApply', token: currentToken, appType: 'other' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'rental' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'rental' }).catch(() => []),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
@@ -405,7 +405,7 @@ async function loadTab(name) {
       const promises = [
         gas({ action: 'getApplyForApproval', token: currentToken, appType: 'leave' }),
         gas({ action: 'getApplyForApproval', token: currentToken, appType: 'other' }),
-        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'rental' }),
+        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'rental' }).catch(() => []),
       ];
       if (currentUser.isAdmin) promises.push(gas({ action: 'getExpenses', token: currentToken }));
       const [applyLeave, applyOther, applyRental, expenses] = await Promise.all(promises);
@@ -419,7 +419,7 @@ async function loadTab(name) {
       const [applyLeave, applyOther, applyRental, expenses] = await Promise.all([
         gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
         gas({ action: 'getApply', token: currentToken, appType: 'other' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'rental' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'rental' }).catch(() => []),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
@@ -945,8 +945,9 @@ async function loadRentalMasters() {
     const pcSel = document.getElementById('f-rental-pc');
     const mobSel = document.getElementById('f-rental-mobile');
     rentalMasters.forEach(m => {
-      const opt = `<option value="${m.deviceType}">${m.deviceType}</option>`;
-      const t = (m.purpose || m.deviceType || '').toLowerCase();
+      const label = m.purpose || m.deviceType || '不明';
+      const opt = `<option value="${m.id}">${label}</option>`;
+      const t = (m.deviceType || '').toLowerCase();
       if (t.includes('pc') || t.includes('パソコン') || t.includes('ノート')) {
         pcSel.insertAdjacentHTML('beforeend', opt);
       } else {
