@@ -4442,7 +4442,7 @@ function openAddModal(dateStr){
   document.getElementById('repeat-row').style.display='flex';
   document.getElementById('btn-delete').style.display='none';
   document.getElementById('general-conflict-warn').style.display='none';
-  peoplePanelOpen=false; peopleSchedOpen=false; rentalPanelOpen=false;
+  peoplePanelOpen=false; peopleSchedOpen=false; rentalPanelOpen=false;rentalFilterCat='';
   document.getElementById('people-panel').style.display='none';
   document.getElementById('people-toggle-icon').style.transform='';
   document.getElementById('people-schedule-panel').style.display='none';
@@ -4481,7 +4481,7 @@ function openEditModal(id){
   document.getElementById('ev-repeat').value='';
   document.getElementById('btn-delete').style.display='block';
   document.getElementById('general-conflict-warn').style.display='none';
-  peoplePanelOpen=false; rentalPanelOpen=false;
+  peoplePanelOpen=false; rentalPanelOpen=false;rentalFilterCat='';
   document.getElementById('people-panel').style.display='none';
   document.getElementById('people-toggle-icon').style.transform='';
   document.getElementById('rental-panel').style.display='none';
@@ -4514,7 +4514,7 @@ function copyEvent(id){
   document.getElementById('repeat-row').style.display='flex';
   document.getElementById('btn-delete').style.display='none';
   document.getElementById('general-conflict-warn').style.display='none';
-  peoplePanelOpen=false;peopleSchedOpen=false;rentalPanelOpen=false;
+  peoplePanelOpen=false;peopleSchedOpen=false;rentalPanelOpen=false;rentalFilterCat='';
   document.getElementById('people-panel').style.display='none';
   document.getElementById('people-toggle-icon').style.transform='';
   document.getElementById('people-schedule-panel').style.display='none';
@@ -4583,6 +4583,7 @@ function applyAlldayLayout(){
   }
 }
 let rentalPanelOpen=false;
+let rentalFilterCat='';
 function toggleRentalPicker(){
   rentalPanelOpen=!rentalPanelOpen;
   document.getElementById('rental-panel').style.display=rentalPanelOpen?'block':'none';
@@ -4594,24 +4595,23 @@ function renderRentalPicker(){
   const gc=document.getElementById('rental-group-chips');
   if(gc){
     gc.innerHTML=categories.map(cat=>{
-      const items=rentalMasters.filter(m=>m.deviceType===cat);
-      const allIn=items.length>0&&items.every(m=>selectedRentals.includes(m.purpose));
-      return`<div class="people-group-chip${allIn?' active':''}" onclick="toggleRentalGroup('${cat.replace(/'/g,"\\'")}')">${cat}</div>`;
+      return`<div class="people-group-chip${rentalFilterCat===cat?' active':''}" onclick="toggleRentalFilter('${cat.replace(/'/g,"\\'")}')">${cat}</div>`;
     }).join('');
   }
   const kw=(document.getElementById('rental-search')?.value||'').toLowerCase();
-  const visible=rentalMasters.filter(m=>!kw||m.deviceType.toLowerCase().includes(kw)||m.purpose.toLowerCase().includes(kw));
+  const visible=rentalMasters.filter(m=>{
+    if(rentalFilterCat&&m.deviceType!==rentalFilterCat) return false;
+    if(kw&&!m.deviceType.toLowerCase().includes(kw)&&!m.purpose.toLowerCase().includes(kw)) return false;
+    return true;
+  });
   document.getElementById('rental-picker').innerHTML=visible.map(m=>{
     const val=m.purpose;
     return`<div class="people-chip${selectedRentals.includes(val)?' selected':''}" onclick="toggleRentalItem('${val.replace(/'/g,"\\'")}')">${esc(m.purpose)}<span style="font-size:0.85em;opacity:.6;margin-left:4px">(${esc(m.deviceType)})</span></div>`;
   }).join('')||`<div style="font-size:0.82em;color:var(--text3);padding:8px 0">${t('ev.rental.none')}</div>`;
   updateRentalSummary();
 }
-function toggleRentalGroup(cat){
-  const items=rentalMasters.filter(m=>m.deviceType===cat).map(m=>m.purpose);
-  const allIn=items.every(v=>selectedRentals.includes(v));
-  if(allIn){items.forEach(v=>{const i=selectedRentals.indexOf(v);if(i>=0)selectedRentals.splice(i,1);});}
-  else{items.forEach(v=>{if(!selectedRentals.includes(v))selectedRentals.push(v);});}
+function toggleRentalFilter(cat){
+  rentalFilterCat=rentalFilterCat===cat?'':cat;
   renderRentalPicker();
 }
 function toggleRentalItem(val){
