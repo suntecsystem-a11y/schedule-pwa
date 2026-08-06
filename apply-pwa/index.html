@@ -944,6 +944,8 @@ async function loadRentalMasters() {
     rentalMasters = await gas({ action: 'getRentalMasters', token: currentToken }) || [];
     const pcSel = document.getElementById('f-rental-pc');
     const mobSel = document.getElementById('f-rental-mobile');
+    pcSel.innerHTML = '<option value="">借りない</option>';
+    mobSel.innerHTML = '<option value="">借りない</option>';
     rentalMasters.forEach(m => {
       const label = m.purpose || m.deviceType || '不明';
       const opt = `<option value="${m.id}">${label}</option>`;
