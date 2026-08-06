@@ -2694,6 +2694,8 @@ let editingId = null, detailId = null, selectedRoom = null;
 const eventsCache = {};
 const EVENTS_CACHE_TTL = 10 * 60 * 1000; // 10分
 let selectedRentals = []; // 選択中の備品レンタル（複数選択可）
+let rentalPanelOpen = false;
+let rentalFilterCat = '';
 // 社用車
 let carEvents = [], carMasters = [], carDestinations = [];
 let carDate = new Date(), carView = 'month';
@@ -4582,8 +4584,6 @@ function applyAlldayLayout(){
     }
   }
 }
-let rentalPanelOpen=false;
-let rentalFilterCat='';
 function toggleRentalPicker(){
   rentalPanelOpen=!rentalPanelOpen;
   document.getElementById('rental-panel').style.display=rentalPanelOpen?'block':'none';
