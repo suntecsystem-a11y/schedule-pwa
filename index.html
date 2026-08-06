@@ -1281,12 +1281,21 @@ input,select{font-family:inherit;outline:none}
         </div>
       </div>
       <!-- レンタル申請（外出・出張・在宅時） -->
-      <div class="ev-row" id="rental-row" style="display:none">
+      <div class="ev-row" id="rental-row" style="display:none;cursor:pointer;user-select:none" onclick="toggleRentalPicker()">
         <div class="ev-row-icon">📱</div>
-        <div class="ev-row-content">
-          <div class="ev-row-label" id="ev-rental-label">備品レンタル申請（任意）</div>
-          <div id="rental-checkboxes"></div>
+        <div class="ev-row-content" style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:0.92em;color:var(--text)" id="ev-rental-label">備品レンタル申請（任意）</div>
+            <div id="rental-summary" style="font-size:0.78em;color:var(--text2);margin-top:2px"></div>
+          </div>
+          <span id="rental-toggle-icon" style="color:var(--text2);font-size:0.85em;transition:transform .2s">▼</span>
         </div>
+      </div>
+      <div id="rental-panel" style="display:none;padding:10px 16px 14px 52px;border-bottom:1px solid #f0f0f0">
+        <div id="rental-group-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+        <input type="text" id="rental-search" placeholder="端末名で検索..." oninput="renderRentalPicker()"
+          style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;margin-bottom:10px;font-family:inherit;outline:none">
+        <div class="people-picker" id="rental-picker" style="max-height:150px;overflow-y:auto"></div>
       </div>
       <!-- 承認者選択（一般ユーザーの外出・出張・在宅時） -->
       <div class="ev-row" id="approver-row" style="display:none">
@@ -1671,7 +1680,7 @@ ja:{
 'ev.approver.required.msg':'承認者を選択してください',
 'ev.saved':'予定を追加しました','ev.updated':'予定を更新しました','ev.deleted':'予定を削除しました',
 'ev.repeat.result':'{n}件登録しました','ev.repeat.skip':'（{n}件は会議室重複のためスキップ）',
-'ev.rental.none':'（レンタルなし）','ev.people.all':'全員','ev.people.none':'未選択',
+'ev.rental.none':'（レンタルなし）','ev.rental.search':'端末名で検索...','ev.people.all':'全員','ev.people.none':'未選択',
 'ev.people.conflict':'⚠️ 予定が重なっています','ev.people.nodate':'日付を先に選んでください',
 'ev.timeline.hour':'{h}時','ev.people.schedule.title':'📊 参加者の当日スケジュール',
 'ev.people.select':'参加者を選んでください',
@@ -1980,7 +1989,7 @@ vi:{
 'ev.approver.required.msg':'Vui lòng chọn người phê duyệt',
 'ev.saved':'Đã thêm lịch','ev.updated':'Đã cập nhật lịch','ev.deleted':'Đã xóa lịch',
 'ev.repeat.result':'Đã tạo {n} mục','ev.repeat.skip':'({n} mục bị trùng phòng đã bỏ qua)',
-'ev.rental.none':'(Không thuê)','ev.people.all':'Tất cả','ev.people.none':'Chưa chọn',
+'ev.rental.none':'(Không thuê)','ev.rental.search':'Tìm theo tên thiết bị...','ev.people.all':'Tất cả','ev.people.none':'Chưa chọn',
 'ev.people.conflict':'⚠️ Trùng lịch','ev.people.nodate':'Vui lòng chọn ngày trước',
 'ev.timeline.hour':'{h}h','ev.people.schedule.title':'📊 Lịch trong ngày của thành viên',
 'ev.people.select':'Vui lòng chọn thành viên',
@@ -2278,7 +2287,7 @@ ne:{
 'ev.approver.required.msg':'स्वीकृतकर्ता छान्नुहोस्',
 'ev.saved':'तालिका थपियो','ev.updated':'तालिका अपडेट भयो','ev.deleted':'तालिका मेटियो',
 'ev.repeat.result':'{n} वटा सिर्जना भयो','ev.repeat.skip':'({n} वटा कोठा दोहोरिएको कारण छोडियो)',
-'ev.rental.none':'(भाडामा छैन)','ev.people.all':'सबै','ev.people.none':'छानिएको छैन',
+'ev.rental.none':'(भाडामा छैन)','ev.rental.search':'उपकरण खोज्नुहोस्...','ev.people.all':'सबै','ev.people.none':'छानिएको छैन',
 'ev.people.conflict':'⚠️ तालिका दोहोरिएको छ','ev.people.nodate':'पहिले मिति छान्नुहोस्',
 'ev.timeline.hour':'{h}बजे','ev.people.schedule.title':'📊 सहभागीको आजको तालिका',
 'ev.people.select':'सहभागी छान्नुहोस्',
@@ -2606,6 +2615,7 @@ function applyLanguage(lang){
   const _eps=document.getElementById('people-search');if(_eps)_eps.placeholder=t('ev.people.search');
   const _epsl=document.getElementById('ev-people-sched-label');if(_epsl)_epsl.textContent=t('ev.people.schedule');
   const _erll=document.getElementById('ev-rental-label');if(_erll)_erll.textContent=t('ev.rental');
+  const _ers=document.getElementById('rental-search');if(_ers)_ers.placeholder=t('ev.rental.search');
   const _eapl=document.getElementById('ev-approver-label');if(_eapl)_eapl.innerHTML=t('ev.approver')+' <span style="color:#e53935;font-size:0.8em">'+t('ev.approver.required')+'</span>';
   const _emo=document.getElementById('ev-memo');if(_emo)_emo.placeholder=t('ev.memo');
   const _ebd=document.getElementById('btn-delete');if(_ebd)_ebd.textContent=t('ev.delete');
@@ -2965,6 +2975,14 @@ function demoLogin(empId, pin){
   if(!user){ showLoginError(t('login.error')); return }
   currentUser = user;
   USERS = demoUsers.map(u=>({id:u.id,name:u.name,dept:u.dept}));
+  rentalMasters=[
+    {id:'1',deviceType:'携帯',purpose:'iPhone 15'},
+    {id:'2',deviceType:'携帯',purpose:'Galaxy S24'},
+    {id:'3',deviceType:'PC',purpose:'ThinkPad X1'},
+    {id:'4',deviceType:'PC',purpose:'MacBook Air'},
+    {id:'5',deviceType:'タブレット',purpose:'iPad Air'},
+    {id:'6',deviceType:'タブレット',purpose:'Surface Go'},
+  ];
   initDemoData();
   showApp();
 }
@@ -4424,10 +4442,13 @@ function openAddModal(dateStr){
   document.getElementById('repeat-row').style.display='flex';
   document.getElementById('btn-delete').style.display='none';
   document.getElementById('general-conflict-warn').style.display='none';
-  peoplePanelOpen=false; peopleSchedOpen=false;
+  peoplePanelOpen=false; peopleSchedOpen=false; rentalPanelOpen=false;
   document.getElementById('people-panel').style.display='none';
   document.getElementById('people-toggle-icon').style.transform='';
   document.getElementById('people-schedule-panel').style.display='none';
+  document.getElementById('rental-panel').style.display='none';
+  document.getElementById('rental-toggle-icon').style.transform='';
+  if(document.getElementById('rental-search')) document.getElementById('rental-search').value='';
   document.getElementById('people-sched-toggle').style.transform='';
   if(document.getElementById('people-search')) document.getElementById('people-search').value='';
   onTypeChange();renderPeoplePicker();renderRoomPicker();
@@ -4460,10 +4481,13 @@ function openEditModal(id){
   document.getElementById('ev-repeat').value='';
   document.getElementById('btn-delete').style.display='block';
   document.getElementById('general-conflict-warn').style.display='none';
-  peoplePanelOpen=false;
+  peoplePanelOpen=false; rentalPanelOpen=false;
   document.getElementById('people-panel').style.display='none';
   document.getElementById('people-toggle-icon').style.transform='';
+  document.getElementById('rental-panel').style.display='none';
+  document.getElementById('rental-toggle-icon').style.transform='';
   if(document.getElementById('people-search')) document.getElementById('people-search').value='';
+  if(document.getElementById('rental-search')) document.getElementById('rental-search').value='';
   onTypeChange();renderPeoplePicker();renderRoomPicker();
   closeModal('detail-modal-backdrop');
   openModal('add-modal-backdrop');
@@ -4490,12 +4514,15 @@ function copyEvent(id){
   document.getElementById('repeat-row').style.display='flex';
   document.getElementById('btn-delete').style.display='none';
   document.getElementById('general-conflict-warn').style.display='none';
-  peoplePanelOpen=false;peopleSchedOpen=false;
+  peoplePanelOpen=false;peopleSchedOpen=false;rentalPanelOpen=false;
   document.getElementById('people-panel').style.display='none';
   document.getElementById('people-toggle-icon').style.transform='';
   document.getElementById('people-schedule-panel').style.display='none';
   document.getElementById('people-sched-toggle').style.transform='';
+  document.getElementById('rental-panel').style.display='none';
+  document.getElementById('rental-toggle-icon').style.transform='';
   if(document.getElementById('people-search')) document.getElementById('people-search').value='';
+  if(document.getElementById('rental-search')) document.getElementById('rental-search').value='';
   onTypeChange();renderPeoplePicker();renderRoomPicker();
   updatePeopleSummary();renderPeopleSchedule();
   openModal('add-modal-backdrop');
@@ -4515,7 +4542,7 @@ function onTypeChange(){
   if(needsApprover)renderApproverSelect();
   updateSaveButtonState();
   if(isRoom)checkRoomConflict();
-  if(RENTAL_TYPES.includes(typ))renderRentalSelect();
+  if(RENTAL_TYPES.includes(typ)){renderRentalPicker();updateRentalSummary();}
 }
 function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); }
 function updateAlldayToggleVisual(){
@@ -4555,20 +4582,46 @@ function applyAlldayLayout(){
     }
   }
 }
-function renderRentalSelect(){
-  const items=rentalMasters.map(m=>`${m.deviceType} / ${m.purpose}`);
-  document.getElementById('rental-checkboxes').innerHTML=items.length?items.map(item=>{
-    const checked=selectedRentals.includes(item);
-    const eid=item.replace(/[^a-zA-Z0-9]/g,'_');
-    return`<label style="display:inline-flex;align-items:center;gap:6px;margin-right:16px;cursor:pointer;font-size:0.9em">
-      <input type="checkbox" id="rental_${eid}" ${checked?'checked':''} onchange="toggleRentalItem(this.checked,'${item.replace(/'/g,"\\'")}')" style="width:18px;height:18px;accent-color:var(--primary);cursor:pointer">
-      ${item}</label>`;
-  }).join(''):`<span style="font-size:0.85em;color:var(--text3)">${t('ev.rental.none')}</span>`;
+let rentalPanelOpen=false;
+function toggleRentalPicker(){
+  rentalPanelOpen=!rentalPanelOpen;
+  document.getElementById('rental-panel').style.display=rentalPanelOpen?'block':'none';
+  document.getElementById('rental-toggle-icon').style.transform=rentalPanelOpen?'rotate(180deg)':'';
+  if(rentalPanelOpen){document.getElementById('rental-search').focus();renderRentalPicker();}
 }
-function toggleRentalItem(checked,item){
-  const idx=selectedRentals.indexOf(item);
-  if(checked&&idx<0) selectedRentals.push(item);
-  if(!checked&&idx>=0) selectedRentals.splice(idx,1);
+function renderRentalPicker(){
+  const categories=[...new Set(rentalMasters.map(m=>m.deviceType).filter(Boolean))].sort();
+  const gc=document.getElementById('rental-group-chips');
+  if(gc){
+    gc.innerHTML=categories.map(cat=>{
+      const items=rentalMasters.filter(m=>m.deviceType===cat);
+      const allIn=items.length>0&&items.every(m=>selectedRentals.includes(m.purpose));
+      return`<div class="people-group-chip${allIn?' active':''}" onclick="toggleRentalGroup('${cat.replace(/'/g,"\\'")}')">${cat}</div>`;
+    }).join('');
+  }
+  const kw=(document.getElementById('rental-search')?.value||'').toLowerCase();
+  const visible=rentalMasters.filter(m=>!kw||m.deviceType.toLowerCase().includes(kw)||m.purpose.toLowerCase().includes(kw));
+  document.getElementById('rental-picker').innerHTML=visible.map(m=>{
+    const val=m.purpose;
+    return`<div class="people-chip${selectedRentals.includes(val)?' selected':''}" onclick="toggleRentalItem('${val.replace(/'/g,"\\'")}')">${esc(m.purpose)}<span style="font-size:0.85em;opacity:.6;margin-left:4px">(${esc(m.deviceType)})</span></div>`;
+  }).join('')||`<div style="font-size:0.82em;color:var(--text3);padding:8px 0">${t('ev.rental.none')}</div>`;
+  updateRentalSummary();
+}
+function toggleRentalGroup(cat){
+  const items=rentalMasters.filter(m=>m.deviceType===cat).map(m=>m.purpose);
+  const allIn=items.every(v=>selectedRentals.includes(v));
+  if(allIn){items.forEach(v=>{const i=selectedRentals.indexOf(v);if(i>=0)selectedRentals.splice(i,1);});}
+  else{items.forEach(v=>{if(!selectedRentals.includes(v))selectedRentals.push(v);});}
+  renderRentalPicker();
+}
+function toggleRentalItem(val){
+  const idx=selectedRentals.indexOf(val);
+  if(idx>=0)selectedRentals.splice(idx,1);else selectedRentals.push(val);
+  renderRentalPicker();
+}
+function updateRentalSummary(){
+  const el=document.getElementById('rental-summary');
+  if(el)el.textContent=selectedRentals.length?selectedRentals.join('、'):t('ev.rental.none');
 }
 function renderApproverSelect(){
   const sel=document.getElementById('ev-approver');if(!sel)return;
