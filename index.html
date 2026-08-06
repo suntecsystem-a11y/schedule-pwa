@@ -455,6 +455,10 @@ input,select{font-family:inherit;outline:none}
 .room-tl-handle.right{right:-2px}.room-tl-handle.right::after{right:2px}
 .room-tl-hours{display:flex;justify-content:space-between;margin-top:3px}
 .room-tl-hours span{font-size:0.6em;color:var(--text3)}
+.room-tab-tl{height:38px;border-radius:8px;cursor:pointer;transition:box-shadow .15s}
+.room-tab-tl:hover{box-shadow:inset 0 0 0 1.5px var(--border)}
+.room-tab-tl .room-tl-block{border-radius:5px;transition:filter .15s;cursor:pointer;font-size:0.68em;text-align:left;padding:0 6px;box-sizing:border-box;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:38px;color:#fff}
+.room-tab-tl .room-tl-block:hover{filter:brightness(1.15)}
 
 @media(min-width:540px){
   #add-modal-backdrop{align-items:center;justify-content:center}
@@ -640,7 +644,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn active" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
     <button class="tab-btn" onclick="switchTab('calendar',this)">📅 カレンダー</button>
     <button class="tab-btn" onclick="switchTab('rooms',this)">🏢 会議室</button>
-    <button class="tab-btn" onclick="switchTab('team',this)">🏢 在籍</button>
+    <button class="tab-btn" onclick="switchTab('team',this)">🏢 在席</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">📋 申請</button>
@@ -1547,7 +1551,7 @@ const PHOTO_GAS_URL  = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVu
 const APP_VERSION = '2.6';
 const SHOW_RELEASE_NOTES = true;
 const RELEASE_NOTES = [
-  '🌐 設定ページに言語設定を追加しました（ベトナム語・ネパール語に対応）',
+  '🌐 在席ボードの個人名の上のアイコンを削除しました',
   '🤝 予定の種別に「来社」を追加しました',
   '📋 有休の場合のみ、KingOfTimeで申請すると自動でカレンダーに有休が追加されます（反映まで最大1〜2時間かかる場合があります。1.2時間たっても申請した有給がカレンダーに追加されていない場合のみ手動で登録をお願いします）',
 ];
@@ -1561,7 +1565,7 @@ ja:{
 'nav.cars':'車予約','nav.inquiry':'問い合わせ','nav.apply':'申請','nav.proposal':'企画書',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
-'nav.team.short':'在籍','nav.cars.short':'車',
+'nav.team.short':'在席','nav.cars.short':'車',
 // アプリ
 'app.title':'スケジュール管理',
 // ログイン
@@ -1605,7 +1609,7 @@ ja:{
 'home.allday.free':'終日空き','home.book':'＋予約',
 'home.people':'{n}人',
 // ダッシュボード
-'dash.attend':'👥 在籍率','dash.attend.sub':'{count} / {total} 名',
+'dash.attend':'👥 在席率','dash.attend.sub':'{count} / {total} 名',
 'dash.room':'🏢 会議室稼働率','dash.room.sub':'{count}室・9〜18時',
 'dash.car':'🚗 車の空き','dash.car.unit':'台','dash.car.sub':'使用中 {used} / 全{total}台',
 // カレンダー
@@ -3081,7 +3085,7 @@ function doLogout(){
 }
 
 // ===== イベント読み込み =====
-// カレンダーが今日と違う月を表示中でも、在籍率・ホーム等で今日のデータが必要。
+// カレンダーが今日と違う月を表示中でも、在席率・ホーム等で今日のデータが必要。
 // キャッシュに今月データがあれば events にマージして常に今日の予定を参照可能にする。
 function _mergeToday(fetchedMonths){
   const now=new Date();
@@ -3248,7 +3252,7 @@ function renderDashboard() {
   const ds = fmtDate(now);
   const nowMins = now.getHours()*60 + now.getMinutes();
 
-  // 在籍率
+  // 在席率
   let presentCount = 0;
   const total = USERS.length || 1;
   if (USERS.length) {
@@ -3588,6 +3592,21 @@ function openDayPopup(ds){
 // ===== 会議室タイムライン =====
 function navRoomDate(dir){ roomDate=addDays(roomDate,dir); renderRoomTimeline() }
 function roomGoToday(){ roomDate=new Date(); renderRoomTimeline() }
+function _onRoomTlClick(event, roomId){
+  if(event.target.closest('.room-tl-block')) return;
+  const bar=event.currentTarget;
+  const rect=bar.getBoundingClientRect();
+  const pct=((event.clientX-rect.left)/rect.width)*100;
+  const TL_START=8, TL_HOURS=12;
+  const totalMins=Math.round((pct/100)*TL_HOURS*60/30)*30;
+  const clamped=Math.max(0,Math.min(TL_HOURS*60-60,totalMins));
+  const sH=TL_START+Math.floor(clamped/60), sM=clamped%60;
+  const eM=clamped+60;
+  const eH=TL_START+Math.floor(eM/60), eMm=eM%60;
+  const startTime=String(sH).padStart(2,'0')+':'+String(sM).padStart(2,'0');
+  const endTime=String(eH).padStart(2,'0')+':'+String(eMm).padStart(2,'0');
+  openRoomBookingModal(roomId, startTime, endTime);
+}
 function openRoomBookingModal(roomId, startTime, endTime){
   openAddModal(fmtDate(roomDate));
   if(startTime) document.getElementById('ev-start').value=startTime;
@@ -3616,26 +3635,46 @@ function renderRoomAvailabilityNow(){
 function renderRoomTimeline(){
   const ds=fmtDate(roomDate);const d=parseDate(ds);
   document.getElementById('room-date-title').textContent=t('cal.day.title',{month:d.getMonth()+1,day:d.getDate(),dow:tDow((d.getDay()+6)%7)});
-  const hours=Array.from({length:12},(_,i)=>i+8);
-  const roomEvs=events.filter(e=>e.date===ds&&e.type==='会議室'&&e.room);
+  const TL_START=8, TL_END=20, TL_HOURS=TL_END-TL_START;
+  const toPos=tv=>{
+    if(!tv) return null;
+    const [h,m]=tv.split(':').map(Number);
+    return Math.max(0,Math.min(100,((h+m/60-TL_START)/TL_HOURS)*100));
+  };
+  const roomEvs=events.filter(e=>e.date===ds&&e.type==='会議室'&&e.room&&e.start&&e.end);
+  const now=new Date();
+  const isToday=fmtDate(now)===ds;
+  const nowPos=isToday?toPos(now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')):null;
+  const hoursRow=`<div class="room-tl-hours">${Array.from({length:7},(_,i)=>`<span>${t('ev.timeline.hour',{h:TL_START+i*2})}</span>`).join('')}</div>`;
   let html='';
   ['1F','2F'].forEach(floor=>{
     html+=`<div style="font-size:0.85em;font-weight:700;color:var(--text2);margin:16px 0 8px">${floor}</div>`;
     ROOMS.filter(r=>r.floor===floor).forEach(room=>{
       const rEvs=roomEvs.filter(e=>e.room===room.id).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+      const blocks=rEvs.map(e=>{
+        const l=toPos(e.start), r2=toPos(e.end);
+        if(l===null||r2===null) return '';
+        const w=r2-l;
+        const people=(e.people||[]).map(userName).join('・');
+        const label=w>15?(esc(e.title||t('room.booking')))+' '+e.start+'–'+e.end:w>8?e.start+'–'+e.end:'';
+        const tip=esc((e.title||t('room.booking'))+' '+e.start+'〜'+e.end+(people?' ('+people+')':''));
+        return`<div class="room-tl-block" style="left:${l}%;width:${w}%;background:${STATUS_COLOR['会議室']}" title="${tip}" onclick="event.stopPropagation();openDetail('${e.id}')">${label}</div>`;
+      }).join('');
+      const nowLine=nowPos!==null&&nowPos>0&&nowPos<100?`<div style="position:absolute;left:${nowPos}%;top:-2px;bottom:-2px;width:2px;background:var(--red);z-index:3;border-radius:1px;pointer-events:none"><div style="position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)"></div></div>`:'';
       html+=`<div style="background:white;border-radius:var(--radius);padding:12px;margin-bottom:10px;box-shadow:var(--shadow)">
-        <div style="font-weight:700;font-size:0.9em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:700;font-size:0.9em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
           <span>${room.name} <span style="font-size:0.75em;color:var(--text2);font-weight:400">${t('room.capacity',{n:room.capacity})}</span></span>
           <button onclick="openRoomBookingModal('${room.id}')" style="font-size:0.72em;padding:4px 10px;border-radius:8px;background:var(--primary-light);color:var(--primary);font-weight:700">${t('room.reserve')}</button>
         </div>
-        <div style="display:flex;gap:3px;overflow-x:auto;padding-bottom:4px">
-          ${hours.map(h=>{const hStr=String(h).padStart(2,'0')+':00';const hEndStr=String(h+1).padStart(2,'0')+':00';const ev=rEvs.find(e=>e.start<hEndStr&&e.end>hStr);
-            return`<div style="flex-shrink:0;width:42px;height:38px;border-radius:6px;background:${ev?STATUS_COLOR['会議室']:'#f0f4f8'};border:1px solid ${ev?'transparent':'var(--border)'};display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:0.6em;color:${ev?'white':'var(--text2)'};font-weight:600;transition:opacity .15s" onmouseover="if(!${!!ev})this.style.background='#e8eaf6'" onmouseout="if(!${!!ev})this.style.background='#f0f4f8'" onclick="${ev?`openDetail('${ev.id}')`:`openRoomBookingModal('${room.id}','${hStr}','${hEndStr}')`}">${h}:00<br>${ev?t('room.booked'):'＋'}</div>`;}).join('')}
-        </div>
-        ${rEvs.map(e=>`<div style="margin-top:8px;font-size:0.8em;padding:8px 10px;border-radius:8px;background:var(--primary-light);cursor:pointer" onclick="openDetail('${e.id}')">
-          <strong>${e.start}〜${e.end}</strong>　${e.title||t('room.booking')}<span style="color:var(--text2)">（${(e.people||[]).map(userName).join('・')}）</span>
-        </div>`).join('')}
-        ${!rEvs.length?`<p style="font-size:0.8em;color:var(--text3);margin-top:6px">${t('room.no.res')}</p>`:''}
+        <div class="room-tl-bar room-tab-tl" onclick="_onRoomTlClick(event,'${room.id}')">${blocks}${nowLine}</div>
+        ${hoursRow}
+        ${rEvs.length?`<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">${rEvs.map(e=>{
+          const people=(e.people||[]).map(userName).join('、');
+          return`<div class="room-ev-item" onclick="openDetail('${e.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--bg2);cursor:pointer;transition:background .15s">
+            <span style="font-size:0.78em;font-weight:700;color:var(--primary);white-space:nowrap">${e.start}–${e.end}</span>
+            <span style="font-size:0.82em;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.title||t('room.booking'))}</span>
+            ${people?`<span style="font-size:0.72em;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%">${esc(people)}</span>`:''}
+          </div>`}).join('')}</div>`:`<p style="font-size:0.78em;color:var(--text3);margin-top:6px">${t('room.no.res')}</p>`}
       </div>`;
     });
   });
@@ -4230,11 +4269,11 @@ function openAddModalForUser(targetUserId){
 async function loadAdminUsers(){
   if(!GAS_URL){
     adminAllUsers=[
-      {id:'1001',name:'田中 花子',dept:'営業部',status:'在籍',isAdmin:true},
-      {id:'1002',name:'鈴木 太郎',dept:'総務部',status:'在籍',isAdmin:false},
-      {id:'1003',name:'佐藤 次郎',dept:'開発部',status:'在籍',isAdmin:false},
+      {id:'1001',name:'田中 花子',dept:'営業部',status:'在席',isAdmin:true},
+      {id:'1002',name:'鈴木 太郎',dept:'総務部',status:'在席',isAdmin:false},
+      {id:'1003',name:'佐藤 次郎',dept:'開発部',status:'在席',isAdmin:false},
       {id:'1004',name:'山田 美咲',dept:'人事部',isRetired:true,isAdmin:false},
-      {id:'1005',name:'中村 健一',dept:'経理部',status:'在籍',isAdmin:false},
+      {id:'1005',name:'中村 健一',dept:'経理部',status:'在席',isAdmin:false},
     ];
     renderAdminUsers();
     return;
