@@ -150,7 +150,19 @@ input,select{font-family:inherit;outline:none}
   .sidebar-user-info{display:block}
   .sidebar-logout-btn{display:block}
   body.app-active #app{margin-left:220px}
+  .sidebar-collapse-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);color:rgba(255,255,255,.8);cursor:pointer;font-size:0.9em;transition:all .2s;flex-shrink:0;margin-left:auto}
+  .sidebar-collapse-btn:hover{background:rgba(255,255,255,.3);color:white}
+  #sidebar.visible.collapsed{width:64px}
+  #sidebar.visible.collapsed .sidebar-logo-text{display:none}
+  #sidebar.visible.collapsed .sidebar-label{display:none}
+  #sidebar.visible.collapsed .sidebar-header{padding:16px 0;justify-content:center}
+  #sidebar.visible.collapsed .sidebar-user-info{display:none}
+  #sidebar.visible.collapsed .sidebar-logout-btn{display:none}
+  #sidebar.visible.collapsed .sidebar-collapse-btn{margin-left:0}
+  #sidebar.visible.collapsed #sidebar-today{display:none!important}
+  body.app-active.sidebar-collapsed #app{margin-left:64px}
 }
+@media(max-width:899px){.sidebar-collapse-btn{display:none}}
 
 /* フィルターバー */
 .filter-bar{background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)}
@@ -609,6 +621,7 @@ input,select{font-family:inherit;outline:none}
   <div class="sidebar-header">
     <span class="sidebar-logo-icon">📅</span>
     <span class="sidebar-logo-text">スケジュール管理</span>
+    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="サイドバーを折りたたむ" id="sidebar-collapse-btn">◀</button>
   </div>
   <div class="sidebar-nav">
     <button class="sidebar-btn active" data-tab="home" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
@@ -3043,6 +3056,7 @@ function showApp(opts){
   document.getElementById('sidebar-user-name').textContent = currentUser.name;
   document.getElementById('sidebar').classList.add('visible');
   document.body.classList.add('app-active');
+  restoreSidebarState();
   // 管理者タブ
   const isAdmin = currentUser.isAdmin;
   document.getElementById('admin-tab-btn').style.display = isAdmin ? 'block' : 'none';
@@ -3076,6 +3090,24 @@ function showReleaseNotes(){
   </div>`;
   document.body.appendChild(ol);
 }
+function toggleSidebarCollapse(){
+  const sb=document.getElementById('sidebar');
+  const collapsed=sb.classList.toggle('collapsed');
+  document.body.classList.toggle('sidebar-collapsed',collapsed);
+  document.getElementById('sidebar-collapse-btn').textContent=collapsed?'▶':'◀';
+  sb.style.width=collapsed?'64px':'';
+  localStorage.setItem('sch_sidebar_collapsed',collapsed?'1':'');
+}
+function restoreSidebarState(){
+  if(localStorage.getItem('sch_sidebar_collapsed')==='1'&&window.innerWidth>=900){
+    const sb=document.getElementById('sidebar');
+    sb.classList.add('collapsed');
+    sb.style.width='64px';
+    document.body.classList.add('sidebar-collapsed');
+    document.getElementById('sidebar-collapse-btn').textContent='▶';
+  }
+}
+
 function doLogout(){
   clearSession(); currentUser=null; USERS=[]; events=[];
   Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
