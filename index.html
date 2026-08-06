@@ -73,7 +73,10 @@ input,select{font-family:inherit;outline:none}
 .sidebar-header{display:flex;align-items:center;gap:10px;padding:16px 0;justify-content:center;border-bottom:1px solid rgba(255,255,255,.15);flex-shrink:0}
 .sidebar-logo-icon{font-size:1.4em}
 .sidebar-logo-text{display:none;font-size:0.9em;font-weight:700;color:white;white-space:nowrap}
-.sidebar-nav{flex:1;padding:8px 0;overflow-y:auto;overflow-x:hidden}
+.sidebar-nav{flex:1;padding:8px 0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.3) transparent}
+.sidebar-nav::-webkit-scrollbar{width:6px}
+.sidebar-nav::-webkit-scrollbar-track{background:transparent}
+.sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.3);border-radius:3px}
 .sidebar-btn{display:flex;align-items:center;gap:12px;width:100%;padding:12px 0;padding-left:20px;background:none;color:rgba(255,255,255,.75);font-size:0.88em;font-weight:600;cursor:pointer;transition:all .15s;border-left:3px solid transparent;white-space:nowrap;border-radius:0}
 .sidebar-btn:hover{color:white;background:rgba(255,255,255,.1)}
 .sidebar-btn.active{color:white;background:rgba(255,255,255,.15);border-left-color:white}
@@ -3094,7 +3097,9 @@ function toggleSidebarCollapse(){
   const sb=document.getElementById('sidebar');
   const collapsed=sb.classList.toggle('collapsed');
   document.body.classList.toggle('sidebar-collapsed',collapsed);
-  document.getElementById('sidebar-collapse-btn').textContent=collapsed?'▶':'◀';
+  const btn=document.getElementById('sidebar-collapse-btn');
+  btn.textContent=collapsed?'▶':'◀';
+  btn.title=collapsed?'サイドバーを展開':'サイドバーを折りたたむ';
   sb.style.width=collapsed?'64px':'';
   localStorage.setItem('sch_sidebar_collapsed',collapsed?'1':'');
 }
@@ -3104,7 +3109,9 @@ function restoreSidebarState(){
     sb.classList.add('collapsed');
     sb.style.width='64px';
     document.body.classList.add('sidebar-collapsed');
-    document.getElementById('sidebar-collapse-btn').textContent='▶';
+    const cbtn=document.getElementById('sidebar-collapse-btn');
+    cbtn.textContent='▶';
+    cbtn.title='サイドバーを展開';
   }
 }
 
