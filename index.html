@@ -1495,9 +1495,12 @@ input,select{font-family:inherit;outline:none}
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <button onclick="shiftMpWeek(-1)" style="padding:4px 10px;border-radius:8px;background:var(--bg2);color:var(--text);font-size:0.9em;font-weight:700">←</button>
-      <div id="mp-week-label" style="font-size:0.82em;font-weight:700;color:var(--text2)"></div>
-      <button onclick="shiftMpWeek(1)" style="padding:4px 10px;border-radius:8px;background:var(--bg2);color:var(--text);font-size:0.9em;font-weight:700">→</button>
+      <button onclick="shiftMpDay(-1)" style="padding:4px 10px;border-radius:8px;background:var(--bg2);color:var(--text);font-size:0.9em;font-weight:700">←</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="mp-day-label" style="font-size:0.82em;font-weight:700;color:var(--text2)"></div>
+        <button onclick="mpDayOffset=0;renderMemberDay()" style="font-size:0.68em;padding:2px 8px;border-radius:6px;background:var(--primary-light);color:var(--primary);font-weight:700">今日</button>
+      </div>
+      <button onclick="shiftMpDay(1)" style="padding:4px 10px;border-radius:8px;background:var(--bg2);color:var(--text);font-size:0.9em;font-weight:700">→</button>
     </div>
     <div id="mp-events" style="max-height:320px;overflow-y:auto"></div>
     <div id="mp-admin-btns"></div>
@@ -1630,7 +1633,7 @@ ja:{
 // 在席ボード
 'team.board':'在席ボード','team.dept':'📋 部署ごと','team.search':'🔍 名前で検索...',
 'team.nobody':'該当するメンバーがいません','team.holiday':'休日',
-'team.present':'{n}/{total}名在席','team.schedule':'予定なし',
+'team.present':'{n}/{total}名在席','team.schedule':'予定なし','team.allday':'終日',
 'team.other':'その他','team.dept.header':'{month}月{day}日（{dow}）の予定',
 // メンバー詳細
 'member.rest.off':'🛌 休み解除','member.rest.on':'🛌 休みにする',
@@ -1941,7 +1944,7 @@ vi:{
 'rooms.no.res':'Chưa có đặt','rooms.book.room':'＋ Đặt phòng họp',
 'team.board':'Điểm danh','team.dept':'📋 Theo phòng ban','team.search':'🔍 Tìm theo tên...',
 'team.nobody':'Không tìm thấy','team.holiday':'Ngày nghỉ',
-'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch',
+'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch','team.allday':'Cả ngày',
 'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
 'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
 'member.add.event':'＋ Thêm lịch cho người này','member.edit':'Sửa',
@@ -2239,7 +2242,7 @@ ne:{
 'rooms.no.res':'बुकिङ छैन','rooms.book.room':'＋ कोठा बुक गर्नुहोस्',
 'team.board':'उपस्थिति बोर्ड','team.dept':'📋 विभाग अनुसार','team.search':'🔍 नामले खोज्नुहोस्...',
 'team.nobody':'कोही भेटिएन','team.holiday':'बिदा',
-'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन',
+'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन','team.allday':'दिनभर',
 'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
 'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
 'member.add.event':'＋ यो व्यक्तिको तालिका थप्नुहोस्','member.edit':'सम्पादन',
@@ -3869,61 +3872,62 @@ function renderTeamDeptView() {
 function teamToggleStatus(s){teamFilterStatus=teamFilterStatus===s?null:s;renderTeam()}
 
 // ===== メンバー詳細ポップアップ =====
-function getMpWeekDates(offset){
-  const today = new Date();
-  const dow = today.getDay();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - (dow===0?6:dow-1) + offset*7);
-  return Array.from({length:7},(_,i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d; });
-}
+let mpDayOffset = 0;
 
-function renderMemberWeek(){
+function renderMemberDay(){
   const userId = mpUserId;
-  const days = getMpWeekDates(mpWeekOffset);
+  const dt = new Date();
+  dt.setDate(dt.getDate() + mpDayOffset);
+  const ds = fmtDate(dt);
   const today = fmtDate(new Date());
-  const dayNames = Array.from({length:7},(_,i)=>tDow(i));
-  const d0=days[0], d6=days[6];
-  document.getElementById('mp-week-label').textContent =
-    `${d0.getMonth()+1}/${d0.getDate()} 〜 ${d6.getMonth()+1}/${d6.getDate()}`;
+  const isToday = ds===today;
+  const dow = (dt.getDay()+6)%7;
+  const _hol = holidays.find(h=>h.date===ds);
+  const _natName = jpNationalHolidays(dt.getFullYear()).get(ds);
+  const holLabel = _hol?.name||_natName||'';
+  const isSat = dt.getDay()===6, isSun = dt.getDay()===0;
+  const isHol = !!_hol||!!_natName;
+  const dayColor = (isHol||isSun)?'#f44336':isSat?'#1976d2':'var(--text2)';
+
+  const labelEl = document.getElementById('mp-day-label');
+  labelEl.textContent = `${dt.getMonth()+1}/${dt.getDate()}（${tDow(dow)}）`;
+  labelEl.style.color = dayColor;
+
   const isAdmin = currentUser.isAdmin;
+  const dayEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
+  dayEvs.sort((a,b)=>{
+    const aAll = !a.start;
+    const bAll = !b.start;
+    if(aAll!==bAll) return aAll?-1:1;
+    return (a.start||'').localeCompare(b.start||'');
+  });
+
   let html = '';
-  for(let i=0;i<7;i++){
-    const dt = days[i];
-    const ds = fmtDate(dt);
-    const isToday = ds===today;
-    const _hol = holidays.find(h=>h.date===ds);
-    const isCompHol = !!_hol;
-    const _natName = jpNationalHolidays(dt.getFullYear()).get(ds);
-    const isHol = isCompHol||!!_natName;
-    const holLabel = _hol?.name||_natName||'';
-    const isSat = i===5, isSun = i===6;
-    const dayEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
-    const dayColor = (isHol||isSun)?'#f44336':isSat?'#1976d2':'var(--text)';
-    html += `<div style="margin-bottom:6px;${isCompHol&&!isToday?'background:#fff0f0;border-radius:10px;padding:5px 8px;':isToday?'background:var(--primary-light);border-radius:10px;padding:5px 8px;':'padding:2px 0'}">
-      <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-        <span style="font-size:0.75em;font-weight:700;color:${dayColor};min-width:14px">${dayNames[i]}</span>
-        <span style="font-size:0.75em;color:${dayColor}">${dt.getMonth()+1}/${dt.getDate()}</span>
-        ${isToday?'<span style="font-size:0.6em;background:var(--primary);color:white;padding:1px 5px;border-radius:4px">'+t('common.today')+'</span>':''}
-        ${holLabel?`<span style="font-size:0.65em;color:#f44336">${esc(holLabel)}</span>`:''}
-      </div>`;
-    if(!dayEvs.length){
-      html += `<div style="font-size:0.75em;color:var(--text3);padding-left:20px">${(isSat||isSun||isHol)?t('team.holiday'):'−'}</div>`;
-    } else {
-      html += dayEvs.map(e=>`<div style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;background:${STATUS_COLOR[e.type]||'#eee'}18;border-left:2px solid ${STATUS_COLOR[e.type]||'#ccc'};margin-left:20px;margin-bottom:3px;font-size:0.78em">
-        <div style="flex:1"><strong>${tType(e.type)}</strong>${e.title?'　'+e.title:''}${e.start?`<span style="color:var(--text2);margin-left:4px">${e.start}〜${e.end}</span>`:''}</div>
-        ${(isAdmin||(currentUser.role&&currentUser.role!=='一般'))?`<button onclick="closeMemberPopup();openEditModal('${e.id}')" style="font-size:0.65em;padding:2px 6px;border-radius:5px;background:var(--primary-light);color:var(--primary);font-weight:700;flex-shrink:0">`+t('member.edit')+`</button>`:''}
-      </div>`).join('');
-    }
-    html += '</div>';
+  if(holLabel) html += `<div style="font-size:0.78em;color:#f44336;margin-bottom:8px">${esc(holLabel)}</div>`;
+  if(!dayEvs.length){
+    html += `<div style="font-size:0.82em;color:var(--text3);text-align:center;padding:20px 0">${(isSat||isSun||isHol)?t('team.holiday'):t('team.schedule')}</div>`;
+  } else {
+    html += dayEvs.map(e=>{
+      const timeStr = e.start ? `${e.start}〜${e.end}` : t('team.allday');
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:${STATUS_COLOR[e.type]||'#eee'}18;border-left:3px solid ${STATUS_COLOR[e.type]||'#ccc'};margin-bottom:6px;font-size:0.82em">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <span style="font-weight:700;color:var(--primary);white-space:nowrap">${timeStr}</span>
+            <span style="font-weight:600">${tType(e.type)}</span>
+          </div>
+          ${e.title?`<div style="font-size:0.9em;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.title)}</div>`:''}
+        </div>
+        ${(isAdmin||(currentUser.role&&currentUser.role!=='一般'))?`<button onclick="closeMemberPopup();openEditModal('${e.id}')" style="font-size:0.68em;padding:3px 8px;border-radius:6px;background:var(--primary-light);color:var(--primary);font-weight:700;flex-shrink:0">`+t('member.edit')+`</button>`:''}
+      </div>`}).join('');
   }
   document.getElementById('mp-events').innerHTML = html;
 }
 
-function shiftMpWeek(d){ mpWeekOffset+=d; renderMemberWeek(); }
+function shiftMpDay(d){ mpDayOffset+=d; renderMemberDay(); }
 
 function openMemberDetail(userId){
   const u = USERS.find(u=>u.id===userId); if(!u) return;
-  mpUserId = userId; mpWeekOffset = 0;
+  mpUserId = userId; mpDayOffset = 0;
   const ds = fmtDate(new Date());
   const myEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
   const isHol = holidays.some(h=>h.date===ds)||jpNationalHolidays(new Date().getFullYear()).has(ds);
@@ -3935,7 +3939,7 @@ function openMemberDetail(userId){
   document.getElementById('mp-dept').textContent = u.dept||'';
   const badge = document.getElementById('mp-status-badge');
   badge.textContent = tType(status); badge.style.background = color+'22'; badge.style.color = color;
-  renderMemberWeek();
+  renderMemberDay();
   const isAdmin = currentUser.isAdmin;
   const adminEl = document.getElementById('mp-admin-btns');
   if(isAdmin){
