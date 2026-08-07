@@ -4563,6 +4563,8 @@ function applyAlldayLayout(){
     document.getElementById('date-single-row').style.display=isMulti?'none':'flex';
     document.getElementById('date-range-row').style.display=isMulti?'flex':'none';
     document.getElementById('time-row').style.display=isTimed?'flex':'none';
+    document.getElementById('date-range-labels').style.display='none';
+    document.getElementById('time-labels').style.display='none';
     return;
   }
   const isBizTrip=typ==='出張'&&!allday;
