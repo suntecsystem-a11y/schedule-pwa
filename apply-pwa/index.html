@@ -219,6 +219,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
       <option value="expense">💴 出張費精算</option>
       <option value="rental">📱 端末貸出</option>
       <option value="other">📝 その他</option>
+      <option value="change">📝 従業員情報変更届</option>
     </select>
     <div id="new-type-fields"></div>
     <div class="modal-footer">
@@ -500,7 +501,7 @@ function renderList(el, records) {
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
           <div class="card-sub">${r.applicantName || r.applicantId} ・ ${r.applicationDate || r.appliedAt || ''}</div>
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${r.destination || ''}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
-          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = [c.pc, c.mobile].filter(Boolean).join(' / '); return `<div class="card-sub">${devs}${c.start ? ' ' + c.start + '〜' + c.end : ''}</div>`; } const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = [c.pc, c.mobile].filter(Boolean).join(' / '); const overdue = r.approvalStatus === '承認済' && !c.returnedAt && c.end && c.end < new Date().toISOString().slice(0,10); return `<div class="card-sub">${devs}${c.start ? ' ' + c.start + '〜' + c.end : ''}</div>${c.returnedAt ? `<div class="card-sub" style="color:var(--success);">✅ 返却済（${c.returnedAt}）</div>` : ''}${overdue ? `<div class="card-sub" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</div>` : ''}`; } const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
@@ -568,6 +569,18 @@ async function openDetail(appType, id) {
       reApplyBtn.textContent = '再申請';
       reApplyBtn.onclick = () => reApply(appType, r);
       footer.appendChild(reApplyBtn);
+    }
+    if (appType === 'rental' && r.approvalStatus === '承認済') {
+      try {
+        const c = JSON.parse(r.content || '{}');
+        if (!c.returnedAt) {
+          const returnBtn = document.createElement('button');
+          returnBtn.className = 'btn-success';
+          returnBtn.textContent = '返却済にする';
+          returnBtn.onclick = () => confirmReturnRental(r.id);
+          footer.appendChild(returnBtn);
+        }
+      } catch {}
     }
     if (appType === 'expense') {
       const pdfBtn = document.createElement('button');
@@ -927,6 +940,10 @@ function renderNewFields() {
       </div>
     `;
     loadRentalMasters();
+  } else if (type === 'change') {
+    closeModal('modal-new');
+    location.href = 'change-form.html';
+    return;
   } else if (type === 'other') {
     el.innerHTML = `
       <label>件名</label><input type="text" id="f-other-title" placeholder="申請の件名">
@@ -1279,13 +1296,27 @@ function _getSelectedApproverEmpId() {
   return sel.value;
 }
 
+function confirmReturnRental(recordId) {
+  _openConfirmModal('端末返却', [
+    { label: '操作', value: 'この端末貸出を返却済みにします' },
+  ], '', async () => {
+    try {
+      await gas({ action: 'returnRental', token: currentToken, recordId });
+      closeModal('modal-confirm');
+      closeModal('modal-detail');
+      showToast('返却済みにしました');
+      loadTab('mine');
+    } catch (e) { showToast(e.message); }
+  });
+}
+
 // ===================================================
 // ユーティリティ
 // ===================================================
 function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝', rental:'📱' }[t] || '📋'; }
 function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請', rental:'端末貸出' }[t] || t; }
 function contentFieldLabel(k) {
-  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', pc:'PC', mobile:'携帯', pcId:'PC ID', mobileId:'携帯ID', purpose:'利用目的' }[k] || k;
+  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', pc:'PC', mobile:'携帯', pcId:'PC ID', mobileId:'携帯ID', purpose:'利用目的', returnedAt:'返却日' }[k] || k;
 }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }

@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>従業員情報変更届</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #1a73e8; --primary-dark: #1557b0; --primary-light: #e8f0fe;
+  --danger: #e53935; --success: #43a047; --warn: #fb8c00;
+  --bg: #f5f7fa; --card: #fff; --border: #e0e0e0;
+  --text: #212121; --text-sub: #757575; --radius: 8px;
+  --before-bg: #f5f5f5; --before-border: #e0e0e0;
+}
+body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ===== ログイン ===== */
+#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#1a73e8,#0d47a1); }
+.login-card { background: var(--card); border-radius: 16px; padding: 40px 32px; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.login-card h1 { font-size: 20px; text-align: center; margin-bottom: 8px; }
+.login-card p { font-size: 13px; color: var(--text-sub); text-align: center; margin-bottom: 24px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 15px; }
+.form-group input:focus { outline: none; border-color: var(--primary); }
+.btn-primary { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: var(--primary-dark); }
+.login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+
+/* ===== ウィザードヘッダー ===== */
+.wizard-header {
+  background: var(--primary); color: #fff; padding: 0 16px; height: 56px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.wizard-header .btn-back {
+  background: none; border: none; color: #fff; font-size: 22px; cursor: pointer;
+  padding: 4px 8px; border-radius: 4px; line-height: 1;
+}
+.wizard-header .btn-back:hover { background: rgba(255,255,255,.15); }
+.wizard-header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+.wizard-header .step-indicator { font-size: 13px; opacity: .85; white-space: nowrap; }
+
+/* ===== プログレスバー ===== */
+.wizard-progress {
+  height: 4px; background: var(--primary-light); position: sticky; top: 56px; z-index: 99;
+}
+.wizard-progress-bar {
+  height: 100%; background: var(--primary); transition: width .3s ease;
+}
+
+/* ===== ウィザード本体 ===== */
+.wizard-body { flex: 1; padding: 20px 16px 100px; max-width: 640px; margin: 0 auto; width: 100%; }
+
+.step-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.step-desc { font-size: 13px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.6; }
+
+/* ===== カテゴリ選択 ===== */
+.category-list { display: flex; flex-direction: column; gap: 10px; }
+.category-item {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  background: var(--card); border: 2px solid var(--border); border-radius: var(--radius);
+  cursor: pointer; transition: border-color .2s, background .2s;
+}
+.category-item:hover { border-color: var(--primary); }
+.category-item.selected { border-color: var(--primary); background: var(--primary-light); }
+.category-item.disabled { opacity: .45; cursor: not-allowed; }
+.category-item.disabled:hover { border-color: var(--border); }
+.category-item input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--primary); cursor: inherit; flex-shrink: 0; }
+.category-item .cat-label { font-size: 15px; font-weight: 600; }
+.category-item .cat-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+.category-item .cat-badge {
+  margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  background: #f5f5f5; color: var(--text-sub); white-space: nowrap;
+}
+
+/* ===== チェックボックスリスト（汎用） ===== */
+.check-list { display: flex; flex-direction: column; gap: 8px; }
+.check-item {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: pointer;
+}
+.check-item:hover { border-color: var(--primary); }
+.check-item.selected { border-color: var(--primary); background: var(--primary-light); }
+.check-item input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--primary); cursor: inherit; }
+.check-item span { font-size: 14px; }
+
+/* ===== 変更前/変更後フィールド ===== */
+.field-section { margin-bottom: 20px; }
+.field-label { font-size: 13px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; }
+
+.ba-group { margin-bottom: 16px; }
+.ba-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.ba-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .ba-row { grid-template-columns: 1fr; } }
+.ba-col { display: flex; flex-direction: column; gap: 4px; }
+.ba-label { font-size: 11px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; letter-spacing: .5px; }
+.ba-label.before { color: var(--text-sub); }
+.ba-label.after { color: var(--primary); }
+.ba-value {
+  padding: 10px 12px; background: var(--before-bg); border: 1px solid var(--before-border);
+  border-radius: var(--radius); font-size: 14px; color: var(--text-sub); min-height: 40px;
+}
+.ba-input {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 14px; font-family: inherit; background: var(--card);
+}
+.ba-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+.ba-input.error { border-color: var(--danger); }
+
+.date-field { margin-top: 12px; }
+.date-field label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
+.date-field input { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; }
+
+/* ===== ラジオ（はい/いいえ） ===== */
+.yn-group { display: flex; gap: 10px; margin-top: 8px; }
+.yn-btn {
+  flex: 1; padding: 12px; text-align: center; border: 2px solid var(--border);
+  border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer;
+  background: var(--card); transition: all .2s;
+}
+.yn-btn:hover { border-color: var(--primary); }
+.yn-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+/* ===== 緊急連絡先カード ===== */
+.contact-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 14px;
+}
+.contact-card-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px; cursor: pointer;
+}
+.contact-card-header input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--primary); }
+.contact-card-header .cc-title { font-size: 15px; font-weight: 700; }
+.contact-card-body { display: none; padding-top: 8px; border-top: 1px solid var(--border); }
+.contact-card.open .contact-card-body { display: block; }
+
+/* ===== 確認画面 ===== */
+.confirm-section { margin-bottom: 20px; }
+.confirm-section-title {
+  font-size: 14px; font-weight: 700; padding: 8px 12px; background: var(--primary-light);
+  color: var(--primary); border-radius: var(--radius) var(--radius) 0 0; margin-bottom: 0;
+}
+.confirm-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius);
+}
+.confirm-table th { text-align: left; padding: 8px 12px; background: #fafafa; color: var(--text-sub); font-size: 12px; border-bottom: 1px solid var(--border); width: 100px; }
+.confirm-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.confirm-table tr:last-child th, .confirm-table tr:last-child td { border-bottom: none; }
+.confirm-before { color: var(--text-sub); }
+.confirm-after { color: var(--primary); font-weight: 600; }
+.confirm-arrow { color: var(--text-sub); padding: 0 6px; }
+
+/* ===== 完了画面 ===== */
+.complete-box {
+  text-align: center; padding: 40px 20px; background: var(--card);
+  border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.08);
+}
+.complete-icon { font-size: 56px; margin-bottom: 16px; }
+.complete-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.complete-sub { font-size: 14px; color: var(--text-sub); margin-bottom: 24px; line-height: 1.6; }
+.complete-info { text-align: left; padding: 16px; background: var(--bg); border-radius: var(--radius); font-size: 13px; }
+.complete-info div { padding: 6px 0; display: flex; gap: 8px; }
+.complete-info .ci-label { color: var(--text-sub); min-width: 80px; }
+
+/* ===== フッター（ナビ） ===== */
+.wizard-footer {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  padding: 12px 16px; background: var(--card); border-top: 1px solid var(--border);
+  display: flex; gap: 10px; justify-content: center; z-index: 100;
+}
+.wizard-footer .btn {
+  padding: 12px 32px; border-radius: var(--radius); font-size: 15px; font-weight: 600;
+  cursor: pointer; border: none; min-width: 120px;
+}
+.wizard-footer .btn-prev { background: none; border: 1px solid var(--border); color: var(--text); }
+.wizard-footer .btn-prev:hover { background: var(--bg); }
+.wizard-footer .btn-next { background: var(--primary); color: #fff; }
+.wizard-footer .btn-next:hover { background: var(--primary-dark); }
+.wizard-footer .btn-next:disabled { background: #bdbdbd; cursor: not-allowed; }
+.wizard-footer .btn-submit { background: var(--success); color: #fff; }
+.wizard-footer .btn-submit:hover { background: #388e3c; }
+
+/* ===== ローディング ===== */
+.loading { text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== トースト ===== */
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #323232; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; white-space: nowrap; }
+.toast.show { opacity: 1; }
+
+/* ===== 注意ボックス ===== */
+.info-box { padding: 12px 14px; background: #e3f2fd; border-radius: var(--radius); font-size: 13px; color: #1565c0; margin-top: 12px; line-height: 1.6; }
+.warn-box { padding: 12px 14px; background: #fff3e0; border-radius: var(--radius); font-size: 13px; color: #e65100; margin-top: 12px; line-height: 1.6; }
+
+/* ===== Welcome ===== */
+.welcome-card {
+  background: var(--card); border-radius: 12px; padding: 32px 24px; text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+}
+.welcome-icon { font-size: 48px; margin-bottom: 16px; }
+.welcome-name { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.welcome-id { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; }
+.welcome-desc { font-size: 14px; color: var(--text-sub); line-height: 1.7; text-align: left; padding: 16px; background: var(--bg); border-radius: var(--radius); }
+</style>
+</head>
+<body>
+
+<!-- ===== ログイン画面 ===== -->
+<div id="screen-login" class="screen active">
+  <div class="login-card">
+    <h1>従業員情報変更届</h1>
+    <p>社員番号とPINコードでログイン</p>
+    <div class="form-group">
+      <label>社員番号</label>
+      <input type="text" id="inp-empid" placeholder="例: 1001" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label>PINコード</label>
+      <input type="password" id="inp-pin" placeholder="4桁" inputmode="numeric" maxlength="4">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ===== ウィザード画面 ===== -->
+<div id="screen-wizard" class="screen">
+  <header class="wizard-header">
+    <button class="btn-back" id="header-back" onclick="handleBack()">&#8592;</button>
+    <h1 id="header-title">従業員情報変更届</h1>
+    <span class="step-indicator" id="step-indicator"></span>
+  </header>
+  <div class="wizard-progress"><div class="wizard-progress-bar" id="progress-bar"></div></div>
+  <div class="wizard-body" id="wizard-body">
+    <div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>
+  </div>
+  <div class="wizard-footer" id="wizard-footer"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================================================
+// 設定
+// =============================================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvHJ12cwnKgWIwrAXAeXuv1wSZXQXOHdAxhZ_P7vbe7KhrtEwv1wCigz0IHocrgHg/exec';
+
+// =============================================================================
+// セッション
+// =============================================================================
+let currentUser = null;
+let currentToken = null;
+
+function loadSession() {
+  try {
+    const d = JSON.parse(localStorage.getItem('apply_session') || 'null');
+    if (d && Date.now() <= d.expires) { currentToken = d.token; currentUser = d.user; return true; }
+    const s = JSON.parse(localStorage.getItem('sch_sess') || 'null');
+    if (s && s.token && s.user) { currentToken = s.token; currentUser = s.user; return true; }
+    return false;
+  } catch { return false; }
+}
+
+function saveSession(token, user) {
+  currentToken = token; currentUser = user;
+  localStorage.setItem('apply_session', JSON.stringify({ token, user, expires: Date.now() + 8 * 3600000 }));
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// =============================================================================
+// GAS通信
+// =============================================================================
+async function gas(payload) {
+  const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || '通信エラー');
+  return json.data;
+}
+
+// =============================================================================
+// ログイン
+// =============================================================================
+async function doLogin() {
+  const empId = document.getElementById('inp-empid').value.trim();
+  const pin = document.getElementById('inp-pin').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!empId || !pin) { errEl.textContent = '社員番号とPINを入力してください'; errEl.style.display = 'block'; return; }
+  try {
+    const data = await gas({ action: 'login', empId, pin });
+    saveSession(data.token, data.user);
+    initWizard();
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// =============================================================================
+// 従業員詳細データ
+// =============================================================================
+let employeeDetail = null;
+
+async function fetchEmployeeDetail() {
+  try {
+    employeeDetail = await gas({ action: 'getEmployeeDetail', token: currentToken });
+  } catch {
+    employeeDetail = null;
+  }
+}
+
+function emp(field) {
+  if (!employeeDetail) return '';
+  return employeeDetail[field] || '';
+}
+
+// =============================================================================
+// ウィザード状態
+// =============================================================================
+let wizardData = {};
+
+function resetWizardData() {
+  wizardData = {
+    categories: [],
+    basic: {
+      items: [],
+      name: { before: { name: '', furiganaLast: '', furiganaFirst: '' }, after: { name: '', furiganaLast: '', furiganaFirst: '' }, date: '' },
+      address: { before: { zipcode: '', address: '' }, after: { zipcode: '', address: '' }, date: '' },
+      phone: { before: '', after: '', date: '' },
+      commuteChanged: null,
+    },
+    emergency: {
+      selected: [],
+      contacts: [
+        { before: { name: '', nameKana: '', relation: '', mobile: '', landline: '' }, after: { name: '', nameKana: '', relation: '', mobile: '', landline: '' } },
+        { before: { name: '', nameKana: '', relation: '', mobile: '', landline: '' }, after: { name: '', nameKana: '', relation: '', mobile: '', landline: '' } },
+      ],
+      date: '',
+    },
+  };
+}
+
+// =============================================================================
+// ステップ定義
+// =============================================================================
+const STEPS = [
+  { id: 'welcome', title: '申請者確認' },
+  { id: 'categories', title: 'カテゴリ選択' },
+  { id: 'basic_items', title: '基本情報' },
+  { id: 'basic_name', title: '氏名の変更' },
+  { id: 'basic_address', title: '住所の変更' },
+  { id: 'basic_phone', title: '電話番号の変更' },
+  { id: 'emergency', title: '緊急連絡先の変更' },
+  { id: 'confirm', title: '入力内容の確認' },
+  { id: 'complete', title: '申請完了' },
+];
+
+function isStepActive(step) {
+  switch (step.id) {
+    case 'welcome': case 'categories': case 'confirm': case 'complete': return true;
+    case 'basic_items': return wizardData.categories.includes('basic');
+    case 'basic_name': return wizardData.categories.includes('basic') && wizardData.basic.items.includes('name');
+    case 'basic_address': return wizardData.categories.includes('basic') && wizardData.basic.items.includes('address');
+    case 'basic_phone': return wizardData.categories.includes('basic') && wizardData.basic.items.includes('phone');
+    case 'emergency': return wizardData.categories.includes('emergency');
+    default: return false;
+  }
+}
+
+function getActiveSteps() { return STEPS.filter(isStepActive); }
+
+// =============================================================================
+// ウィザードエンジン
+// =============================================================================
+let currentStepIdx = 0;
+
+function initWizard() {
+  showScreen('wizard');
+  resetWizardData();
+  currentStepIdx = 0;
+  fetchEmployeeDetail().then(() => renderCurrentStep());
+}
+
+function renderCurrentStep() {
+  const active = getActiveSteps();
+  const step = active[currentStepIdx];
+  if (!step) return;
+
+  document.getElementById('header-title').textContent = step.title;
+  const isComplete = step.id === 'complete';
+  const isWelcome = step.id === 'welcome';
+
+  // ステップインジケータ
+  const totalDisplay = active.length - 1; // completeは数えない
+  const currentDisplay = Math.min(currentStepIdx + 1, totalDisplay);
+  document.getElementById('step-indicator').textContent = isComplete ? '' : `${currentDisplay} / ${totalDisplay}`;
+
+  // プログレスバー
+  const pct = isComplete ? 100 : (currentStepIdx / (active.length - 1)) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  // 戻るボタン
+  document.getElementById('header-back').style.visibility = currentStepIdx === 0 ? 'hidden' : 'visible';
+
+  // 本体
+  const body = document.getElementById('wizard-body');
+  renderStep(step.id, body);
+
+  // フッター
+  renderFooter(step.id, active.length);
+
+  body.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+
+function renderFooter(stepId, totalSteps) {
+  const footer = document.getElementById('wizard-footer');
+  if (stepId === 'complete') {
+    footer.innerHTML = `
+      <button class="btn btn-prev" onclick="location.href='index.html'">申請アプリに戻る</button>
+      <button class="btn btn-next" onclick="startNew()">続けて申請</button>`;
+    return;
+  }
+  if (stepId === 'confirm') {
+    footer.innerHTML = `
+      <button class="btn btn-prev" onclick="goBack()">戻る</button>
+      <button class="btn btn-submit" onclick="submitChangeRequest()">この内容で申請する</button>`;
+    return;
+  }
+  const showPrev = currentStepIdx > 0;
+  footer.innerHTML = `
+    ${showPrev ? '<button class="btn btn-prev" onclick="goBack()">戻る</button>' : ''}
+    <button class="btn btn-next" onclick="goNext()">次へ</button>`;
+}
+
+function goNext() {
+  const active = getActiveSteps();
+  const step = active[currentStepIdx];
+  if (!collectAndValidate(step.id)) return;
+  if (currentStepIdx < active.length - 1) {
+    currentStepIdx++;
+    renderCurrentStep();
+  }
+}
+
+function goBack() {
+  const active = getActiveSteps();
+  const step = active[currentStepIdx];
+  collectStepData(step.id);
+  if (currentStepIdx > 0) {
+    currentStepIdx--;
+    renderCurrentStep();
+  }
+}
+
+function handleBack() {
+  if (currentStepIdx === 0) {
+    if (confirm('申請アプリに戻りますか？入力内容は失われます。')) {
+      location.href = 'index.html';
+    }
+  } else {
+    goBack();
+  }
+}
+
+function startNew() {
+  resetWizardData();
+  currentStepIdx = 0;
+  fetchEmployeeDetail().then(() => renderCurrentStep());
+}
+
+// =============================================================================
+// ステップ描画
+// =============================================================================
+function renderStep(stepId, el) {
+  switch (stepId) {
+    case 'welcome': return renderWelcome(el);
+    case 'categories': return renderCategories(el);
+    case 'basic_items': return renderBasicItems(el);
+    case 'basic_name': return renderBasicName(el);
+    case 'basic_address': return renderBasicAddress(el);
+    case 'basic_phone': return renderBasicPhone(el);
+    case 'emergency': return renderEmergency(el);
+    case 'confirm': return renderConfirm(el);
+    case 'complete': return renderComplete(el);
+  }
+}
+
+// ----- Welcome -----
+function renderWelcome(el) {
+  el.innerHTML = `
+    <div class="welcome-card">
+      <div class="welcome-icon">📝</div>
+      <div class="welcome-name">${currentUser.name} さん</div>
+      <div class="welcome-id">社員番号: ${currentUser.id}</div>
+      <div class="welcome-desc">
+        従業員情報の変更届を申請します。<br><br>
+        氏名・住所・電話番号・緊急連絡先の変更ができます。<br>
+        変更前の情報は自動で表示されます。変更後の情報を入力してください。<br><br>
+        申請後、総務部による確認・承認が行われます。
+      </div>
+    </div>`;
+}
+
+// ----- カテゴリ選択 -----
+function renderCategories(el) {
+  const cats = [
+    { id: 'basic', icon: '👤', label: '基本情報', desc: '氏名・住所・電話番号', enabled: true },
+    { id: 'emergency', icon: '🆘', label: '緊急連絡先', desc: '緊急連絡先の氏名・電話番号など', enabled: true },
+    { id: 'commute', icon: '🚃', label: '通勤情報', desc: '通勤経路・通勤方法', enabled: false },
+    { id: 'bank', icon: '🏦', label: '給与振込口座', desc: '口座情報の変更', enabled: false },
+    { id: 'family', icon: '👨‍👩‍👧', label: '家族に関する変更', desc: '結婚・出産・扶養変更など', enabled: false },
+    { id: 'other', icon: '📋', label: 'その他', desc: '上記以外の変更', enabled: false },
+  ];
+  el.innerHTML = `
+    <div class="step-title">変更する内容を選択してください</div>
+    <div class="step-desc">該当するカテゴリを選択してください（複数選択可）</div>
+    <div class="category-list">
+      ${cats.map(c => `
+        <div class="category-item ${wizardData.categories.includes(c.id) ? 'selected' : ''} ${c.enabled ? '' : 'disabled'}"
+             onclick="${c.enabled ? `toggleCategory('${c.id}', this)` : ''}" ${c.enabled ? '' : 'title="次期アップデートで対応予定"'}>
+          <input type="checkbox" ${wizardData.categories.includes(c.id) ? 'checked' : ''} ${c.enabled ? '' : 'disabled'}
+                 onclick="event.stopPropagation();">
+          <div>
+            <div class="cat-label">${c.icon} ${c.label}</div>
+            <div class="cat-desc">${c.desc}</div>
+          </div>
+          ${c.enabled ? '' : '<span class="cat-badge">準備中</span>'}
+        </div>`).join('')}
+    </div>`;
+}
+
+function toggleCategory(id, itemEl) {
+  const idx = wizardData.categories.indexOf(id);
+  if (idx >= 0) wizardData.categories.splice(idx, 1);
+  else wizardData.categories.push(id);
+  const cb = itemEl.querySelector('input[type=checkbox]');
+  cb.checked = wizardData.categories.includes(id);
+  itemEl.classList.toggle('selected', cb.checked);
+}
+
+// ----- 基本情報: 変更項目選択 -----
+function renderBasicItems(el) {
+  const items = [
+    { id: 'name', label: '氏名・フリガナ' },
+    { id: 'address', label: '郵便番号・住所' },
+    { id: 'phone', label: '電話番号' },
+  ];
+  el.innerHTML = `
+    <div class="step-title">基本情報で変更する項目</div>
+    <div class="step-desc">変更したい項目を選択してください（複数選択可）</div>
+    <div class="check-list">
+      ${items.map(it => `
+        <div class="check-item ${wizardData.basic.items.includes(it.id) ? 'selected' : ''}"
+             onclick="toggleBasicItem('${it.id}', this)">
+          <input type="checkbox" ${wizardData.basic.items.includes(it.id) ? 'checked' : ''}
+                 onclick="event.stopPropagation();">
+          <span>${it.label}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+function toggleBasicItem(id, itemEl) {
+  const idx = wizardData.basic.items.indexOf(id);
+  if (idx >= 0) wizardData.basic.items.splice(idx, 1);
+  else wizardData.basic.items.push(id);
+  const cb = itemEl.querySelector('input[type=checkbox]');
+  cb.checked = wizardData.basic.items.includes(id);
+  itemEl.classList.toggle('selected', cb.checked);
+}
+
+// ----- 基本情報: 氏名変更 -----
+function renderBasicName(el) {
+  const d = wizardData.basic.name;
+  const bName = d.before.name || emp('name') || '';
+  const bFuriLast = d.before.furiganaLast || emp('furiganaLast') || '';
+  const bFuriFirst = d.before.furiganaFirst || emp('furiganaFirst') || '';
+  d.before.name = bName;
+  d.before.furiganaLast = bFuriLast;
+  d.before.furiganaFirst = bFuriFirst;
+  el.innerHTML = `
+    <div class="step-title">氏名の変更</div>
+    <div class="step-desc">変更後の氏名・フリガナと変更日を入力してください</div>
+    <div class="field-section">
+      <div class="ba-group">
+        <div class="ba-title">氏名</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bName || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-name-after" value="${d.after.name}" placeholder="変更後の氏名"></div>
+        </div>
+      </div>
+      <div class="ba-group">
+        <div class="ba-title">フリガナ（姓）</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bFuriLast || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-furigana-last-after" value="${d.after.furiganaLast}" placeholder="例: スズキ"></div>
+        </div>
+      </div>
+      <div class="ba-group">
+        <div class="ba-title">フリガナ（名）</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bFuriFirst || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-furigana-first-after" value="${d.after.furiganaFirst}" placeholder="例: タロウ"></div>
+        </div>
+      </div>
+      <div class="date-field">
+        <label>変更日 <span style="color:var(--danger)">*</span></label>
+        <input type="date" class="ba-input" id="f-name-date" value="${d.date}" style="width:auto;">
+      </div>
+    </div>
+    <div class="info-box">氏名変更の場合、住民票・戸籍抄本・運転免許証等のコピーの提出が必要です。</div>`;
+}
+
+// ----- 基本情報: 住所変更 -----
+function renderBasicAddress(el) {
+  const d = wizardData.basic.address;
+  const bZip = d.before.zipcode || emp('zipcode') || '';
+  const bAddr = d.before.address || emp('address') || '';
+  d.before.zipcode = bZip;
+  d.before.address = bAddr;
+  const commuteVal = wizardData.basic.commuteChanged;
+  el.innerHTML = `
+    <div class="step-title">住所の変更</div>
+    <div class="step-desc">変更後の郵便番号・住所と変更日を入力してください</div>
+    <div class="field-section">
+      <div class="ba-group">
+        <div class="ba-title">郵便番号</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bZip || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-zip-after" value="${d.after.zipcode}" placeholder="例: 220-0001"></div>
+        </div>
+      </div>
+      <div class="ba-group">
+        <div class="ba-title">住所</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bAddr || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-addr-after" value="${d.after.address}" placeholder="変更後の住所"></div>
+        </div>
+      </div>
+      <div class="date-field">
+        <label>変更日 <span style="color:var(--danger)">*</span></label>
+        <input type="date" class="ba-input" id="f-addr-date" value="${d.date}" style="width:auto;">
+      </div>
+    </div>
+    <div class="field-section" style="margin-top:24px;">
+      <div class="ba-title">住所変更に伴い、通勤経路・通勤方法も変わりますか？</div>
+      <div class="yn-group">
+        <div class="yn-btn ${commuteVal === true ? 'selected' : ''}" onclick="selectCommute(true)">はい</div>
+        <div class="yn-btn ${commuteVal === false ? 'selected' : ''}" onclick="selectCommute(false)">いいえ</div>
+      </div>
+      ${commuteVal === true ? '<div class="warn-box">通勤情報の変更は次期アップデートで対応予定です。申請後に総務部へ別途ご連絡ください。</div>' : ''}
+    </div>
+    <div class="info-box">住所変更の場合、住民票・運転免許証等のコピーの提出が必要です。</div>`;
+}
+
+function selectCommute(val) {
+  wizardData.basic.commuteChanged = val;
+  renderCurrentStep();
+}
+
+// ----- 基本情報: 電話番号変更 -----
+function renderBasicPhone(el) {
+  const d = wizardData.basic.phone;
+  const bPhone = d.before || emp('phone') || '';
+  d.before = bPhone;
+  el.innerHTML = `
+    <div class="step-title">電話番号の変更</div>
+    <div class="step-desc">変更後の電話番号と変更日を入力してください</div>
+    <div class="field-section">
+      <div class="ba-group">
+        <div class="ba-title">電話番号</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bPhone || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-phone-after" value="${d.after}" placeholder="例: 090-1234-5678"></div>
+        </div>
+      </div>
+      <div class="date-field">
+        <label>変更日 <span style="color:var(--danger)">*</span></label>
+        <input type="date" class="ba-input" id="f-phone-date" value="${d.date}" style="width:auto;">
+      </div>
+    </div>`;
+}
+
+// ----- 緊急連絡先 -----
+function renderEmergency(el) {
+  const d = wizardData.emergency;
+  const labels = ['緊急連絡先①', '緊急連絡先②'];
+  const fields = [
+    { key: 'name', label: '氏名' },
+    { key: 'nameKana', label: '氏名カナ' },
+    { key: 'relation', label: '続柄' },
+    { key: 'mobile', label: '携帯電話' },
+    { key: 'landline', label: '固定電話' },
+  ];
+  const empKeys = [
+    { name: 'emergency1_name', nameKana: 'emergency1_nameKana', relation: 'emergency1_relation', mobile: 'emergency1_mobile', landline: 'emergency1_landline' },
+    { name: 'emergency2_name', nameKana: 'emergency2_nameKana', relation: 'emergency2_relation', mobile: 'emergency2_mobile', landline: 'emergency2_landline' },
+  ];
+
+  for (let i = 0; i < 2; i++) {
+    fields.forEach(f => {
+      if (!d.contacts[i].before[f.key]) d.contacts[i].before[f.key] = emp(empKeys[i][f.key]) || '';
+    });
+  }
+
+  el.innerHTML = `
+    <div class="step-title">緊急連絡先の変更</div>
+    <div class="step-desc">変更する連絡先を選択し、変更後の情報を入力してください</div>
+    ${[0, 1].map(i => `
+      <div class="contact-card ${d.selected.includes(i) ? 'open' : ''}">
+        <div class="contact-card-header" onclick="toggleContact(${i})">
+          <input type="checkbox" ${d.selected.includes(i) ? 'checked' : ''} onclick="event.stopPropagation(); toggleContact(${i})">
+          <span class="cc-title">${labels[i]}</span>
+        </div>
+        <div class="contact-card-body">
+          ${fields.map(f => `
+            <div class="ba-group">
+              <div class="ba-title">${f.label}</div>
+              <div class="ba-row">
+                <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${d.contacts[i].before[f.key] || '(未登録)'}</div></div>
+                <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-em${i}-${f.key}" value="${d.contacts[i].after[f.key] || ''}" placeholder="変更後の${f.label}"></div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>`).join('')}
+    <div class="date-field">
+      <label>変更日</label>
+      <input type="date" class="ba-input" id="f-em-date" value="${d.date}" style="width:auto;">
+    </div>`;
+}
+
+function toggleContact(idx) {
+  const arr = wizardData.emergency.selected;
+  const pos = arr.indexOf(idx);
+  if (pos >= 0) arr.splice(pos, 1); else arr.push(idx);
+  renderCurrentStep();
+}
+
+// ----- 確認画面 -----
+function renderConfirm(el) {
+  let html = '<div class="step-title">入力内容の確認</div><div class="step-desc">変更内容を確認してください。修正する場合は「戻る」で該当ステップに戻れます。</div>';
+
+  if (wizardData.categories.includes('basic')) {
+    if (wizardData.basic.items.includes('name')) {
+      const d = wizardData.basic.name;
+      html += confirmSection('氏名の変更', [
+        confirmRow('氏名', d.before.name, d.after.name),
+        confirmRow('フリガナ（姓）', d.before.furiganaLast, d.after.furiganaLast),
+        confirmRow('フリガナ（名）', d.before.furiganaFirst, d.after.furiganaFirst),
+        confirmRow('変更日', '', d.date),
+      ]);
+    }
+    if (wizardData.basic.items.includes('address')) {
+      const d = wizardData.basic.address;
+      html += confirmSection('住所の変更', [
+        confirmRow('郵便番号', d.before.zipcode, d.after.zipcode),
+        confirmRow('住所', d.before.address, d.after.address),
+        confirmRow('変更日', '', d.date),
+        confirmRow('通勤変更', '', wizardData.basic.commuteChanged === true ? 'あり（別途連絡）' : wizardData.basic.commuteChanged === false ? 'なし' : '未回答'),
+      ]);
+    }
+    if (wizardData.basic.items.includes('phone')) {
+      const d = wizardData.basic.phone;
+      html += confirmSection('電話番号の変更', [
+        confirmRow('電話番号', d.before, d.after),
+        confirmRow('変更日', '', d.date),
+      ]);
+    }
+  }
+
+  if (wizardData.categories.includes('emergency')) {
+    const d = wizardData.emergency;
+    const fields = [
+      { key: 'name', label: '氏名' }, { key: 'nameKana', label: '氏名カナ' },
+      { key: 'relation', label: '続柄' }, { key: 'mobile', label: '携帯電話' }, { key: 'landline', label: '固定電話' },
+    ];
+    d.selected.forEach(i => {
+      const rows = fields
+        .filter(f => d.contacts[i].after[f.key])
+        .map(f => confirmRow(f.label, d.contacts[i].before[f.key], d.contacts[i].after[f.key]));
+      if (rows.length) {
+        if (d.date) rows.push(confirmRow('変更日', '', d.date));
+        html += confirmSection(`緊急連絡先${i === 0 ? '①' : '②'}の変更`, rows);
+      }
+    });
+  }
+
+  el.innerHTML = html;
+}
+
+function confirmSection(title, rows) {
+  return `<div class="confirm-section">
+    <div class="confirm-section-title">${title}</div>
+    <table class="confirm-table"><tbody>${rows.join('')}</tbody></table>
+  </div>`;
+}
+
+function confirmRow(label, before, after) {
+  if (before && after) {
+    return `<tr><th>${label}</th><td><span class="confirm-before">${before}</span><span class="confirm-arrow"> → </span><span class="confirm-after">${after}</span></td></tr>`;
+  }
+  return `<tr><th>${label}</th><td><span class="confirm-after">${after || '-'}</span></td></tr>`;
+}
+
+// ----- 完了画面 -----
+function renderComplete(el) {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const catLabels = { basic: '基本情報', emergency: '緊急連絡先', commute: '通勤情報', bank: '給与振込口座', family: '家族', other: 'その他' };
+  el.innerHTML = `
+    <div class="complete-box">
+      <div class="complete-icon">✅</div>
+      <div class="complete-title">申請を受け付けました</div>
+      <div class="complete-sub">総務部による確認・承認をお待ちください。<br>承認・却下時に通知でお知らせします。</div>
+      <div class="complete-info">
+        <div><span class="ci-label">申請者</span><span>${currentUser.name}</span></div>
+        <div><span class="ci-label">申請日時</span><span>${dateStr}</span></div>
+        <div><span class="ci-label">変更内容</span><span>${wizardData.categories.map(c => catLabels[c] || c).join('、')}</span></div>
+      </div>
+    </div>`;
+}
+
+// =============================================================================
+// データ収集
+// =============================================================================
+function collectStepData(stepId) {
+  switch (stepId) {
+    case 'basic_name': {
+      const d = wizardData.basic.name;
+      const nameEl = document.getElementById('f-name-after');
+      const furiLastEl = document.getElementById('f-furigana-last-after');
+      const furiFirstEl = document.getElementById('f-furigana-first-after');
+      const dateEl = document.getElementById('f-name-date');
+      if (nameEl) d.after.name = nameEl.value.trim();
+      if (furiLastEl) d.after.furiganaLast = furiLastEl.value.trim();
+      if (furiFirstEl) d.after.furiganaFirst = furiFirstEl.value.trim();
+      if (dateEl) d.date = dateEl.value;
+      break;
+    }
+    case 'basic_address': {
+      const d = wizardData.basic.address;
+      const zipEl = document.getElementById('f-zip-after');
+      const addrEl = document.getElementById('f-addr-after');
+      const dateEl = document.getElementById('f-addr-date');
+      if (zipEl) d.after.zipcode = zipEl.value.trim();
+      if (addrEl) d.after.address = addrEl.value.trim();
+      if (dateEl) d.date = dateEl.value;
+      break;
+    }
+    case 'basic_phone': {
+      const d = wizardData.basic.phone;
+      const phoneEl = document.getElementById('f-phone-after');
+      const dateEl = document.getElementById('f-phone-date');
+      if (phoneEl) d.after = phoneEl.value.trim();
+      if (dateEl) d.date = dateEl.value;
+      break;
+    }
+    case 'emergency': {
+      const d = wizardData.emergency;
+      const fields = ['name', 'nameKana', 'relation', 'mobile', 'landline'];
+      d.selected.forEach(i => {
+        fields.forEach(f => {
+          const el = document.getElementById(`f-em${i}-${f}`);
+          if (el) d.contacts[i].after[f] = el.value.trim();
+        });
+      });
+      const dateEl = document.getElementById('f-em-date');
+      if (dateEl) d.date = dateEl.value;
+      break;
+    }
+  }
+}
+
+// =============================================================================
+// バリデーション
+// =============================================================================
+function collectAndValidate(stepId) {
+  collectStepData(stepId);
+  switch (stepId) {
+    case 'categories':
+      if (!wizardData.categories.length) { showToast('1つ以上のカテゴリを選択してください'); return false; }
+      return true;
+    case 'basic_items':
+      if (!wizardData.basic.items.length) { showToast('1つ以上の項目を選択してください'); return false; }
+      return true;
+    case 'basic_name': {
+      const d = wizardData.basic.name;
+      if (!d.after.name) { showToast('変更後の氏名を入力してください'); return false; }
+      if (!d.after.furiganaLast) { showToast('変更後のフリガナ（姓）を入力してください'); return false; }
+      if (!d.after.furiganaFirst) { showToast('変更後のフリガナ（名）を入力してください'); return false; }
+      if (!d.date) { showToast('変更日を入力してください'); return false; }
+      return true;
+    }
+    case 'basic_address': {
+      const d = wizardData.basic.address;
+      if (!d.after.zipcode) { showToast('変更後の郵便番号を入力してください'); return false; }
+      if (!d.after.address) { showToast('変更後の住所を入力してください'); return false; }
+      if (!d.date) { showToast('変更日を入力してください'); return false; }
+      return true;
+    }
+    case 'basic_phone': {
+      const d = wizardData.basic.phone;
+      if (!d.after) { showToast('変更後の電話番号を入力してください'); return false; }
+      if (!d.date) { showToast('変更日を入力してください'); return false; }
+      return true;
+    }
+    case 'emergency': {
+      const d = wizardData.emergency;
+      if (!d.selected.length) { showToast('変更する連絡先を選択してください'); return false; }
+      for (const i of d.selected) {
+        const hasAny = Object.values(d.contacts[i].after).some(v => v);
+        if (!hasAny) { showToast(`緊急連絡先${i === 0 ? '①' : '②'}の変更後を入力してください`); return false; }
+      }
+      return true;
+    }
+    default: return true;
+  }
+}
+
+// =============================================================================
+// 申請送信
+// =============================================================================
+async function submitChangeRequest() {
+  const footer = document.getElementById('wizard-footer');
+  const btn = footer.querySelector('.btn-submit');
+  if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+
+  const changes = buildChangesJSON();
+
+  try {
+    await gas({
+      action: 'saveChangeRequest',
+      token: currentToken,
+      changeData: {
+        applicantName: currentUser.name,
+        categories: wizardData.categories,
+        changes: JSON.stringify(changes),
+      },
+    });
+    currentStepIdx = getActiveSteps().findIndex(s => s.id === 'complete');
+    renderCurrentStep();
+  } catch (e) {
+    showToast('送信失敗: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'この内容で申請する'; }
+  }
+}
+
+function buildChangesJSON() {
+  const changes = {};
+  if (wizardData.categories.includes('basic')) {
+    const b = wizardData.basic;
+    if (b.items.includes('name')) {
+      changes.basic = changes.basic || {};
+      changes.basic.name = { before: b.name.before.name, after: b.name.after.name, date: b.name.date };
+      changes.basic.furiganaLast = { before: b.name.before.furiganaLast, after: b.name.after.furiganaLast, date: b.name.date };
+      changes.basic.furiganaFirst = { before: b.name.before.furiganaFirst, after: b.name.after.furiganaFirst, date: b.name.date };
+    }
+    if (b.items.includes('address')) {
+      changes.basic = changes.basic || {};
+      changes.basic.zipcode = { before: b.address.before.zipcode, after: b.address.after.zipcode, date: b.address.date };
+      changes.basic.address = { before: b.address.before.address, after: b.address.after.address, date: b.address.date };
+      changes.basic.commuteChanged = b.commuteChanged;
+    }
+    if (b.items.includes('phone')) {
+      changes.basic = changes.basic || {};
+      changes.basic.phone = { before: b.phone.before, after: b.phone.after, date: b.phone.date };
+    }
+  }
+  if (wizardData.categories.includes('emergency')) {
+    const e = wizardData.emergency;
+    changes.emergency = {};
+    e.selected.forEach(i => {
+      const key = String(i + 1);
+      changes.emergency[key] = {};
+      ['name', 'nameKana', 'relation', 'mobile', 'landline'].forEach(f => {
+        if (e.contacts[i].after[f]) {
+          changes.emergency[key][f] = { before: e.contacts[i].before[f], after: e.contacts[i].after[f] };
+        }
+      });
+      if (e.date) changes.emergency[key].date = e.date;
+    });
+  }
+  return changes;
+}
+
+// =============================================================================
+// ユーティリティ
+// =============================================================================
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+document.getElementById('inp-pin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// 起動
+if (loadSession()) initWizard();
+</script>
+</body>
+</html>
