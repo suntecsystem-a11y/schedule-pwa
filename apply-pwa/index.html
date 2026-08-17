@@ -50,6 +50,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .card:active { opacity: .8; }
 .card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
 .card-sub   { font-size: 13px; color: var(--text-sub); }
+.rental-check-group { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 12px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; }
 
 /* バッジ */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; }
@@ -501,7 +502,7 @@ function renderList(el, records) {
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
           <div class="card-sub">${r.applicantName || r.applicantId} ・ ${r.applicationDate || r.appliedAt || ''}</div>
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${r.destination || ''}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
-          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = [c.pc, c.mobile].filter(Boolean).join(' / '); const overdue = r.approvalStatus === '承認済' && !c.returnedAt && c.end && c.end < new Date().toISOString().slice(0,10); return `<div class="card-sub">${devs}${c.start ? ' ' + c.start + '〜' + c.end : ''}</div>${c.returnedAt ? `<div class="card-sub" style="color:var(--success);">✅ 返却済（${c.returnedAt}）</div>` : ''}${overdue ? `<div class="card-sub" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</div>` : ''}`; } const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = c.devices ? c.devices.map(d => d.label).join(' / ') : [c.pc, c.mobile].filter(Boolean).join(' / '); const overdue = r.approvalStatus === '承認済' && !c.returnedAt && c.end && c.end < new Date().toISOString().slice(0,10); return `<div class="card-sub">${devs}${c.start ? ' ' + c.start + '〜' + c.end : ''}</div>${c.returnedAt ? `<div class="card-sub" style="color:var(--success);">✅ 返却済（${c.returnedAt}）</div>` : ''}${overdue ? `<div class="card-sub" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</div>` : ''}`; } const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
@@ -926,10 +927,12 @@ function renderNewFields() {
     el.innerHTML = `
       <div id="rental-loading" style="padding:10px;font-size:13px;color:var(--text-sub);">端末情報を取得中...</div>
       <div id="rental-fields" style="display:none;">
-        <label>PC（任意）</label>
-        <select id="f-rental-pc"><option value="">借りない</option></select>
-        <label>携帯（任意）</label>
-        <select id="f-rental-mobile"><option value="">借りない</option></select>
+        <label>PC（任意・複数選択可）</label>
+        <div id="f-rental-pc" class="rental-check-group"></div>
+        <label>携帯（任意・複数選択可）</label>
+        <div id="f-rental-mobile" class="rental-check-group"></div>
+        <label>タブレット（任意・複数選択可）</label>
+        <div id="f-rental-tablet" class="rental-check-group"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div><label>利用開始日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-start"></div>
           <div><label>返却予定日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-end"></div>
@@ -959,20 +962,27 @@ let rentalMasters = [];
 async function loadRentalMasters() {
   try {
     rentalMasters = await gas({ action: 'getRentalMasters', token: currentToken }) || [];
-    const pcSel = document.getElementById('f-rental-pc');
-    const mobSel = document.getElementById('f-rental-mobile');
-    pcSel.innerHTML = '<option value="">借りない</option>';
-    mobSel.innerHTML = '<option value="">借りない</option>';
+    const pcBox = document.getElementById('f-rental-pc');
+    const mobBox = document.getElementById('f-rental-mobile');
+    const tabBox = document.getElementById('f-rental-tablet');
+    pcBox.innerHTML = ''; mobBox.innerHTML = ''; tabBox.innerHTML = '';
     rentalMasters.forEach(m => {
       const label = m.purpose || m.deviceType || '不明';
-      const opt = `<option value="${m.id}">${label}</option>`;
+      const html = `<label style="display:flex;align-items:center;gap:6px;padding:6px 0;cursor:pointer;">
+        <input type="checkbox" class="rental-cb" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType}"> ${label}
+      </label>`;
       const t = (m.deviceType || '').toLowerCase();
       if (t.includes('pc') || t.includes('パソコン') || t.includes('ノート')) {
-        pcSel.insertAdjacentHTML('beforeend', opt);
+        pcBox.insertAdjacentHTML('beforeend', html);
+      } else if (t.includes('タブレット') || t.includes('tablet') || t.includes('ipad')) {
+        tabBox.insertAdjacentHTML('beforeend', html);
       } else {
-        mobSel.insertAdjacentHTML('beforeend', opt);
+        mobBox.insertAdjacentHTML('beforeend', html);
       }
     });
+    if (!pcBox.innerHTML) pcBox.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">該当端末なし</span>';
+    if (!mobBox.innerHTML) mobBox.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">該当端末なし</span>';
+    if (!tabBox.innerHTML) tabBox.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">該当端末なし</span>';
     document.getElementById('rental-loading').style.display = 'none';
     document.getElementById('rental-fields').style.display = '';
   } catch(e) {
@@ -1136,17 +1146,18 @@ async function submitNew() {
         { label: '合計金額', value: document.getElementById('expense-total-display')?.textContent || '0円' },
       ];
     } else if (type === 'rental') {
-      const pc     = document.getElementById('f-rental-pc').value;
-      const mobile = document.getElementById('f-rental-mobile').value;
+      const selected = _getSelectedRentals();
       const start  = document.getElementById('f-rental-start').value;
       const end    = document.getElementById('f-rental-end').value;
-      if (!pc && !mobile) throw new Error('貸出端末を1つ以上選択してください');
+      if (!selected.length) throw new Error('貸出端末を1つ以上選択してください');
       if (!start || !end) throw new Error('利用期間を入力してください');
-      const pcLabel  = pc ? document.getElementById('f-rental-pc').options[document.getElementById('f-rental-pc').selectedIndex].text : '';
-      const mobLabel = mobile ? document.getElementById('f-rental-mobile').options[document.getElementById('f-rental-mobile').selectedIndex].text : '';
+      const pcItems  = selected.filter(s => s.cat === 'pc').map(s => s.label).join(', ');
+      const mobItems = selected.filter(s => s.cat === 'mobile').map(s => s.label).join(', ');
+      const tabItems = selected.filter(s => s.cat === 'tablet').map(s => s.label).join(', ');
       items = [
-        { label: 'PC', value: pcLabel || '借りない' },
-        { label: '携帯', value: mobLabel || '借りない' },
+        { label: 'PC', value: pcItems || '借りない' },
+        { label: '携帯', value: mobItems || '借りない' },
+        { label: 'タブレット', value: tabItems || '借りない' },
         { label: '利用開始日', value: start },
         { label: '返却予定日', value: end },
         { label: '利用目的', value: document.getElementById('f-rental-purpose').value || 'なし' },
@@ -1262,19 +1273,26 @@ async function submitExpense() {
   }});
 }
 
+function _getSelectedRentals() {
+  const checks = document.querySelectorAll('.rental-cb:checked');
+  return [...checks].map(cb => {
+    const t = (cb.dataset.type || '').toLowerCase();
+    let cat = 'mobile';
+    if (t.includes('pc') || t.includes('パソコン') || t.includes('ノート')) cat = 'pc';
+    else if (t.includes('タブレット') || t.includes('tablet') || t.includes('ipad')) cat = 'tablet';
+    return { id: cb.dataset.id, label: cb.dataset.label, cat };
+  });
+}
+
 async function submitRental() {
-  const pc     = document.getElementById('f-rental-pc').value;
-  const mobile = document.getElementById('f-rental-mobile').value;
-  if (!pc && !mobile) throw new Error('貸出端末を1つ以上選択してください');
+  const selected = _getSelectedRentals();
+  if (!selected.length) throw new Error('貸出端末を1つ以上選択してください');
   const start = document.getElementById('f-rental-start').value;
   const end   = document.getElementById('f-rental-end').value;
   if (!start || !end) throw new Error('利用期間を入力してください');
   const approverEmpId = _getSelectedApproverEmpId();
-  const pcLabel  = pc ? document.getElementById('f-rental-pc').options[document.getElementById('f-rental-pc').selectedIndex].text : '';
-  const mobLabel = mobile ? document.getElementById('f-rental-mobile').options[document.getElementById('f-rental-mobile').selectedIndex].text : '';
   const content = JSON.stringify({
-    pc: pcLabel, pcId: pc,
-    mobile: mobLabel, mobileId: mobile,
+    devices: selected.map(s => ({ id: s.id, label: s.label, cat: s.cat })),
     start, end,
     purpose: document.getElementById('f-rental-purpose').value,
     note: document.getElementById('f-rental-note').value,
@@ -1316,7 +1334,7 @@ function confirmReturnRental(recordId) {
 function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝', rental:'📱' }[t] || '📋'; }
 function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請', rental:'端末貸出' }[t] || t; }
 function contentFieldLabel(k) {
-  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', pc:'PC', mobile:'携帯', pcId:'PC ID', mobileId:'携帯ID', purpose:'利用目的', returnedAt:'返却日' }[k] || k;
+  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', pc:'PC', mobile:'携帯', tablet:'タブレット', pcId:'PC ID', mobileId:'携帯ID', purpose:'利用目的', returnedAt:'返却日', devices:'貸出端末' }[k] || k;
 }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
