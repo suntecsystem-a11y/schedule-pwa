@@ -1161,17 +1161,22 @@ function renderNewFields() {
 }
 
 let rentalMasters = [];
+let rentedDeviceIds = [];
 async function loadRentalMasters() {
   try {
-    rentalMasters = await gas({ action: 'getRentalMasters', token: currentToken }) || [];
+    const result = await gas({ action: 'getRentalMasters', token: currentToken }) || {};
+    rentalMasters = result.masters || result || [];
+    rentedDeviceIds = result.rentedIds || [];
+    if (Array.isArray(result)) { rentalMasters = result; rentedDeviceIds = []; }
     const pcBox = document.getElementById('f-rental-pc');
     const mobBox = document.getElementById('f-rental-mobile');
     const tabBox = document.getElementById('f-rental-tablet');
     pcBox.innerHTML = ''; mobBox.innerHTML = ''; tabBox.innerHTML = '';
     rentalMasters.forEach(m => {
       const label = m.purpose || m.deviceType || '不明';
-      const html = `<label style="display:flex;align-items:center;gap:6px;padding:6px 0;cursor:pointer;">
-        <input type="checkbox" class="rental-cb" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType}"> ${label}
+      const isRented = rentedDeviceIds.includes(String(m.id));
+      const html = `<label style="display:flex;align-items:center;gap:6px;padding:6px 0;cursor:${isRented ? 'not-allowed' : 'pointer'};${isRented ? 'opacity:0.5;' : ''}">
+        <input type="checkbox" class="rental-cb" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType}"${isRented ? ' disabled' : ''}> ${label}${isRented ? ' <span style="font-size:11px;color:var(--danger);font-weight:600;">（貸出中）</span>' : ''}
       </label>`;
       const t = (m.deviceType || '').toLowerCase();
       if (t.includes('pc') || t.includes('パソコン') || t.includes('ノート')) {
