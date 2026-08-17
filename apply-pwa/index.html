@@ -66,6 +66,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 /* モーダル */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; justify-content: center; align-items: flex-end; }
 .modal-overlay.open { display: flex; }
+#modal-confirm { z-index: 210; }
 .modal { background: var(--card); border-radius: 16px 16px 0 0; padding: 24px; width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .modal-header h2 { font-size: 17px; font-weight: 700; }
@@ -599,9 +600,19 @@ function renderApplyDetail(appType, r) {
   let contentRows = '';
   try {
     const c = JSON.parse(r.content || '{}');
-    contentRows = Object.entries(c).map(([k, v]) =>
-      `<div class="detail-row"><span class="detail-label">${contentFieldLabel(k)}</span><span class="detail-val">${v || '-'}</span></div>`
-    ).join('');
+    contentRows = Object.entries(c).map(([k, v]) => {
+      if (k === 'devices' && Array.isArray(v)) {
+        return `<div class="detail-row"><span class="detail-label">貸出端末</span><span class="detail-val">${v.map(d => d.label).join(', ')}</span></div>`;
+      }
+      return `<div class="detail-row"><span class="detail-label">${contentFieldLabel(k)}</span><span class="detail-val">${v || '-'}</span></div>`;
+    }).join('');
+    if (appType === 'rental' && r.approvalStatus === '承認済') {
+      if (c.returnedAt) {
+        contentRows += `<div class="detail-row"><span class="detail-label">返却状態</span><span class="detail-val" style="color:var(--success);font-weight:600;">✅ 返却済（${c.returnedAt}）</span></div>`;
+      } else if (c.end && c.end < new Date().toISOString().slice(0,10)) {
+        contentRows += `<div class="detail-row"><span class="detail-label">返却状態</span><span class="detail-val" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</span></div>`;
+      }
+    }
   } catch {}
   const approverDisplay = r.approverName || r.approverEmpId
     ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">${r.approverName || r.approverEmpId}${r.approvalStatus === '申請中' ? '（承認待ち）' : ''}</span></div>`
@@ -1321,9 +1332,9 @@ function confirmReturnRental(recordId) {
     try {
       await gas({ action: 'returnRental', token: currentToken, recordId });
       closeModal('modal-confirm');
-      closeModal('modal-detail');
       showToast('返却済みにしました');
       loadTab('mine');
+      openDetail('rental', recordId);
     } catch (e) { showToast(e.message); }
   });
 }
