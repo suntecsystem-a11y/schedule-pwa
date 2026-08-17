@@ -1856,6 +1856,8 @@ ja:{
 'rules.approval.title':'承認が必要な予定（外出・出張・在宅）',
 'rules.approval.1':'<b>一般社員</b>：保存時に承認者を選択する',
 'rules.approval.2':'<b>主任以上</b>：承認不要（自動で承認済になる）',
+'rules.rental.title':'備品レンタル申請',
+'rules.rental.1':'<b>外出・出張・在宅</b>で携帯やPCなどを借りる場合は、予定登録時に「備品レンタル申請」欄を必ず選択する',
 'rules.repeat.title':'繰り返し予定',
 'rules.repeat.1':'定例会議や毎週の在宅勤務などに使用する',
 'rules.repeat.2':'最大3ヶ月先まで一括登録される',
@@ -2154,6 +2156,8 @@ vi:{
 'rules.approval.title':'Lịch cần phê duyệt (Ra ngoài / Công tác / Làm tại nhà)',
 'rules.approval.1':'<b>Nhân viên</b>: Chọn người phê duyệt khi lưu',
 'rules.approval.2':'<b>Trưởng nhóm trở lên</b>: Không cần phê duyệt (tự động duyệt)',
+'rules.rental.title':'Đăng ký mượn thiết bị',
+'rules.rental.1':'<b>Ra ngoài / Công tác / Làm tại nhà</b>: Nếu mượn điện thoại hoặc PC, bắt buộc chọn mục "Đăng ký mượn thiết bị" khi đăng ký lịch',
 'rules.repeat.title':'Lịch lặp lại',
 'rules.repeat.1':'Dùng cho họp định kỳ hoặc làm tại nhà hàng tuần',
 'rules.repeat.2':'Đăng ký hàng loạt tối đa 3 tháng tới',
@@ -2452,6 +2456,8 @@ ne:{
 'rules.approval.title':'स्वीकृति चाहिने तालिका (बाहिर/व्यापार यात्रा/घरबाट)',
 'rules.approval.1':'<b>सामान्य कर्मचारी</b>: सेभ गर्दा स्वीकृतिकर्ता छान्नुहोस्',
 'rules.approval.2':'<b>सुपरभाइजर माथि</b>: स्वीकृति अनावश्यक (स्वचालित स्वीकृत)',
+'rules.rental.title':'उपकरण भाडा आवेदन',
+'rules.rental.1':'<b>बाहिर/व्यापार यात्रा/घरबाट</b>: मोबाइल वा PC चाहिएमा तालिका दर्ता गर्दा "उपकरण भाडा आवेदन" अनिवार्य छान्नुहोस्',
 'rules.repeat.title':'दोहोरिने तालिका',
 'rules.repeat.1':'नियमित बैठक वा साप्ताहिक घरबाट कामका लागि प्रयोग',
 'rules.repeat.2':'अधिकतम ३ महिना अगाडि सम्म एकैपटक दर्ता',
@@ -5678,9 +5684,14 @@ function renderMyPage() {
     ${approvalNotifs.length ? `
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="font-size:0.72em;color:var(--primary);font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.result',{n:approvalNotifs.length})}</div>
-      ${approvalNotifs.map(n => {
+      ${approvalNotifs.filter(n => n.type === 'approved' || n.type === 'rejected').map(n => {
         const isApproved = n.type === 'approved';
-        const ev = events.find(e => String(e.id) === String(n.eventId));
+        const isApply = n.source === 'apply';
+        const applyLabels = { leave:'🌴 休暇申請', other:'📝 その他申請', rental:'📱 端末貸出', expense:'💴 出張費精算' };
+        const ev = isApply ? null : events.find(e => String(e.id) === String(n.eventId));
+        const detailLine = isApply
+          ? `<br>${applyLabels[n.appType] || '📋 申請'}${n.summary ? '　' + esc(n.summary) : ''}`
+          : (ev ? `<br>${typeIcon(ev.type)} ${esc(ev.title||ev.type)}　${isMultiDay(ev)?ev.startDate+' 〜 '+ev.endDate:ev.date}` : '');
         return `<div class="notif-item" style="background:${isApproved?'linear-gradient(135deg,#e8f5e9,#f1f8e9)':'linear-gradient(135deg,#ffebee,#fff5f5)'};border-color:${isApproved?'#81c784':'#ef9a9a'}">
           <div class="notif-item-header">
             <span style="font-size:1.3em">${isApproved?'✅':'❌'}</span>
@@ -5688,7 +5699,7 @@ function renderMyPage() {
           </div>
           <div class="notif-item-detail">
             ${t('my.approver.label')}${esc(n.approverName||'—')}
-            ${ev?`<br>${typeIcon(ev.type)} ${esc(ev.title||ev.type)}　${isMultiDay(ev)?ev.startDate+' 〜 '+ev.endDate:ev.date}`:''}
+            ${detailLine}
             ${n.rejectionReason?`<br><span style="color:#c62828">${t('my.reject.reason')}${esc(n.rejectionReason)}</span>`:''}
           </div>
           <button class="notif-dismiss" style="border-color:${isApproved?'#81c784':'#ef9a9a'};color:${isApproved?'#388e3c':'#c62828'}" onclick="dismissApprovalNotifLocal('${n.eventId}')">${t('my.dismiss')}</button>
@@ -5852,6 +5863,11 @@ function renderMyPage() {
           <li>${t('rules.approval.2')}</li>
         </ul>
 
+        <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.rental.title')}</div>
+        <ul style="margin:0;padding-left:1.2em">
+          <li>${t('rules.rental.1')}</li>
+        </ul>
+
         <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.repeat.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
           <li>${t('rules.repeat.1')}</li>
@@ -5989,7 +6005,7 @@ async function checkApprovalNotifs() {
     localStorage.setItem(pendingKey, JSON.stringify(notifs));
     // 車通知 + 承認結果通知 + 承認待ち（主任）の合計でバッジ更新
     const carCount = getPendingNotifs().length;
-    const approvalCount = notifs.length;
+    const approvalCount = notifs.filter(n => n.type === 'approved' || n.type === 'rejected').length;
     const pendingApprovalCount = getPendingApprovals().length;
     updateNotifBadge(carCount + approvalCount + pendingApprovalCount);
   } catch(e) {
