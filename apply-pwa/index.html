@@ -36,6 +36,8 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .app-header h1 { font-size: 18px; font-weight: 700; }
 .header-user { font-size: 13px; display: flex; align-items: center; gap: 8px; }
 .btn-logout { background: rgba(255,255,255,.2); border: none; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.btn-refresh { background: rgba(255,255,255,.2); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .3s; }
+.btn-refresh:active { transform: rotate(180deg); }
 
 /* タブ */
 .tab-nav { display: flex; background: var(--card); border-bottom: 1px solid var(--border); overflow-x: auto; }
@@ -154,6 +156,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <h1>📋 社内申請</h1>
     <div class="header-user">
       <span id="header-username"></span>
+      <button class="btn-refresh" onclick="refreshCurrentTab()" title="更新">↻</button>
       <button class="btn-logout" onclick="doLogout()">ログアウト</button>
     </div>
   </header>
@@ -317,6 +320,10 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   loadTab(name);
+}
+function refreshCurrentTab() {
+  const active = document.querySelector('.tab-btn.active');
+  if (active) loadTab(active.dataset.tab);
 }
 
 // ===================================================
