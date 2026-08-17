@@ -446,7 +446,7 @@ async function loadTab(name) {
           <div style="font-size:12px;color:var(--text-sub);">${label}</div>
         </div>`
       ).join('<div style="width:1px;background:var(--border);"></div>');
-      records.sort((a, b) => _sortKey(b).localeCompare(_sortKey(a)));
+      records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
       mineRecordsCache = records;
       applyMineFilter();
       return;
@@ -479,12 +479,12 @@ async function loadTab(name) {
         ...(expenses    || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // 申請日で降順ソート
-      records.sort((a, b) => _sortKey(b).localeCompare(_sortKey(a)));
+      records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
       allRecordsCache = records;
       applyFilter();
       return;
     }
-    records.sort((a, b) => _sortKey(b).localeCompare(_sortKey(a)));
+    records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
     renderList(el, records, name === 'pending' ? { checkbox: true } : undefined);
   } catch (e) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
