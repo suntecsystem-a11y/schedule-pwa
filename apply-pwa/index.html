@@ -1543,7 +1543,8 @@ function confirmReturnRental(recordId) {
 function _sortKey(r) {
   if (r.createdAt) return r.createdAt;
   const d = r.applicationDate || r.appliedAt || '';
-  return d ? d + 'T00:00:00.000Z' : '';
+  if (d) return d + 'T00:00:00.000Z';
+  return '';
 }
 function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝', rental:'📱' }[t] || '📋'; }
 function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請', rental:'端末貸出' }[t] || t; }
