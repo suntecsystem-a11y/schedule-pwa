@@ -128,6 +128,12 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
   background: none; font-size: 13px; cursor: pointer; color: var(--text-sub); white-space: nowrap;
 }
 .btn-filter-clear:hover { background: var(--bg); }
+.bulk-bar { display: flex; align-items: center; gap: 8px; padding: 10px 0; }
+.bulk-bar button { padding: 8px 16px; border: none; border-radius: var(--radius); font-size: 13px; font-weight: 700; cursor: pointer; color: #fff; }
+.pending-card { display: flex; gap: 10px; align-items: flex-start; }
+.pending-card input[type=checkbox] { margin-top: 14px; width: 18px; height: 18px; flex-shrink: 0; }
+.pending-card .card { flex: 1; margin-bottom: 0; }
+.pending-item { margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -172,6 +178,10 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div id="list-mine"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
   </div>
   <div id="tab-pending" class="tab-content">
+    <div id="pending-bulk-bar" class="bulk-bar" style="display:none;">
+      <button onclick="doBulkApprove()" style="background:var(--success);">一括承認</button>
+      <span id="pending-bulk-count" style="font-size:13px;color:var(--text-sub);"></span>
+    </div>
     <div id="list-pending"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
   </div>
   <div id="tab-all" class="tab-content">
@@ -439,13 +449,13 @@ async function loadTab(name) {
         ...(expenses    || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // 申請日で降順ソート
-      records.sort((a, b) => (b.applicationDate || b.appliedAt || '').localeCompare(a.applicationDate || a.appliedAt || ''));
+      records.sort((a, b) => (b.applicationDate || b.appliedAt || b.createdAt || '').localeCompare(a.applicationDate || a.appliedAt || a.createdAt || ''));
       allRecordsCache = records;
       applyFilter();
       return;
     }
-    records.sort((a, b) => (b.applicationDate || b.appliedAt || '').localeCompare(a.applicationDate || a.appliedAt || ''));
-    renderList(el, records);
+    records.sort((a, b) => (b.applicationDate || b.appliedAt || b.createdAt || '').localeCompare(a.applicationDate || a.appliedAt || a.createdAt || ''));
+    renderList(el, records, name === 'pending' ? { checkbox: true } : undefined);
   } catch (e) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
   }
@@ -495,15 +505,21 @@ function elapsedDays(dateStr) {
   return `${days}日経過`;
 }
 
-function renderList(el, records) {
+function renderList(el, records, opts) {
+  const showCheckbox = opts && opts.checkbox;
   if (!records.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>申請はありません</p></div>';
+    if (showCheckbox) { document.getElementById('pending-bulk-bar').style.display = 'none'; }
     return;
+  }
+  if (showCheckbox) {
+    document.getElementById('pending-bulk-bar').style.display = 'flex';
+    updateBulkCount();
   }
   el.innerHTML = records.map(r => {
     const elapsed = r.approvalStatus === '申請中'
       ? elapsedDays(r.createdAt || r.applicationDate) : '';
-    return `
+    const cardHtml = `
     <div class="card" onclick="openDetail('${r._appType}','${r.id}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
@@ -518,7 +534,19 @@ function renderList(el, records) {
         </div>
       </div>
     </div>`;
+    if (showCheckbox && r.approvalStatus === '申請中' && r._appType !== 'expense') {
+      return `<div class="pending-item"><div class="pending-card">
+        <input type="checkbox" class="bulk-cb" data-apptype="${r._appType}" data-id="${r.id}" onchange="updateBulkCount()">
+        ${cardHtml}
+      </div></div>`;
+    }
+    return showCheckbox ? `<div class="pending-item">${cardHtml}</div>` : cardHtml;
   }).join('');
+}
+
+function updateBulkCount() {
+  const checked = document.querySelectorAll('.bulk-cb:checked').length;
+  document.getElementById('pending-bulk-count').textContent = checked ? `${checked}件 選択中` : '';
 }
 
 // ===================================================
@@ -564,6 +592,13 @@ async function openDetail(appType, id) {
         footer.appendChild(rejectBtn);
         footer.appendChild(approveBtn);
       }
+      if (isOwn && appType !== 'expense') {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-submit';
+        editBtn.textContent = '編集';
+        editBtn.onclick = () => editApply(appType, r);
+        footer.appendChild(editBtn);
+      }
       if (isOwn) {
         const withdrawBtn = document.createElement('button');
         withdrawBtn.className = 'btn-cancel';
@@ -571,6 +606,13 @@ async function openDetail(appType, id) {
         withdrawBtn.onclick = () => doWithdraw(appType, r.id);
         footer.appendChild(withdrawBtn);
       }
+    }
+    if (isOwn && appType !== 'expense') {
+      const reuseBtn = document.createElement('button');
+      reuseBtn.className = 'btn-cancel';
+      reuseBtn.textContent = '再利用';
+      reuseBtn.onclick = () => reuseApply(appType, r);
+      footer.appendChild(reuseBtn);
     }
     if (isOwn && r.approvalStatus === '否認' && appType !== 'expense') {
       const reApplyBtn = document.createElement('button');
@@ -817,18 +859,62 @@ async function doWithdraw(appType, id) {
 }
 
 async function reApply(appType, r) {
+  editingRecord = null;
   closeModal('modal-detail');
   document.getElementById('new-type').value = appType;
+  document.getElementById('new-type').disabled = false;
+  document.querySelector('#modal-new h2').textContent = '再申請';
+  document.querySelector('#modal-new .btn-submit').textContent = '申請する';
   approverData = null;
   openModal('modal-new');
   try {
     approverData = await gas({ action: 'getApprovers', token: currentToken });
-  } catch(e) { /* 取得失敗時は無視 */ }
+  } catch(e) {}
   renderNewFields();
+  _fillFormFromRecord(appType, r);
+}
+
+// ===================================================
+// 編集・再利用・一括承認
+// ===================================================
+let editingRecord = null;
+
+async function editApply(appType, r) {
+  editingRecord = { appType, id: r.id };
+  closeModal('modal-detail');
+  document.getElementById('new-type').value = appType;
+  document.getElementById('new-type').disabled = true;
+  approverData = null;
+  openModal('modal-new');
+  document.querySelector('#modal-new h2').textContent = '申請を編集';
+  document.querySelector('#modal-new .btn-submit').textContent = '更新する';
+  try {
+    approverData = await gas({ action: 'getApprovers', token: currentToken });
+  } catch(e) {}
+  renderNewFields();
+  _fillFormFromRecord(appType, r);
+}
+
+async function reuseApply(appType, r) {
+  editingRecord = null;
+  closeModal('modal-detail');
+  document.getElementById('new-type').value = appType;
+  document.getElementById('new-type').disabled = false;
+  approverData = null;
+  openModal('modal-new');
+  document.querySelector('#modal-new h2').textContent = '新規申請';
+  document.querySelector('#modal-new .btn-submit').textContent = '申請する';
+  try {
+    approverData = await gas({ action: 'getApprovers', token: currentToken });
+  } catch(e) {}
+  renderNewFields();
+  _fillFormFromRecord(appType, r);
+}
+
+function _fillFormFromRecord(appType, r) {
   try {
     const c = JSON.parse(r.content || '{}');
     if (appType === 'leave') {
-      // if (c.leave_type) document.getElementById('f-leave-type').value = c.leave_type;
       if (c.start) document.getElementById('f-leave-start').value = c.start;
       if (c.end)   document.getElementById('f-leave-end').value   = c.end;
       if (c.note)  document.getElementById('f-leave-note').value  = c.note;
@@ -841,16 +927,55 @@ async function reApply(appType, r) {
     } else if (appType === 'other') {
       if (c.title) document.getElementById('f-other-title').value = c.title;
       if (c.body)  document.getElementById('f-other-body').value  = c.body;
+    } else if (appType === 'rental') {
+      setTimeout(() => {
+        if (c.devices) {
+          c.devices.forEach(d => {
+            const cb = document.querySelector(`.rental-cb[data-id="${d.id}"]`);
+            if (cb) cb.checked = true;
+          });
+        }
+        if (c.start)   document.getElementById('f-rental-start').value   = c.start;
+        if (c.end)     document.getElementById('f-rental-end').value     = c.end;
+        if (c.purpose) document.getElementById('f-rental-purpose').value = c.purpose;
+        if (c.note)    document.getElementById('f-rental-note').value    = c.note;
+      }, 500);
     }
-  } catch(e) { /* パース失敗時は空のまま */ }
+    if (r.approverEmpId) {
+      setTimeout(() => {
+        const sel = document.getElementById('f-approver-id');
+        if (sel) sel.value = r.approverEmpId;
+      }, 100);
+    }
+  } catch {}
+}
+
+async function doBulkApprove() {
+  const checks = document.querySelectorAll('.bulk-cb:checked');
+  if (!checks.length) { showToast('承認する申請を選択してください'); return; }
+  const comment = prompt(`${checks.length}件を一括承認します。コメント（任意）`, '');
+  if (comment === null) return;
+  let ok = 0, fail = 0;
+  for (const cb of checks) {
+    try {
+      await gas({ action: 'approveApply', token: currentToken, appType: cb.dataset.apptype, recordId: cb.dataset.id, comment: comment.trim() });
+      ok++;
+    } catch { fail++; }
+  }
+  showToast(`${ok}件 承認${fail ? `、${fail}件 失敗` : ''}`);
+  loadTab('pending');
 }
 
 // ===================================================
 // 新規申請フォーム
 // ===================================================
 async function openNewModal() {
+  editingRecord = null;
   document.getElementById('new-type').value = '';
+  document.getElementById('new-type').disabled = false;
   document.getElementById('new-type-fields').innerHTML = '';
+  document.querySelector('#modal-new h2').textContent = '新規申請';
+  document.querySelector('#modal-new .btn-submit').textContent = '申請する';
   approverData = null;
   openModal('modal-new');
   try {
@@ -1202,7 +1327,8 @@ async function submitNew() {
       else await submitOther();
       closeModal('modal-confirm');
       closeModal('modal-new');
-      showToast('申請しました');
+      showToast(editingRecord ? '更新しました' : '申請しました');
+      editingRecord = null;
       loadTab('mine');
     } catch (e) { showToast(e.message); }
   });
@@ -1245,7 +1371,7 @@ function _openConfirmModal(typeLabel, items, warning, onConfirm) {
     document.getElementById('confirm-modal-btn').textContent = 'それでも申請する';
   } else {
     warnEl.style.display = 'none';
-    document.getElementById('confirm-modal-btn').textContent = '申請を確定する';
+    document.getElementById('confirm-modal-btn').textContent = editingRecord ? '更新を確定する' : '申請を確定する';
   }
   document.getElementById('confirm-modal-btn').onclick = onConfirm;
   openModal('modal-confirm');
@@ -1265,7 +1391,9 @@ async function submitLeave() {
     endTime:   allDay ? '' : document.getElementById('f-leave-end-time').value,
     note: document.getElementById('f-leave-note').value,
   });
-  await gas({ action: 'saveApply', token: currentToken, appType: 'leave', applyData: { applicantName: currentUser.name, content, approverEmpId } });
+  const applyData = { applicantName: currentUser.name, content, approverEmpId };
+  if (editingRecord && editingRecord.appType === 'leave') applyData.id = editingRecord.id;
+  await gas({ action: 'saveApply', token: currentToken, appType: 'leave', applyData });
 }
 
 async function submitExpense() {
@@ -1315,7 +1443,9 @@ async function submitRental() {
     purpose: document.getElementById('f-rental-purpose').value,
     note: document.getElementById('f-rental-note').value,
   });
-  await gas({ action: 'saveApply', token: currentToken, appType: 'rental', applyData: { applicantName: currentUser.name, content, approverEmpId } });
+  const applyData = { applicantName: currentUser.name, content, approverEmpId };
+  if (editingRecord && editingRecord.appType === 'rental') applyData.id = editingRecord.id;
+  await gas({ action: 'saveApply', token: currentToken, appType: 'rental', applyData });
 }
 
 async function submitOther() {
@@ -1323,7 +1453,9 @@ async function submitOther() {
   if (!title) throw new Error('件名を入力してください');
   const approverEmpId = _getSelectedApproverEmpId();
   const content = JSON.stringify({ title, body: document.getElementById('f-other-body').value });
-  await gas({ action: 'saveApply', token: currentToken, appType: 'other', applyData: { applicantName: currentUser.name, content, approverEmpId } });
+  const applyData = { applicantName: currentUser.name, content, approverEmpId };
+  if (editingRecord && editingRecord.appType === 'other') applyData.id = editingRecord.id;
+  await gas({ action: 'saveApply', token: currentToken, appType: 'other', applyData });
 }
 
 function _getSelectedApproverEmpId() {
