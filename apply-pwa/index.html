@@ -1193,7 +1193,7 @@ async function loadRentalMasters() {
     document.getElementById('rental-loading').style.display = 'none';
     document.getElementById('rental-fields').style.display = '';
   } catch(e) {
-    document.getElementById('rental-loading').textContent = '⚠ 端末情報の取得に失敗しました: ' + e.message;
+    document.getElementById('rental-loading').textContent = '⚠ 端末情報の取得に失敗しました: ' + (e.message || e.name || String(e));
   }
 }
 
