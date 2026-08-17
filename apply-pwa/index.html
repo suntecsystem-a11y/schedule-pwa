@@ -1418,7 +1418,7 @@ async function _checkLeaveOverlap(start, end) {
   } catch { return ''; }
 }
 
-function _openConfirmModal(typeLabel, items, warning, onConfirm) {
+function _openConfirmModal(typeLabel, items, warning, onConfirm, opts) {
   document.getElementById('confirm-modal-title').textContent = typeLabel + ' の確認';
   document.getElementById('confirm-modal-body').innerHTML = items.map(item =>
     `<div class="detail-row"><span class="detail-label">${item.label}</span><span class="detail-val">${item.value}</span></div>`
@@ -1430,7 +1430,7 @@ function _openConfirmModal(typeLabel, items, warning, onConfirm) {
     document.getElementById('confirm-modal-btn').textContent = 'それでも申請する';
   } else {
     warnEl.style.display = 'none';
-    document.getElementById('confirm-modal-btn').textContent = editingRecord ? '更新を確定する' : '申請を確定する';
+    document.getElementById('confirm-modal-btn').textContent = (opts && opts.btnText) || (editingRecord ? '更新を確定する' : '申請を確定する');
   }
   document.getElementById('confirm-modal-btn').onclick = onConfirm;
   openModal('modal-confirm');
@@ -1534,7 +1534,7 @@ function confirmReturnRental(recordId) {
       loadTab('mine');
       openDetail('rental', recordId);
     } catch (e) { showToast(e.message); }
-  });
+  }, { btnText: '返却を確定する' });
 }
 
 // ===================================================
