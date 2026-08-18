@@ -1129,12 +1129,8 @@ function renderNewFields() {
     el.innerHTML = `
       <div id="rental-loading" style="padding:10px;font-size:13px;color:var(--text-sub);">端末情報を取得中...</div>
       <div id="rental-fields" style="display:none;">
-        <label>PC（任意・複数選択可）</label>
-        <div id="f-rental-pc" class="rental-check-group"></div>
-        <label>携帯（任意・複数選択可）</label>
-        <div id="f-rental-mobile" class="rental-check-group"></div>
-        <label>タブレット（任意・複数選択可）</label>
-        <div id="f-rental-tablet" class="rental-check-group"></div>
+        <label>貸出端末（複数選択可）</label>
+        <div id="f-rental-groups"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div><label>利用開始日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-start"></div>
           <div><label>返却予定日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-end"></div>
@@ -1168,28 +1164,41 @@ async function loadRentalMasters() {
     rentalMasters = result.masters || result || [];
     rentedDeviceIds = result.rentedIds || [];
     if (Array.isArray(result)) { rentalMasters = result; rentedDeviceIds = []; }
-    const pcBox = document.getElementById('f-rental-pc');
-    const mobBox = document.getElementById('f-rental-mobile');
-    const tabBox = document.getElementById('f-rental-tablet');
-    pcBox.innerHTML = ''; mobBox.innerHTML = ''; tabBox.innerHTML = '';
+    const container = document.getElementById('f-rental-groups');
+    container.innerHTML = '';
+    const groups = {};
     rentalMasters.forEach(m => {
-      const label = m.purpose || m.deviceType || '不明';
-      const isRented = rentedDeviceIds.includes(String(m.id));
-      const html = `<label style="display:flex;align-items:center;gap:6px;padding:6px 0;cursor:${isRented ? 'not-allowed' : 'pointer'};${isRented ? 'opacity:0.5;' : ''}">
-        <input type="checkbox" class="rental-cb" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType}"${isRented ? ' disabled' : ''}> ${label}${isRented ? ' <span style="font-size:11px;color:var(--danger);font-weight:600;">（貸出中）</span>' : ''}
-      </label>`;
-      const t = (m.deviceType || '').toLowerCase();
-      if (t.includes('pc') || t.includes('パソコン') || t.includes('ノート')) {
-        pcBox.insertAdjacentHTML('beforeend', html);
-      } else if (t.includes('タブレット') || t.includes('tablet') || t.includes('ipad')) {
-        tabBox.insertAdjacentHTML('beforeend', html);
-      } else {
-        mobBox.insertAdjacentHTML('beforeend', html);
-      }
+      const type = m.deviceType || 'その他';
+      if (!groups[type]) groups[type] = [];
+      groups[type].push(m);
     });
-    if (!pcBox.innerHTML) pcBox.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">該当端末なし</span>';
-    if (!mobBox.innerHTML) mobBox.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">該当端末なし</span>';
-    if (!tabBox.innerHTML) tabBox.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">該当端末なし</span>';
+    const typeKeys = Object.keys(groups);
+    const isSingle = typeKeys.length <= 1;
+    typeKeys.forEach(type => {
+      const items = groups[type];
+      const groupId = 'rental-grp-' + type.replace(/[^a-zA-Z0-9　-鿿]/g, '_');
+      let html = '';
+      if (!isSingle) {
+        html += `<div style="display:flex;align-items:center;gap:6px;padding:8px 0 4px;cursor:pointer;user-select:none;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none';this.querySelector('.rental-grp-arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'">
+          <span class="rental-grp-arrow" style="font-size:11px;color:var(--text-sub);">▼</span>
+          <span style="font-weight:600;font-size:13px;">${type}</span>
+          <span style="font-size:11px;color:var(--text-sub);">(${items.length})</span>
+        </div>`;
+      }
+      html += `<div class="rental-check-group" id="${groupId}">`;
+      items.forEach(m => {
+        const label = m.purpose || m.deviceType || '不明';
+        const isRented = rentedDeviceIds.includes(String(m.id));
+        html += `<label style="display:flex;align-items:center;gap:6px;padding:6px 0;cursor:${isRented ? 'not-allowed' : 'pointer'};${isRented ? 'opacity:0.5;' : ''}">
+          <input type="checkbox" class="rental-cb" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType}"${isRented ? ' disabled' : ''}> ${label}${isRented ? ' <span style="font-size:11px;color:var(--danger);font-weight:600;">（貸出中）</span>' : ''}
+        </label>`;
+      });
+      html += '</div>';
+      container.insertAdjacentHTML('beforeend', html);
+    });
+    if (!typeKeys.length) {
+      container.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">登録端末なし</span>';
+    }
     document.getElementById('rental-loading').style.display = 'none';
     document.getElementById('rental-fields').style.display = '';
   } catch(e) {
