@@ -53,6 +53,20 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
 .card-sub   { font-size: 13px; color: var(--text-sub); }
 .rental-check-group { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 12px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; }
+.rental-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.rental-filter-chip { padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border); background: var(--card); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all .15s; }
+.rental-filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.rental-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 2px; }
+.rental-card { border: 2px solid var(--border); border-radius: var(--radius); padding: 10px; cursor: pointer; transition: all .15s; user-select: none; text-align: center; }
+.rental-card:hover { border-color: var(--primary); }
+.rental-card.selected { border-color: var(--primary); background: #e3f2fd; }
+.rental-card.rented { opacity: .45; cursor: not-allowed; border-style: dashed; }
+.rental-card.rented:hover { border-color: var(--border); }
+.rental-card-icon { font-size: 24px; margin-bottom: 4px; }
+.rental-card-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
+.rental-card-status { font-size: 11px; margin-top: 4px; }
+.rental-card-status.available { color: var(--success); }
+.rental-card-status.rented { color: var(--danger); font-weight: 600; }
 
 /* バッジ */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; }
@@ -990,8 +1004,8 @@ function _fillFormFromRecord(appType, r) {
       setTimeout(() => {
         if (c.devices) {
           c.devices.forEach(d => {
-            const cb = document.querySelector(`.rental-cb[data-id="${d.id}"]`);
-            if (cb) cb.checked = true;
+            const card = document.querySelector(`.rental-card[data-id="${d.id}"]`);
+            if (card && !card.classList.contains('rented')) card.classList.add('selected');
           });
         }
         if (c.start)   document.getElementById('f-rental-start').value   = c.start;
@@ -1129,8 +1143,9 @@ function renderNewFields() {
     el.innerHTML = `
       <div id="rental-loading" style="padding:10px;font-size:13px;color:var(--text-sub);">端末情報を取得中...</div>
       <div id="rental-fields" style="display:none;">
-        <label>貸出端末（複数選択可）</label>
-        <div id="f-rental-groups"></div>
+        <label>貸出端末（複数選択可・タップで選択）</label>
+        <div id="f-rental-filters" class="rental-filter-bar"></div>
+        <div id="f-rental-grid" class="rental-grid"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div><label>利用開始日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-start"></div>
           <div><label>返却予定日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-end"></div>
@@ -1158,52 +1173,70 @@ function renderNewFields() {
 
 let rentalMasters = [];
 let rentedDeviceIds = [];
+let rentalFilter = '';
+const DEVICE_ICONS = { 'PC':'💻', 'パソコン':'💻', 'ノートPC':'💻', '携帯':'📱', 'スマホ':'📱', 'iPhone':'📱', 'タブレット':'📱', 'iPad':'📱', 'カメラ':'📷', 'ビデオカメラ':'🎥', 'プロジェクター':'📽️' };
+function _deviceIcon(type) {
+  if (!type) return '📦';
+  for (const [k, v] of Object.entries(DEVICE_ICONS)) {
+    if (type.toLowerCase().includes(k.toLowerCase())) return v;
+  }
+  return '📦';
+}
+
 async function loadRentalMasters() {
   try {
     const result = await gas({ action: 'getRentalMasters', token: currentToken }) || {};
     rentalMasters = result.masters || result || [];
     rentedDeviceIds = result.rentedIds || [];
     if (Array.isArray(result)) { rentalMasters = result; rentedDeviceIds = []; }
-    const container = document.getElementById('f-rental-groups');
-    container.innerHTML = '';
-    const groups = {};
-    rentalMasters.forEach(m => {
-      const type = m.deviceType || 'その他';
-      if (!groups[type]) groups[type] = [];
-      groups[type].push(m);
-    });
-    const typeKeys = Object.keys(groups);
-    const isSingle = typeKeys.length <= 1;
-    typeKeys.forEach(type => {
-      const items = groups[type];
-      const groupId = 'rental-grp-' + type.replace(/[^a-zA-Z0-9　-鿿]/g, '_');
-      let html = '';
-      if (!isSingle) {
-        html += `<div style="display:flex;align-items:center;gap:6px;padding:8px 0 4px;cursor:pointer;user-select:none;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none';this.querySelector('.rental-grp-arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼'">
-          <span class="rental-grp-arrow" style="font-size:11px;color:var(--text-sub);">▼</span>
-          <span style="font-weight:600;font-size:13px;">${type}</span>
-          <span style="font-size:11px;color:var(--text-sub);">(${items.length})</span>
-        </div>`;
-      }
-      html += `<div class="rental-check-group" id="${groupId}">`;
-      items.forEach(m => {
-        const label = m.purpose || m.deviceType || '不明';
-        const isRented = rentedDeviceIds.includes(String(m.id));
-        html += `<label style="display:flex;align-items:center;gap:6px;padding:6px 0;cursor:${isRented ? 'not-allowed' : 'pointer'};${isRented ? 'opacity:0.5;' : ''}">
-          <input type="checkbox" class="rental-cb" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType}"${isRented ? ' disabled' : ''}> ${label}${isRented ? ' <span style="font-size:11px;color:var(--danger);font-weight:600;">（貸出中）</span>' : ''}
-        </label>`;
-      });
-      html += '</div>';
-      container.insertAdjacentHTML('beforeend', html);
-    });
-    if (!typeKeys.length) {
-      container.innerHTML = '<span style="font-size:13px;color:var(--text-sub);">登録端末なし</span>';
+    const types = [...new Set(rentalMasters.map(m => m.deviceType || 'その他'))];
+    const filterBar = document.getElementById('f-rental-filters');
+    if (types.length > 1) {
+      filterBar.innerHTML = `<span class="rental-filter-chip active" data-filter="">すべて</span>` +
+        types.map(t => `<span class="rental-filter-chip" data-filter="${t}">${_deviceIcon(t)} ${t}</span>`).join('');
+      filterBar.style.display = '';
+      filterBar.onclick = e => {
+        const chip = e.target.closest('.rental-filter-chip');
+        if (!chip) return;
+        filterBar.querySelectorAll('.rental-filter-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        rentalFilter = chip.dataset.filter;
+        _renderRentalGrid();
+      };
+    } else {
+      filterBar.style.display = 'none';
     }
+    rentalFilter = '';
+    _renderRentalGrid();
     document.getElementById('rental-loading').style.display = 'none';
     document.getElementById('rental-fields').style.display = '';
   } catch(e) {
     document.getElementById('rental-loading').textContent = '⚠ 端末情報の取得に失敗しました: ' + (e.message || e.name || String(e));
   }
+}
+
+function _renderRentalGrid() {
+  const grid = document.getElementById('f-rental-grid');
+  const selectedIds = new Set([...grid.querySelectorAll('.rental-card.selected')].map(c => c.dataset.id));
+  const filtered = rentalFilter ? rentalMasters.filter(m => (m.deviceType || 'その他') === rentalFilter) : rentalMasters;
+  grid.innerHTML = filtered.map(m => {
+    const label = m.purpose || m.deviceType || '不明';
+    const isRented = rentedDeviceIds.includes(String(m.id));
+    const isSelected = selectedIds.has(String(m.id));
+    const icon = _deviceIcon(m.deviceType);
+    return `<div class="rental-card${isSelected ? ' selected' : ''}${isRented ? ' rented' : ''}" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType || ''}" onclick="${isRented ? '' : '_toggleRentalCard(this)'}">
+      <div class="rental-card-icon">${icon}</div>
+      <div class="rental-card-name">${label}</div>
+      <div class="rental-card-status ${isRented ? 'rented' : 'available'}">${isRented ? '貸出中' : '利用可能'}</div>
+    </div>`;
+  }).join('');
+  if (!filtered.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;font-size:13px;color:var(--text-sub);">該当する端末がありません</div>';
+  }
+}
+
+function _toggleRentalCard(el) {
+  el.classList.toggle('selected');
 }
 
 function calcExpenseTotal() {
@@ -1367,13 +1400,8 @@ async function submitNew() {
       const end    = document.getElementById('f-rental-end').value;
       if (!selected.length) throw new Error('貸出端末を1つ以上選択してください');
       if (!start || !end) throw new Error('利用期間を入力してください');
-      const pcItems  = selected.filter(s => s.cat === 'pc').map(s => s.label).join(', ');
-      const mobItems = selected.filter(s => s.cat === 'mobile').map(s => s.label).join(', ');
-      const tabItems = selected.filter(s => s.cat === 'tablet').map(s => s.label).join(', ');
       items = [
-        { label: 'PC', value: pcItems || '借りない' },
-        { label: '携帯', value: mobItems || '借りない' },
-        { label: 'タブレット', value: tabItems || '借りない' },
+        { label: '貸出端末', value: selected.map(s => s.label).join('、') },
         { label: '利用開始日', value: start },
         { label: '返却予定日', value: end },
         { label: '利用目的', value: document.getElementById('f-rental-purpose').value || 'なし' },
@@ -1493,13 +1521,9 @@ async function submitExpense() {
 }
 
 function _getSelectedRentals() {
-  const checks = document.querySelectorAll('.rental-cb:checked');
-  return [...checks].map(cb => {
-    const t = (cb.dataset.type || '').toLowerCase();
-    let cat = 'mobile';
-    if (t.includes('pc') || t.includes('パソコン') || t.includes('ノート')) cat = 'pc';
-    else if (t.includes('タブレット') || t.includes('tablet') || t.includes('ipad')) cat = 'tablet';
-    return { id: cb.dataset.id, label: cb.dataset.label, cat };
+  const cards = document.querySelectorAll('.rental-card.selected');
+  return [...cards].map(c => {
+    return { id: c.dataset.id, label: c.dataset.label, cat: c.dataset.type || '' };
   });
 }
 
