@@ -627,18 +627,18 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="サイドバーを折りたたむ" id="sidebar-collapse-btn">◀</button>
   </div>
   <div class="sidebar-nav">
-    <button class="sidebar-btn active" data-tab="home" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
-    <button class="sidebar-btn" data-tab="calendar" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span></button>
-    <button class="sidebar-btn" data-tab="rooms" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span></button>
-    <button class="sidebar-btn" data-tab="team" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span></button>
-    <button class="sidebar-btn" data-tab="cars" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span></button>
-    <button class="sidebar-btn" data-tab="inquiry" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span></button>
-    <button class="sidebar-btn" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請 <span style="font-size:0.72em">（準備中）</span></span></button>
-    <button class="sidebar-btn" data-tab="proposal" id="proposal-sidebar-btn" onclick="switchTab('proposal',this)" style="display:none"><span class="sidebar-icon">📝</span><span class="sidebar-label">企画書</span></button>
-    <button class="sidebar-btn" data-tab="elearning" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span></button>
-    <button class="sidebar-btn" data-tab="mypage" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
-    <button class="sidebar-btn" data-tab="settings" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span></button>
-    <button class="sidebar-btn admin-side" data-tab="admin" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
+    <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
+    <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span></button>
+    <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span></button>
+    <button class="sidebar-btn" data-tab="team" data-tip="在席ボード" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span></button>
+    <button class="sidebar-btn" data-tab="cars" data-tip="車予約" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span></button>
+    <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span></button>
+    <button class="sidebar-btn" data-tip="申請" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請 <span style="font-size:0.72em">（準備中）</span></span></button>
+    <button class="sidebar-btn" data-tab="proposal" data-tip="企画書" id="proposal-sidebar-btn" onclick="switchTab('proposal',this)" style="display:none"><span class="sidebar-icon">📝</span><span class="sidebar-label">企画書</span></button>
+    <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span></button>
+    <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
+    <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span></button>
+    <button class="sidebar-btn admin-side" data-tab="admin" data-tip="管理" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
   </div>
   <div id="sidebar-today" style="display:none"></div>
   <div class="sidebar-footer">
@@ -3128,6 +3128,7 @@ function toggleSidebarCollapse(){
   btn.title=collapsed?'サイドバーを展開':'サイドバーを折りたたむ';
   sb.style.width=collapsed?'64px':'';
   localStorage.setItem('sch_sidebar_collapsed',collapsed?'1':'');
+  updateSidebarTips(collapsed);
 }
 function restoreSidebarState(){
   if(localStorage.getItem('sch_sidebar_collapsed')==='1'&&window.innerWidth>=900){
@@ -3138,7 +3139,13 @@ function restoreSidebarState(){
     const cbtn=document.getElementById('sidebar-collapse-btn');
     cbtn.textContent='▶';
     cbtn.title='サイドバーを展開';
+    updateSidebarTips(true);
   }
+}
+function updateSidebarTips(collapsed){
+  document.querySelectorAll('.sidebar-btn[data-tip]').forEach(b=>{
+    b.title=collapsed?b.dataset.tip:'';
+  });
 }
 
 function doLogout(){
@@ -5965,6 +5972,13 @@ function renderSettings() {
         const dots=['会議室','外出','出張','休暇','在宅'].map(k=>`<span style="width:10px;height:10px;border-radius:3px;background:${pal[k]};display:inline-block"></span>`).join('');
         return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="applyColorMode('${m.id}')">${radio(sel)} <span>${m.label}</span> <span style="display:inline-flex;gap:2px;margin-left:2px">${dots}</span></label>`;
       }).join(''))}
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee">
+        <a href="incident-report.html" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;text-decoration:none;color:var(--text2);font-size:0.8em;border:1px solid #eee;background:#fafafa">
+          <span>&#128680;</span>
+          <span>インシデント報告（情報漏洩・盗難・紛失）</span>
+          <span style="margin-left:auto;color:var(--text3);font-size:0.85em">&#9654;</span>
+        </a>
+      </div>
     </div>`;
 }
 
