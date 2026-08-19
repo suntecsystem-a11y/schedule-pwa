@@ -2378,7 +2378,7 @@ async function api(action, data={}, loadingMsg){
   if(!loadingMsg)loadingMsg=t('common.processing');
   showLoading(loadingMsg);
   _apiAbort=new AbortController();
-  const timer=setTimeout(()=>{if(_apiAbort)_apiAbort.abort()},30000);
+  const timer=setTimeout(()=>{if(_apiAbort)_apiAbort.abort()},45000);
   const cancelBtn=document.getElementById('loading-cancel');
   const showCancel=setTimeout(()=>{if(cancelBtn)cancelBtn.style.display=''},3000);
   try {
@@ -2608,24 +2608,42 @@ async function doLogin(){
     const center = new Date(now.getFullYear(), now.getMonth(), 1);
     const rangeStart = fmtDate(new Date(center.getFullYear(), center.getMonth()-1, 1));
     const rangeEnd   = fmtDate(new Date(center.getFullYear(), center.getMonth()+2, 0));
-    const result = await api('loginInit', {empId, pin, rangeStart, rangeEnd}, t('login.loading'));
-    currentUser = result.user;
-    saveSession(result.token, result.user);
-    USERS = result.users;
-    events = result.events || [];
-    const months = [-1, 0, 1].map(d => {
-      const dt = new Date(center.getFullYear(), center.getMonth() + d, 1);
-      return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
-    });
-    const cacheNow = Date.now();
-    months.forEach(ym => { eventsCache[ym] = { fetchedAt: cacheNow, data: [] }; });
-    events.forEach(e => {
-      const ym = (e.startDate || e.date || '').slice(0, 7);
-      if (eventsCache[ym]) { eventsCache[ym].data.push(e); }
-      else { const endYm = (e.endDate || '').slice(0, 7); const target = months.find(m => m >= ym && m <= endYm) || months[0]; if (eventsCache[target]) eventsCache[target].data.push(e); }
-    });
-    if (result.holidays) { allHolidays = result.holidays; filterHolidays(); }
-    if (result.notices) { _notices = result.notices; }
+    let usedInit = false;
+    try {
+      const result = await api('loginInit', {empId, pin, rangeStart, rangeEnd}, t('login.loading'));
+      currentUser = result.user;
+      saveSession(result.token, result.user);
+      USERS = result.users;
+      events = result.events || [];
+      const months = [-1, 0, 1].map(d => {
+        const dt = new Date(center.getFullYear(), center.getMonth() + d, 1);
+        return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      });
+      const cacheNow = Date.now();
+      months.forEach(ym => { eventsCache[ym] = { fetchedAt: cacheNow, data: [] }; });
+      events.forEach(e => {
+        const ym = (e.startDate || e.date || '').slice(0, 7);
+        if (eventsCache[ym]) { eventsCache[ym].data.push(e); }
+        else { const endYm = (e.endDate || '').slice(0, 7); const target = months.find(m => m >= ym && m <= endYm) || months[0]; if (eventsCache[target]) eventsCache[target].data.push(e); }
+      });
+      if (result.holidays) { allHolidays = result.holidays; filterHolidays(); }
+      if (result.notices) { _notices = result.notices; }
+      usedInit = true;
+    } catch(initErr) {
+      if (initErr.message === 'LOGIN_LOCKED') throw initErr;
+      if (initErr.message && initErr.message.includes('不明なアクション')) {
+        const result = await api('login', {empId, pin}, t('login.loading'));
+        currentUser = result.user;
+        saveSession(result.token, result.user);
+        const [users] = await Promise.all([
+          api('getUsers', {}, t('common.loading')),
+          loadEvents(),
+        ]);
+        USERS = users;
+      } else {
+        throw initErr;
+      }
+    }
     showApp();
   } catch(err) {
     if (err.message === 'LOGIN_LOCKED') {
@@ -6365,12 +6383,42 @@ calDate=new Date(); roomDate=new Date();
   if (!sess) return; // セッションなし → ログイン画面のまま
   currentUser = sess.user;
   try {
-    // GASセッションが有効か確認し、USERSも復元する
+    // GASセッションが有効か確認し、初期データを一括取得
     if(GAS_URL){
-      [USERS] = await Promise.all([
-        api('getUsers', {}, ''),
-        loadEvents(),
-      ]);
+      const now = new Date();
+      const center = new Date(now.getFullYear(), now.getMonth(), 1);
+      const rangeStart = fmtDate(new Date(center.getFullYear(), center.getMonth()-1, 1));
+      const rangeEnd   = fmtDate(new Date(center.getFullYear(), center.getMonth()+2, 0));
+      let loaded = false;
+      try {
+        const initData = await api('getInitData', {rangeStart, rangeEnd}, '');
+        USERS = initData.users;
+        events = initData.events || [];
+        const months = [-1, 0, 1].map(d => {
+          const dt = new Date(center.getFullYear(), center.getMonth() + d, 1);
+          return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+        });
+        const cacheNow = Date.now();
+        months.forEach(ym => { eventsCache[ym] = { fetchedAt: cacheNow, data: [] }; });
+        events.forEach(e => {
+          const ym = (e.startDate || e.date || '').slice(0, 7);
+          if (eventsCache[ym]) { eventsCache[ym].data.push(e); }
+          else { const endYm = (e.endDate || '').slice(0, 7); const target = months.find(m => m >= ym && m <= endYm) || months[0]; if (eventsCache[target]) eventsCache[target].data.push(e); }
+        });
+        if (initData.holidays) { allHolidays = initData.holidays; filterHolidays(); }
+        if (initData.notices) { _notices = initData.notices; }
+        loaded = true;
+      } catch(initErr) {
+        if (initErr.message && initErr.message.includes('不明なアクション')) {
+          [USERS] = await Promise.all([
+            api('getUsers', {}, ''),
+            loadEvents(),
+          ]);
+          loaded = true;
+        } else {
+          throw initErr;
+        }
+      }
     } else {
       // デモモードではデモユーザーを再設定
       USERS = [
