@@ -381,11 +381,11 @@ async function gas(payload, _retryCount, _sessionRetried) {
     });
   } catch (e) {
     clearTimeout(timer);
-    if (e.name === 'AbortError') throw new Error('サーバー応答がタイムアウトしました');
     if (attempt < 2) {
       await new Promise(r => setTimeout(r, 1500));
-      return gas(payload, attempt + 1);
+      return gas(payload, attempt + 1, _sessionRetried);
     }
+    if (e.name === 'AbortError') throw new Error('サーバー応答がタイムアウトしました');
     throw new Error('通信エラー: ' + (e.message || 'ネットワークに接続できません'));
   }
   clearTimeout(timer);
