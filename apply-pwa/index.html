@@ -511,17 +511,15 @@ async function loadTab(name) {
   try {
     let records = [];
     if (name === 'mine') {
-      const [applyLeave, applyOther, applyRental, expenses] = await Promise.all([
-        gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'other' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'rental' }).catch(() => []),
+      const [applyAll, expenses] = await Promise.all([
+        gas({ action: 'getApplyAll', token: currentToken }),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
-        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
-        ...(applyRental || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...(expenses    || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
+        ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // ⑤ サマリー表示
       const summaryEl = document.getElementById('mine-summary');
@@ -543,32 +541,26 @@ async function loadTab(name) {
       applyMineFilter();
       return;
     } else if (name === 'pending') {
-      const promises = [
-        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'leave' }),
-        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'other' }),
-        gas({ action: 'getApplyForApproval', token: currentToken, appType: 'rental' }).catch(() => []),
-      ];
+      const promises = [gas({ action: 'getApplyForApprovalAll', token: currentToken })];
       if (currentUser.isAdmin) promises.push(gas({ action: 'getExpenses', token: currentToken }));
-      const [applyLeave, applyOther, applyRental, expenses] = await Promise.all(promises);
+      const [applyAll, expenses] = await Promise.all(promises);
       records = [
-        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
-        ...(applyRental || []).map(r => ({ ...r, _appType: 'rental' })),
+        ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
         ...((expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' }))),
       ];
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
     } else if (name === 'all') {
-      const [applyLeave, applyOther, applyRental, expenses] = await Promise.all([
-        gas({ action: 'getApply', token: currentToken, appType: 'leave', scope: 'all' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'other', scope: 'all' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'rental', scope: 'all' }).catch(() => []),
+      const [applyAll, expenses] = await Promise.all([
+        gas({ action: 'getApplyAll', token: currentToken, scope: 'all' }),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
-        ...(applyLeave  || []).map(r => ({ ...r, _appType: 'leave' })),
-        ...(applyOther  || []).map(r => ({ ...r, _appType: 'other' })),
-        ...(applyRental || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...(expenses    || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
+        ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
+        ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // 申請日で降順ソート
       records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
