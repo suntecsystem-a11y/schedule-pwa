@@ -2373,6 +2373,7 @@ let _apiAbort=null;
 let _sessionExpired=false;
 let _reloginPromise=null;
 function cancelApiRequest(){if(_apiAbort){_apiAbort.abort();_apiAbort=null}}
+let _apiSessionRetried = false;
 async function api(action, data={}, loadingMsg){
   if(!loadingMsg)loadingMsg=t('common.processing');
   showLoading(loadingMsg);
@@ -2386,15 +2387,19 @@ async function api(action, data={}, loadingMsg){
     const res = await fetch(GAS_URL, { method:'POST', body, redirect:'follow', signal:_apiAbort.signal });
     const result = await res.json();
     if (!result.ok) {
-      if (result.error === 'SESSION_EXPIRED') {
+      if (result.error === 'SESSION_EXPIRED' && !_apiSessionRetried) {
+        _apiSessionRetried = true;
         clearSession();
         clearTimeout(timer);clearTimeout(showCancel);
         _apiAbort=null;
         if(cancelBtn)cancelBtn.style.display='none';
         hideLoading();
         await showSessionExpiredDialog();
-        return api(action, data, loadingMsg);
+        const ret = await api(action, data, loadingMsg);
+        _apiSessionRetried = false;
+        return ret;
       }
+      _apiSessionRetried = false;
       throw new Error(result.error || t('common.error'));
     }
     return result.data;
@@ -2420,11 +2425,13 @@ async function api(action, data={}, loadingMsg){
   }
 })();
 
+let _loadingCount = 0;
 function showLoading(msg){if(!msg)msg=t('common.loading');
+  _loadingCount++;
   document.getElementById('loading-text').textContent = msg;
   document.getElementById('loading').classList.add('show');
 }
-function hideLoading(){ document.getElementById('loading').classList.remove('show') }
+function hideLoading(){ _loadingCount = Math.max(0, _loadingCount - 1); if(_loadingCount === 0) document.getElementById('loading').classList.remove('show'); }
 
 // ===== ユーティリティ =====
 function fmtDate(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()) }
@@ -2597,11 +2604,28 @@ async function doLogin(){
 
   try {
     _sessionExpired = false;
-    const result = await api('login', {empId, pin}, t('login.loading'));
-    currentUser = result.user; // role フィールドを含む
+    const now = new Date();
+    const center = new Date(now.getFullYear(), now.getMonth(), 1);
+    const rangeStart = fmtDate(new Date(center.getFullYear(), center.getMonth()-1, 1));
+    const rangeEnd   = fmtDate(new Date(center.getFullYear(), center.getMonth()+2, 0));
+    const result = await api('loginInit', {empId, pin, rangeStart, rangeEnd}, t('login.loading'));
+    currentUser = result.user;
     saveSession(result.token, result.user);
-    USERS = await api('getUsers', {}, t('common.loading'));
-    await loadEvents();
+    USERS = result.users;
+    events = result.events || [];
+    const months = [-1, 0, 1].map(d => {
+      const dt = new Date(center.getFullYear(), center.getMonth() + d, 1);
+      return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+    });
+    const cacheNow = Date.now();
+    months.forEach(ym => { eventsCache[ym] = { fetchedAt: cacheNow, data: [] }; });
+    events.forEach(e => {
+      const ym = (e.startDate || e.date || '').slice(0, 7);
+      if (eventsCache[ym]) { eventsCache[ym].data.push(e); }
+      else { const endYm = (e.endDate || '').slice(0, 7); const target = months.find(m => m >= ym && m <= endYm) || months[0]; if (eventsCache[target]) eventsCache[target].data.push(e); }
+    });
+    if (result.holidays) { allHolidays = result.holidays; filterHolidays(); }
+    if (result.notices) { _notices = result.notices; }
     showApp();
   } catch(err) {
     if (err.message === 'LOGIN_LOCKED') {
@@ -4979,6 +5003,7 @@ async function loadNotices() {
   if (addBtn) addBtn.style.display = currentUser?.isAdmin ? 'block' : 'none';
 
   if (!GAS_URL) return;
+  if (_notices && _notices.length) { renderNotices(); return; }
   list.innerHTML = `<p style="color:var(--text2);font-size:0.82em;margin:0">${t('common.loading')}</p>`;
   try {
     _notices = await api('getNotices', {}, '');
@@ -5567,6 +5592,7 @@ function changeSiteFilter(site) {
 }
 async function loadHolidays() {
   if (!GAS_URL) return;
+  if (allHolidays && allHolidays.length) { filterHolidays(); renderAll(); return; }
   try {
     allHolidays = await api('getHolidays', {});
     filterHolidays();
