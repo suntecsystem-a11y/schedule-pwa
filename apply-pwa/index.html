@@ -541,9 +541,9 @@ async function loadTab(name) {
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
     } else if (name === 'all') {
       const [applyLeave, applyOther, applyRental, expenses] = await Promise.all([
-        gas({ action: 'getApply', token: currentToken, appType: 'leave' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'other' }),
-        gas({ action: 'getApply', token: currentToken, appType: 'rental' }).catch(() => []),
+        gas({ action: 'getApply', token: currentToken, appType: 'leave', scope: 'all' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'other', scope: 'all' }),
+        gas({ action: 'getApply', token: currentToken, appType: 'rental', scope: 'all' }).catch(() => []),
         gas({ action: 'getExpenses', token: currentToken }),
       ]);
       records = [
@@ -653,23 +653,23 @@ function renderList(el, records, opts) {
     const elapsed = r.approvalStatus === '申請中'
       ? elapsedDays(r.createdAt || r.applicationDate) : '';
     const cardHtml = `
-    <div class="card" onclick="openDetail('${r._appType}','${r.id}')">
+    <div class="card" onclick="openDetail('${esc(r._appType)}','${esc(r.id)}')">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
-          <div class="card-sub">${r.applicantName || r.applicantId} ・ ${r.applicationDate || r.appliedAt || ''}</div>
-          ${r._appType === 'expense' ? `<div class="card-sub">行先: ${r.destination || ''}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
-          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = c.devices ? c.devices.map(d => d.label).join(' / ') : [c.pc, c.mobile].filter(Boolean).join(' / '); const overdue = r.approvalStatus === '承認済' && !c.returnedAt && c.end && c.end < new Date().toISOString().slice(0,10); return `<div class="card-sub">${devs}${c.start ? ' ' + c.start + '〜' + c.end : ''}</div>${c.returnedAt ? `<div class="card-sub" style="color:var(--success);">✅ 返却済（${c.returnedAt}）</div>` : ''}${overdue ? `<div class="card-sub" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</div>` : ''}`; } const timeInfo = c.allDay === false && c.startTime ? ` ${c.startTime}〜${c.endTime}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${c.title || ''}${c.start ? c.start + '〜' + c.end + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
+          <div class="card-sub">${esc(r.applicantName || r.applicantId)} ・ ${esc(r.applicationDate || r.appliedAt || '')}</div>
+          ${r._appType === 'expense' ? `<div class="card-sub">行先: ${esc(r.destination || '')}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = c.devices ? c.devices.map(d => esc(d.label)).join(' / ') : [c.pc, c.mobile].filter(Boolean).map(s => esc(s)).join(' / '); const overdue = r.approvalStatus === '承認済' && !c.returnedAt && c.end && c.end < new Date().toISOString().slice(0,10); return `<div class="card-sub">${devs}${c.start ? ' ' + esc(c.start) + '〜' + esc(c.end) : ''}</div>${c.returnedAt ? `<div class="card-sub" style="color:var(--success);">✅ 返却済（${esc(c.returnedAt)}）</div>` : ''}${overdue ? `<div class="card-sub" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</div>` : ''}`; } const timeInfo = c.allDay === false && c.startTime ? ` ${esc(c.startTime)}〜${esc(c.endTime)}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${esc(c.title || '')}${c.start ? esc(c.start) + '〜' + esc(c.end) + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-          <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>
+          <span class="badge badge-${esc(r.approvalStatus)}">${esc(r.approvalStatus)}</span>
           ${elapsed ? `<span style="font-size:11px;color:var(--text-sub);">${elapsed}</span>` : ''}
         </div>
       </div>
     </div>`;
     if (showCheckbox && r.approvalStatus === '申請中' && r._appType !== 'expense') {
       return `<div class="pending-item"><div class="pending-card">
-        <input type="checkbox" class="bulk-cb" data-apptype="${r._appType}" data-id="${r.id}" onchange="updateBulkCount()">
+        <input type="checkbox" class="bulk-cb" data-apptype="${esc(r._appType)}" data-id="${esc(r.id)}" onchange="updateBulkCount()">
         ${cardHtml}
       </div></div>`;
     }
@@ -699,8 +699,7 @@ async function openDetail(appType, id) {
       if (!r) throw new Error('申請が見つかりません');
       renderExpenseDetail(r);
     } else {
-      const list = await gas({ action: 'getApply', token: currentToken, appType });
-      r = (list || []).find(x => String(x.id) === String(id));
+      r = await gas({ action: 'getApplyById', token: currentToken, appType, recordId: id });
       if (!r) throw new Error('申請が見つかりません');
       renderApplyDetail(appType, r);
     }
@@ -784,25 +783,25 @@ function renderApplyDetail(appType, r) {
     const c = JSON.parse(r.content || '{}');
     contentRows = Object.entries(c).map(([k, v]) => {
       if (k === 'devices' && Array.isArray(v)) {
-        return `<div class="detail-row"><span class="detail-label">貸出端末</span><span class="detail-val">${v.map(d => d.label).join(', ')}</span></div>`;
+        return `<div class="detail-row"><span class="detail-label">貸出端末</span><span class="detail-val">${v.map(d => esc(d.label)).join(', ')}</span></div>`;
       }
-      return `<div class="detail-row"><span class="detail-label">${contentFieldLabel(k)}</span><span class="detail-val">${v || '-'}</span></div>`;
+      return `<div class="detail-row"><span class="detail-label">${esc(contentFieldLabel(k))}</span><span class="detail-val">${esc(String(v || '-'))}</span></div>`;
     }).join('');
     if (appType === 'rental' && r.approvalStatus === '承認済') {
       if (c.returnedAt) {
-        contentRows += `<div class="detail-row"><span class="detail-label">返却状態</span><span class="detail-val" style="color:var(--success);font-weight:600;">✅ 返却済（${c.returnedAt}）</span></div>`;
+        contentRows += `<div class="detail-row"><span class="detail-label">返却状態</span><span class="detail-val" style="color:var(--success);font-weight:600;">✅ 返却済（${esc(c.returnedAt)}）</span></div>`;
       } else if (c.end && c.end < new Date().toISOString().slice(0,10)) {
         contentRows += `<div class="detail-row"><span class="detail-label">返却状態</span><span class="detail-val" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</span></div>`;
       }
     }
   } catch {}
   const approverDisplay = r.approverName || r.approverEmpId
-    ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">${r.approverName || r.approverEmpId}${r.approvalStatus === '申請中' ? '（承認待ち）' : ''}</span></div>`
+    ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">${esc(r.approverName || r.approverEmpId)}${r.approvalStatus === '申請中' ? '（承認待ち）' : ''}</span></div>`
     : r.approvalStatus === '申請中'
       ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">同部署主任（自動）</span></div>`
       : '';
   const commentDisplay = r.approverComment
-    ? `<div class="detail-row"><span class="detail-label">承認コメント</span><span class="detail-val">${r.approverComment}</span></div>`
+    ? `<div class="detail-row"><span class="detail-label">承認コメント</span><span class="detail-val">${esc(r.approverComment)}</span></div>`
     : '';
   const elapsedDisplay = r.approvalStatus === '申請中' && r.createdAt
     ? `<span style="font-size:12px;color:var(--text-sub);margin-left:8px;">${elapsedDays(r.createdAt)}</span>` : '';
@@ -810,35 +809,35 @@ function renderApplyDetail(appType, r) {
     <div style="margin-bottom:12px;">
       <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>${elapsedDisplay}
     </div>
-    <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
+    <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${esc(r.applicantName)}</span></div>
     ${approverDisplay}
     ${commentDisplay}
     ${contentRows}
-    ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${r.rejectionReason}</div></div>` : ''}
+    ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${esc(r.rejectionReason)}</div></div>` : ''}
   `;
 }
 
 function renderExpenseDetail(r) {
   const detailRows = (r.details || []).map(d => `
     <tr>
-      <td>${d.date}</td><td>${d.category}</td><td>${d.facility}</td>
-      <td>${d.from}</td><td>${d.to}</td>
+      <td>${esc(d.date)}</td><td>${esc(d.category)}</td><td>${esc(d.facility)}</td>
+      <td>${esc(d.from)}</td><td>${esc(d.to)}</td>
       <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
-      <td>${d.memo}</td>
+      <td>${esc(d.memo)}</td>
     </tr>
   `).join('');
   const expElapsed = r.approvalStatus === '申請中' && r.applicationDate
     ? `<span style="font-size:12px;color:var(--text-sub);margin-left:8px;">${elapsedDays(r.applicationDate)}</span>` : '';
   document.getElementById('detail-body').innerHTML = `
     <div style="margin-bottom:12px;">
-      <span class="badge badge-${r.approvalStatus}">${r.approvalStatus}</span>${expElapsed}
+      <span class="badge badge-${esc(r.approvalStatus)}">${esc(r.approvalStatus)}</span>${expElapsed}
     </div>
-    <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${r.applicantName}</span></div>
-    <div class="detail-row"><span class="detail-label">申請日</span><span class="detail-val">${r.applicationDate}</span></div>
-    <div class="detail-row"><span class="detail-label">出張期間</span><span class="detail-val">${r.periodStart} 〜 ${r.periodEnd}</span></div>
-    <div class="detail-row"><span class="detail-label">行先</span><span class="detail-val">${r.destination}</span></div>
-    <div class="detail-row"><span class="detail-label">同行者</span><span class="detail-val">${r.companions || '-'}</span></div>
-    <div class="detail-row"><span class="detail-label">精算方法</span><span class="detail-val">${r.paymentMethod}</span></div>
+    <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${esc(r.applicantName)}</span></div>
+    <div class="detail-row"><span class="detail-label">申請日</span><span class="detail-val">${esc(r.applicationDate)}</span></div>
+    <div class="detail-row"><span class="detail-label">出張期間</span><span class="detail-val">${esc(r.periodStart)} 〜 ${esc(r.periodEnd)}</span></div>
+    <div class="detail-row"><span class="detail-label">行先</span><span class="detail-val">${esc(r.destination)}</span></div>
+    <div class="detail-row"><span class="detail-label">同行者</span><span class="detail-val">${esc(r.companions || '-')}</span></div>
+    <div class="detail-row"><span class="detail-label">精算方法</span><span class="detail-val">${esc(r.paymentMethod)}</span></div>
     <div class="detail-row"><span class="detail-label">合計金額</span><span class="detail-val"><strong>${Number(r.totalAmount||0).toLocaleString()} 円</strong></span></div>
     ${detailRows ? `
     <div style="margin-top:14px;font-size:13px;font-weight:700;">明細</div>
@@ -850,8 +849,8 @@ function renderExpenseDetail(r) {
     </div>` : ''}
     ${r.receipts && r.receipts.length ? `
     <div style="margin-top:14px;font-size:13px;font-weight:700;">領収書</div>
-    ${r.receipts.map(rc => `<div style="margin-top:6px;"><a href="${rc.url}" target="_blank" style="color:var(--primary)">📎 領収書を見る</a> <span style="font-size:12px;color:var(--text-sub)">${rc.takenAt}</span></div>`).join('')}` : ''}
-    ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${r.rejectionReason}</div></div>` : ''}
+    ${r.receipts.map(rc => `<div style="margin-top:6px;"><a href="${esc(rc.url)}" target="_blank" style="color:var(--primary)">📎 領収書を見る</a> <span style="font-size:12px;color:var(--text-sub)">${esc(rc.takenAt)}</span></div>`).join('')}` : ''}
+    ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${esc(r.rejectionReason)}</div></div>` : ''}
   `;
 }
 
@@ -873,10 +872,10 @@ async function doApprove(appType, id) {
 async function printExpensePDF(r) {
   const detailRows = (r.details || []).map(d => `
     <tr>
-      <td>${d.date||''}</td><td>${d.category||''}</td><td>${d.facility||''}</td>
-      <td>${d.from||''}</td><td>${d.to||''}</td>
+      <td>${esc(d.date||'')}</td><td>${esc(d.category||'')}</td><td>${esc(d.facility||'')}</td>
+      <td>${esc(d.from||'')}</td><td>${esc(d.to||'')}</td>
       <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
-      <td>${d.memo||''}</td>
+      <td>${esc(d.memo||'')}</td>
     </tr>`).join('');
   let receiptsHtml = '';
   if (r.receipts && r.receipts.length) {
@@ -914,10 +913,10 @@ async function printExpensePDF(r) {
   </head><body>
     <h1>出張費精算申請書</h1>
     <table>
-      <tr><th>申請者</th><td>${r.applicantName||''}</td><th>申請日</th><td>${r.applicationDate||''}</td></tr>
-      <tr><th>出張期間</th><td>${r.periodStart||''} 〜 ${r.periodEnd||''}</td><th>行先</th><td>${r.destination||''}</td></tr>
-      <tr><th>同行者</th><td>${r.companions||'-'}</td><th>精算方法</th><td>${r.paymentMethod||''}</td></tr>
-      <tr><th>承認状態</th><td>${r.approvalStatus||''}</td><th>承認者</th><td>${r.approverName||r.approverEmpId||'-'}</td></tr>
+      <tr><th>申請者</th><td>${esc(r.applicantName||'')}</td><th>申請日</th><td>${esc(r.applicationDate||'')}</td></tr>
+      <tr><th>出張期間</th><td>${esc(r.periodStart||'')} 〜 ${esc(r.periodEnd||'')}</td><th>行先</th><td>${esc(r.destination||'')}</td></tr>
+      <tr><th>同行者</th><td>${esc(r.companions||'-')}</td><th>精算方法</th><td>${esc(r.paymentMethod||'')}</td></tr>
+      <tr><th>承認状態</th><td>${esc(r.approvalStatus||'')}</td><th>承認者</th><td>${esc(r.approverName||r.approverEmpId||'-')}</td></tr>
     </table>
     <div class="section">明細</div>
     <table class="detail-table">
@@ -1044,7 +1043,7 @@ async function reuseApply(appType, r) {
   _fillFormFromRecord(appType, r);
 }
 
-function _fillFormFromRecord(appType, r) {
+async function _fillFormFromRecord(appType, r) {
   try {
     const c = JSON.parse(r.content || '{}');
     if (appType === 'leave') {
@@ -1061,24 +1060,21 @@ function _fillFormFromRecord(appType, r) {
       if (c.title) document.getElementById('f-other-title').value = c.title;
       if (c.body)  document.getElementById('f-other-body').value  = c.body;
     } else if (appType === 'rental') {
-      setTimeout(() => {
-        if (c.devices) {
-          c.devices.forEach(d => {
-            const card = document.querySelector(`.rental-card[data-id="${d.id}"]`);
-            if (card && !card.classList.contains('rented')) card.classList.add('selected');
-          });
-        }
-        if (c.start)   document.getElementById('f-rental-start').value   = c.start;
-        if (c.end)     document.getElementById('f-rental-end').value     = c.end;
-        if (c.purpose) document.getElementById('f-rental-purpose').value = c.purpose;
-        if (c.note)    document.getElementById('f-rental-note').value    = c.note;
-      }, 500);
+      if (_rentalMastersPromise) await _rentalMastersPromise;
+      if (c.devices) {
+        c.devices.forEach(d => {
+          const card = document.querySelector(`.rental-card[data-id="${d.id}"]`);
+          if (card && !card.classList.contains('rented')) card.classList.add('selected');
+        });
+      }
+      if (c.start)   document.getElementById('f-rental-start').value   = c.start;
+      if (c.end)     document.getElementById('f-rental-end').value     = c.end;
+      if (c.purpose) document.getElementById('f-rental-purpose').value = c.purpose;
+      if (c.note)    document.getElementById('f-rental-note').value    = c.note;
     }
     if (r.approverEmpId) {
-      setTimeout(() => {
-        const sel = document.getElementById('f-approver-id');
-        if (sel) sel.value = r.approverEmpId;
-      }, 100);
+      const sel = document.getElementById('f-approver-id');
+      if (sel) sel.value = r.approverEmpId;
     }
   } catch {}
 }
@@ -1122,7 +1118,7 @@ function getApproverSectionHTML() {
   const shuninUp = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
   const isSelf = id => !approverData.isIppan && id === currentUser.id;
   const options = shuninUp.map(a =>
-    `<option value="${a.id}">${a.name}${isSelf(a.id) ? '（自分・自動承認）' : ''} [${a.role}]</option>`
+    `<option value="${esc(a.id)}">${esc(a.name)}${isSelf(a.id) ? '（自分・自動承認）' : ''} [${esc(a.role)}]</option>`
   ).join('');
   return `<label>承認者 <span style="color:var(--danger)">*</span></label>
     <select id="f-approver-id">
@@ -1215,7 +1211,7 @@ function renderNewFields() {
         ${getApproverSectionHTML()}
       </div>
     `;
-    loadRentalMasters();
+    _rentalMastersPromise = loadRentalMasters();
   } else if (type === 'change') {
     closeModal('modal-new');
     location.href = 'change-form.html';
@@ -1233,7 +1229,9 @@ function renderNewFields() {
 
 let rentalMasters = [];
 let rentedDeviceIds = [];
+let pendingDeviceIds = [];
 let rentalFilter = '';
+let _rentalMastersPromise = null;
 const DEVICE_ICONS = { 'PC':'💻', 'パソコン':'💻', 'ノートPC':'💻', '携帯':'📱', 'スマホ':'📱', 'iPhone':'📱', 'タブレット':'📱', 'iPad':'📱', 'カメラ':'📷', 'ビデオカメラ':'🎥', 'プロジェクター':'📽️' };
 function _deviceIcon(type) {
   if (!type) return '📦';
@@ -1248,12 +1246,13 @@ async function loadRentalMasters() {
     const result = await gas({ action: 'getRentalMasters', token: currentToken }) || {};
     rentalMasters = result.masters || result || [];
     rentedDeviceIds = result.rentedIds || [];
-    if (Array.isArray(result)) { rentalMasters = result; rentedDeviceIds = []; }
+    pendingDeviceIds = result.pendingIds || [];
+    if (Array.isArray(result)) { rentalMasters = result; rentedDeviceIds = []; pendingDeviceIds = []; }
     const types = [...new Set(rentalMasters.map(m => m.deviceType || 'その他'))];
     const filterBar = document.getElementById('f-rental-filters');
     if (types.length > 1) {
       filterBar.innerHTML = `<span class="rental-filter-chip active" data-filter="">すべて</span>` +
-        types.map(t => `<span class="rental-filter-chip" data-filter="${t}">${_deviceIcon(t)} ${t}</span>`).join('');
+        types.map(t => `<span class="rental-filter-chip" data-filter="${esc(t)}">${_deviceIcon(t)} ${esc(t)}</span>`).join('');
       filterBar.style.display = '';
       filterBar.onclick = e => {
         const chip = e.target.closest('.rental-filter-chip');
@@ -1281,13 +1280,18 @@ function _renderRentalGrid() {
   const filtered = rentalFilter ? rentalMasters.filter(m => (m.deviceType || 'その他') === rentalFilter) : rentalMasters;
   grid.innerHTML = filtered.map(m => {
     const label = m.purpose || m.deviceType || '不明';
-    const isRented = rentedDeviceIds.includes(String(m.id));
-    const isSelected = selectedIds.has(String(m.id));
+    const mid = String(m.id);
+    const isRented = rentedDeviceIds.includes(mid);
+    const isPending = !isRented && pendingDeviceIds.includes(mid);
+    const isUnavailable = isRented || isPending;
+    const isSelected = selectedIds.has(mid);
     const icon = _deviceIcon(m.deviceType);
-    return `<div class="rental-card${isSelected ? ' selected' : ''}${isRented ? ' rented' : ''}" data-id="${m.id}" data-label="${label}" data-type="${m.deviceType || ''}" onclick="${isRented ? '' : '_toggleRentalCard(this)'}">
+    const statusClass = isRented ? 'rented' : isPending ? 'rented' : 'available';
+    const statusText = isRented ? '貸出中' : isPending ? '申請中' : '利用可能';
+    return `<div class="rental-card${isSelected ? ' selected' : ''}${isUnavailable ? ' rented' : ''}" data-id="${esc(String(m.id))}" data-label="${esc(label)}" data-type="${esc(m.deviceType || '')}" onclick="${isUnavailable ? '' : '_toggleRentalCard(this)'}">
       <div class="rental-card-icon">${icon}</div>
-      <div class="rental-card-name">${label}</div>
-      <div class="rental-card-status ${isRented ? 'rented' : 'available'}">${isRented ? '貸出中' : '利用可能'}</div>
+      <div class="rental-card-name">${esc(label)}</div>
+      <div class="rental-card-status ${statusClass}">${statusText}</div>
     </div>`;
   }).join('');
   if (!filtered.length) {
@@ -1523,11 +1527,11 @@ async function _checkLeaveOverlap(start, end) {
 function _openConfirmModal(typeLabel, items, warning, onConfirm, opts) {
   document.getElementById('confirm-modal-title').textContent = typeLabel + ' の確認';
   document.getElementById('confirm-modal-body').innerHTML = items.map(item =>
-    `<div class="detail-row"><span class="detail-label">${item.label}</span><span class="detail-val">${item.value}</span></div>`
+    `<div class="detail-row"><span class="detail-label">${esc(item.label)}</span><span class="detail-val">${esc(item.value)}</span></div>`
   ).join('');
   const warnEl = document.getElementById('confirm-modal-warning');
   if (warning) {
-    warnEl.innerHTML = `<div style="padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;margin-top:4px;">⚠ ${warning}</div>`;
+    warnEl.innerHTML = `<div style="padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;margin-top:4px;">⚠ ${esc(warning)}</div>`;
     warnEl.style.display = '';
     document.getElementById('confirm-modal-btn').textContent = 'それでも申請する';
   } else {
@@ -1536,14 +1540,16 @@ function _openConfirmModal(typeLabel, items, warning, onConfirm, opts) {
   }
   const btn = document.getElementById('confirm-modal-btn');
   btn.disabled = false;
+  const defaultText = (opts && opts.btnText) || (editingRecord ? '更新を確定する' : '申請を確定する');
   btn.onclick = async function() {
     if (btn.disabled) return;
     btn.disabled = true;
     btn.textContent = '送信中...';
-    try { await onConfirm(); } catch(e) {
-      btn.disabled = false;
-      btn.textContent = (opts && opts.btnText) || (editingRecord ? '更新を確定する' : '申請を確定する');
-      throw e;
+    try { await onConfirm(); } finally {
+      if (document.getElementById('modal-confirm').classList.contains('active')) {
+        btn.disabled = false;
+        btn.textContent = warning ? 'それでも申請する' : defaultText;
+      }
     }
   };
   openModal('modal-confirm');
@@ -1553,6 +1559,7 @@ async function submitLeave() {
   const start = document.getElementById('f-leave-start').value;
   const end   = document.getElementById('f-leave-end').value;
   if (!start || !end) throw new Error('日付を入力してください');
+  if (start > end) throw new Error('終了日は開始日以降を指定してください');
   const allDay = document.getElementById('f-leave-allday').checked;
   const approverEmpId = _getSelectedApproverEmpId();
   const content = JSON.stringify({
@@ -1604,6 +1611,7 @@ async function submitRental() {
   const start = document.getElementById('f-rental-start').value;
   const end   = document.getElementById('f-rental-end').value;
   if (!start || !end) throw new Error('利用期間を入力してください');
+  if (start > end) throw new Error('返却予定日は利用開始日以降を指定してください');
   const approverEmpId = _getSelectedApproverEmpId();
   const content = JSON.stringify({
     devices: selected.map(s => ({ id: s.id, label: s.label, cat: s.cat })),
@@ -1639,9 +1647,9 @@ function confirmReturnRental(recordId) {
     try {
       await gas({ action: 'returnRental', token: currentToken, recordId });
       closeModal('modal-confirm');
+      closeModal('modal-detail');
       showToast('返却済みにしました');
-      loadTab('mine');
-      openDetail('rental', recordId);
+      refreshCurrentTab();
     } catch (e) { showToast(e.message); }
   }, { btnText: '返却を確定する' });
 }
@@ -1649,6 +1657,7 @@ function confirmReturnRental(recordId) {
 // ===================================================
 // ユーティリティ
 // ===================================================
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function _sortKey(r) {
   if (r.createdAt) return r.createdAt;
   const d = r.applicationDate || r.appliedAt || '';
