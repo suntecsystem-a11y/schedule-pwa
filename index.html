@@ -577,7 +577,7 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="team" data-tip="在席ボード" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span></button>
     <button class="sidebar-btn" data-tab="cars" data-tip="車予約" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span></button>
     <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span></button>
-    <button class="sidebar-btn" data-tip="申請" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請 <span style="font-size:0.72em">（準備中）</span></span></button>
+    <button class="sidebar-btn" data-tip="申請" onclick="openApplyApp(this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span></button>
     <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
     <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span></button>
@@ -606,7 +606,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" onclick="switchTab('team',this)">🏢 在席</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
-    <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">📋 申請</button>
+    <button class="tab-btn" onclick="openApplyApp(this)">📋 申請</button>
     <button class="tab-btn" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
     <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" onclick="switchTab('settings',this)">🔧 設定</button>
