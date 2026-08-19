@@ -192,9 +192,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div class="filter-bar" id="mine-filter-bar">
       <select id="mine-filter-type" onchange="applyMineFilter()">
         <option value="">すべての種別</option>
-        <option value="expense">💴 出張費精算</option>
         <option value="rental">📱 端末貸出</option>
-        <option value="other">📝 その他</option>
       </select>
       <select id="mine-filter-status" onchange="applyMineFilter()">
         <option value="">すべてのステータス</option>
@@ -220,10 +218,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div class="filter-bar">
       <select id="filter-type" onchange="applyFilter()">
         <option value="">すべての種別</option>
-        <!-- <option value="leave">🌴 休暇申請</option> -->
-        <option value="expense">💴 出張費精算</option>
         <option value="rental">📱 端末貸出</option>
-        <option value="other">📝 その他</option>
       </select>
       <select id="filter-status" onchange="applyFilter()">
         <option value="">すべてのステータス</option>
@@ -261,11 +256,10 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <label>申請種別</label>
     <select id="new-type" onchange="renderNewFields()">
       <option value="">選択してください</option>
-      <!-- <option value="leave">🌴 休暇申請</option> -->
-      <option value="expense">💴 出張費精算</option>
       <option value="rental">📱 端末貸出</option>
-      <option value="other">📝 その他</option>
-      <option value="change">📝 従業員情報変更届</option>
+      <option disabled>💴 出張費精算（準備中）</option>
+      <option disabled>📝 その他申請（準備中）</option>
+      <option disabled>📝 従業員情報変更届（準備中）</option>
     </select>
     <div id="new-type-fields"></div>
     <div class="modal-footer">
@@ -334,7 +328,7 @@ function loadSession() {
     }
     // スケジュールアプリのセッションを流用（同一オリジンでlocalStorageを共有）
     const s = JSON.parse(localStorage.getItem('sch_sess') || 'null');
-    if (s && s.token && s.user) {
+    if (s && s.token && s.user && (!s.expires || Date.now() <= s.expires)) {
       currentToken = s.token;
       currentUser  = s.user;
       return true;
@@ -370,6 +364,8 @@ function refreshCurrentTab() {
 // ===================================================
 // GAS通信（POST）
 // ===================================================
+let _reloginPromise = null;
+
 async function gas(payload) {
   if (!GAS_URL) throw new Error('GAS URLが未設定です。index.html の GAS_URL を設定してください');
   const res = await fetch(GAS_URL, {
@@ -377,8 +373,72 @@ async function gas(payload) {
     body: JSON.stringify(payload),
   });
   const json = await res.json();
-  if (!json.ok) throw new Error(json.error || '通信エラー');
+  if (!json.ok) {
+    if (json.error === 'SESSION_EXPIRED') {
+      localStorage.removeItem('apply_session');
+      await _showReloginDialog();
+      payload.token = currentToken;
+      return gas(payload);
+    }
+    throw new Error(json.error || '通信エラー');
+  }
   return json.data;
+}
+
+function _showReloginDialog() {
+  if (_reloginPromise) return _reloginPromise;
+  _reloginPromise = new Promise((resolve, reject) => {
+    const overlay = document.createElement('div');
+    overlay.id = 'relogin-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    const empVal = currentUser?.empId || '';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
+        <div style="font-size:2em;margin-bottom:10px">⏱️</div>
+        <h3 style="margin:0 0 8px;font-size:1.05em">セッションが切れました</h3>
+        <p style="color:#666;font-size:0.85em;margin:0 0 16px">再ログインすると操作を続けられます</p>
+        <input id="relogin-empid" type="text" inputmode="numeric" value="${empVal}" placeholder="社員番号" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:0.95em;margin-bottom:8px;box-sizing:border-box">
+        <input id="relogin-pin" type="password" inputmode="numeric" placeholder="PIN" style="width:100%;padding:10px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:0.95em;margin-bottom:4px;box-sizing:border-box">
+        <p id="relogin-error" style="color:#e53e3e;font-size:0.82em;display:none;margin:4px 0 0"></p>
+        <button id="relogin-btn" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:0.95em;font-weight:600;cursor:pointer;margin-top:12px">ログイン</button>
+        <button id="relogin-cancel" style="width:100%;padding:8px;background:none;border:none;color:#666;font-size:0.82em;cursor:pointer;margin-top:4px">ログアウトする</button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const empIn = document.getElementById('relogin-empid');
+    const pinIn = document.getElementById('relogin-pin');
+    empVal ? pinIn.focus() : empIn.focus();
+    const _doRelogin = async () => {
+      const empId = empIn.value.trim(), pin = pinIn.value.trim();
+      const errEl = document.getElementById('relogin-error');
+      if (!empId || !pin) { errEl.textContent = '社員番号とPINを入力してください'; errEl.style.display = 'block'; return; }
+      const btn = document.getElementById('relogin-btn');
+      btn.disabled = true; btn.textContent = 'ログイン中...';
+      try {
+        const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'login', empId, pin }) });
+        const data = await r.json();
+        if (!data.ok) throw new Error(data.error || 'ログインに失敗しました');
+        saveSession(data.data.token, data.data.user);
+        _reloginPromise = null;
+        overlay.remove();
+        resolve();
+      } catch (e) {
+        errEl.textContent = e.message.includes('LOCKED') ? 'アカウントがロックされています' : 'ログインに失敗しました';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = 'ログイン';
+        pinIn.value = ''; pinIn.focus();
+      }
+    };
+    document.getElementById('relogin-btn').addEventListener('click', _doRelogin);
+    pinIn.addEventListener('keydown', e => { if (e.key === 'Enter') _doRelogin(); });
+    empIn.addEventListener('keydown', e => { if (e.key === 'Enter') pinIn.focus(); });
+    document.getElementById('relogin-cancel').addEventListener('click', () => {
+      _reloginPromise = null;
+      overlay.remove();
+      doLogout();
+      reject(new Error('SESSION_EXPIRED'));
+    });
+  });
+  return _reloginPromise;
 }
 
 // ===================================================
@@ -1474,7 +1534,18 @@ function _openConfirmModal(typeLabel, items, warning, onConfirm, opts) {
     warnEl.style.display = 'none';
     document.getElementById('confirm-modal-btn').textContent = (opts && opts.btnText) || (editingRecord ? '更新を確定する' : '申請を確定する');
   }
-  document.getElementById('confirm-modal-btn').onclick = onConfirm;
+  const btn = document.getElementById('confirm-modal-btn');
+  btn.disabled = false;
+  btn.onclick = async function() {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = '送信中...';
+    try { await onConfirm(); } catch(e) {
+      btn.disabled = false;
+      btn.textContent = (opts && opts.btnText) || (editingRecord ? '更新を確定する' : '申請を確定する');
+      throw e;
+    }
+  };
   openModal('modal-confirm');
 }
 
