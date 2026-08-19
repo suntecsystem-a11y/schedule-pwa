@@ -188,7 +188,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
   </nav>
 
   <div id="tab-mine" class="tab-content active">
-    <div id="mine-summary" style="display:none;background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;gap:16px;flex-wrap:wrap;"></div>
+    <div id="mine-summary" style="display:none;background:var(--card);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);gap:16px;flex-wrap:wrap;"></div>
     <div class="filter-bar" id="mine-filter-bar">
       <select id="mine-filter-type" onchange="applyMineFilter()">
         <option value="">すべての種別</option>
@@ -366,8 +366,9 @@ function refreshCurrentTab() {
 // ===================================================
 let _reloginPromise = null;
 
-async function gas(payload, _retryCount) {
+async function gas(payload, _retryCount, _sessionRetried) {
   if (!GAS_URL) throw new Error('GAS URLが未設定です。index.html の GAS_URL を設定してください');
+  const attempt = _retryCount || 0;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 30000);
   let res;
@@ -381,22 +382,28 @@ async function gas(payload, _retryCount) {
   } catch (e) {
     clearTimeout(timer);
     if (e.name === 'AbortError') throw new Error('サーバー応答がタイムアウトしました');
-    if (!_retryCount) return gas(payload, 1);
+    if (attempt < 2) {
+      await new Promise(r => setTimeout(r, 1500));
+      return gas(payload, attempt + 1);
+    }
     throw new Error('通信エラー: ' + (e.message || 'ネットワークに接続できません'));
   }
   clearTimeout(timer);
   const text = await res.text();
   let json;
   try { json = JSON.parse(text); } catch {
-    if (!_retryCount) return gas(payload, 1);
+    if (attempt < 2) {
+      await new Promise(r => setTimeout(r, 1500));
+      return gas(payload, attempt + 1);
+    }
     throw new Error('サーバーから不正な応答がありました（HTML）。GASの再デプロイが必要な可能性があります');
   }
   if (!json.ok) {
-    if (json.error === 'SESSION_EXPIRED') {
+    if (json.error === 'SESSION_EXPIRED' && !_sessionRetried) {
       localStorage.removeItem('apply_session');
       await _showReloginDialog();
       payload.token = currentToken;
-      return gas(payload);
+      return gas(payload, 0, true);
     }
     throw new Error(json.error || '通信エラー');
   }
@@ -409,7 +416,7 @@ function _showReloginDialog() {
     const overlay = document.createElement('div');
     overlay.id = 'relogin-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-    const empVal = currentUser?.empId || '';
+    const empVal = currentUser?.id || '';
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center">
         <div style="font-size:2em;margin-bottom:10px">⏱️</div>
@@ -432,8 +439,16 @@ function _showReloginDialog() {
       const btn = document.getElementById('relogin-btn');
       btn.disabled = true; btn.textContent = 'ログイン中...';
       try {
-        const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'login', empId, pin }) });
-        const data = await r.json();
+        const ctrl = new AbortController();
+        const tmr = setTimeout(() => ctrl.abort(), 30000);
+        const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'login', empId, pin }), redirect: 'follow', signal: ctrl.signal }).catch(fe => {
+          if (fe.name === 'AbortError') throw new Error('サーバー応答がタイムアウトしました');
+          throw fe;
+        });
+        clearTimeout(tmr);
+        const txt = await r.text();
+        let data;
+        try { data = JSON.parse(txt); } catch { throw new Error('サーバーから不正な応答がありました。しばらく待ってからお試しください'); }
         if (!data.ok) throw new Error(data.error || 'ログインに失敗しました');
         saveSession(data.data.token, data.data.user);
         _reloginPromise = null;
@@ -504,22 +519,23 @@ async function loadPendingBadge() {
 let mineRecordsCache = [];
 let allRecordsCache = [];
 let approverData = null;
+let _loadTabSeq = 0;
 
 async function loadTab(name) {
+  const seq = ++_loadTabSeq;
   const el = document.getElementById('list-' + name);
   el.innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
+  if (name === 'mine') document.getElementById('mine-summary').style.display = 'none';
   try {
     let records = [];
     if (name === 'mine') {
-      const [applyAll, expenses] = await Promise.all([
-        gas({ action: 'getApplyAll', token: currentToken }),
-        gas({ action: 'getExpenses', token: currentToken }),
-      ]);
+      const applyAll = await gas({ action: 'getApplyAll', token: currentToken, includeExpenses: true });
+      if (seq !== _loadTabSeq) return;
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...((applyAll && applyAll.expenses) || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // ⑤ サマリー表示
       const summaryEl = document.getElementById('mine-summary');
@@ -541,26 +557,23 @@ async function loadTab(name) {
       applyMineFilter();
       return;
     } else if (name === 'pending') {
-      const promises = [gas({ action: 'getApplyForApprovalAll', token: currentToken })];
-      if (currentUser.isAdmin) promises.push(gas({ action: 'getExpenses', token: currentToken }));
-      const [applyAll, expenses] = await Promise.all(promises);
+      const applyAll = await gas({ action: 'getApplyForApprovalAll', token: currentToken, includeExpenses: currentUser.isAdmin });
+      if (seq !== _loadTabSeq) return;
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...((expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' }))),
+        ...((applyAll && applyAll.expenses) || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
       ];
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
     } else if (name === 'all') {
-      const [applyAll, expenses] = await Promise.all([
-        gas({ action: 'getApplyAll', token: currentToken, scope: 'all' }),
-        gas({ action: 'getExpenses', token: currentToken }),
-      ]);
+      const applyAll = await gas({ action: 'getApplyAll', token: currentToken, scope: 'all', includeExpenses: true });
+      if (seq !== _loadTabSeq) return;
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...((applyAll && applyAll.expenses) || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       // 申請日で降順ソート
       records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
@@ -704,8 +717,7 @@ async function openDetail(appType, id) {
   try {
     let r;
     if (appType === 'expense') {
-      const list = await gas({ action: 'getExpenses', token: currentToken });
-      r = (list || []).find(x => String(x.id) === String(id));
+      r = await gas({ action: 'getExpenseById', token: currentToken, expenseId: id });
       if (!r) throw new Error('申請が見つかりません');
       renderExpenseDetail(r);
     } else {
@@ -715,7 +727,7 @@ async function openDetail(appType, id) {
     }
 
     const isDesignatedApprover = r.approverEmpId && r.approverEmpId === currentUser.id;
-    const isSameDeptShunin = !r.approverEmpId && currentUser.role === '主任';
+    const isSameDeptShunin = !r.approverEmpId && currentUser.role === '主任' && r.applicantDept && r.applicantDept === currentUser.dept;
     const canApprove = currentUser.isAdmin || isDesignatedApprover || isSameDeptShunin;
     const isOwn = r.applicantId === currentUser.id;
     const footer = document.getElementById('detail-footer');
@@ -766,7 +778,8 @@ async function openDetail(appType, id) {
     if (appType === 'rental' && r.approvalStatus === '承認済') {
       try {
         const c = JSON.parse(r.content || '{}');
-        if (!c.returnedAt) {
+        const canReturn = isOwn || currentUser.isAdmin || (r.approverEmpId && r.approverEmpId === currentUser.id);
+        if (!c.returnedAt && canReturn) {
           const returnBtn = document.createElement('button');
           returnBtn.className = 'btn-success';
           returnBtn.textContent = '返却済にする';
@@ -783,7 +796,7 @@ async function openDetail(appType, id) {
       footer.appendChild(pdfBtn);
     }
   } catch (e) {
-    document.getElementById('detail-body').innerHTML = `<div class="empty"><p>読み込み失敗: ${e.message}</p></div>`;
+    document.getElementById('detail-body').innerHTML = `<div class="empty"><p>読み込み失敗: ${esc(e.message)}</p></div>`;
   }
 }
 
@@ -989,8 +1002,7 @@ async function doWithdraw(appType, id) {
   if (!confirm('この申請を取り下げますか？\n取り下げ後も履歴として残ります。')) return;
   try {
     if (appType === 'expense') {
-      // expenseはステータス更新（削除しない）
-      await gas({ action: 'rejectExpense', token: currentToken, expenseId: id, reason: '申請者による取下げ' });
+      await gas({ action: 'withdrawExpense', token: currentToken, expenseId: id });
     } else {
       await gas({ action: 'withdrawApply', token: currentToken, appType, recordId: id });
     }
@@ -1073,7 +1085,7 @@ async function _fillFormFromRecord(appType, r) {
       if (_rentalMastersPromise) await _rentalMastersPromise;
       if (c.devices) {
         c.devices.forEach(d => {
-          const card = document.querySelector(`.rental-card[data-id="${d.id}"]`);
+          const card = document.querySelector(`.rental-card[data-id="${CSS.escape(d.id)}"]`);
           if (card && !card.classList.contains('rented')) card.classList.add('selected');
         });
       }
@@ -1117,14 +1129,19 @@ async function openNewModal() {
   document.querySelector('#modal-new .btn-submit').textContent = '申請する';
   approverData = null;
   openModal('modal-new');
+  await _loadApproverData();
+  if (document.getElementById('new-type').value) renderNewFields();
+}
+
+async function _loadApproverData() {
   try {
     approverData = await gas({ action: 'getApprovers', token: currentToken });
-  } catch(e) { /* 取得失敗時は申請時にエラー表示 */ }
+  } catch(e) { approverData = null; }
   if (document.getElementById('new-type').value) renderNewFields();
 }
 
 function getApproverSectionHTML() {
-  if (!approverData) return '<div style="margin-top:14px;padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 承認者情報を取得中です。しばらくお待ちください。</div>';
+  if (!approverData) return '<div style="margin-top:14px;padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 承認者情報の取得に失敗しました。<button onclick="_loadApproverData()" style="margin-left:8px;padding:4px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;cursor:pointer;font-size:12px;">再取得</button></div>';
   const shuninUp = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
   const isSelf = id => !approverData.isIppan && id === currentUser.id;
   const options = shuninUp.map(a =>
@@ -1515,12 +1532,13 @@ function _getApproverDisplayName() {
   return sel.options[sel.selectedIndex]?.text || sel.value;
 }
 
-async function _checkLeaveOverlap(start, end) {
+function _checkLeaveOverlap(start, end) {
   try {
-    const existing = await gas({ action: 'getApply', token: currentToken, appType: 'leave' });
-    const overlapping = (existing || []).filter(r => {
+    const existing = mineRecordsCache.filter(r => r._appType === 'leave');
+    const overlapping = existing.filter(r => {
       if (r.applicantId !== currentUser.id) return false;
       if (r.approvalStatus !== '申請中' && r.approvalStatus !== '承認済') return false;
+      if (editingRecord && String(r.id) === String(editingRecord.id)) return false;
       try {
         const c = JSON.parse(r.content || '{}');
         return c.start && c.end && c.start <= end && c.end >= start;
@@ -1556,7 +1574,7 @@ function _openConfirmModal(typeLabel, items, warning, onConfirm, opts) {
     btn.disabled = true;
     btn.textContent = '送信中...';
     try { await onConfirm(); } finally {
-      if (document.getElementById('modal-confirm').classList.contains('active')) {
+      if (document.getElementById('modal-confirm').classList.contains('open')) {
         btn.disabled = false;
         btn.textContent = warning ? 'それでも申請する' : defaultText;
       }
