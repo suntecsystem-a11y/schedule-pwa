@@ -529,15 +529,17 @@ async function loadTab(name) {
   try {
     let records = [];
     if (name === 'mine') {
-      const applyAll = await gas({ action: 'getApplyAll', token: currentToken, includeExpenses: true });
+      const [applyAll, expenses] = await Promise.all([
+        gas({ action: 'getApplyAll', token: currentToken }),
+        gas({ action: 'getExpenses', token: currentToken }).catch(() => []),
+      ]);
       if (seq !== _loadTabSeq) return;
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...((applyAll && applyAll.expenses) || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
-      // ⑤ サマリー表示
       const summaryEl = document.getElementById('mine-summary');
       const counts = { '申請中': 0, '承認済': 0, '否認': 0, '取下げ': 0 };
       records.forEach(r => { if (counts[r.approvalStatus] !== undefined) counts[r.approvalStatus]++; });
@@ -557,25 +559,30 @@ async function loadTab(name) {
       applyMineFilter();
       return;
     } else if (name === 'pending') {
-      const applyAll = await gas({ action: 'getApplyForApprovalAll', token: currentToken, includeExpenses: currentUser.isAdmin });
+      const [applyAll, expenses] = await Promise.all([
+        gas({ action: 'getApplyForApprovalAll', token: currentToken }),
+        currentUser.isAdmin ? gas({ action: 'getExpenses', token: currentToken }).catch(() => []) : Promise.resolve([]),
+      ]);
       if (seq !== _loadTabSeq) return;
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...((applyAll && applyAll.expenses) || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
+        ...(expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
       ];
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
     } else if (name === 'all') {
-      const applyAll = await gas({ action: 'getApplyAll', token: currentToken, scope: 'all', includeExpenses: true });
+      const [applyAll, expenses] = await Promise.all([
+        gas({ action: 'getApplyAll', token: currentToken, scope: 'all' }),
+        gas({ action: 'getExpenses', token: currentToken }).catch(() => []),
+      ]);
       if (seq !== _loadTabSeq) return;
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
-        ...((applyAll && applyAll.expenses) || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
-      // 申請日で降順ソート
       records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
       allRecordsCache = records;
       applyFilter();
