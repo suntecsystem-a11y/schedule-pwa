@@ -370,7 +370,7 @@ async function gas(payload, _retryCount, _sessionRetried) {
   if (!GAS_URL) throw new Error('GAS URLが未設定です。index.html の GAS_URL を設定してください');
   const attempt = _retryCount || 0;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 30000);
+  const timer = setTimeout(() => ctrl.abort(), 45000);
   let res;
   try {
     res = await fetch(GAS_URL, {
@@ -440,7 +440,7 @@ function _showReloginDialog() {
       btn.disabled = true; btn.textContent = 'ログイン中...';
       try {
         const ctrl = new AbortController();
-        const tmr = setTimeout(() => ctrl.abort(), 30000);
+        const tmr = setTimeout(() => ctrl.abort(), 45000);
         const r = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'login', empId, pin }), redirect: 'follow', signal: ctrl.signal }).catch(fe => {
           if (fe.name === 'AbortError') throw new Error('サーバー応答がタイムアウトしました');
           throw fe;
