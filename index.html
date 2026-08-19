@@ -2748,10 +2748,7 @@ function showApp(opts){
   buildFilterUI();
   switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   renderAll();
-  // loadCarData(); // 車タブ未リリースのため一時停止（ホームの車ウィジェットも非表示）
-  loadHolidays();
-  loadRentalMasters();
-  loadSafetyCheck();
+  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
@@ -2844,12 +2841,11 @@ async function loadEvents({ force = false, centerDate } = {}){
   );
 
   if (allCached) {
-    // キャッシュから全月分をマージして events にセット
     events = months.flatMap(ym => eventsCache[ym].data)
-      .filter((e, i, arr) => arr.findIndex(x => x.id === e.id) === i); // 重複除去
+      .filter((e, i, arr) => arr.findIndex(x => x.id === e.id) === i);
     _mergeToday(months);
     renderAll(); renderRoomTimeline(); renderTeam();
-    return;
+    return 'cached';
   }
 
   // 3ヶ月をカバーする範囲を1回のGAS呼び出しで取得
@@ -2917,8 +2913,9 @@ function switchTab(tab, btn){
   // タブ切り替え時にeventsを再取得（キャッシュ10分以内なら即返す）してバッジ更新
   // カレンダータブ以外は今日基準で取得し、ホーム等で今月の予定が欠けるのを防ぐ
   if(tab !== 'mypage') {
-    loadEvents(tab !== 'calendar' ? { centerDate: new Date() } : undefined).then(() => {
+    loadEvents(tab !== 'calendar' ? { centerDate: new Date() } : undefined).then((result) => {
       if (!currentUser) return;
+      if (result === 'cached') return;
       if(tab==='home'){ renderHome(); renderHomeDayWidgets(); }
       if(tab==='team') renderTeam();
       const carCount = getPendingNotifs().length;
