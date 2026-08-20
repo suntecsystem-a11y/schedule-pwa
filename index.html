@@ -936,6 +936,7 @@ input,select{font-family:inherit;outline:none}
             <option value="休暇">🌴 休暇</option>
             <option value="在宅">🏠 在宅</option>
             <option value="来社">🤝 来社</option>
+            <option value="その他">📱 その他</option>
           </select>
         </div>
         <span style="color:var(--text2);font-size:0.8em">▼</span>
@@ -2969,7 +2970,7 @@ function switchTab(tab, btn){
       if(tab==='home'){ renderHome(); renderHomeDayWidgets(); }
       if(tab==='team') renderTeam();
       const carCount = getPendingNotifs().length;
-      const approvalCount = getApprovalPendingNotifs().length;
+      const approvalCount = getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length;
       const pendingApprovalCount = getPendingApprovals().length;
       updateNotifBadge(carCount + approvalCount + pendingApprovalCount);
     });
@@ -5505,13 +5506,13 @@ function renderMyPage() {
     saveNotifSeen(seen);
   }
 
-  // 承認結果通知
-  const approvalNotifs = getApprovalPendingNotifs();
+  // 承認結果通知（request タイプは承認依頼なので結果通知から除外）
+  const approvalNotifs = getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected');
 
   // 承認待ち件数（主任のみ）
   const pendingApprovals = getPendingApprovals();
 
-  // バッジ更新（車通知は既読済みなので0、承認通知のみ）
+  // バッジ更新
   updateNotifBadge(approvalNotifs.length + pendingApprovals.length);
 
   document.getElementById('mypage-content').innerHTML = `
@@ -5537,10 +5538,10 @@ function renderMyPage() {
     </div>` : ''}
 
     <!-- 承認結果通知 -->
-    ${approvalNotifs.length ? `
+    ${(()=>{const _resultNotifs=approvalNotifs.filter(n=>n.type==='approved'||n.type==='rejected');return _resultNotifs.length?`
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
-      <div style="font-size:0.72em;color:var(--primary);font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.result',{n:approvalNotifs.length})}</div>
-      ${approvalNotifs.filter(n => n.type === 'approved' || n.type === 'rejected').map(n => {
+      <div style="font-size:0.72em;color:var(--primary);font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.result',{n:_resultNotifs.length})}</div>
+      ${_resultNotifs.map(n => {
         const isApproved = n.type === 'approved';
         const isApply = n.source === 'apply';
         const applyLabels = { leave:'🌴 休暇申請', other:'📝 その他申請', rental:'📱 端末貸出', expense:'💴 出張費精算' };
@@ -5561,7 +5562,7 @@ function renderMyPage() {
           <button class="notif-dismiss" style="border-color:${isApproved?'#81c784':'#ef9a9a'};color:${isApproved?'#388e3c':'#c62828'}" onclick="dismissApprovalNotifLocal('${n.eventId}')">${t('my.dismiss')}</button>
         </div>`;
       }).join('')}
-    </div>` : ''}
+    </div>`:'';})()}
 
     <!-- 車予約確認通知（従来通り） -->
     ${pendingNotifs.length ? `
@@ -5886,16 +5887,28 @@ function updateNotifBadge(count) {
   if (tabBadge) { tabBadge.textContent = count || ''; tabBadge.style.display = count ? 'inline' : 'none'; }
 }
 
+// 既読済み通知IDセット
+function _getDismissedNotifIds() {
+  const k = 'sch_approval_dismissed_' + (currentUser?.id || '');
+  try { return new Set(JSON.parse(localStorage.getItem(k) || '[]')); } catch { return new Set(); }
+}
+function _addDismissedNotifId(eventId) {
+  const k = 'sch_approval_dismissed_' + (currentUser?.id || '');
+  const s = _getDismissedNotifIds(); s.add(String(eventId));
+  localStorage.setItem(k, JSON.stringify([...s]));
+}
+
 // 承認結果通知をGASから取得してlocalStorageに保存
 async function checkApprovalNotifs() {
   if (!GAS_URL || !currentUser) return;
   try {
     const notifs = await api('getApprovalNotifs', {}, '');
     const pendingKey = 'sch_approval_notif_' + (currentUser?.id || '');
-    localStorage.setItem(pendingKey, JSON.stringify(notifs));
-    // 車通知 + 承認結果通知 + 承認待ち（主任）の合計でバッジ更新
+    const dismissed = _getDismissedNotifIds();
+    const filtered = notifs.filter(n => !dismissed.has(String(n.eventId)));
+    localStorage.setItem(pendingKey, JSON.stringify(filtered));
     const carCount = getPendingNotifs().length;
-    const approvalCount = notifs.filter(n => n.type === 'approved' || n.type === 'rejected').length;
+    const approvalCount = filtered.filter(n => n.type === 'approved' || n.type === 'rejected').length;
     const pendingApprovalCount = getPendingApprovals().length;
     updateNotifBadge(carCount + approvalCount + pendingApprovalCount);
   } catch(e) {
@@ -5908,16 +5921,17 @@ function getApprovalPendingNotifs() {
   try { return JSON.parse(localStorage.getItem(pendingKey) || '[]'); } catch { return []; }
 }
 
-async function dismissApprovalNotifLocal(eventId) {
-  if (GAS_URL) {
-    try { await api('dismissApprovalNotif', { eventId }, ''); } catch(e) { /* 無視 */ }
-  }
+function dismissApprovalNotifLocal(eventId) {
+  _addDismissedNotifId(eventId);
   const pendingKey = 'sch_approval_notif_' + (currentUser?.id || '');
   const remaining = getApprovalPendingNotifs().filter(n => String(n.eventId) !== String(eventId));
   localStorage.setItem(pendingKey, JSON.stringify(remaining));
   const carCount = getPendingNotifs().length;
-  updateNotifBadge(carCount + remaining.length);
+  updateNotifBadge(carCount + remaining.length + getPendingApprovals().length);
   renderMyPage();
+  if (GAS_URL) {
+    api('dismissApprovalNotif', { eventId }, ' ').catch(()=>{});
+  }
 }
 
 function getPendingNotifs() {
@@ -5933,7 +5947,7 @@ function dismissNotif(carEventId) {
   const pendingKey = 'sch_notif_pending_' + (currentUser?.id || '');
   const pending = getPendingNotifs().filter(e => String(e.id) !== String(carEventId));
   localStorage.setItem(pendingKey, JSON.stringify(pending));
-  updateNotifBadge(pending.length + getApprovalPendingNotifs().length + getPendingApprovals().length);
+  updateNotifBadge(pending.length + getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length + getPendingApprovals().length);
   renderMyPage();
 }
 
@@ -5943,7 +5957,7 @@ function dismissAllNotifs() {
   saveNotifSeen(seen);
   const pendingKey = 'sch_notif_pending_' + (currentUser?.id || '');
   localStorage.setItem(pendingKey, '[]');
-  updateNotifBadge(getApprovalPendingNotifs().length + getPendingApprovals().length);
+  updateNotifBadge(getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length + getPendingApprovals().length);
   renderMyPage();
 }
 
