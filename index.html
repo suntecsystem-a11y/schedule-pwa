@@ -1499,7 +1499,7 @@ ja:{
 'my.meetings':'📋 会議・打ち合わせ','my.meetings.unit':'件','my.meetings.total':'計 {time}',
 'my.out':'🚶 外出','my.out.unit':'回','my.remote':'🏠 在宅','my.remote.unit':'日',
 'my.trip':'出張','my.trip.unit':'回',
-'my.rental.current':'今借りているもの','my.rental.return':'返却する','my.rental.none':'貸出中の端末はありません',
+'my.rental.current':'貸出・予約中の端末','my.rental.return':'返却する','my.rental.none':'貸出中の端末はありません','my.rental.overdue':'⚠️ 返却期日を過ぎています',
 'my.car.recent':'直近の車予約','my.car.returned':'帰社済','my.car.out':'出中',
 'my.car.open':'🔗 Kintoneで開く','my.car.none':'車予約はありません',
 'my.rules':'📖 利用ルール',
@@ -1776,7 +1776,7 @@ vi:{
 'my.meetings':'📋 Họp','my.meetings.unit':'buổi','my.meetings.total':'Tổng {time}',
 'my.out':'🚶 Ra ngoài','my.out.unit':'lần','my.remote':'🏠 Tại nhà','my.remote.unit':'ngày',
 'my.trip':'Công tác','my.trip.unit':'lần',
-'my.rental.current':'Đang mượn','my.rental.return':'Trả lại','my.rental.none':'Không có thiết bị nào',
+'my.rental.current':'Thiết bị đang mượn/đặt','my.rental.return':'Trả lại','my.rental.none':'Không có thiết bị nào','my.rental.overdue':'⚠️ Đã quá hạn trả',
 'my.car.recent':'Đặt xe gần đây','my.car.returned':'Đã về','my.car.out':'Đang đi',
 'my.car.open':'🔗 Mở trên Kintone','my.car.none':'Chưa có đặt xe',
 'my.rules':'📖 Quy tắc sử dụng',
@@ -2045,7 +2045,7 @@ ne:{
 'my.meetings':'📋 बैठक','my.meetings.unit':'वटा','my.meetings.total':'जम्मा {time}',
 'my.out':'🚶 बाहिर','my.out.unit':'पटक','my.remote':'🏠 घरबाट','my.remote.unit':'दिन',
 'my.trip':'व्यापार यात्रा','my.trip.unit':'पटक',
-'my.rental.current':'हालको भाडा','my.rental.return':'फिर्ता गर्नुहोस्','my.rental.none':'कुनै उपकरण छैन',
+'my.rental.current':'उधारो/आरक्षित उपकरण','my.rental.return':'फिर्ता गर्नुहोस्','my.rental.none':'कुनै उपकरण छैन','my.rental.overdue':'⚠️ फिर्ता मिति बितिसक्यो',
 'my.car.recent':'भर्खरको गाडी बुकिङ','my.car.returned':'फर्किसकेको','my.car.out':'गइरहेको',
 'my.car.open':'🔗 Kintone मा खोल्नुहोस्','my.car.none':'गाडी बुकिङ छैन',
 'my.rules':'📖 प्रयोग नियमहरू',
@@ -5686,16 +5686,19 @@ function renderMyPage() {
           const [sc,bg]=stMap[e.rentalStatus]||['#78909c','#eceff1'];
           const devNames=(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、');
           const canReturn=e.rentalStatus==='貸出中';
+          const today2=fmtDate(new Date());
+          const isOverdue=canReturn&&e.rentalEnd&&e.rentalEnd<today2;
           return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
             <div style="display:flex;align-items:center;gap:10px">
               <span style="font-size:1.2em">📱</span>
               <div style="flex:1;min-width:0">
                 <div style="font-size:0.88em;font-weight:700">${esc(devNames)}</div>
                 <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${e.rentalStart||''} 〜 ${e.rentalEnd||''}</div>
+                ${isOverdue?`<div style="font-size:0.75em;color:#e53935;font-weight:700;margin-top:4px">${t('my.rental.overdue')}</div>`:''}
               </div>
               <span style="font-size:0.72em;font-weight:700;padding:3px 10px;border-radius:12px;background:${bg};color:${sc}">${e.rentalStatus}</span>
             </div>
-            ${canReturn?`<button class="btn-primary" style="width:100%;margin-top:8px;padding:8px;font-size:0.82em;background:#1565c0" onclick="returnDevice('${e.id}')">${t('my.rental.return')}</button>`:''}
+            ${canReturn?`<button class="btn-primary" style="width:100%;margin-top:8px;padding:8px;font-size:0.82em;background:${isOverdue?'#e53935':'#1565c0'}" onclick="returnDevice('${e.id}')">${t('my.rental.return')}</button>`:''}
           </div>`;
         }).join('')}
       </div>`;
