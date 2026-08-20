@@ -1073,9 +1073,9 @@ input,select{font-family:inherit;outline:none}
         <div class="ev-row-content">
           <div style="font-size:0.72em;color:var(--text2);font-weight:600;margin-bottom:3px" id="rental-dates-label">貸出期間</div>
           <div class="ev-date-block">
-            <input type="date" id="ev-rental-start" style="flex:1">
+            <input type="date" id="ev-rental-start" style="flex:1" onchange="renderRentalPicker()">
             <span class="ev-date-sep">〜</span>
-            <input type="date" id="ev-rental-end" style="flex:1">
+            <input type="date" id="ev-rental-end" style="flex:1" onchange="renderRentalPicker()">
           </div>
         </div>
       </div>
@@ -4434,9 +4434,15 @@ function renderRentalPicker(){
     const isRented=rentedDeviceIds.includes(mid);
     const isPending=pendingDeviceIds.includes(mid);
     let badge='';
-    if(isRented) badge='<span style="font-size:0.72em;background:#e53935;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">貸出中</span>';
-    else if(isPending) badge='<span style="font-size:0.72em;background:#fb8c00;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">申請中</span>';
-    const disabled=isRented&&!isSel;
+    const details=rentalDetails[mid]||[];
+    const latestDetail=details[0];
+    if(isRented) badge='<span style="font-size:0.72em;background:#e53935;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">'+t('devices.rented')+'</span>';
+    else if(isPending&&latestDetail?.status==='予約中') badge='<span style="font-size:0.72em;background:#1565c0;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">'+t('devices.reserved')+'</span>';
+    else if(isPending) badge='<span style="font-size:0.72em;background:#fb8c00;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">'+t('devices.pending')+'</span>';
+    const selStart=document.getElementById('ev-rental-start')?.value||'';
+    const selEnd=document.getElementById('ev-rental-end')?.value||selStart;
+    const hasDateOverlap=selStart&&details.some(d=>d.rentalStart&&d.rentalEnd&&selStart<=d.rentalEnd&&selEnd>=d.rentalStart&&String(d.eventId)!==String(editingId));
+    const disabled=(isRented||isPending)&&hasDateOverlap&&!isSel;
     return`<div class="people-chip${isSel?' selected':''}${disabled?' disabled':''}" style="${disabled?'opacity:.5;pointer-events:none':''}" onclick="toggleRentalItem('${mid}')">${esc(m.purpose)}<span style="font-size:0.85em;opacity:.6;margin-left:4px">(${esc(m.deviceType)})</span>${badge}</div>`;
   }).join('')||`<div style="font-size:0.82em;color:var(--text3);padding:8px 0">${t('ev.rental.none')}</div>`;
   updateRentalSummary();
