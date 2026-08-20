@@ -734,11 +734,16 @@ input,select{font-family:inherit;outline:none}
 
   <!-- 端末 -->
   <div class="content" id="tab-devices" style="display:none">
-    <div style="padding:12px 16px 0">
-      <h2 style="font-size:1.05em;font-weight:700;margin-bottom:10px" id="devices-title">📱 端末貸出</h2>
-      <div id="device-type-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px"></div>
+    <div class="cal-nav">
+      <button class="nav-arrow" onclick="navDeviceMonth(-1)">‹</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="cal-nav-title" id="device-month-title"></span>
+        <button class="today-btn" onclick="goDeviceToday()" id="device-today-btn">今日</button>
+      </div>
+      <button class="nav-arrow" onclick="navDeviceMonth(1)">›</button>
     </div>
-    <div id="device-cards" style="padding:0 16px 16px"></div>
+    <div id="device-legend" style="display:flex;gap:10px;justify-content:center;padding:0 16px 8px;flex-wrap:wrap"></div>
+    <div id="device-calendar"></div>
   </div>
 
   <!-- 車 -->
@@ -2403,6 +2408,7 @@ let rentedDeviceIds = [];
 let pendingDeviceIds = [];
 let rentalDetails = {};
 let deviceFilterCat = '';
+let deviceDate = new Date();
 
 // ===== セッション管理 =====
 function saveSession(token, user){ localStorage.setItem('sch_sess', JSON.stringify({token, user})) }
@@ -2669,6 +2675,7 @@ function demoLogin(empId, pin){
     {id:'1003',pin:'1234',name:'佐藤 次郎',dept:'開発部',isAdmin:false},
     {id:'1004',pin:'1234',name:'山田 美咲',dept:'人事部',isAdmin:false},
     {id:'1005',pin:'1234',name:'中村 健一',dept:'経理部',isAdmin:false},
+    {id:'TEST001',pin:'1234',name:'テスト太郎',dept:'製造',role:'部長',isAdmin:false},
   ];
   const user = demoUsers.find(u=>u.id===empId&&u.pin===pin);
   if(!user){ showLoginError(t('login.error')); return }
@@ -2697,6 +2704,9 @@ function initDemoData(){
     {id:'e6',type:'休暇',title:'有給休暇',date:t3,startDate:t3,endDate:t5,start:'',end:'',room:null,people:['1003'],memo:'',userId:'1003'},
     {id:'e7',type:'打ち合わせ',title:'企画会議',date:td,startDate:td,endDate:td,start:'14:00',end:'15:00',room:null,people:['1001','1003'],memo:'',userId:'1001'},
     {id:'e8',type:'外出',title:'銀行',date:td,startDate:td,endDate:td,start:'15:00',end:'16:00',room:null,people:['1002'],memo:'',userId:'1002'},
+    {id:'e9',type:'その他',title:'iPhone 15',date:td,startDate:td,endDate:t3,rentals:[{id:'1',label:'iPhone 15'}],rentalStart:td,rentalEnd:t3,rentalStatus:'貸出中',userId:'1001'},
+    {id:'e10',type:'その他',title:'ThinkPad X1',date:t1,startDate:t1,endDate:t5,rentals:[{id:'3',label:'ThinkPad X1'}],rentalStart:t1,rentalEnd:t5,rentalStatus:'予約中',userId:'1002'},
+    {id:'e11',type:'その他',title:'iPad Air',date:td,startDate:td,endDate:td,rentals:[{id:'5',label:'iPad Air'}],rentalStart:td,rentalEnd:td,rentalStatus:'申請中',userId:'1003'},
   ];
 }
 
@@ -2943,7 +2953,7 @@ function switchTab(tab, btn){
   else                { _markNoticesAsSeen(); }
   if(tab==='rooms')   renderRoomTimeline();
   if(tab==='team')    renderTeam();
-  if(tab==='devices') { loadRentalMasters().then(()=>renderDevices()); }
+  if(tab==='devices') { loadEvents().then(()=>renderDevices()); }
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
   if(tab==='elearning') { if(window._elQuizState && !confirm(t('el.exit.desc'))) return; window._elQuizState = null; loadElearningCourses(); }
@@ -3095,7 +3105,7 @@ function renderCarInUseBanner() {
 }
 
 function renderTypeLegend(){
-  const LEGEND_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','在宅','来社','その他'];
+  const LEGEND_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','在宅','来社'];
   const el = document.getElementById('type-legend');
   if(!el) return;
   el.innerHTML = LEGEND_TYPES.map(tp=>{
@@ -3462,8 +3472,8 @@ function renderTeam(){
   const isHoliday=isCompHoliday||isNatHoliday;
   const holName=_teamHol?.name||_teamNatName||'';
 
-  // 全員のステータスを優先度順に計算（パートナーは在席ボード対象外）
-  const teamUsers=USERS.filter(u=>!u.isPartner);
+  // 全員のステータスを優先度順に計算（パートナー・テストユーザーは在席ボード対象外）
+  const teamUsers=USERS.filter(u=>!u.isPartner&&!u.isTest);
   const members=teamUsers.map(u=>{
     const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&(e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id))&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
     const nowMins=timeToMins(nowTime);
@@ -4032,61 +4042,72 @@ async function loadRentalMasters(){
 
 // ===== 端末タブ =====
 function renderDevices(){
-  document.getElementById('devices-title').textContent=t('devices.title');
-  const categories=[t('devices.all'),...new Set(rentalMasters.map(m=>m.deviceType).filter(Boolean))];
-  const catValues=['',...new Set(rentalMasters.map(m=>m.deviceType).filter(Boolean))];
-  const tabsEl=document.getElementById('device-type-tabs');
-  if(tabsEl){
-    tabsEl.innerHTML=categories.map((cat,i)=>{
-      const val=catValues[i];
-      const active=deviceFilterCat===val;
-      return`<button class="people-group-chip${active?' active':''}" onclick="filterDeviceCat('${val.replace(/'/g,"\\'")}')" style="padding:6px 14px;font-size:0.82em;border-radius:16px;border:1.5px solid ${active?'var(--primary)':'var(--border)'};background:${active?'var(--primary)':'var(--card)'};color:${active?'#fff':'var(--text)'};cursor:pointer;font-family:inherit">${cat}</button>`;
-    }).join('');
+  const y=deviceDate.getFullYear(), m=deviceDate.getMonth();
+  document.getElementById('device-month-title').textContent=t('cal.month.title',{year:y,month:m+1});
+  document.getElementById('device-today-btn').textContent=t('common.today');
+  const legendEl=document.getElementById('device-legend');
+  if(legendEl){
+    const items=[
+      {label:t('devices.pending'),color:'#fb8c00'},
+      {label:t('devices.reserved'),color:'#1565c0'},
+      {label:t('devices.rented'),color:'#e53935'},
+    ];
+    legendEl.innerHTML=items.map(it=>`<span style="display:inline-flex;align-items:center;gap:4px;font-size:0.72em;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${it.color}"></span>${it.label}</span>`).join('');
   }
-  const visible=rentalMasters.filter(m=>!deviceFilterCat||m.deviceType===deviceFilterCat);
-  const cardsEl=document.getElementById('device-cards');
-  if(!cardsEl) return;
-  if(!visible.length){
-    cardsEl.innerHTML=`<div style="text-align:center;color:var(--text2);padding:40px 0;font-size:0.9em">${t('devices.empty')}</div>`;
-    return;
+  const rentalEvs=events.filter(e=>(e.rentals||[]).length>0&&e.rentalStatus&&e.rentalStatus!=='返却済'&&e.rentalStart&&e.rentalEnd);
+  const statusColor={'申請中':'#fb8c00','予約中':'#1565c0','貸出中':'#e53935'};
+  const startDay=(new Date(y,m,1).getDay()+6)%7;
+  const todayStr=fmtDate(new Date());
+  let html=`<div class="month-grid"><div class="month-header">${Array.from({length:7},(_,i)=>`<div>${tDow(i)}</div>`).join('')}</div>`;
+  for(let w=0;w<6;w++){
+    const week=Array.from({length:7},(_,d)=>new Date(y,m,1-startDay+w*7+d));
+    const wStart=fmtDate(week[0]),wEnd=fmtDate(week[6]);
+    const wEvs=rentalEvs.filter(e=>e.rentalStart<=wEnd&&e.rentalEnd>=wStart).sort((a,b)=>a.rentalStart.localeCompare(b.rentalStart));
+    const lanes=[];
+    wEvs.forEach(e=>{
+      let li=lanes.findIndex(l=>l.every(le=>le.rentalEnd<e.rentalStart||le.rentalStart>e.rentalEnd));
+      if(li===-1){if(lanes.length<4){lanes.push([e]);} return;}
+      lanes[li].push(e);
+    });
+    html+=`<div class="month-week-row">`;
+    week.forEach((day,di)=>{
+      const ds=fmtDate(day);
+      const isOther=day.getMonth()!==m;
+      html+=`<div class="month-cell"><div class="cell-num${isOther?' other-month':''}${ds===todayStr?' today':''}${di===5?' sat':''}${di===6?' sun':''}">${day.getDate()}</div></div>`;
+    });
+    html+=`<div class="ev-layer">`;
+    lanes.forEach((lane,li)=>{
+      lane.forEach(e=>{
+        const sCols=week.map(d=>fmtDate(d));
+        const sc=Math.max(0,sCols.findIndex(d=>d>=e.rentalStart));
+        const ec=Math.min(6,sCols.reduce((acc,d,i)=>d<=e.rentalEnd?i:acc,-1));
+        if(sc<0||ec<0)return;
+        const isS=e.rentalStart>=wStart,isE=e.rentalEnd<=wEnd;
+        const cls='ev-bar '+(isS&&isE?'span-solo':isS?'span-start':isE?'span-end':'span-mid');
+        const bg=statusColor[e.rentalStatus]||'#78909c';
+        const devNames=(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join(', ');
+        const user=USERS.find(u=>u.id===e.userId);
+        const label=isS?`📱 ${esc(devNames)}${user?' ('+esc(user.name)+')':''}`:'';
+        html+=`<div class="${cls}" style="left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${bg}" onclick="event.stopPropagation();openDetail('${e.id}')"><span>${label}</span></div>`;
+      });
+    });
+    html+=`</div></div>`;
   }
-  cardsEl.innerHTML=visible.map(m=>{
-    const mid=String(m.id);
-    const isRented=rentedDeviceIds.includes(mid);
-    const isPending=pendingDeviceIds.includes(mid);
-    const detail=rentalDetails[mid];
-    let statusBadge,statusColor,bgColor;
-    if(isRented){
-      statusBadge=t('devices.rented'); statusColor='#e53935'; bgColor='#ffebee';
-    } else if(isPending){
-      const st=detail?.status||'';
-      statusBadge=st==='予約中'?t('devices.reserved'):t('devices.pending'); statusColor=st==='予約中'?'#1565c0':'#fb8c00'; bgColor=st==='予約中'?'#e3f2fd':'#fff3e0';
+  html+=`</div>`;
+  const calEl=document.getElementById('device-calendar');
+  if(calEl){
+    if(!rentalEvs.length){
+      calEl.innerHTML=html+`<div style="text-align:center;color:var(--text2);padding:24px 0;font-size:0.88em">${t('devices.empty')}</div>`;
     } else {
-      statusBadge=t('devices.available'); statusColor='#43a047'; bgColor='#e8f5e9';
+      calEl.innerHTML=html;
     }
-    let detailHtml='';
-    if(detail){
-      detailHtml=`<div style="margin-top:8px;font-size:0.78em;color:var(--text2)">
-        <div>👤 ${esc(detail.userName)}</div>
-        ${detail.rentalStart?`<div>📅 ${detail.rentalStart} 〜 ${detail.rentalEnd||''}</div>`:''}
-      </div>`;
-    }
-    return`<div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;transition:box-shadow .2s">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div>
-          <div style="font-weight:700;font-size:0.95em">${esc(m.purpose)}</div>
-          <div style="font-size:0.78em;color:var(--text2);margin-top:2px">${esc(m.deviceType)}</div>
-        </div>
-        <span style="font-size:0.75em;font-weight:700;padding:3px 10px;border-radius:12px;background:${bgColor};color:${statusColor};white-space:nowrap">${statusBadge}</span>
-      </div>
-      ${detailHtml}
-    </div>`;
-  }).join('');
+  }
 }
-function filterDeviceCat(cat){
-  deviceFilterCat=cat;
+function navDeviceMonth(dir){
+  deviceDate=new Date(deviceDate.getFullYear(),deviceDate.getMonth()+dir,1);
   renderDevices();
 }
+function goDeviceToday(){deviceDate=new Date();renderDevices();}
 async function returnDevice(eventId){
   if(!confirm('この端末を返却しますか？')) return;
   try {
@@ -5585,7 +5606,7 @@ function renderMyPage() {
       </div>
       ${_calHTML}
       <div style="display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);flex-wrap:wrap">
-        ${['会議室','打ち合わせ','外出','出張','休暇','在宅'].map(k=>`<span style="font-size:0.7em;color:var(--text2);display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[k]}"></span>${tType(k)}</span>`).join('')}
+        ${['会議室','打ち合わせ','外出','出張','休暇','在宅','来社'].map(k=>`<span style="font-size:0.7em;color:var(--text2);display:flex;align-items:center;gap:3px"><span style="width:6px;height:6px;border-radius:50%;background:${STATUS_COLOR[k]}"></span>${tType(k)}</span>`).join('')}
       </div>
     </div>
 
@@ -6570,6 +6591,7 @@ calDate=new Date(); roomDate=new Date();
         {id:'1003',name:'佐藤 次郎',dept:'開発部'},
         {id:'1004',name:'山田 美咲',dept:'人事部'},
         {id:'1005',name:'中村 健一',dept:'経理部'},
+        {id:'TEST001',name:'テスト太郎',dept:'製造',role:'部長'},
       ];
       initDemoData(); // デモデータも復元する
     }
