@@ -2421,7 +2421,6 @@ let _apiAbort=null;
 let _sessionExpired=false;
 let _reloginPromise=null;
 function cancelApiRequest(){if(_apiAbort){_apiAbort.abort();_apiAbort=null}}
-let _apiSessionRetried = false;
 async function api(action, data={}, loadingMsg){
   if(!loadingMsg)loadingMsg=t('common.processing');
   showLoading(loadingMsg);
@@ -2435,20 +2434,24 @@ async function api(action, data={}, loadingMsg){
     const res = await fetch(GAS_URL, { method:'POST', body, redirect:'follow', signal:_apiAbort.signal });
     const result = await res.json();
     if (!result.ok) {
-      if (result.error === 'SESSION_EXPIRED' && !_apiSessionRetried) {
-        _apiSessionRetried = true;
-        clearSession();
-        clearTimeout(timer);clearTimeout(showCancel);
-        _apiAbort=null;
-        if(cancelBtn)cancelBtn.style.display='none';
-        hideLoading();
-        await showSessionExpiredDialog();
-        const ret = await api(action, data, loadingMsg);
-        _apiSessionRetried = false;
-        return ret;
-      }
-      _apiSessionRetried = false;
-      throw new Error(result.error || t('common.error'));
+      if (result.error === 'SESSION_EXPIRED') {
+  clearTimeout(timer);
+  clearTimeout(showCancel);
+  _apiAbort = null;
+
+  if(cancelBtn) cancelBtn.style.display = 'none';
+
+  hideLoading();
+
+  // 複数APIが同時にSESSION_EXPIREDになっても、
+  // 同じ再ログイン処理を待たせる
+  await showSessionExpiredDialog();
+
+  // 新しいtokenで元のAPIを再実行
+  return await api(action, data, loadingMsg);
+}
+
+throw new Error(result.error || t('common.error'));
     }
     return result.data;
   } catch(e){
