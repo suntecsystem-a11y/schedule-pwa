@@ -4101,10 +4101,12 @@ function renderDevices(){
     const week=Array.from({length:7},(_,d)=>new Date(y,m,1-startDay+w*7+d));
     const wStart=fmtDate(week[0]),wEnd=fmtDate(week[6]);
     const wEvs=rentalEvs.filter(e=>e.rentalStart<=wEnd&&e.rentalEnd>=wStart).sort((a,b)=>a.rentalStart.localeCompare(b.rentalStart));
+    const MAX_LANES=4;
     const lanes=[];
+    const overflow=[];
     wEvs.forEach(e=>{
       let li=lanes.findIndex(l=>l.every(le=>le.rentalEnd<e.rentalStart||le.rentalStart>e.rentalEnd));
-      if(li===-1){if(lanes.length<4){lanes.push([e]);} return;}
+      if(li===-1){if(lanes.length<MAX_LANES){lanes.push([e]);}else{overflow.push(e);} return;}
       lanes[li].push(e);
     });
     html+=`<div class="month-week-row">`;
@@ -4129,6 +4131,16 @@ function renderDevices(){
         html+=`<div class="${cls}" style="left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${bg}" onclick="event.stopPropagation();openDetail('${e.id}')"><span>${label}</span></div>`;
       });
     });
+    if(overflow.length){
+      const sCols=week.map(d=>fmtDate(d));
+      for(let di=0;di<7;di++){
+        const ds=sCols[di];
+        const dayOF=overflow.filter(e=>e.rentalStart<=ds&&e.rentalEnd>=ds);
+        if(dayOF.length){
+          html+=`<div style="position:absolute;left:${(di/7)*100}%;width:${(1/7)*100}%;top:${MAX_LANES*26}px;text-align:center;font-size:0.7em;color:var(--text2);font-weight:600;cursor:pointer" onclick="switchTab('devices')">+${dayOF.length}</div>`;
+        }
+      }
+    }
     html+=`</div></div>`;
   }
   html+=`</div>`;
