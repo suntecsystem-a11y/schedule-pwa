@@ -744,7 +744,6 @@ input,select{font-family:inherit;outline:none}
     </div>
     <div id="device-legend" style="display:flex;gap:10px;justify-content:center;padding:0 16px 8px;flex-wrap:wrap"></div>
     <div id="device-calendar"></div>
-    <div id="device-rented-list"></div>
   </div>
 
   <!-- 車 -->
@@ -1377,7 +1376,7 @@ ja:{
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
 'nav.team.short':'在席','nav.devices.short':'端末','nav.cars.short':'車',
-'devices.title':'📱 端末貸出','devices.all':'すべて','devices.available':'空き','devices.rented':'貸出中','devices.pending':'申請中','devices.reserved':'予約中','devices.empty':'端末マスタが登録されていません','devices.rented.list':'現在貸出中の端末',
+'devices.title':'📱 端末貸出','devices.all':'すべて','devices.available':'空き','devices.rented':'貸出中','devices.pending':'申請中','devices.reserved':'予約中','devices.empty':'端末マスタが登録されていません',
 // アプリ
 'app.title':'スケジュール管理',
 // ログイン
@@ -1668,7 +1667,7 @@ vi:{
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
-'devices.title':'📱 Mượn thiết bị','devices.all':'Tất cả','devices.available':'Trống','devices.rented':'Đang mượn','devices.pending':'Chờ duyệt','devices.reserved':'Đã đặt','devices.empty':'Chưa có thiết bị nào','devices.rented.list':'Thiết bị đang cho mượn',
+'devices.title':'📱 Mượn thiết bị','devices.all':'Tất cả','devices.available':'Trống','devices.rented':'Đang mượn','devices.pending':'Chờ duyệt','devices.reserved':'Đã đặt','devices.empty':'Chưa có thiết bị nào',
 'app.title':'Quản lý lịch trình',
 'login.title':'Quản lý lịch trình','login.subtitle':'Đăng nhập bằng mã nhân viên và PIN',
 'login.empId':'Mã nhân viên','login.empId.ph':'Nhập mã nhân viên','login.pin':'Mã PIN','login.pin.ph':'PIN 4 chữ số',
@@ -1937,7 +1936,7 @@ ne:{
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
-'devices.title':'📱 उपकरण भाडा','devices.all':'सबै','devices.available':'खाली','devices.rented':'भाडामा','devices.pending':'बिचाराधीन','devices.reserved':'आरक्षित','devices.empty':'कुनै उपकरण दर्ता छैन','devices.rented.list':'हाल भाडामा रहेका उपकरण',
+'devices.title':'📱 उपकरण भाडा','devices.all':'सबै','devices.available':'खाली','devices.rented':'भाडामा','devices.pending':'बिचाराधीन','devices.reserved':'आरक्षित','devices.empty':'कुनै उपकरण दर्ता छैन',
 'app.title':'तालिका व्यवस्थापन',
 'login.title':'तालिका व्यवस्थापन','login.subtitle':'कर्मचारी नम्बर र PIN ले लग इन गर्नुहोस्',
 'login.empId':'कर्मचारी नम्बर','login.empId.ph':'कर्मचारी नम्बर लेख्नुहोस्','login.pin':'PIN कोड','login.pin.ph':'४ अंकको PIN',
@@ -4102,31 +4101,6 @@ function renderDevices(){
       calEl.innerHTML=html+`<div style="text-align:center;color:var(--text2);padding:24px 0;font-size:0.88em">${t('devices.empty')}</div>`;
     } else {
       calEl.innerHTML=html;
-    }
-  }
-  const rentedListEl=document.getElementById('device-rented-list');
-  if(rentedListEl){
-    const rentedEvs=events.filter(e=>e.rentalStatus==='貸出中'&&(e.rentals||[]).length>0);
-    if(rentedEvs.length){
-      const _today=fmtDate(new Date());
-      let lh=`<div style="padding:16px 16px 8px"><div style="font-size:0.88em;font-weight:600;color:var(--text1);margin-bottom:8px">🔴 ${t('devices.rented.list')}</div>`;
-      rentedEvs.forEach(e=>{
-        const user=USERS.find(u=>u.id===e.userId);
-        const devNames=(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join(', ');
-        const isOverdue=e.rentalEnd&&e.rentalEnd<_today;
-        const s=e.rentalStart?(parseInt(e.rentalStart.slice(5,7),10)+'/'+parseInt(e.rentalStart.slice(8,10),10)):'';
-        const en=e.rentalEnd?(parseInt(e.rentalEnd.slice(5,7),10)+'/'+parseInt(e.rentalEnd.slice(8,10),10)):'';
-        lh+=`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border-radius:8px;margin-bottom:6px;font-size:0.84em;cursor:pointer;flex-wrap:wrap" onclick="openDetail('${e.id}')">`;
-        lh+=`<span style="font-weight:500">📱 ${esc(devNames)}</span>`;
-        lh+=`<span style="color:var(--text2)">${esc(user?.name||e.userId)}</span>`;
-        lh+=`<span style="color:var(--text2);font-size:0.9em">${s}〜${en}</span>`;
-        if(isOverdue) lh+=`<span style="color:#e53935;font-weight:600;font-size:0.85em">⚠️ ${t('my.rental.overdue')}</span>`;
-        lh+=`</div>`;
-      });
-      lh+=`</div>`;
-      rentedListEl.innerHTML=lh;
-    } else {
-      rentedListEl.innerHTML='';
     }
   }
 }
