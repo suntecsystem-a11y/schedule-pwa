@@ -3031,8 +3031,7 @@ function renderDashboard() {
   const total = USERS.length || 1;
   if (USERS.length) {
     USERS.forEach(u => {
-      const myEvs = events.filter(e => eventIncludesDate(e, ds) &&
-        ((e.people||[]).includes(u.id) || e.userId === u.id));
+      const myEvs = events.filter(e => eventIncludesDate(e, ds) && _isUserInEvent(e, u.id));
       const absent = yasumiUsers.has(u.id) || ['出張','休暇','休み'].some(s => myEvs.some(e => e.type === s));
       if (!absent) presentCount++;
     });
@@ -3457,6 +3456,14 @@ function renderRoomTimeline(){
 }
 
 // ===== 在席ボード =====
+// 休暇は参加者のみ（登録者は除外。ただし登録者が唯一の参加者なら本人の休暇扱い）
+function _isUserInEvent(e, uid) {
+  if (e.type === '休暇') {
+    const others = (e.people || []).filter(id => id !== e.userId);
+    return others.length > 0 ? others.includes(uid) : (e.people || []).includes(uid);
+  }
+  return (e.people || []).includes(uid) || e.userId === uid;
+}
 // 会議室・打ち合わせは時刻チェックあり、それ以外は日付のみで判定
 const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','打ち合わせ','会議中'];
 const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢'};
@@ -3479,7 +3486,7 @@ function renderTeam(){
   // 全員のステータスを優先度順に計算（パートナー・テストユーザーは在席ボード対象外）
   const teamUsers=USERS.filter(u=>!u.isPartner&&!u.isTest);
   const members=teamUsers.map(u=>{
-    const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&(e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id))&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
+    const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&_isUserInEvent(e,u.id)&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
     const nowMins=timeToMins(nowTime);
     const isNowInEvent=(e)=>{
       if(!e.start||!e.end) return true;
@@ -3582,7 +3589,7 @@ function renderTeamDeptView() {
   const teamUsers = USERS.filter(u=>!u.isPartner);
   const members = teamUsers.map(u => {
     const myEvs = events.filter(e =>
-      eventIncludesDate(e, ds) && (e.type==='休暇'?(e.people||[]).includes(u.id):((e.people||[]).includes(u.id)||e.userId===u.id)) &&
+      eventIncludesDate(e, ds) && _isUserInEvent(e, u.id) &&
       e.approvalStatus !== '申請中' && e.approvalStatus !== '否認');
     const isNowInEv=(e)=>{
       if(!e.start||!e.end) return true;
@@ -3700,7 +3707,7 @@ function openMemberDetail(userId){
   const u = USERS.find(u=>u.id===userId); if(!u) return;
   mpUserId = userId; mpDayOffset = 0;
   const ds = fmtDate(new Date());
-  const myEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
+  const myEvs = events.filter(e=>eventIncludesDate(e,ds)&&_isUserInEvent(e,userId));
   const isHol = holidays.some(h=>h.date===ds)||jpNationalHolidays(new Date().getFullYear()).has(ds);
   const status = STATUS_PRIORITY.find(s=>myEvs.some(e=>e.type===s))||(isHol?'休暇':'在席');
   const color = STATUS_COLOR[status]||'#9e9e9e';
@@ -3866,7 +3873,7 @@ function renderHome(){
       events.filter(e =>
         eventIncludesDate(e, d) && HOME_TYPES.includes(e.type) &&
         e.approvalStatus !== '否認' && e.approvalStatus !== '申請中' &&
-        (e.type==='休暇' ? (e.people||[]).includes(u.id) : (e.userId===u.id || (e.people||[]).includes(u.id)))
+        _isUserInEvent(e, u.id)
       ).forEach(e => evs.push(e));
       dayMap[d] = evs;
     });
