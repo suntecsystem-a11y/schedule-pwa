@@ -3035,11 +3035,12 @@ function renderDashboard() {
   const ds = fmtDate(now);
   const nowMins = now.getHours()*60 + now.getMinutes();
 
-  // 在席率
+  // 在席率（パートナー・テストユーザーは除外）
+  const activeUsers = USERS.filter(u => !u.isPartner && !u.isTest);
   let presentCount = 0;
-  const total = USERS.length || 1;
-  if (USERS.length) {
-    USERS.forEach(u => {
+  const total = activeUsers.length || 1;
+  if (activeUsers.length) {
+    activeUsers.forEach(u => {
       const myEvs = events.filter(e => eventIncludesDate(e, ds) && _isUserInEvent(e, u.id));
       const absent = yasumiUsers.has(u.id) || ['出張','休暇','休み'].some(s => myEvs.some(e => e.type === s));
       if (!absent) presentCount++;
@@ -5300,7 +5301,7 @@ function renderNotices() {
         <span style="font-weight:700;font-size:0.95em;flex:1">${_escHtml(n.title)}</span>
         <span style="font-size:0.75em;color:var(--text2)">${date}</span>
       </div>
-      <p style="font-size:0.88em;line-height:1.7;margin:0;white-space:pre-wrap">${_escHtml(n.body)}</p>
+      <p style="font-size:0.88em;line-height:1.7;margin:0;white-space:pre-wrap">${_linkify(_escHtml(n.body))}</p>
       ${adminBtns}
     </div>`;
   }).join('');
@@ -5459,6 +5460,9 @@ function _updateInquiryBubble(id, text) {
 
 function _escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _linkify(escaped) {
+  return escaped.replace(/https?:\/\/[^\s<&"']+/g, url => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--primary);word-break:break-all">${url}</a>`);
 }
 
 // ============================================================
