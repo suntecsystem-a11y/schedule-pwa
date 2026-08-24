@@ -1079,6 +1079,15 @@ input,select{font-family:inherit;outline:none}
           </div>
         </div>
       </div>
+      <!-- 使用目的（端末選択時に表示） -->
+      <div class="ev-row" id="rental-purpose-row" style="display:none">
+        <div class="ev-row-icon">📋</div>
+        <div class="ev-row-content">
+          <div style="font-size:0.72em;color:var(--text2);font-weight:600;margin-bottom:3px">使用目的 <span style="color:#e53935;font-size:0.9em">*</span></div>
+          <input type="text" id="ev-rental-purpose" placeholder="例：現場作業、出張先での連絡用"
+            style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;font-family:inherit;outline:none;box-sizing:border-box">
+        </div>
+      </div>
       <!-- 承認者選択（一般ユーザーの外出・出張・在宅時） -->
       <div class="ev-row" id="approver-row" style="display:none">
         <div class="ev-row-icon">👤</div>
@@ -2708,9 +2717,9 @@ function initDemoData(){
     {id:'e6',type:'休暇',title:'有給休暇',date:t3,startDate:t3,endDate:t5,start:'',end:'',room:null,people:['1003'],memo:'',userId:'1003'},
     {id:'e7',type:'打ち合わせ',title:'企画会議',date:td,startDate:td,endDate:td,start:'14:00',end:'15:00',room:null,people:['1001','1003'],memo:'',userId:'1001'},
     {id:'e8',type:'外出',title:'銀行',date:td,startDate:td,endDate:td,start:'15:00',end:'16:00',room:null,people:['1002'],memo:'',userId:'1002'},
-    {id:'e9',type:'その他',title:'iPhone 15',date:td,startDate:td,endDate:t3,rentals:[{id:'1',label:'iPhone 15'}],rentalStart:td,rentalEnd:t3,rentalStatus:'貸出中',userId:'1001'},
-    {id:'e10',type:'その他',title:'ThinkPad X1',date:t1,startDate:t1,endDate:t5,rentals:[{id:'3',label:'ThinkPad X1'}],rentalStart:t1,rentalEnd:t5,rentalStatus:'予約中',userId:'1002'},
-    {id:'e11',type:'その他',title:'iPad Air',date:td,startDate:td,endDate:td,rentals:[{id:'5',label:'iPad Air'}],rentalStart:td,rentalEnd:td,rentalStatus:'申請中',userId:'1003'},
+    {id:'e9',type:'その他',title:'iPhone 15',date:td,startDate:td,endDate:t3,rentals:[{id:'1',label:'iPhone 15'}],rentalStart:td,rentalEnd:t3,rentalStatus:'貸出中',rentalPurpose:'現場作業での写真撮影',userId:'1001'},
+    {id:'e10',type:'その他',title:'ThinkPad X1',date:t1,startDate:t1,endDate:t5,rentals:[{id:'3',label:'ThinkPad X1'}],rentalStart:t1,rentalEnd:t5,rentalStatus:'予約中',rentalPurpose:'出張先でのプレゼン',userId:'1002'},
+    {id:'e11',type:'その他',title:'iPad Air',date:td,startDate:td,endDate:td,rentals:[{id:'5',label:'iPad Air'}],rentalStart:td,rentalEnd:td,rentalStatus:'申請中',rentalPurpose:'会議での資料表示',userId:'1003'},
   ];
 }
 
@@ -3501,7 +3510,8 @@ function renderTeam(){
     const activeEvs=myEvs.filter(isNowInEvent);
     const inMeeting=activeEvs.some(e=>e.type==='会議室');
     const statusBase=STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>activeEvs.some(e=>e.type===s));
-    const status=yasumiUsers.has(u.id)?'休み':inMeeting?'会議中':(statusBase||'在席');
+    const _hasVacEv=activeEvs.some(e=>e.type==='休暇');
+    const status=(yasumiUsers.has(u.id)&&!_hasVacEv)?'休み':inMeeting?'会議中':(statusBase||'在席');
     const ev=inMeeting
       ? activeEvs.find(e=>e.type==='会議室')
       : activeEvs.find(e=>e.type===status);
@@ -3602,7 +3612,8 @@ function renderTeamDeptView() {
     const inMeeting=activeEvs.some(e=>e.type==='会議室');
     const statusBase = STATUS_PRIORITY.filter(s => s!=='会議中'&&s!=='休み')
       .find(s => activeEvs.some(e=>e.type===s));
-    const status = yasumiUsers.has(u.id) ? '休み'
+    const _hasVacEv2 = activeEvs.some(e=>e.type==='休暇');
+    const status = (yasumiUsers.has(u.id) && !_hasVacEv2) ? '休み'
       : inMeeting ? '会議中'
       : (statusBase || '在席');
     // 今日の予定（会議室含む）を時刻順
@@ -3672,7 +3683,7 @@ function renderMemberDay(){
   labelEl.style.color = dayColor;
 
   const isAdmin = currentUser.isAdmin;
-  const dayEvs = events.filter(e=>eventIncludesDate(e,ds)&&((e.people||[]).includes(userId)||e.userId===userId));
+  const dayEvs = events.filter(e=>eventIncludesDate(e,ds)&&_isUserInEvent(e,userId));
   dayEvs.sort((a,b)=>{
     const aAll = !a.start;
     const bAll = !b.start;
@@ -3709,7 +3720,9 @@ function openMemberDetail(userId){
   const ds = fmtDate(new Date());
   const myEvs = events.filter(e=>eventIncludesDate(e,ds)&&_isUserInEvent(e,userId));
   const isHol = holidays.some(h=>h.date===ds)||jpNationalHolidays(new Date().getFullYear()).has(ds);
-  const status = STATUS_PRIORITY.find(s=>myEvs.some(e=>e.type===s))||(isHol?'休暇':'在席');
+  const statusBase = STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>myEvs.some(e=>e.type===s));
+  const hasVacationEv = myEvs.some(e=>e.type==='休暇');
+  const status = yasumiUsers.has(userId)&&!hasVacationEv?'休み':(statusBase||(isHol?'休暇':'在席'));
   const color = STATUS_COLOR[status]||'#9e9e9e';
   document.getElementById('mp-avatar').textContent = STATUS_ICON[status]||u.name.slice(-1);
   document.getElementById('mp-avatar').style.background = color;
@@ -3869,12 +3882,12 @@ function renderHome(){
     const dayMap = {};
     days.forEach(d => {
       const evs = [];
-      if(d === today && yasumiUsers.has(u.id)) evs.push({type:'休み', _yasumi:true});
       events.filter(e =>
         eventIncludesDate(e, d) && HOME_TYPES.includes(e.type) &&
         e.approvalStatus !== '否認' && e.approvalStatus !== '申請中' &&
         _isUserInEvent(e, u.id)
       ).forEach(e => evs.push(e));
+      if(d === today && yasumiUsers.has(u.id) && !evs.some(e=>e.type==='休暇')) evs.unshift({type:'休み', _yasumi:true});
       dayMap[d] = evs;
     });
     const hasAny = days.some(d => dayMap[d].length > 0);
@@ -4262,6 +4275,8 @@ function openAddModal(dateStr){
   document.getElementById('rental-panel').style.display='none';
   document.getElementById('rental-toggle-icon').style.transform='';
   document.getElementById('rental-dates-row').style.display='none';
+  document.getElementById('rental-purpose-row').style.display='none';
+  document.getElementById('ev-rental-purpose').value='';
   if(document.getElementById('rental-search')) document.getElementById('rental-search').value='';
   document.getElementById('people-sched-toggle').style.transform='';
   if(document.getElementById('people-search')) document.getElementById('people-search').value='';
@@ -4288,6 +4303,7 @@ function openEditModal(id){
   selectedRentals=_normalizeRentals(e.rentals);
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
+  document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
   if(e.approvedBy&&e.approvalStatus==='申請中'){
     document.getElementById('ev-approver').value=e.approvedBy;
   } else {
@@ -4326,6 +4342,7 @@ function copyEvent(id){
   selectedRentals=_normalizeRentals(e.rentals);
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
+  document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
   document.getElementById('ev-approver').value='';
   document.getElementById('ev-repeat').value='';
   document.getElementById('repeat-end-wrap').style.display='none';
@@ -4361,6 +4378,7 @@ function onTypeChange(){
     document.getElementById('room-row').style.display='none';
     document.getElementById('rental-row').style.display='flex';
     document.getElementById('rental-dates-row').style.display='flex';
+    document.getElementById('rental-purpose-row').style.display=selectedRentals.length?'flex':'none';
   } else {
     document.getElementById('allday-row').style.display=hasAlldayToggle?'flex':'none';
     if(!hasAlldayToggle) document.getElementById('ev-allday').checked=false;
@@ -4368,6 +4386,7 @@ function onTypeChange(){
     document.getElementById('room-row').style.display=isRoom?'flex':'none';
     document.getElementById('rental-row').style.display=isRental?'flex':'none';
     document.getElementById('rental-dates-row').style.display=isRental&&selectedRentals.length?'flex':'none';
+    document.getElementById('rental-purpose-row').style.display=isRental&&selectedRentals.length?'flex':'none';
   }
   const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
   const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&currentUser.role==='一般'&&!editingApproved;
@@ -4474,6 +4493,7 @@ function toggleRentalItem(id){
   if(typ!=='その他'){
     document.getElementById('rental-dates-row').style.display=isRental&&selectedRentals.length?'flex':'none';
   }
+  document.getElementById('rental-purpose-row').style.display=selectedRentals.length?'flex':'none';
   renderRentalPicker();
 }
 function updateRentalSummary(){
@@ -4835,6 +4855,7 @@ async function doSaveEvent(){
   const rentalStart=isRental&&selectedRentals.length?document.getElementById('ev-rental-start').value:'';
   const rentalEnd=isRental&&selectedRentals.length?document.getElementById('ev-rental-end').value:'';
   if(isRental&&selectedRentals.length&&rentalStart&&rentalEnd&&rentalEnd<rentalStart){showToast(t('ev.date.order'));return}
+  if(selectedRentals.length&&!document.getElementById('ev-rental-purpose').value.trim()){showToast('使用目的を入力してください');return}
   const editApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
   const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&currentUser.role==='一般'&&!editApproved;
   const selectedApprover=needsApprover?document.getElementById('ev-approver').value:'';
@@ -4847,6 +4868,7 @@ async function doSaveEvent(){
     people:[...selectedPeople],
     rentals:isRental?[...selectedRentals]:[],
     rentalStart, rentalEnd,
+    rentalPurpose:selectedRentals.length?document.getElementById('ev-rental-purpose').value.trim():'',
     memo:document.getElementById('ev-memo').value.trim(),
     userId:editingId?(events.find(e=>e.id===editingId)?.userId||currentUser.id):currentUser.id,
     selectedApprover,
@@ -4926,6 +4948,7 @@ function openDetail(id){
       ${(e.people||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.people')}</td><td>${(e.people||[]).map(userName).join('、')}</td></tr>`:''}
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
+      ${e.rentalPurpose?`<tr><td style="color:var(--text2);padding:7px 0">使用目的</td><td>${esc(e.rentalPurpose)}</td></tr>`:''}
       ${e.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.memo')}</td><td>${esc(e.memo)}</td></tr>`:''}
       <tr><td style="color:var(--text2);padding:7px 0">${t('detail.creator')}</td><td>${userName(e.userId)}</td></tr>
       ${approvalRow}
@@ -5450,7 +5473,7 @@ function renderMyPage() {
 
   // ミニカレンダー構築
   const _cy=_mypageCM.getFullYear(),_cmo=_mypageCM.getMonth();
-  const _myAll=events.filter(e=>e.userId===currentUser.id||(e.people||[]).includes(currentUser.id));
+  const _myAll=events.filter(e=>e.approvalStatus!=='否認'&&(e.userId===currentUser.id||(e.people||[]).includes(currentUser.id)));
   const _natHol=jpNationalHolidays(_cy);
   const _natHolP=_cmo===0?jpNationalHolidays(_cy-1):_natHol;
   const _natHolN=_cmo===11?jpNationalHolidays(_cy+1):_natHol;
@@ -5649,6 +5672,7 @@ function renderMyPage() {
       const weekEnd   = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 4); weekEnd.setHours(23,59,59,999);
       const weekDates = Array.from({length:5},(_,i)=>{ const d=new Date(weekStart); d.setDate(weekStart.getDate()+i); return fmtDate(d); });
       const weekEvs = events.filter(e =>
+        e.approvalStatus!=='否認' &&
         (e.userId===currentUser.id || (e.people||[]).includes(currentUser.id)) &&
         weekDates.some(ds2 => eventIncludesDate(e, ds2))
       );
@@ -5687,7 +5711,7 @@ function renderMyPage() {
 
     <!-- 今借りている端末 -->
     ${(()=>{
-      const myRentals=events.filter(e=>(e.userId===currentUser.id)&&(e.rentals||[]).length>0&&e.rentalStatus&&e.rentalStatus!=='返却済');
+      const myRentals=events.filter(e=>e.approvalStatus!=='否認'&&(e.userId===currentUser.id)&&(e.rentals||[]).length>0&&e.rentalStatus&&e.rentalStatus!=='返却済');
       if(!myRentals.length) return '';
       return `<div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #1565c0">
         <div style="font-size:0.72em;color:#1565c0;font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.rental.current')}</div>
@@ -5704,6 +5728,7 @@ function renderMyPage() {
               <div style="flex:1;min-width:0">
                 <div style="font-size:0.88em;font-weight:700">${esc(devNames)}</div>
                 <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${e.rentalStart||''} 〜 ${e.rentalEnd||''}</div>
+                ${e.rentalPurpose?`<div style="font-size:0.75em;color:var(--text2);margin-top:2px">📋 ${esc(e.rentalPurpose)}</div>`:''}
                 ${isOverdue?`<div style="font-size:0.75em;color:#e53935;font-weight:700;margin-top:4px">${t('my.rental.overdue')}</div>`:''}
               </div>
               <span style="font-size:0.72em;font-weight:700;padding:3px 10px;border-radius:12px;background:${bg};color:${sc}">${e.rentalStatus}</span>
