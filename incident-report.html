@@ -139,6 +139,8 @@ select.form-input{appearance:none;background:white url("data:image/svg+xml,%3Csv
 <div class="topbar">
   <button class="topbar-back" onclick="goBack()" title="戻る">&#9664;</button>
   <span class="topbar-title">&#128680; インシデント報告</span>
+  <button id="btn-save-progress" onclick="saveInProgress()" title="途中保存（対応中）"
+    style="display:none;margin-left:auto;background:rgba(255,255,255,.2);color:white;font-size:0.78em;font-weight:600;padding:6px 12px;border-radius:8px">&#128190; 途中保存</button>
 </div>
 
 <div class="container">
@@ -155,12 +157,28 @@ select.form-input{appearance:none;background:white url("data:image/svg+xml,%3Csv
     </table>
   </div>
 
+  <!-- 下書き復元バナー -->
+  <div id="draft-banner" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
+    <div style="font-size:0.85em;font-weight:600;margin-bottom:8px">&#128221; 入力途中の報告書があります</div>
+    <div style="font-size:0.75em;color:var(--text2);margin-bottom:10px" id="draft-banner-info"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="padding:8px 16px;flex:0 0 auto" onclick="restoreDraft()">続きから再開</button>
+      <button class="btn btn-secondary" style="padding:8px 16px;flex:0 0 auto" onclick="discardDraft()">破棄して新規</button>
+    </div>
+  </div>
+
   <div class="progress-bar" id="progress-bar"></div>
 
   <!-- Step 0: 事案種別選択 -->
   <div class="step-card active" id="step-0">
     <div class="step-title">&#128196; 事案種別の選択</div>
     <div class="step-desc">発生したインシデントの種別を選択してください</div>
+
+    <!-- 対応中の報告書（一般以外＋管理者のみ） -->
+    <div id="resume-section" style="display:none;margin-bottom:20px">
+      <div style="font-size:0.8em;font-weight:700;color:var(--primary-dark);margin-bottom:8px">&#128260; 対応中の報告書（続きから再開）</div>
+      <div id="resume-list"></div>
+    </div>
     <div class="type-selector">
       <div class="type-card" onclick="selectType('leak')" id="type-leak">
         <span class="type-icon">&#128187;</span>
@@ -386,16 +404,25 @@ var sess = null;
 try {
   var stored = JSON.parse(localStorage.getItem('sch_sess') || 'null');
   if (stored && stored.token) {
-    sess = { token: stored.token, empId: stored.user?.empId || '', name: stored.user?.name || '' };
+    sess = {
+      token: stored.token,
+      empId: stored.user?.id || stored.user?.empId || '',
+      name: stored.user?.name || '',
+      role: stored.user?.role || '',
+      isAdmin: !!stored.user?.isAdmin,
+    };
   }
 } catch(e) { sess = null; }
 
+// 一般以外＋管理者（対応中一覧・途中保存の権限）
+function isManager() {
+  return !!(sess && (sess.isAdmin || (sess.role && sess.role !== '一般')));
+}
+
 function goBack() {
-  if (document.referrer && document.referrer.includes('index.html')) {
-    history.back();
-  } else {
-    window.location.href = 'index.html';
-  }
+  // history.back() だとindex.htmlがbfcacheから復元されて予定が再読込されない
+  // ことがあるため、常に新規ロードして初期化を走らせる
+  window.location.href = 'index.html';
 }
 
 function selectType(type) {
@@ -472,9 +499,13 @@ function selectSeverity(level) {
   document.getElementById('sev-desc-' + level).classList.add('show');
 }
 
+var _builtChecklistType = null;
 function buildChecklist() {
   var container = document.getElementById('checklist-container');
-  if (container.children.length > 0) return;
+  // 同じ種別で構築済みならスキップ。種別が変わったら作り直す
+  if (container.children.length > 0 && _builtChecklistType === incidentType) return;
+  container.innerHTML = '';
+  _builtChecklistType = incidentType;
 
   CHECKLIST.forEach(function(group) {
     var filteredItems = [];
@@ -707,6 +738,9 @@ function collectData() {
     reporterEmpId: sess?.empId || '',
     reporterName: sess?.name || '',
     checklist: collectChecklist(),
+    checklistJson: JSON.stringify(collectFormState()),
+    recordId: editingRecordId || '',
+    reportNo: editingReportNo || '',
   };
 
   CHECKLIST.forEach(function(group) {
@@ -723,12 +757,24 @@ function collectData() {
   return data;
 }
 
+// 最終保存（新規→起票 / 再開→完了）
 async function submitReport() {
+  await doSave(editingRecordId ? '完了' : '起票', true);
+}
+
+// 途中保存（対応中）：一般以外＋管理者のみ
+async function saveInProgress() {
+  if (!incidentType) { alert('先に事案種別を選択してください'); return; }
+  await doSave('対応中', false);
+}
+
+async function doSave(status, isFinal) {
   var data = collectData();
+  data.status = status;
 
   if (!GAS_URL) {
-    var no = 'DEMO-' + Date.now().toString(36).toUpperCase();
-    showDone(no);
+    if (isFinal) { clearDraft(); showDone('DEMO-' + Date.now().toString(36).toUpperCase()); }
+    else { alert('（デモ）途中保存しました'); }
     return;
   }
 
@@ -742,7 +788,15 @@ async function submitReport() {
     });
     var result = await res.json();
     if (result.error) throw new Error(result.error);
-    showDone(result.data?.reportNo || result.data?.recordId || '');
+    // 以後の保存は更新扱いにする
+    if (result.data?.recordId) editingRecordId = result.data.recordId;
+    if (result.data?.reportNo) editingReportNo = result.data.reportNo;
+    clearDraft();
+    if (isFinal) {
+      showDone(editingReportNo || result.data?.reportNo || result.data?.recordId || '');
+    } else {
+      alert('途中保存しました（対応中）。続きは対応中の一覧から再開できます。');
+    }
   } catch (e) {
     alert('保存に失敗しました: ' + e.message);
   } finally {
@@ -791,6 +845,9 @@ function resetForm() {
   incidentType = '';
   currentStep = 0;
   severity = 0;
+  editingRecordId = null;
+  editingReportNo = '';
+  clearDraft();
   document.querySelectorAll('input[type="text"],input[type="date"],input[type="datetime-local"],textarea,select').forEach(function(el) { el.value = ''; el.className = el.className.replace(/ done| na/g, ''); });
   document.querySelectorAll('.type-card').forEach(function(el) { el.classList.remove('selected'); });
   document.querySelectorAll('.severity-btn').forEach(function(el) { el.classList.remove('selected'); });
@@ -798,10 +855,200 @@ function resetForm() {
   document.getElementById('btn-start').disabled = true;
   document.getElementById('progress-bar').style.display = 'flex';
   document.getElementById('checklist-container').innerHTML = '';
+  _builtChecklistType = null;
   showStep(0);
 }
 
+// ============================================================
+// Lv1: 端末内の自動下書き（localStorage）
+// ============================================================
+var DRAFT_KEY = 'incident_draft_' + (sess?.empId || 'anon');
+var editingRecordId = null; // Lv2: Kintone再開時のレコードID
+var _draftTimer = null;
+
+function collectFormState() {
+  var state = { incidentType: incidentType, severity: severity, currentStep: currentStep, values: {} };
+  document.querySelectorAll('input, select, textarea').forEach(function(el) {
+    if (el.id) state.values[el.id] = el.value;
+  });
+  return state;
+}
+
+function applyFormState(state) {
+  if (!state) return;
+  if (state.incidentType) selectType(state.incidentType);
+  // チェックリストを先に構築してから値を復元
+  if (state.currentStep >= 2 || Object.keys(state.values || {}).some(function(k){ return k.indexOf('cl-') === 0; })) {
+    buildChecklist();
+  }
+  Object.keys(state.values || {}).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.value = state.values[id];
+    if (el.classList.contains('cl-select')) {
+      el.className = 'cl-select' + (el.value === 'done' ? ' done' : el.value === 'na' ? ' na' : '');
+    }
+  });
+  if (state.severity) selectSeverity(state.severity);
+  var step = state.currentStep || 0;
+  if (step < 0 || step > 4) step = 0;
+  showStep(step);
+}
+
+function hasContent(state) {
+  if (!state) return false;
+  if (state.incidentType) return true;
+  return Object.keys(state.values || {}).some(function(id) {
+    var v = state.values[id];
+    // 自動セットの発生日時・発生者は「入力あり」に数えない
+    if (id === 'occurred-at' || (id === 'person-involved' && v === (sess?.name || ''))) return false;
+    return v && v.trim && v.trim() !== '';
+  });
+}
+
+function saveDraft() {
+  try {
+    var state = collectFormState();
+    if (!hasContent(state)) { localStorage.removeItem(DRAFT_KEY); return; }
+    state.editingRecordId = editingRecordId;
+    state.savedAt = new Date().toISOString();
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+  } catch(e) {}
+}
+
+function scheduleSave() {
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(saveDraft, 600);
+}
+
+function loadDraft() {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch(e) { return null; }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+  document.getElementById('draft-banner').style.display = 'none';
+}
+
+function restoreDraft() {
+  var d = loadDraft();
+  if (!d) return;
+  editingRecordId = d.editingRecordId || null;
+  applyFormState(d);
+  document.getElementById('draft-banner').style.display = 'none';
+}
+
+function discardDraft() {
+  clearDraft();
+}
+
+// 入力のたびに自動保存（下書き）
+document.addEventListener('input', scheduleSave);
+document.addEventListener('change', scheduleSave);
+
+// ============================================================
+// Lv2: 対応中の報告書一覧（一般以外＋管理者のみ）
+// ============================================================
+async function loadResumeList() {
+  if (!isManager() || !GAS_URL || !sess?.token) return;
+  try {
+    var res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getIncidents', token: sess.token }),
+      redirect: 'follow',
+    });
+    var result = await res.json();
+    if (result.error) return;
+    var records = (result.data || []).filter(function(r) { return r.status === '対応中'; });
+    if (records.length === 0) return;
+
+    var listEl = document.getElementById('resume-list');
+    listEl.innerHTML = '';
+    records.forEach(function(r) {
+      var card = document.createElement('div');
+      card.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:white';
+      card.innerHTML =
+        '<div style="font-size:0.8em;font-weight:600">' + (r.summary || '（概要未入力）') + '</div>' +
+        '<div style="font-size:0.7em;color:var(--text2);margin-top:2px">' +
+          (r.reportNo || '') + ' / ' + (r.type || '') + ' / 報告者: ' + (r.reporterName || '') + '</div>';
+      card.onclick = function() { resumeIncident(r.id); };
+      listEl.appendChild(card);
+    });
+    document.getElementById('resume-section').style.display = 'block';
+  } catch(e) {}
+}
+
+async function resumeIncident(recordId) {
+  if (!GAS_URL || !sess?.token) return;
+  var overlay = document.getElementById('loading-overlay');
+  overlay.classList.add('show');
+  try {
+    var res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'getIncidentById', token: sess.token, recordId: recordId }),
+      redirect: 'follow',
+    });
+    var result = await res.json();
+    if (result.error) throw new Error(result.error);
+    populateFromRecord(result.data);
+  } catch(e) {
+    alert('読み込みに失敗しました: ' + e.message);
+  } finally {
+    overlay.classList.remove('show');
+  }
+}
+
+var editingReportNo = '';
+
+function populateFromRecord(data) {
+  editingRecordId = data.id;
+  editingReportNo = data.reportNo || '';
+  document.getElementById('resume-section').style.display = 'none';
+  document.getElementById('draft-banner').style.display = 'none';
+
+  // チェックリストJSON（フォーム全体の状態）があれば丸ごと復元
+  if (data.checklistJson) {
+    try { applyFormState(JSON.parse(data.checklistJson)); return; } catch(e) {}
+  }
+
+  // フォールバック：個別フィールドから基本情報だけ復元（JSON未保存の旧レコード）
+  selectType(data.type === '情報漏洩' ? 'leak' : 'theft');
+  buildChecklist();
+  setVal('location', data.location);
+  setVal('person-involved', data.personInvolved);
+  setVal('responder', data.responder);
+  setVal('manager', data.manager);
+  setVal('summary', data.summary);
+  var sev = parseInt((data.severity || '').replace('レベル', ''), 10);
+  if (sev) selectSeverity(sev);
+  setVal('severity-comment', data.severityComment);
+  showStep(1);
+}
+
+function setVal(id, v) {
+  var el = document.getElementById(id);
+  if (el) el.value = v || '';
+}
+
 renderProgress();
+
+// 途中保存ボタンは一般以外＋管理者のみ表示
+if (isManager()) {
+  document.getElementById('btn-save-progress').style.display = 'inline-block';
+}
+
+// 起動時：下書きがあれば復元バナー、対応中一覧を読み込み
+(function initDraft() {
+  var d = loadDraft();
+  if (hasContent(d)) {
+    var info = document.getElementById('draft-banner-info');
+    var typeLabel = d.incidentType === 'leak' ? '情報漏洩' : d.incidentType === 'theft' ? '盗難・紛失' : '種別未選択';
+    var when = d.savedAt ? formatDT(d.savedAt) : '';
+    info.textContent = typeLabel + (when ? '（最終入力: ' + when + '）' : '');
+    document.getElementById('draft-banner').style.display = 'block';
+  }
+  loadResumeList();
+})();
 
 if (sess?.name) {
   document.getElementById('person-involved').value = sess.name;
