@@ -635,7 +635,7 @@ function buildConfirmation() {
         } else if (f.tag === 'datetime-local') {
           v = formatDT(v);
         }
-        html += '<div style="font-size:0.8em;color:var(--text2);padding:2px 0 2px 20px">&#128221; ' + f.label + ': ' + v + '</div>';
+        html += '<div style="font-size:0.8em;color:var(--text2);padding:2px 0 2px 20px">&#128221; ' + esc(f.label) + ': ' + esc(v) + '</div>';
       }
     });
 
@@ -644,9 +644,9 @@ function buildConfirmation() {
     var m = val('cl-memo-' + group.step);
     if (d || p || m) {
       var parts = [];
-      if (d) parts.push(d);
-      if (p) parts.push('担当: ' + p);
-      if (m) parts.push(m);
+      if (d) parts.push(esc(d));
+      if (p) parts.push('担当: ' + esc(p));
+      if (m) parts.push(esc(m));
       html += '<div style="font-size:0.78em;color:var(--text3);font-style:italic;padding:2px 0 2px 20px">' + parts.join(' / ') + '</div>';
     }
 
@@ -659,8 +659,14 @@ function buildConfirmation() {
   body.innerHTML = html;
 }
 
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = (s == null) ? '' : String(s);
+  return d.innerHTML;
+}
+
 function sec(label, value) {
-  return '<div class="confirm-section"><div class="confirm-label">' + label + '</div><div class="confirm-value">' + (value || '（未入力）') + '</div></div>';
+  return '<div class="confirm-section"><div class="confirm-label">' + esc(label) + '</div><div class="confirm-value">' + (value ? esc(value) : '（未入力）') + '</div></div>';
 }
 
 function val(id) {
@@ -773,6 +779,7 @@ async function doSave(status, isFinal) {
   data.status = status;
 
   if (!GAS_URL) {
+    savedStatus = status;
     if (isFinal) { clearDraft(); showDone('DEMO-' + Date.now().toString(36).toUpperCase()); }
     else { alert('（デモ）途中保存しました'); }
     return;
@@ -788,6 +795,7 @@ async function doSave(status, isFinal) {
     });
     var result = await res.json();
     if (result.error) throw new Error(result.error);
+    savedStatus = status;
     // 以後の保存は更新扱いにする
     if (result.data?.recordId) editingRecordId = result.data.recordId;
     if (result.data?.reportNo) editingReportNo = result.data.reportNo;
@@ -825,7 +833,7 @@ function printReport() {
   document.getElementById('ph-who').textContent = val('person-involved');
   document.getElementById('ph-resp').textContent = val('responder');
   document.getElementById('ph-mgr').textContent = val('manager');
-  document.getElementById('ph-status').textContent = '起票';
+  document.getElementById('ph-status').textContent = savedStatus;
   document.getElementById('ph-reporter').textContent = sess?.name || '（未ログイン）';
   document.getElementById('ph-summary').textContent = val('summary');
 
@@ -847,6 +855,7 @@ function resetForm() {
   severity = 0;
   editingRecordId = null;
   editingReportNo = '';
+  savedStatus = '起票';
   clearDraft();
   document.querySelectorAll('input[type="text"],input[type="date"],input[type="datetime-local"],textarea,select').forEach(function(el) { el.value = ''; el.className = el.className.replace(/ done| na/g, ''); });
   document.querySelectorAll('.type-card').forEach(function(el) { el.classList.remove('selected'); });
@@ -856,7 +865,15 @@ function resetForm() {
   document.getElementById('progress-bar').style.display = 'flex';
   document.getElementById('checklist-container').innerHTML = '';
   _builtChecklistType = null;
+  applyDefaults();
   showStep(0);
+}
+
+function applyDefaults() {
+  if (sess?.name) document.getElementById('person-involved').value = sess.name;
+  var n = new Date();
+  n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
+  document.getElementById('occurred-at').value = n.toISOString().slice(0,16);
 }
 
 // ============================================================
@@ -864,6 +881,7 @@ function resetForm() {
 // ============================================================
 var DRAFT_KEY = 'incident_draft_' + (sess?.empId || 'anon');
 var editingRecordId = null; // Lv2: Kintone再開時のレコードID
+var savedStatus = '起票';    // 直近に保存したステータス（印刷ヘッダー用）
 var _draftTimer = null;
 
 function collectFormState() {
@@ -968,9 +986,9 @@ async function loadResumeList() {
       var card = document.createElement('div');
       card.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;cursor:pointer;background:white';
       card.innerHTML =
-        '<div style="font-size:0.8em;font-weight:600">' + (r.summary || '（概要未入力）') + '</div>' +
+        '<div style="font-size:0.8em;font-weight:600">' + (r.summary ? esc(r.summary) : '（概要未入力）') + '</div>' +
         '<div style="font-size:0.7em;color:var(--text2);margin-top:2px">' +
-          (r.reportNo || '') + ' / ' + (r.type || '') + ' / 報告者: ' + (r.reporterName || '') + '</div>';
+          esc(r.reportNo || '') + ' / ' + esc(r.type || '') + ' / 報告者: ' + esc(r.reporterName || '') + '</div>';
       card.onclick = function() { resumeIncident(r.id); };
       listEl.appendChild(card);
     });
@@ -1003,6 +1021,7 @@ var editingReportNo = '';
 function populateFromRecord(data) {
   editingRecordId = data.id;
   editingReportNo = data.reportNo || '';
+  savedStatus = data.status || '対応中';
   document.getElementById('resume-section').style.display = 'none';
   document.getElementById('draft-banner').style.display = 'none';
 
@@ -1050,12 +1069,7 @@ if (isManager()) {
   loadResumeList();
 })();
 
-if (sess?.name) {
-  document.getElementById('person-involved').value = sess.name;
-}
-var now = new Date();
-now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-document.getElementById('occurred-at').value = now.toISOString().slice(0,16);
+applyDefaults();
 </script>
 </body>
 </html>
