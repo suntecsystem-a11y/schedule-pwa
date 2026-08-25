@@ -1646,6 +1646,8 @@ ja:{
 'el.video.loading':'動画を読み込み中...',
 'el.video.fail':'動画の読み込みに失敗しました',
 'el.video.open':'ブラウザで開く',
+'el.image.loading':'画像を読み込み中...',
+'el.image.fail':'画像の読み込みに失敗しました',
 'el.no.questions':'この教材にはまだ問題が登録されていません',
 'el.back':'← 一覧に戻る',
 'el.meta':'問題数: {n} ｜ 合格ライン: {threshold}%',
@@ -1915,6 +1917,8 @@ vi:{
 'el.video.loading':'Đang tải video...',
 'el.video.fail':'Không thể tải video',
 'el.video.open':'Mở trên trình duyệt',
+'el.image.loading':'Đang tải hình ảnh...',
+'el.image.fail':'Không thể tải hình ảnh',
 'el.no.questions':'Tài liệu này chưa có câu hỏi',
 'el.back':'← Quay lại danh sách',
 'el.meta':'Số câu hỏi: {n} ｜ Điểm đạt: {threshold}%',
@@ -2184,6 +2188,8 @@ ne:{
 'el.video.loading':'भिडियो लोड गर्दै...',
 'el.video.fail':'भिडियो लोड गर्न सकिएन',
 'el.video.open':'ब्राउजरमा खोल्नुहोस्',
+'el.image.loading':'तस्बिर लोड गर्दै...',
+'el.image.fail':'तस्बिर लोड गर्न सकिएन',
 'el.no.questions':'यस सामग्रीमा अझै प्रश्नहरू छैनन्',
 'el.back':'← सूचीमा फर्कनुहोस्',
 'el.meta':'प्रश्न: {n} ｜ उत्तीर्ण रेखा: {threshold}%',
@@ -6773,9 +6779,48 @@ function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
     </div>`;
   }
   if (imageUrl) {
+    if (imageUrl.includes('sharepoint.com') || imageUrl.includes('sharepoint-df.com')) {
+      const uid = 'eli_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+      const entry = window._elVideoCache && window._elVideoCache[imageUrl];
+      const cached = entry && (Date.now() - entry.ts < 50 * 60 * 1000) ? entry.url : null;
+      if (!cached && entry) delete window._elVideoCache[imageUrl];
+      if (cached) {
+        return `<div class="el-quiz-media"><img src="${_esc(cached)}" alt="" style="max-height:${maxHeight}"></div>`;
+      }
+      setTimeout(() => _resolveElImage(uid, imageUrl, maxHeight), 0);
+      return `<div class="el-quiz-media" id="${uid}">
+        <div style="background:var(--surface-1);border-radius:var(--radius);padding:32px 16px;text-align:center;border:2px dashed var(--border)">
+          <div style="font-size:2em;margin-bottom:8px">🖼️</div>
+          <div style="font-size:0.85em;color:var(--text2)">${t('el.image.loading')}</div>
+        </div>
+      </div>`;
+    }
     return `<div class="el-quiz-media"><img src="${_esc(imageUrl)}" alt="" style="max-height:${maxHeight}"></div>`;
   }
   return '';
+}
+async function _resolveElImage(uid, shareUrl, maxHeight) {
+  const el = document.getElementById(uid);
+  if (!el) return;
+  try {
+    if (!GAS_URL) throw new Error('GAS未設定');
+    const sess = loadSession();
+    const body = JSON.stringify({ action:'getSpTempUrl', token: sess?.token, shareUrl });
+    const res = await fetch(GAS_URL, { method:'POST', body, redirect:'follow' });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'URL取得失敗');
+    if (!json.data || !json.data.url) throw new Error('URL取得失敗');
+    if (!window._elVideoCache) window._elVideoCache = {};
+    window._elVideoCache[shareUrl] = { url: json.data.url, ts: Date.now() };
+    el.innerHTML = `<img src="${_esc(json.data.url)}" alt="" style="max-height:${maxHeight}">`;
+  } catch(e) {
+    console.error('[eラーニング画像]', e.message, shareUrl);
+    el.innerHTML = `<div style="background:#fff3e0;border-radius:var(--radius);padding:16px;text-align:center;border:1px solid #ffcc02">
+      <div style="font-size:1.5em;margin-bottom:4px">⚠️</div>
+      <div style="font-size:0.82em;color:#e65100">${t('el.image.fail')}</div>
+      <button onclick="window.open('${_esc(shareUrl)}','_blank')" style="margin-top:8px;background:none;border:1px solid var(--primary);color:var(--primary);border-radius:var(--radius);padding:6px 16px;cursor:pointer;font-size:0.82em">${t('el.video.open')}</button>
+    </div>`;
+  }
 }
 async function _resolveElVideo(uid, shareUrl, maxHeight) {
   const el = document.getElementById(uid);
