@@ -6666,6 +6666,15 @@ calDate=new Date(); roomDate=new Date();
   }
 })();
 
+// bfcache（履歴キャッシュ）から復元された場合は initSession が再実行されず、
+// 予定が空のまま復元されることがある（別ページから戻ると予定が読み込めない不具合）。
+// pageshow の persisted で検知して予定を再読込する。
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted && currentUser && GAS_URL) {
+    loadEvents({ force: true });
+  }
+});
+
 
 // ============================================================
 
