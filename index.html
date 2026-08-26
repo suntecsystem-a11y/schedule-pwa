@@ -4396,9 +4396,9 @@ function onTypeChange(){
     document.getElementById('rental-purpose-row').style.display=isRental&&selectedRentals.length?'flex':'none';
   }
   const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
-  const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&currentUser.role==='一般'&&!editingApproved;
+  const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&(currentUser.role==='一般'||(typ==='在宅'&&currentUser.role==='主任'))&&!editingApproved;
   document.getElementById('approver-row').style.display=needsApprover?'flex':'none';
-  if(needsApprover)renderApproverSelect();
+  if(needsApprover)renderApproverSelect(typ);
   updateSaveButtonState();
   if(isRoom)checkRoomConflict();
   if(isRental){renderRentalPicker();updateRentalSummary();}
@@ -4507,7 +4507,7 @@ function updateRentalSummary(){
   const el=document.getElementById('rental-summary');
   if(el)el.textContent=selectedRentals.length?selectedRentals.map(r=>r.label).join('、'):t('ev.rental.none');
 }
-function renderApproverSelect(){
+function renderApproverSelect(evType){
   const sel=document.getElementById('ev-approver');if(!sel)return;
   const cur=sel.value;
   sel.innerHTML='<option value="">'+t('ev.approver.select')+'</option>';
@@ -4515,6 +4515,7 @@ function renderApproverSelect(){
   const effectiveDept=APPROVAL_DEPT_ALIAS[dept]||dept;
   const approvers=USERS.filter(u=>{
     if(!u.role||u.role==='一般'||u.id===currentUser.id) return false;
+    if(evType==='在宅'&&currentUser.role==='主任'){return u.role!=='主任';}
     if(u.role==='主任') return u.dept===effectiveDept;
     return true;
   });
@@ -4540,7 +4541,7 @@ function updateSaveButtonState(){
   const btn=document.getElementById('btn-save-event');if(!btn)return;
   const t=document.getElementById('ev-type').value;
   const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
-  const need=APPROVAL_TYPES.includes(t)&&currentUser&&currentUser.role==='一般'&&!editingApproved;
+  const need=APPROVAL_TYPES.includes(t)&&currentUser&&(currentUser.role==='一般'||(t==='在宅'&&currentUser.role==='主任'))&&!editingApproved;
   const ok=!need||!!document.getElementById('ev-approver')?.value;
   btn.disabled=!ok;
   btn.style.opacity=ok?'1':'0.4';
@@ -4864,7 +4865,7 @@ async function doSaveEvent(){
   if(isRental&&selectedRentals.length&&rentalStart&&rentalEnd&&rentalEnd<rentalStart){showToast(t('ev.date.order'));return}
   if(selectedRentals.length&&!document.getElementById('ev-rental-purpose').value.trim()){showToast('使用目的を入力してください');return}
   const editApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
-  const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&currentUser.role==='一般'&&!editApproved;
+  const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&(currentUser.role==='一般'||(type==='在宅'&&currentUser.role==='主任'))&&!editApproved;
   const selectedApprover=needsApprover?document.getElementById('ev-approver').value:'';
   if(needsApprover&&!selectedApprover){showToast(t('ev.approver.required.msg'));return}
   const ev={
