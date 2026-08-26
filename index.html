@@ -1098,6 +1098,21 @@ input,select{font-family:inherit;outline:none}
           </select>
         </div>
       </div>
+      <!-- Teams会議リンク -->
+      <div class="ev-row" id="teams-link-row" style="display:none">
+        <div class="ev-row-icon">📹</div>
+        <div class="ev-row-content" style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:0.92em">Teams会議リンクを生成</span>
+          <label style="position:relative;width:44px;height:24px;cursor:pointer">
+            <input type="checkbox" id="ev-teams-link" style="opacity:0;width:0;height:0">
+            <span style="position:absolute;inset:0;background:var(--border);border-radius:12px;transition:.2s"></span>
+            <span id="teams-knob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+          </label>
+        </div>
+      </div>
+      <div id="teams-url-display" style="display:none;padding:4px 16px 10px 52px">
+        <a id="teams-url-link" href="#" target="_blank" style="font-size:0.82em;color:var(--primary);word-break:break-all"></a>
+      </div>
       <!-- メモ -->
       <div class="ev-row">
         <div class="ev-row-icon">📝</div>
@@ -4287,6 +4302,8 @@ function openAddModal(dateStr){
   if(document.getElementById('rental-search')) document.getElementById('rental-search').value='';
   document.getElementById('people-sched-toggle').style.transform='';
   if(document.getElementById('people-search')) document.getElementById('people-search').value='';
+  document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();
+  document.getElementById('teams-url-display').style.display='none';
   onTypeChange();renderPeoplePicker();renderRoomPicker();
   updatePeopleSummary();renderPeopleSchedule();
   openModal('add-modal-backdrop');
@@ -4315,6 +4332,14 @@ function openEditModal(id){
     document.getElementById('ev-approver').value=e.approvedBy;
   } else {
     document.getElementById('ev-approver').value='';
+  }
+  document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();
+  if(e.teamsUrl){
+    document.getElementById('teams-url-display').style.display='block';
+    const link=document.getElementById('teams-url-link');
+    link.href=e.teamsUrl;link.textContent='📹 '+e.teamsUrl.substring(0,60)+'…';
+  } else {
+    document.getElementById('teams-url-display').style.display='none';
   }
   document.getElementById('repeat-row').style.display='none';
   document.getElementById('ev-repeat').value='';
@@ -4402,8 +4427,19 @@ function onTypeChange(){
   updateSaveButtonState();
   if(isRoom)checkRoomConflict();
   if(isRental){renderRentalPicker();updateRentalSummary();}
+  const showTeams=['会議室','打ち合わせ','来社'].includes(typ);
+  document.getElementById('teams-link-row').style.display=showTeams?'flex':'none';
+  if(!showTeams){document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();}
 }
 function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); }
+function updateTeamsToggle(){
+  const c=document.getElementById('ev-teams-link').checked;
+  const knob=document.getElementById('teams-knob');
+  const bg=document.getElementById('ev-teams-link').nextElementSibling;
+  if(knob) knob.style.left=c?'22px':'2px';
+  if(bg) bg.style.background=c?'var(--primary)':'var(--border)';
+}
+document.getElementById('ev-teams-link').addEventListener('change',updateTeamsToggle);
 function updateAlldayToggleVisual(){
   const c=document.getElementById('ev-allday').checked;
   const knob=document.getElementById('allday-knob');
@@ -4882,6 +4918,7 @@ async function doSaveEvent(){
     selectedApprover,
     repeat:isOther?'':(document.getElementById('ev-repeat').value||''),
     repeatEnd:isOther?'':(document.getElementById('ev-repeat-end').value||''),
+    teamsLink:document.getElementById('ev-teams-link').checked,
   };
 
   if(!GAS_URL){
@@ -4905,6 +4942,7 @@ async function doSaveEvent(){
       savedMsg=t('ev.repeat.result',{n:total});
       if(result.repeatSkipped>0) savedMsg+=t('ev.repeat.skip',{n:result.repeatSkipped});
     }
+    if(result.teamsUrl) savedMsg+=' 📹 Teams会議リンク生成済み';
     showToast(savedMsg);
   } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
@@ -4957,6 +4995,7 @@ function openDetail(id){
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
       ${e.rentalPurpose?`<tr><td style="color:var(--text2);padding:7px 0">使用目的</td><td>${esc(e.rentalPurpose)}</td></tr>`:''}
+      ${e.teamsUrl?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(e.teamsUrl)}" target="_blank" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
       ${e.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.memo')}</td><td>${esc(e.memo)}</td></tr>`:''}
       <tr><td style="color:var(--text2);padding:7px 0">${t('detail.creator')}</td><td>${userName(e.userId)}</td></tr>
       ${approvalRow}
