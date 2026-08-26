@@ -4943,6 +4943,7 @@ async function doSaveEvent(){
       if(result.repeatSkipped>0) savedMsg+=t('ev.repeat.skip',{n:result.repeatSkipped});
     }
     if(result.teamsUrl) savedMsg+=' 📹 Teams会議リンク生成済み';
+    if(result.teamsError){ showToast('⚠️ Teams: '+result.teamsError); console.error('Teams error:',result.teamsError); }
     showToast(savedMsg);
   } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
