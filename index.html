@@ -204,8 +204,9 @@ input,select{font-family:inherit;outline:none}
 .month-cell{border-right:1px solid var(--border);padding:4px 3px 0;cursor:pointer;position:relative}
 .month-cell:last-child{border-right:none}
 .month-cell:hover{background:#f9f9ff}
+.month-cell.today{background:var(--primary-light)}
 .cell-num{font-size:0.75em;font-weight:600;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.cell-num.today{background:var(--primary);color:white}
+.cell-num.today{color:var(--primary);font-weight:700}
 .cell-num.other-month{color:var(--text3)}
 .cell-num.sat{color:var(--blue)}
 .cell-num.sun{color:var(--red)}
@@ -233,8 +234,9 @@ input,select{font-family:inherit;outline:none}
 .mini-c{border-right:1px solid var(--border);padding:2px 1px 0;cursor:pointer;position:relative}
 .mini-c:nth-child(7){border-right:none}
 .mini-c:hover{background:#f9f9ff}
+.mini-c.today{background:var(--primary-light)}
 .mini-n{font-size:0.68em;font-weight:600;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.mini-n.today{background:var(--primary);color:white}
+.mini-n.today{color:var(--primary);font-weight:700}
 .mini-n.sel{background:var(--primary);color:white;font-weight:700;box-shadow:0 0 0 2px var(--primary-light)}
 .mini-n.other{color:var(--text3)}
 .mini-n.sat{color:var(--blue)}
@@ -266,6 +268,7 @@ input,select{font-family:inherit;outline:none}
 .week-time-col{display:flex;flex-direction:column}
 .week-time-label{height:48px;font-size:0.68em;color:var(--text2);display:flex;align-items:flex-start;justify-content:center;padding-top:2px;border-bottom:1px solid var(--border);box-sizing:border-box}
 .week-day-col{border-left:1px solid var(--border);position:relative;cursor:pointer}
+.week-day-col.today,.week-allday-cell.today,.week-leave-cell.today{background:var(--primary-light)}
 .week-hour-line{height:48px;border-bottom:1px solid var(--border);box-sizing:border-box}
 .week-event{position:absolute;border-radius:4px;padding:3px 4px;font-size:0.65em;color:white;overflow:hidden;z-index:2;cursor:pointer;white-space:normal;word-break:break-word;line-height:1.3;box-sizing:border-box;border-right:2px solid rgba(255,255,255,0.4)}
 
@@ -3206,7 +3209,7 @@ function renderMonth(){
       const _nm=day.getMonth()<m?_natMapPrev:day.getMonth()>m?_natMapNext:_natMap;
       const natHName=_nm.get(ds);const natH=!!natHName;
       const anyHol=hol||natH;const holLabel=hol?.name||natHName||'';
-      html+=`<div class="month-cell${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
+      html+=`<div class="month-cell${isToday?' today':''}${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
         <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6?' sun':''}${anyHol?' holiday':''}">${day.getDate()}</div>
         ${holLabel?`<span class="holiday-name">${esc(holLabel)}</span><span class="holiday-short">${esc(shortHolName(holLabel))}</span>`:''}
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">${t('cal.overflow',{n:ov.overflow})}</div>`:''}
@@ -3268,8 +3271,8 @@ function renderWeek(){
   if(alldayEvs.length){
     html+=`<div class="week-allday-row"><div class="week-allday-label">${t('common.allday')}</div>`;
     days.forEach(day=>{
-      const ds=fmtDate(day);
-      html+=`<div class="week-allday-cell">${alldayEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
+      const ds=fmtDate(day);const isT=ds===todayStr;
+      html+=`<div class="week-allday-cell${isT?' today':''}">${alldayEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
         const ip=e.approvalStatus==='申請中';
         const wStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
         return`<div class="week-allday-bar" style="${wStyle}" onclick="openDetail('${e.id}')">${ip?t('cal.pending'):''}${typeIcon(e.type)}${esc(e.title||e.type)}</div>`;
@@ -3280,8 +3283,8 @@ function renderWeek(){
   if(leaveEvs.length){
     html+=`<div class="week-leave-row"><div class="week-leave-label">${t('common.leave')}</div>`;
     days.forEach(day=>{
-      const ds=fmtDate(day);
-      html+=`<div class="week-leave-cell">${leaveEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
+      const ds=fmtDate(day);const isT=ds===todayStr;
+      html+=`<div class="week-leave-cell${isT?' today':''}">${leaveEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
         const ip=e.approvalStatus==='申請中';
         const wStyle=ip?`background:${STATUS_COLOR[e.type]}44;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]}`:`background:${STATUS_COLOR[e.type]}`;
         return`<div class="week-leave-bar" style="${wStyle}" onclick="openDetail('${e.id}')">${ip?t('cal.pending'):''}${typeIcon(e.type)}${esc(e.title||e.type)} ${esc(e.userName||'')}</div>`;
@@ -3293,7 +3296,7 @@ function renderWeek(){
   html+=`<div class="week-body">`;
   html+=`<div class="week-time-col">${Array.from({length:TOTAL_H},(_,i)=>`<div class="week-time-label">${START_H+i}:00</div>`).join('')}</div>`;
   days.forEach(day=>{
-    const ds=fmtDate(day);
+    const ds=fmtDate(day);const isT=ds===todayStr;
     const dayEvs=filtered.filter(e=>e.start&&e.end&&e.date===ds&&!WEEK_LEAVE_TYPES.includes(e.type)&&!isMultiDay(e));
     const evRects=dayEvs.map(e=>{
       const sm=timeToMins(e.start), em=timeToMins(e.end);
@@ -3330,7 +3333,7 @@ function renderWeek(){
         r.span=span;
       });
     });
-    html+=`<div class="week-day-col" onclick="onCellClick('${ds}')">`;
+    html+=`<div class="week-day-col${isT?' today':''}" onclick="onCellClick('${ds}')">`;
     html+=Array.from({length:TOTAL_H},()=>`<div class="week-hour-line"></div>`).join('');
     evRects.forEach(r=>{
       const e=r.e, ip=e.approvalStatus==='申請中';
@@ -5564,7 +5567,7 @@ function renderMyPage() {
       const nN=nm.get(ds),nH=!!nN,anyH=hol||nH;const holLbl=hol?.name||nN||'';
       let nc='mini-n';if(isSel)nc+=' sel';else if(isTd)nc+=' today';if(isO)nc+=' other';
       if(!isSel&&!isTd){if(di===5)nc+=' sat';if(di===6||anyH)nc+=' sun hol';}
-      _calHTML+=`<div class="mini-c${hol&&!nH?' comp-hol':''}" onclick="mypageSelectDate('${ds}')"${hol?` style="background:#fff0f0"`:''}>
+      _calHTML+=`<div class="mini-c${isTd?' today':''}${hol&&!nH?' comp-hol':''}" onclick="mypageSelectDate('${ds}')"${hol?` style="background:#fff0f0"`:''}>
         <div class="${nc}">${day.getDate()}</div>
         ${holLbl?`<span class="mini-hol">${esc(shortHolName(holLbl))}</span>`:''}
         ${cOv[di].overflow>0?`<div class="mini-more">${t('cal.overflow',{n:cOv[di].overflow})}</div>`:''}
