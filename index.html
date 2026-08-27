@@ -1098,6 +1098,14 @@ input,select{font-family:inherit;outline:none}
           </select>
         </div>
       </div>
+      <!-- 在宅申請理由（在宅選択時のみ表示） -->
+      <div class="ev-row" id="remote-reason-row" style="display:none">
+        <div class="ev-row-icon">📝</div>
+        <div class="ev-row-content">
+          <div class="ev-row-label">申請理由</div>
+          <textarea id="ev-remote-reason" rows="2" placeholder="在宅勤務の理由を入力" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;font-family:inherit;resize:vertical;background:white;color:var(--text)"></textarea>
+        </div>
+      </div>
       <!-- Teams会議リンク -->
       <div class="ev-row" id="teams-link-row" style="display:none">
         <div class="ev-row-icon">📹</div>
@@ -2732,7 +2740,7 @@ function initDemoData(){
   events=[
     {id:'e1',type:'会議室',title:'週次MTG',date:td,startDate:td,endDate:td,start:'10:00',end:'11:00',room:'1階会議室',people:['1001','1002','1003'],memo:'',userId:'1001'},
     {id:'e2',type:'出張',title:'東京出張',date:td,startDate:td,endDate:t3,start:'',end:'',room:null,people:['1004'],memo:'新幹線利用',userId:'1004'},
-    {id:'e3',type:'在宅',title:'在宅勤務',date:td,startDate:td,endDate:t1,start:'',end:'',room:null,people:['1005'],memo:'',userId:'1005'},
+    {id:'e3',type:'在宅',title:'在宅勤務',date:td,startDate:td,endDate:t1,start:'',end:'',room:null,people:['1005'],memo:'',remoteReason:'体調不良のため自宅作業',userId:'1005'},
     {id:'e4',type:'会議室',title:'採用面談',date:t1,startDate:t1,endDate:t1,start:'14:00',end:'15:00',room:'2階会議室',people:['1004','1002'],memo:'',userId:'1004'},
     {id:'e5',type:'外出',title:'取引先訪問',date:t1,startDate:t1,endDate:t1,start:'13:00',end:'17:00',room:null,people:['1001'],memo:'株式会社○○',userId:'1001'},
     {id:'e6',type:'休暇',title:'有給休暇',date:t3,startDate:t3,endDate:t5,start:'',end:'',room:null,people:['1003'],memo:'',userId:'1003'},
@@ -4299,6 +4307,8 @@ function openAddModal(dateStr){
   document.getElementById('rental-dates-row').style.display='none';
   document.getElementById('rental-purpose-row').style.display='none';
   document.getElementById('ev-rental-purpose').value='';
+  document.getElementById('remote-reason-row').style.display='none';
+  document.getElementById('ev-remote-reason').value='';
   if(document.getElementById('rental-search')) document.getElementById('rental-search').value='';
   document.getElementById('people-sched-toggle').style.transform='';
   if(document.getElementById('people-search')) document.getElementById('people-search').value='';
@@ -4328,6 +4338,7 @@ function openEditModal(id){
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
   document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
+  document.getElementById('ev-remote-reason').value=e.remoteReason||'';
   if(e.approvedBy&&e.approvalStatus==='申請中'){
     document.getElementById('ev-approver').value=e.approvedBy;
   } else {
@@ -4375,6 +4386,7 @@ function copyEvent(id){
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
   document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
+  document.getElementById('ev-remote-reason').value=e.remoteReason||'';
   document.getElementById('ev-approver').value='';
   document.getElementById('ev-repeat').value='';
   document.getElementById('repeat-end-wrap').style.display='none';
@@ -4424,6 +4436,7 @@ function onTypeChange(){
   const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&(currentUser.role==='一般'||(typ==='在宅'&&currentUser.role==='主任'))&&!editingApproved;
   document.getElementById('approver-row').style.display=needsApprover?'flex':'none';
   if(needsApprover)renderApproverSelect(typ);
+  document.getElementById('remote-reason-row').style.display=typ==='在宅'?'flex':'none';
   updateSaveButtonState();
   if(isRoom)checkRoomConflict();
   if(isRental){renderRentalPicker();updateRentalSummary();}
@@ -4913,6 +4926,7 @@ async function doSaveEvent(){
     rentals:isRental?[...selectedRentals]:[],
     rentalStart, rentalEnd,
     rentalPurpose:selectedRentals.length?document.getElementById('ev-rental-purpose').value.trim():'',
+    remoteReason:type==='在宅'?document.getElementById('ev-remote-reason').value.trim():'',
     memo:document.getElementById('ev-memo').value.trim(),
     userId:editingId?(events.find(e=>e.id===editingId)?.userId||currentUser.id):currentUser.id,
     selectedApprover,
@@ -4996,6 +5010,7 @@ function openDetail(id){
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
       ${e.rentalPurpose?`<tr><td style="color:var(--text2);padding:7px 0">使用目的</td><td>${esc(e.rentalPurpose)}</td></tr>`:''}
+      ${e.remoteReason&&(e.userId===currentUser.id||e.approvedBy===currentUser.id)?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
       ${e.teamsUrl?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(e.teamsUrl)}" target="_blank" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
       ${e.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.memo')}</td><td>${esc(e.memo)}</td></tr>`:''}
       <tr><td style="color:var(--text2);padding:7px 0">${t('detail.creator')}</td><td>${userName(e.userId)}</td></tr>
