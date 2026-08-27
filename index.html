@@ -1538,6 +1538,7 @@ ja:{
 'my.car.recent':'直近の車予約','my.car.returned':'帰社済','my.car.out':'出中',
 'my.car.open':'🔗 Kintoneで開く','my.car.none':'車予約はありません',
 'my.rules':'📖 利用ルール',
+'fb.title':'💡 意見箱','fb.desc':'アプリの改善案・修正案・アイディアをお寄せください','fb.cat':'種類','fb.cat.improve':'改善案','fb.cat.bug':'不具合報告','fb.cat.other':'その他','fb.placeholder':'例：カレンダーに祝日を色分け表示してほしい','fb.anon':'匿名で送信する','fb.submit':'送信する','fb.empty':'内容を入力してください','fb.thanks':'ご意見ありがとうございます！',
 // お知らせ
 'notice.title':'📢 お知らせ','notice.post':'お知らせを投稿','notice.edit.title':'お知らせを編集',
 'notice.importance':'重要度','notice.normal':'通常','notice.important':'🔶 重要','notice.urgent':'🔴 緊急',
@@ -1817,6 +1818,7 @@ vi:{
 'my.car.recent':'Đặt xe gần đây','my.car.returned':'Đã về','my.car.out':'Đang đi',
 'my.car.open':'🔗 Mở trên Kintone','my.car.none':'Chưa có đặt xe',
 'my.rules':'📖 Quy tắc sử dụng',
+'fb.title':'💡 Hộp góp ý','fb.desc':'Hãy gửi ý tưởng, đề xuất cải tiến hoặc sửa lỗi cho ứng dụng','fb.cat':'Loại','fb.cat.improve':'Đề xuất cải tiến','fb.cat.bug':'Báo lỗi','fb.cat.other':'Khác','fb.placeholder':'Ví dụ: Muốn hiển thị ngày lễ bằng màu trên lịch','fb.anon':'Gửi ẩn danh','fb.submit':'Gửi','fb.empty':'Vui lòng nhập nội dung','fb.thanks':'Cảm ơn ý kiến của bạn!',
 'notice.title':'📢 Thông báo','notice.post':'Đăng thông báo','notice.edit.title':'Sửa thông báo',
 'notice.importance':'Mức độ','notice.normal':'Bình thường','notice.important':'🔶 Quan trọng','notice.urgent':'🔴 Khẩn cấp',
 'notice.title.label':'Tiêu đề','notice.title.ph':'Nhập tiêu đề',
@@ -2088,6 +2090,7 @@ ne:{
 'my.car.recent':'भर्खरको गाडी बुकिङ','my.car.returned':'फर्किसकेको','my.car.out':'गइरहेको',
 'my.car.open':'🔗 Kintone मा खोल्नुहोस्','my.car.none':'गाडी बुकिङ छैन',
 'my.rules':'📖 प्रयोग नियमहरू',
+'fb.title':'💡 सुझाव पेटी','fb.desc':'एपको सुधार, समाधान वा नयाँ विचार पठाउनुहोस्','fb.cat':'प्रकार','fb.cat.improve':'सुधार सुझाव','fb.cat.bug':'त्रुटि रिपोर्ट','fb.cat.other':'अन्य','fb.placeholder':'उदाहरण: क्यालेन्डरमा बिदाहरू रङले देखाउनुहोस्','fb.anon':'गुमनाम रूपमा पठाउनुहोस्','fb.submit':'पठाउनुहोस्','fb.empty':'कृपया सामग्री लेख्नुहोस्','fb.thanks':'तपाईंको सुझावको लागि धन्यवाद!',
 'notice.title':'📢 सूचना','notice.post':'सूचना पोस्ट','notice.edit.title':'सूचना सम्पादन',
 'notice.importance':'महत्त्व','notice.normal':'सामान्य','notice.important':'🔶 महत्त्वपूर्ण','notice.urgent':'🔴 अत्यावश्यक',
 'notice.title.label':'शीर्षक','notice.title.ph':'शीर्षक लेख्नुहोस्',
@@ -5001,6 +5004,13 @@ function openDetail(id){
        ${e.rejectionReason?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.reject.reason')}</td><td style="color:#c62828">${esc(e.rejectionReason)}</td></tr>`:''}`
     : '';
 
+  // 承認権限の判定（申請理由表示・承認ボタンの両方で使用）
+  const applicant = USERS.find(u => u.id === e.userId);
+  const canApprove = e.approvalStatus === '申請中'
+    && e.userId !== currentUser.id
+    && !!applicant
+    && canApproveDept(applicant.dept, e.approvedBy);
+
   document.getElementById('detail-content').innerHTML=`
     <div style="margin-bottom:12px"><span style="font-size:2em">${typeIcon(e.type)}</span>
       <span class="status-badge status-${e.type}" style="margin-left:8px;font-size:0.85em">${tType(e.type)}</span></div>
@@ -5013,19 +5023,12 @@ function openDetail(id){
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
       ${e.rentalPurpose?`<tr><td style="color:var(--text2);padding:7px 0">使用目的</td><td>${esc(e.rentalPurpose)}</td></tr>`:''}
-      ${e.remoteReason&&(e.userId===currentUser.id||e.approvedBy===currentUser.id||(()=>{const _ap=USERS.find(u=>u.id===e.userId);return _ap&&canApproveDept(_ap.dept,e.approvedBy)})())?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
+      ${e.remoteReason&&(String(e.userId)===String(currentUser.id)||String(e.approvedBy)===String(currentUser.id)||canApprove)?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
       ${e.teamsUrl?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(e.teamsUrl)}" target="_blank" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
       ${e.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.memo')}</td><td>${esc(e.memo)}</td></tr>`:''}
       <tr><td style="color:var(--text2);padding:7px 0">${t('detail.creator')}</td><td>${userName(e.userId)}</td></tr>
       ${approvalRow}
     </table>`;
-
-  // 承認ボタンの表示判定：承認権限あり & 申請中（主任不在部署の委譲を考慮）
-  const applicant = USERS.find(u => u.id === e.userId);
-  const canApprove = e.approvalStatus === '申請中'
-    && e.userId !== currentUser.id
-    && !!applicant
-    && canApproveDept(applicant.dept, e.approvedBy);
 
   let actionsHTML = '';
   const copyBtn = `<button class="btn-outline" onclick="copyEvent('${id}')" style="font-size:0.85em">${t('detail.copy')}</button>`;
@@ -5893,7 +5896,40 @@ function renderMyPage() {
 
       </div>
     </div>
+
+    <!-- 意見箱 -->
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid var(--primary)">
+      <div style="font-size:0.9em;font-weight:700;color:var(--primary);margin-bottom:3px">${t('fb.title')}</div>
+      <div style="font-size:0.76em;color:var(--text2);margin-bottom:10px">${t('fb.desc')}</div>
+      <select id="fb-category" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85em;font-family:inherit;background:white;color:var(--text);margin-bottom:8px">
+        <option value="改善案">${t('fb.cat.improve')}</option>
+        <option value="不具合報告">${t('fb.cat.bug')}</option>
+        <option value="その他">${t('fb.cat.other')}</option>
+      </select>
+      <textarea id="fb-content" rows="3" placeholder="${t('fb.placeholder')}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85em;font-family:inherit;box-sizing:border-box;resize:vertical;outline:none"></textarea>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.8em;color:var(--text2);margin:8px 0">
+        <input type="checkbox" id="fb-anon" style="width:16px;height:16px">${t('fb.anon')}
+      </label>
+      <button class="btn-primary" style="width:100%;padding:9px;font-size:0.85em" onclick="submitFeedback()">${t('fb.submit')}</button>
+    </div>
   `;
+}
+
+async function submitFeedback(){
+  const content=document.getElementById('fb-content').value.trim();
+  if(!content){ showToast(t('fb.empty')); return }
+  const feedback={
+    category:document.getElementById('fb-category').value,
+    content,
+    anonymous:document.getElementById('fb-anon').checked,
+  };
+  if(!GAS_URL){ showToast(t('fb.thanks')); document.getElementById('fb-content').value=''; return }
+  try {
+    await api('saveFeedback', {feedback}, t('common.saving'));
+    document.getElementById('fb-content').value='';
+    document.getElementById('fb-anon').checked=false;
+    showToast(t('fb.thanks'));
+  } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
 
 function mypageCalNav(dir){_mypageCM=new Date(_mypageCM.getFullYear(),_mypageCM.getMonth()+dir,1);renderMyPage()}
