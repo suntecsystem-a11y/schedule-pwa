@@ -52,21 +52,6 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .card:active { opacity: .8; }
 .card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
 .card-sub   { font-size: 13px; color: var(--text-sub); }
-.rental-check-group { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 12px; margin-bottom: 8px; max-height: 150px; overflow-y: auto; }
-.rental-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.rental-filter-chip { padding: 5px 12px; border-radius: 16px; border: 1px solid var(--border); background: var(--card); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all .15s; }
-.rental-filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-.rental-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; max-height: 260px; overflow-y: auto; padding: 2px; }
-.rental-card { border: 2px solid var(--border); border-radius: var(--radius); padding: 10px; cursor: pointer; transition: all .15s; user-select: none; text-align: center; }
-.rental-card:hover { border-color: var(--primary); }
-.rental-card.selected { border-color: var(--primary); background: #e3f2fd; }
-.rental-card.rented { opacity: .45; cursor: not-allowed; border-style: dashed; }
-.rental-card.rented:hover { border-color: var(--border); }
-.rental-card-icon { font-size: 24px; margin-bottom: 4px; }
-.rental-card-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
-.rental-card-status { font-size: 11px; margin-top: 4px; }
-.rental-card-status.available { color: var(--success); }
-.rental-card-status.rented { color: var(--danger); font-weight: 600; }
 
 /* バッジ */
 .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; }
@@ -192,7 +177,6 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div class="filter-bar" id="mine-filter-bar">
       <select id="mine-filter-type" onchange="applyMineFilter()">
         <option value="">すべての種別</option>
-        <option value="rental">📱 端末貸出</option>
       </select>
       <select id="mine-filter-status" onchange="applyMineFilter()">
         <option value="">すべてのステータス</option>
@@ -218,7 +202,6 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div class="filter-bar">
       <select id="filter-type" onchange="applyFilter()">
         <option value="">すべての種別</option>
-        <option value="rental">📱 端末貸出</option>
       </select>
       <select id="filter-status" onchange="applyFilter()">
         <option value="">すべてのステータス</option>
@@ -256,10 +239,9 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <label>申請種別</label>
     <select id="new-type" onchange="renderNewFields()">
       <option value="">選択してください</option>
-      <option value="rental">📱 端末貸出</option>
-      <option disabled>💴 出張費精算（準備中）</option>
-      <option disabled>📝 その他申請（準備中）</option>
-      <option disabled>📝 従業員情報変更届（準備中）</option>
+      <option value="expense">💴 出張費精算</option>
+      <option value="other">📝 その他申請</option>
+      <option value="change">📝 従業員情報変更届</option>
     </select>
     <div id="new-type-fields"></div>
     <div class="modal-footer">
@@ -537,7 +519,6 @@ async function loadTab(name) {
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
-        ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
         ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       const summaryEl = document.getElementById('mine-summary');
@@ -567,7 +548,6 @@ async function loadTab(name) {
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
-        ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
         ...(expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
       ];
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
@@ -580,7 +560,6 @@ async function loadTab(name) {
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
-        ...((applyAll && applyAll.rental) || []).map(r => ({ ...r, _appType: 'rental' })),
         ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
@@ -689,7 +668,7 @@ function renderList(el, records, opts) {
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
           <div class="card-sub">${esc(r.applicantName || r.applicantId)} ・ ${esc(r.applicationDate || r.appliedAt || '')}</div>
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${esc(r.destination || '')}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
-          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'rental') { const devs = c.devices ? c.devices.map(d => esc(d.label)).join(' / ') : [c.pc, c.mobile].filter(Boolean).map(s => esc(s)).join(' / '); const overdue = r.approvalStatus === '承認済' && !c.returnedAt && c.end && c.end < new Date().toISOString().slice(0,10); return `<div class="card-sub">${devs}${c.start ? ' ' + esc(c.start) + '〜' + esc(c.end) : ''}</div>${c.returnedAt ? `<div class="card-sub" style="color:var(--success);">✅ 返却済（${esc(c.returnedAt)}）</div>` : ''}${overdue ? `<div class="card-sub" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</div>` : ''}`; } const timeInfo = c.allDay === false && c.startTime ? ` ${esc(c.startTime)}〜${esc(c.endTime)}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${esc(c.title || '')}${c.start ? esc(c.start) + '〜' + esc(c.end) + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); const timeInfo = c.allDay === false && c.startTime ? ` ${esc(c.startTime)}〜${esc(c.endTime)}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${esc(c.title || '')}${c.start ? esc(c.start) + '〜' + esc(c.end) + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <span class="badge badge-${esc(r.approvalStatus)}">${esc(r.approvalStatus)}</span>
@@ -782,19 +761,6 @@ async function openDetail(appType, id) {
       reApplyBtn.onclick = () => reApply(appType, r);
       footer.appendChild(reApplyBtn);
     }
-    if (appType === 'rental' && r.approvalStatus === '承認済') {
-      try {
-        const c = JSON.parse(r.content || '{}');
-        const canReturn = isOwn || currentUser.isAdmin || (r.approverEmpId && r.approverEmpId === currentUser.id);
-        if (!c.returnedAt && canReturn) {
-          const returnBtn = document.createElement('button');
-          returnBtn.className = 'btn-success';
-          returnBtn.textContent = '返却済にする';
-          returnBtn.onclick = () => confirmReturnRental(r.id);
-          footer.appendChild(returnBtn);
-        }
-      } catch {}
-    }
     if (appType === 'expense') {
       const pdfBtn = document.createElement('button');
       pdfBtn.className = 'btn-cancel';
@@ -812,18 +778,8 @@ function renderApplyDetail(appType, r) {
   try {
     const c = JSON.parse(r.content || '{}');
     contentRows = Object.entries(c).map(([k, v]) => {
-      if (k === 'devices' && Array.isArray(v)) {
-        return `<div class="detail-row"><span class="detail-label">貸出端末</span><span class="detail-val">${v.map(d => esc(d.label)).join(', ')}</span></div>`;
-      }
       return `<div class="detail-row"><span class="detail-label">${esc(contentFieldLabel(k))}</span><span class="detail-val">${esc(String(v || '-'))}</span></div>`;
     }).join('');
-    if (appType === 'rental' && r.approvalStatus === '承認済') {
-      if (c.returnedAt) {
-        contentRows += `<div class="detail-row"><span class="detail-label">返却状態</span><span class="detail-val" style="color:var(--success);font-weight:600;">✅ 返却済（${esc(c.returnedAt)}）</span></div>`;
-      } else if (c.end && c.end < new Date().toISOString().slice(0,10)) {
-        contentRows += `<div class="detail-row"><span class="detail-label">返却状態</span><span class="detail-val" style="color:var(--danger);font-weight:600;">⚠ 返却期限を過ぎています</span></div>`;
-      }
-    }
   } catch {}
   const approverDisplay = r.approverName || r.approverEmpId
     ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">${esc(r.approverName || r.approverEmpId)}${r.approvalStatus === '申請中' ? '（承認待ち）' : ''}</span></div>`
@@ -1088,18 +1044,6 @@ async function _fillFormFromRecord(appType, r) {
     } else if (appType === 'other') {
       if (c.title) document.getElementById('f-other-title').value = c.title;
       if (c.body)  document.getElementById('f-other-body').value  = c.body;
-    } else if (appType === 'rental') {
-      if (_rentalMastersPromise) await _rentalMastersPromise;
-      if (c.devices) {
-        c.devices.forEach(d => {
-          const card = document.querySelector(`.rental-card[data-id="${CSS.escape(d.id)}"]`);
-          if (card && !card.classList.contains('rented')) card.classList.add('selected');
-        });
-      }
-      if (c.start)   document.getElementById('f-rental-start').value   = c.start;
-      if (c.end)     document.getElementById('f-rental-end').value     = c.end;
-      if (c.purpose) document.getElementById('f-rental-purpose').value = c.purpose;
-      if (c.note)    document.getElementById('f-rental-note').value    = c.note;
     }
     if (r.approverEmpId) {
       const sel = document.getElementById('f-approver-id');
@@ -1229,23 +1173,6 @@ function renderNewFields() {
     `;
     addDetailRow();
     receiptPhotos = [];
-  } else if (type === 'rental') {
-    el.innerHTML = `
-      <div id="rental-loading" style="padding:10px;font-size:13px;color:var(--text-sub);">端末情報を取得中...</div>
-      <div id="rental-fields" style="display:none;">
-        <label>貸出端末（複数選択可・タップで選択）</label>
-        <div id="f-rental-filters" class="rental-filter-bar"></div>
-        <div id="f-rental-grid" class="rental-grid"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div><label>利用開始日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-start"></div>
-          <div><label>返却予定日 <span style="color:var(--danger)">*</span></label><input type="date" id="f-rental-end"></div>
-        </div>
-        <label>利用目的（任意）</label><input type="text" id="f-rental-purpose" placeholder="例: 出張用">
-        <label>備考（任意）</label><textarea id="f-rental-note" placeholder="任意"></textarea>
-        ${getApproverSectionHTML()}
-      </div>
-    `;
-    _rentalMastersPromise = loadRentalMasters();
   } else if (type === 'change') {
     closeModal('modal-new');
     location.href = 'change-form.html';
@@ -1259,82 +1186,6 @@ function renderNewFields() {
   } else {
     el.innerHTML = '';
   }
-}
-
-let rentalMasters = [];
-let rentedDeviceIds = [];
-let pendingDeviceIds = [];
-let rentalFilter = '';
-let _rentalMastersPromise = null;
-const DEVICE_ICONS = { 'PC':'💻', 'パソコン':'💻', 'ノートPC':'💻', '携帯':'📱', 'スマホ':'📱', 'iPhone':'📱', 'タブレット':'📱', 'iPad':'📱', 'カメラ':'📷', 'ビデオカメラ':'🎥', 'プロジェクター':'📽️' };
-function _deviceIcon(type) {
-  if (!type) return '📦';
-  for (const [k, v] of Object.entries(DEVICE_ICONS)) {
-    if (type.toLowerCase().includes(k.toLowerCase())) return v;
-  }
-  return '📦';
-}
-
-async function loadRentalMasters() {
-  try {
-    const result = await gas({ action: 'getRentalMasters', token: currentToken }) || {};
-    rentalMasters = result.masters || result || [];
-    rentedDeviceIds = result.rentedIds || [];
-    pendingDeviceIds = result.pendingIds || [];
-    if (Array.isArray(result)) { rentalMasters = result; rentedDeviceIds = []; pendingDeviceIds = []; }
-    const types = [...new Set(rentalMasters.map(m => m.deviceType || 'その他'))];
-    const filterBar = document.getElementById('f-rental-filters');
-    if (types.length > 1) {
-      filterBar.innerHTML = `<span class="rental-filter-chip active" data-filter="">すべて</span>` +
-        types.map(t => `<span class="rental-filter-chip" data-filter="${esc(t)}">${_deviceIcon(t)} ${esc(t)}</span>`).join('');
-      filterBar.style.display = '';
-      filterBar.onclick = e => {
-        const chip = e.target.closest('.rental-filter-chip');
-        if (!chip) return;
-        filterBar.querySelectorAll('.rental-filter-chip').forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        rentalFilter = chip.dataset.filter;
-        _renderRentalGrid();
-      };
-    } else {
-      filterBar.style.display = 'none';
-    }
-    rentalFilter = '';
-    _renderRentalGrid();
-    document.getElementById('rental-loading').style.display = 'none';
-    document.getElementById('rental-fields').style.display = '';
-  } catch(e) {
-    document.getElementById('rental-loading').textContent = '⚠ 端末情報の取得に失敗しました: ' + (e.message || e.name || String(e));
-  }
-}
-
-function _renderRentalGrid() {
-  const grid = document.getElementById('f-rental-grid');
-  const selectedIds = new Set([...grid.querySelectorAll('.rental-card.selected')].map(c => c.dataset.id));
-  const filtered = rentalFilter ? rentalMasters.filter(m => (m.deviceType || 'その他') === rentalFilter) : rentalMasters;
-  grid.innerHTML = filtered.map(m => {
-    const label = m.purpose || m.deviceType || '不明';
-    const mid = String(m.id);
-    const isRented = rentedDeviceIds.includes(mid);
-    const isPending = !isRented && pendingDeviceIds.includes(mid);
-    const isUnavailable = isRented || isPending;
-    const isSelected = selectedIds.has(mid);
-    const icon = _deviceIcon(m.deviceType);
-    const statusClass = isRented ? 'rented' : isPending ? 'rented' : 'available';
-    const statusText = isRented ? '貸出中' : isPending ? '申請中' : '利用可能';
-    return `<div class="rental-card${isSelected ? ' selected' : ''}${isUnavailable ? ' rented' : ''}" data-id="${esc(String(m.id))}" data-label="${esc(label)}" data-type="${esc(m.deviceType || '')}" onclick="${isUnavailable ? '' : '_toggleRentalCard(this)'}">
-      <div class="rental-card-icon">${icon}</div>
-      <div class="rental-card-name">${esc(label)}</div>
-      <div class="rental-card-status ${statusClass}">${statusText}</div>
-    </div>`;
-  }).join('');
-  if (!filtered.length) {
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;font-size:13px;color:var(--text-sub);">該当する端末がありません</div>';
-  }
-}
-
-function _toggleRentalCard(el) {
-  el.classList.toggle('selected');
 }
 
 function calcExpenseTotal() {
@@ -1492,20 +1343,6 @@ async function submitNew() {
         { label: '行先',     value: dest },
         { label: '合計金額', value: document.getElementById('expense-total-display')?.textContent || '0円' },
       ];
-    } else if (type === 'rental') {
-      const selected = _getSelectedRentals();
-      const start  = document.getElementById('f-rental-start').value;
-      const end    = document.getElementById('f-rental-end').value;
-      if (!selected.length) throw new Error('貸出端末を1つ以上選択してください');
-      if (!start || !end) throw new Error('利用期間を入力してください');
-      items = [
-        { label: '貸出端末', value: selected.map(s => s.label).join('、') },
-        { label: '利用開始日', value: start },
-        { label: '返却予定日', value: end },
-        { label: '利用目的', value: document.getElementById('f-rental-purpose').value || 'なし' },
-        { label: '備考', value: document.getElementById('f-rental-note').value || 'なし' },
-        { label: '承認者', value: _getApproverDisplayName() },
-      ];
     } else {
       const title = document.getElementById('f-other-title').value.trim();
       if (!title) throw new Error('件名を入力してください');
@@ -1522,7 +1359,6 @@ async function submitNew() {
     try {
       if (type === 'leave') await submitLeave();
       else if (type === 'expense') await submitExpense();
-      else if (type === 'rental') await submitRental();
       else await submitOther();
       closeModal('modal-confirm');
       closeModal('modal-new');
@@ -1633,32 +1469,6 @@ async function submitExpense() {
   }});
 }
 
-function _getSelectedRentals() {
-  const cards = document.querySelectorAll('.rental-card.selected');
-  return [...cards].map(c => {
-    return { id: c.dataset.id, label: c.dataset.label, cat: c.dataset.type || '' };
-  });
-}
-
-async function submitRental() {
-  const selected = _getSelectedRentals();
-  if (!selected.length) throw new Error('貸出端末を1つ以上選択してください');
-  const start = document.getElementById('f-rental-start').value;
-  const end   = document.getElementById('f-rental-end').value;
-  if (!start || !end) throw new Error('利用期間を入力してください');
-  if (start > end) throw new Error('返却予定日は利用開始日以降を指定してください');
-  const approverEmpId = _getSelectedApproverEmpId();
-  const content = JSON.stringify({
-    devices: selected.map(s => ({ id: s.id, label: s.label, cat: s.cat })),
-    start, end,
-    purpose: document.getElementById('f-rental-purpose').value,
-    note: document.getElementById('f-rental-note').value,
-  });
-  const applyData = { applicantName: currentUser.name, content, approverEmpId };
-  if (editingRecord && editingRecord.appType === 'rental') applyData.id = editingRecord.id;
-  await gas({ action: 'saveApply', token: currentToken, appType: 'rental', applyData });
-}
-
 async function submitOther() {
   const title = document.getElementById('f-other-title').value.trim();
   if (!title) throw new Error('件名を入力してください');
@@ -1675,20 +1485,6 @@ function _getSelectedApproverEmpId() {
   return sel.value;
 }
 
-function confirmReturnRental(recordId) {
-  _openConfirmModal('端末返却', [
-    { label: '操作', value: 'この端末貸出を返却済みにします' },
-  ], '', async () => {
-    try {
-      await gas({ action: 'returnRental', token: currentToken, recordId });
-      closeModal('modal-confirm');
-      closeModal('modal-detail');
-      showToast('返却済みにしました');
-      refreshCurrentTab();
-    } catch (e) { showToast(e.message); }
-  }, { btnText: '返却を確定する' });
-}
-
 // ===================================================
 // ユーティリティ
 // ===================================================
@@ -1699,10 +1495,10 @@ function _sortKey(r) {
   if (d) return d + 'T00:00:00.000Z';
   return '';
 }
-function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝', rental:'📱' }[t] || '📋'; }
-function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請', rental:'端末貸出' }[t] || t; }
+function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝', change:'📝' }[t] || '📋'; }
+function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請', change:'従業員情報変更届' }[t] || t; }
 function contentFieldLabel(k) {
-  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', pc:'PC', mobile:'携帯', tablet:'タブレット', pcId:'PC ID', mobileId:'携帯ID', purpose:'利用目的', returnedAt:'返却日', devices:'貸出端末' }[k] || k;
+  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', purpose:'利用目的' }[k] || k;
 }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
