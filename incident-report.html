@@ -967,8 +967,21 @@ document.addEventListener('change', scheduleSave);
 // ============================================================
 // Lv2: 対応中の報告書一覧（一般以外＋管理者のみ）
 // ============================================================
+function resumeMsg(text) {
+  return '<div style="font-size:0.78em;color:var(--text2);padding:10px 12px;border:1px dashed var(--border);border-radius:8px;background:#fafafa">' + text + '</div>';
+}
+
 async function loadResumeList() {
-  if (!isManager() || !GAS_URL || !sess?.token) return;
+  if (!isManager()) return; // 一般社員には表示しない
+  var section = document.getElementById('resume-section');
+  var listEl = document.getElementById('resume-list');
+  section.style.display = 'block';
+  listEl.innerHTML = resumeMsg('読み込み中…');
+
+  if (!GAS_URL || !sess?.token) {
+    listEl.innerHTML = resumeMsg('今対応中の報告書はありません');
+    return;
+  }
   try {
     var res = await fetch(GAS_URL, {
       method: 'POST',
@@ -976,11 +989,10 @@ async function loadResumeList() {
       redirect: 'follow',
     });
     var result = await res.json();
-    if (result.error) return;
+    if (result.error) { listEl.innerHTML = resumeMsg('一覧を読み込めませんでした'); return; }
     var records = (result.data || []).filter(function(r) { return r.status === '対応中'; });
-    if (records.length === 0) return;
+    if (records.length === 0) { listEl.innerHTML = resumeMsg('今対応中の報告書はありません'); return; }
 
-    var listEl = document.getElementById('resume-list');
     listEl.innerHTML = '';
     records.forEach(function(r) {
       var card = document.createElement('div');
@@ -992,8 +1004,9 @@ async function loadResumeList() {
       card.onclick = function() { resumeIncident(r.id); };
       listEl.appendChild(card);
     });
-    document.getElementById('resume-section').style.display = 'block';
-  } catch(e) {}
+  } catch(e) {
+    listEl.innerHTML = resumeMsg('一覧を読み込めませんでした');
+  }
 }
 
 async function resumeIncident(recordId) {
