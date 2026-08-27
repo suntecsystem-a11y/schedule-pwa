@@ -5010,7 +5010,7 @@ function openDetail(id){
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
       ${e.rentalPurpose?`<tr><td style="color:var(--text2);padding:7px 0">使用目的</td><td>${esc(e.rentalPurpose)}</td></tr>`:''}
-      ${e.remoteReason&&(e.userId===currentUser.id||e.approvedBy===currentUser.id)?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
+      ${e.remoteReason&&(e.userId===currentUser.id||e.approvedBy===currentUser.id||(()=>{const _ap=USERS.find(u=>u.id===e.userId);return _ap&&canApproveDept(_ap.dept,e.approvedBy)})())?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
       ${e.teamsUrl?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(e.teamsUrl)}" target="_blank" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
       ${e.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.memo')}</td><td>${esc(e.memo)}</td></tr>`:''}
       <tr><td style="color:var(--text2);padding:7px 0">${t('detail.creator')}</td><td>${userName(e.userId)}</td></tr>
@@ -5635,6 +5635,7 @@ function renderMyPage() {
               <div style="font-size:0.75em;color:var(--text2);margin-top:2px">
                 ${esc(applicant?.name||e.userId)}　${isMultiDay(e)?e.startDate+' 〜 '+e.endDate:e.date}
               </div>
+              ${e.remoteReason?`<div style="font-size:0.73em;color:#e65100;margin-top:3px">📝 ${esc(e.remoteReason)}</div>`:''}
             </div>
             <button class="btn-primary" style="padding:6px 12px;font-size:0.78em;margin-top:0;width:auto" onclick="event.stopPropagation();openDetail('${e.id}')">${t('my.check')}</button>
           </div>
