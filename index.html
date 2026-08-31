@@ -3061,12 +3061,20 @@ function loadIncidentCases(){
     renderIncidentList(_incidentCache);
     return;
   }
-  gasCall({action:'getIncidents'}).then(d=>{
-    _incidentCache=d;
-    renderIncidentList(d);
-  }).catch(e=>{
-    el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--red);font-size:0.85em">読み込みに失敗しました</div>';
-  });
+  (async()=>{
+    try{
+      const d=await api('getIncidents',{},'インシデント一覧を取得中...');
+      if(Array.isArray(d)){
+        _incidentCache={cases:d,myReports:[],isMgr:currentUser&&currentUser.role!=='一般'};
+      } else {
+        _incidentCache=d;
+      }
+      renderIncidentList(_incidentCache);
+    }catch(e){
+      console.error('[incident]',e);
+      el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--red);font-size:0.85em">読み込みに失敗しました<br><span style="font-size:0.8em;opacity:0.7">'+esc(e.message||'')+'</span></div>';
+    }
+  })();
 }
 function _demoIncidentData(){
   const td=dateToStr(new Date());
