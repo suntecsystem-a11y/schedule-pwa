@@ -1083,6 +1083,14 @@ if (sess) {
 })();
 
 applyDefaults();
+// URLパラメータ ?id=xxx で報告書を直接開く
+(function checkUrlParam() {
+  var p = new URLSearchParams(location.search);
+  var id = p.get('id');
+  if (id && GAS_URL && sess?.token) {
+    resumeIncident(id);
+  }
+})();
 </script>
 </body>
 </html>

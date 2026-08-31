@@ -531,6 +531,36 @@ input,select{font-family:inherit;outline:none}
 .el-intro-wrap{max-width:720px;margin:0 auto;padding:16px 12px}
 .el-intro-media{margin:16px 0;text-align:center}
 .el-intro-media video,.el-intro-media img{max-width:100%;border-radius:var(--radius)}
+.apply-segment{display:flex;background:var(--bg2);border-radius:10px;padding:3px;margin-bottom:16px}
+.apply-seg-btn{flex:1;padding:9px 8px;border:none;background:none;border-radius:8px;font-size:0.85em;font-weight:600;color:var(--text2);cursor:pointer;transition:all .2s}
+.apply-seg-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.inc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.inc-stat{background:var(--bg2);border-radius:10px;padding:10px;text-align:center}
+.inc-stat-num{font-size:1.3em;font-weight:700}
+.inc-stat-label{font-size:0.7em;color:var(--text2);margin-top:2px}
+.inc-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:box-shadow .2s;position:relative;overflow:hidden}
+.inc-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.inc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.inc-card.sev-3::before{background:#e53935}
+.inc-card.sev-2::before{background:#fb8c00}
+.inc-card.sev-1::before{background:#1e88e5}
+.inc-badge{display:inline-block;font-size:0.7em;font-weight:700;padding:2px 8px;border-radius:10px}
+.inc-badge.sev-3{background:#ffebee;color:#c62828}
+.inc-badge.sev-2{background:#fff3e0;color:#e65100}
+.inc-badge.sev-1{background:#e3f2fd;color:#1565c0}
+.inc-badge.st-active{background:#fff3e0;color:#e65100}
+.inc-badge.st-done{background:#e8f5e9;color:#2e7d32}
+.inc-badge.st-new{background:#ede7f6;color:#4527a0}
+.inc-detail-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:16px}
+.inc-detail-modal.open{display:flex}
+.inc-detail-card{background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.inc-prevention{margin-top:8px;padding:8px 10px;background:#e8f5e9;border-radius:8px;font-size:0.78em;color:#2e7d32;line-height:1.5}
+.inc-filter-chip{padding:5px 10px;border-radius:16px;font-size:0.73em;font-weight:600;background:var(--bg2);color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:all .2s;white-space:nowrap}
+.inc-filter-chip:hover{border-color:var(--primary-light)}
+.inc-filter-chip.on{background:var(--primary-light);color:var(--primary);border-color:var(--primary)}
+.inc-filter-chip.on.sev3{background:#ffebee;color:#c62828;border-color:#ef9a9a}
+.inc-filter-chip.on.sev2{background:#fff3e0;color:#e65100;border-color:#ffcc80}
+.inc-filter-chip.on.sev1{background:#e3f2fd;color:#1565c0;border-color:#90caf9}
 </style>
 </head>
 <body>
@@ -581,7 +611,7 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="devices" data-tip="端末" onclick="switchTab('devices',this)"><span class="sidebar-icon">📱</span><span class="sidebar-label">端末</span></button>
     <button class="sidebar-btn" data-tab="cars" data-tip="車予約" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span></button>
     <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span></button>
-    <button class="sidebar-btn" data-tip="申請" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請 <span style="font-size:0.72em">（準備中）</span></span></button>
+    <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span></button>
     <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
     <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span></button>
@@ -611,7 +641,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" onclick="switchTab('devices',this)">📱 端末</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
     <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
-    <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">📋 申請</button>
+    <button class="tab-btn" onclick="switchTab('apply',this)">📋 申請</button>
     <button class="tab-btn" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
     <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" onclick="switchTab('settings',this)">🔧 設定</button>
@@ -890,6 +920,29 @@ input,select{font-family:inherit;outline:none}
   <!-- マイページ -->
   <div class="content" id="tab-mypage" style="display:none">
     <div id="mypage-content"></div>
+  </div>
+
+  <!-- 申請・インシデント -->
+  <div class="content" id="tab-apply" style="display:none">
+    <div style="max-width:640px;margin:0 auto;padding:12px">
+      <div class="apply-segment" id="apply-segment">
+        <button class="apply-seg-btn active" onclick="switchApplyMode('apply',this)">📋 申請</button>
+        <button class="apply-seg-btn" onclick="switchApplyMode('incident',this)">⚠️ インシデント</button>
+      </div>
+      <div id="apply-mode-apply">
+        <div style="text-align:center;padding:40px 16px">
+          <div style="font-size:2.5em;margin-bottom:12px">📋</div>
+          <div style="font-size:1em;font-weight:600;margin-bottom:8px">各種申請</div>
+          <p style="font-size:0.82em;color:var(--text2);margin-bottom:20px">出張費精算・従業員情報変更届など</p>
+          <button onclick="window.open('./apply-pwa/','_blank')" style="padding:12px 32px;border-radius:10px;background:var(--primary);color:white;font-size:0.9em;font-weight:600;border:none;cursor:pointer">申請アプリを開く →</button>
+        </div>
+      </div>
+      <div id="apply-mode-incident" style="display:none">
+        <div id="incident-list-content">
+          <div style="text-align:center;padding:40px 0;color:var(--text2);font-size:0.85em">読み込み中...</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- eラーニング -->
@@ -2979,14 +3032,205 @@ async function loadEvents({ force = false, centerDate } = {}){
 
 // ===== タブ =====
 function openApplyApp(btn) {
-  // activeクラスをすべて外してから別ウィンドウを開く
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
   window.open('./apply-pwa/', '_blank');
 }
 
+// ===== 申請タブ（申請 / インシデント切り替え） =====
+let _incidentCache=null;
+function switchApplyMode(mode,btn){
+  document.querySelectorAll('.apply-seg-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('apply-mode-apply').style.display=mode==='apply'?'block':'none';
+  document.getElementById('apply-mode-incident').style.display=mode==='incident'?'block':'none';
+  if(mode==='incident') loadIncidentCases();
+}
+function renderApplyTab(){
+  const seg=document.getElementById('apply-segment');
+  const activeBtn=seg.querySelector('.apply-seg-btn.active');
+  const mode=activeBtn&&activeBtn.textContent.includes('インシデント')?'incident':'apply';
+  if(mode==='incident') loadIncidentCases();
+}
+function loadIncidentCases(){
+  const el=document.getElementById('incident-list-content');
+  if(_incidentCache){renderIncidentList(_incidentCache);return;}
+  el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text2);font-size:0.85em">読み込み中...</div>';
+  if(!GAS_URL){
+    _incidentCache=_demoIncidentData();
+    renderIncidentList(_incidentCache);
+    return;
+  }
+  gasCall({action:'getIncidents'}).then(d=>{
+    _incidentCache=d;
+    renderIncidentList(d);
+  }).catch(e=>{
+    el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--red);font-size:0.85em">読み込みに失敗しました</div>';
+  });
+}
+function _demoIncidentData(){
+  const td=dateToStr(new Date());
+  return {isMgr:currentUser&&currentUser.role!=='一般',cases:[
+    {id:'inc1',reportNo:'INC-20260815-0001',type:'盗難・紛失',occurredAt:'2026/08/15 14:30',location:'本社 3F',severity:'レベル3',status:'完了',summary:'顧客データ入りUSBメモリを社外打合せ帰りの電車内で紛失。暗号化済みだったため情報流出なし。翌日駅の遺失物として回収。',leakPrevention:'持ち出し時の暗号化義務化・管理台帳の運用開始',personInvolved:'山田太郎',reporterName:'山田太郎',responder:'佐藤花子',manager:'鈴木一郎',severityComment:'暗号化済みのため実害なし',checklistSummary:'10/10'},
+    {id:'inc2',reportNo:'INC-20260720-0002',type:'情報漏洩',occurredAt:'2026/07/20 10:15',location:'営業部',severity:'レベル2',status:'完了',summary:'顧客リストを含むファイルを誤って社外の別担当者へ送信。即座に削除を依頼し確認済み。',leakPrevention:'送信前ダブルチェック体制の導入',personInvolved:'田中次郎',reporterName:'田中次郎',responder:'高橋美咲',manager:'鈴木一郎',severityComment:'',checklistSummary:'8/10'},
+    {id:'inc3',reportNo:'INC-20260610-0003',type:'盗難・紛失',occurredAt:'2026/06/10 17:00',location:'茨城事業所',severity:'レベル1',status:'完了',summary:'社用PCを会議室に置き忘れ。30分後に発見、データアクセスなし。',leakPrevention:'退室時チェックリストの導入',personInvolved:'',reporterName:'佐々木健',responder:'',manager:'',severityComment:'',checklistSummary:'10/10'},
+    {id:'inc4',reportNo:'INC-20260830-0004',type:'情報漏洩',occurredAt:'2026/08/30 09:00',location:'本社 2F',severity:'レベル2',status:'対応中',summary:'共有フォルダのアクセス権設定ミスにより、他部署から閲覧可能な状態が発覚。',leakPrevention:'',personInvolved:'情報システム部',reporterName:'中村浩',responder:'畑村光',manager:'鈴木一郎',severityComment:'現在調査中',checklistSummary:'5/10'},
+  ],myReports:[]};
+}
+let _incFilter={type:'',sev:'',year:''};
+let _incShowCount=10;
+function _incFilteredCases(cases){
+  return cases.filter(c=>{
+    if(_incFilter.type&&c.type!==_incFilter.type) return false;
+    if(_incFilter.sev&&c.severity!==_incFilter.sev) return false;
+    if(_incFilter.year){
+      const y=(c.occurredAt||'').substring(0,4);
+      if(y!==_incFilter.year) return false;
+    }
+    return true;
+  });
+}
+function toggleIncFilter(key,val){
+  _incFilter[key]=_incFilter[key]===val?'':val;
+  _incShowCount=10;
+  renderIncidentList(_incidentCache);
+}
+function incShowMore(){
+  _incShowCount+=10;
+  renderIncidentList(_incidentCache);
+}
+function renderIncidentList(data){
+  const el=document.getElementById('incident-list-content');
+  const cases=data.cases||[];
+  const isMgr=data.isMgr;
+  const total=cases.length;
+  const thisYear=cases.filter(c=>(c.occurredAt||'').startsWith(new Date().getFullYear().toString())).length;
+  const active=cases.filter(c=>c.status==='対応中').length;
+  let h='';
+  h+=`<div class="inc-stats">
+    <div class="inc-stat"><div class="inc-stat-num">${total}</div><div class="inc-stat-label">全事例</div></div>
+    <div class="inc-stat"><div class="inc-stat-num" style="${thisYear?'color:#e65100':''}">${thisYear}</div><div class="inc-stat-label">今年度</div></div>
+    <div class="inc-stat"><div class="inc-stat-num" style="${active?'color:#e53935':''}">${active}</div><div class="inc-stat-label">対応中</div></div>
+  </div>`;
+  // フィルター
+  const years=[...new Set(cases.map(c=>(c.occurredAt||'').substring(0,4)).filter(Boolean))].sort().reverse();
+  const fType=_incFilter.type, fSev=_incFilter.sev, fYear=_incFilter.year;
+  h+=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">`;
+  h+=`<button class="inc-filter-chip${fType==='情報漏洩'?' on':''}" onclick="toggleIncFilter('type','情報漏洩')">📧 情報漏洩</button>`;
+  h+=`<button class="inc-filter-chip${fType==='盗難・紛失'?' on':''}" onclick="toggleIncFilter('type','盗難・紛失')">🔑 盗難・紛失</button>`;
+  h+=`<span style="width:1px;background:var(--border);margin:2px 2px"></span>`;
+  h+=`<button class="inc-filter-chip${fSev==='レベル3'?' on sev3':''}" onclick="toggleIncFilter('sev','レベル3')">Lv3</button>`;
+  h+=`<button class="inc-filter-chip${fSev==='レベル2'?' on sev2':''}" onclick="toggleIncFilter('sev','レベル2')">Lv2</button>`;
+  h+=`<button class="inc-filter-chip${fSev==='レベル1'?' on sev1':''}" onclick="toggleIncFilter('sev','レベル1')">Lv1</button>`;
+  if(years.length>1){
+    h+=`<span style="width:1px;background:var(--border);margin:2px 2px"></span>`;
+    years.forEach(y=>{h+=`<button class="inc-filter-chip${fYear===y?' on':''}" onclick="toggleIncFilter('year','${y}')">${y}</button>`;});
+  }
+  h+=`</div>`;
+  // 新規報告ボタン
+  h+=`<button onclick="location.href='incident-report.html'" style="width:100%;padding:10px;margin-bottom:14px;border-radius:10px;font-size:0.85em;font-weight:600;background:#ffebee;color:#c62828;border:1px solid #ffcdd2;cursor:pointer">⚠️ インシデントを報告する</button>`;
+  const filtered=_incFilteredCases(cases);
+  const hasFilter=fType||fSev||fYear;
+  if(hasFilter) h+=`<div style="font-size:0.75em;color:var(--text3);margin-bottom:8px">${filtered.length}件の事例${filtered.length!==total?' / 全'+total+'件':''}</div>`;
+  if(!filtered.length){
+    h+='<div style="text-align:center;padding:30px 0;color:var(--text2);font-size:0.85em">'+(hasFilter?'条件に一致する事例がありません':'事例がありません')+'</div>';
+    el.innerHTML=h;return;
+  }
+  const visible=filtered.slice(0,_incShowCount);
+  visible.forEach(c=>{
+    const sev=c.severity==='レベル3'?'3':c.severity==='レベル2'?'2':'1';
+    const sevLabel='Lv'+sev;
+    const stClass=c.status==='対応中'?'st-active':c.status==='完了'?'st-done':'st-new';
+    h+=`<div class="inc-card sev-${sev}" onclick="openIncidentDetail('${c.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:0.92em;font-weight:600">${esc(c.type==='情報漏洩'?'📧':'🔑')} ${esc(_incidentTitle(c))}</span>
+        <span class="inc-badge sev-${sev}">${sevLabel}</span>
+      </div>
+      <div style="font-size:0.78em;color:var(--text2);margin-bottom:6px">${esc(c.type)}</div>
+      <div style="display:flex;gap:12px;font-size:0.73em;color:var(--text3)">
+        <span>📅 ${esc(c.occurredAt||'')}</span>
+        <span>📍 ${esc(c.location||'')}</span>
+      </div>`;
+    if(c.summary){
+      h+=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:0.78em;color:var(--text2);line-height:1.5">${esc(c.summary)}</div>`;
+    }
+    if(c.leakPrevention){
+      h+=`<div class="inc-prevention">🛡️ ${esc(c.leakPrevention)}</div>`;
+    }
+    if(isMgr){
+      h+=`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">`;
+      if(c.status!=='完了') h+=`<span class="inc-badge ${stClass}">${esc(c.status)}</span>`;
+      if(c.checklistSummary) h+=`<span style="font-size:0.7em;color:var(--text3)">📋 ${esc(c.checklistSummary)}</span>`;
+      h+=`</div>`;
+    }
+    h+=`</div>`;
+  });
+  if(filtered.length>_incShowCount){
+    const remaining=filtered.length-_incShowCount;
+    h+=`<button onclick="incShowMore()" style="width:100%;padding:10px;margin-top:4px;border-radius:10px;font-size:0.82em;font-weight:600;background:var(--bg2);color:var(--text2);border:1px solid var(--border);cursor:pointer">さらに${Math.min(remaining,10)}件を表示（残り${remaining}件）</button>`;
+  }
+  el.innerHTML=h;
+}
+function _incidentTitle(c){
+  const s=c.summary||'';
+  if(c.type==='盗難・紛失'){
+    const m=s.match(/^(.{2,8}?)を/);
+    if(m) return m[1]+'紛失';
+    return '紛失事案';
+  }
+  if(s.includes('メール')||s.includes('送信')) return 'メール誤送信';
+  if(s.includes('フォルダ')||s.includes('アクセス権')) return 'アクセス権設定ミス';
+  if(s.includes('FAX')) return 'FAX誤送信';
+  return '情報漏洩事案';
+}
+function openIncidentDetail(id){
+  const data=_incidentCache;
+  if(!data) return;
+  const c=data.cases.find(x=>x.id===id);
+  if(!c) return;
+  const isMgr=data.isMgr;
+  const sev=c.severity==='レベル3'?'3':c.severity==='レベル2'?'2':'1';
+  let h=`<div class="inc-detail-card">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:1em;font-weight:700">${esc(c.type==='情報漏洩'?'📧':'🔑')} ${esc(_incidentTitle(c))}</div>
+        <div style="font-size:0.75em;color:var(--text3);margin-top:2px">${isMgr&&c.reportNo?esc(c.reportNo)+'　':'' }${esc(c.type)}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="inc-badge sev-${sev}">Lv${sev}</span>
+        <button onclick="this.closest('.inc-detail-modal').classList.remove('open')" style="background:none;border:none;font-size:1.3em;cursor:pointer;color:var(--text2);padding:4px">✕</button>
+      </div>
+    </div>
+    <div style="padding:16px 20px">
+      <table style="width:100%;font-size:0.82em;border-collapse:collapse">
+        <tr><td style="color:var(--text3);padding:5px 0;width:82px;vertical-align:top;white-space:nowrap">📅 発生日時</td><td style="padding:5px 0">${esc(c.occurredAt||'')}</td></tr>
+        <tr><td style="color:var(--text3);padding:5px 0;vertical-align:top;white-space:nowrap">📍 発生場所</td><td style="padding:5px 0">${esc(c.location||'')}</td></tr>`;
+  if(isMgr&&c.personInvolved) h+=`<tr><td style="color:var(--text3);padding:5px 0;vertical-align:top">👤 発生者</td><td style="padding:5px 0">${esc(c.personInvolved)}</td></tr>`;
+  if(isMgr&&c.responder) h+=`<tr><td style="color:var(--text3);padding:5px 0;vertical-align:top">🛠️ 対応者</td><td style="padding:5px 0">${esc(c.responder)}</td></tr>`;
+  if(isMgr&&c.manager) h+=`<tr><td style="color:var(--text3);padding:5px 0;vertical-align:top">👔 管理者</td><td style="padding:5px 0">${esc(c.manager)}</td></tr>`;
+  h+=`</table>`;
+  if(c.summary) h+=`<div style="margin-top:12px;padding:10px 12px;background:var(--bg2);border-radius:8px;font-size:0.82em;line-height:1.6;color:var(--text)">${esc(c.summary)}</div>`;
+  if(isMgr&&c.severityComment) h+=`<div style="margin-top:8px;font-size:0.78em;color:var(--text2)">重大度メモ: ${esc(c.severityComment)}</div>`;
+  if(c.leakPrevention) h+=`<div class="inc-prevention" style="margin-top:10px">🛡️ 再発防止策：${esc(c.leakPrevention)}</div>`;
+  if(isMgr&&c.checklistSummary) h+=`<div style="margin-top:8px;font-size:0.78em;color:var(--text3)">📋 チェックリスト: ${esc(c.checklistSummary)} 完了</div>`;
+  if(isMgr) h+=`<div style="margin-top:14px;display:flex;gap:8px">
+    <button onclick="location.href='incident-report.html?id=${c.id}'" style="flex:1;padding:9px;border-radius:8px;font-size:0.82em;font-weight:600;background:var(--surface);border:1px solid var(--border);cursor:pointer;color:var(--text)">📄 報告書を開く</button>
+  </div>`;
+  h+=`</div></div>`;
+  let modal=document.getElementById('incident-detail-modal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='incident-detail-modal';
+    modal.className='inc-detail-modal';
+    modal.onclick=function(e){if(e.target===this)this.classList.remove('open');};
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML=h;
+  modal.classList.add('open');
+}
+
 function switchTab(tab, btn){
-  ['home','calendar','rooms','team','devices','cars','inquiry','elearning','mypage','settings','admin'].forEach(tb=>{
+  ['home','calendar','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
@@ -3006,6 +3250,7 @@ function switchTab(tab, btn){
   if(tab==='elearning') { if(window._elQuizState && !confirm(t('el.exit.desc'))) return; window._elQuizState = null; loadElearningCourses(); }
   if(tab==='mypage')  renderMyPage();
   if(tab==='settings') renderSettings();
+  if(tab==='apply')   renderApplyTab();
   if(tab==='admin')   loadAdminUsers();
   // タブ切り替え時にeventsを再取得（キャッシュ10分以内なら即返す）してバッジ更新
   // カレンダータブ以外は今日基準で取得し、ホーム等で今月の予定が欠けるのを防ぐ
