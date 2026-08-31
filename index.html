@@ -1052,6 +1052,7 @@ input,select{font-family:inherit;outline:none}
               <option value="daily">毎日</option>
               <option value="weekday">毎日（平日のみ）</option>
               <option value="weekly">毎週</option>
+              <option value="weekly_nohol">毎週（土日祝除く）</option>
               <option value="monthly">毎月（同日）</option>
             </select>
           </div>
@@ -1200,6 +1201,21 @@ input,select{font-family:inherit;outline:none}
     <div class="modal-handle"></div>
     <div id="detail-content"></div>
     <div id="detail-actions" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- 端末貸出の延長モーダル -->
+<div class="modal-backdrop" id="extend-modal-backdrop" onclick="closeModalIfBackdrop(event,'extend-modal-backdrop')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div style="font-size:1em;font-weight:700;margin-bottom:12px" id="extend-title">📱 貸出を延長</div>
+    <div style="font-size:0.82em;color:var(--text2);margin-bottom:6px"><span id="extend-curlabel">現在の返却予定日：</span><strong id="extend-current">—</strong></div>
+    <label style="font-size:0.82em;color:var(--text2);display:block;margin-bottom:4px" id="extend-newlabel">新しい返却予定日</label>
+    <input type="date" id="extend-date" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;box-sizing:border-box;margin-bottom:14px">
+    <div style="display:flex;gap:8px">
+      <button class="btn-outline" style="flex:1" onclick="closeModal('extend-modal-backdrop')" id="extend-cancel">キャンセル</button>
+      <button class="btn-primary" style="flex:1" onclick="doExtendRental()" id="extend-submit">延長する</button>
+    </div>
   </div>
 </div>
 
@@ -1538,7 +1554,7 @@ ja:{
 'ev.title.ph':'タイトルを追加','ev.allday':'終日','ev.depart':'出発日','ev.return':'帰社日',
 'ev.depart.time':'出発時間','ev.return.time':'帰社時間',
 'ev.repeat.none':'繰り返しなし','ev.repeat.daily':'毎日','ev.repeat.weekday':'毎日（平日のみ）',
-'ev.repeat.weekly':'毎週','ev.repeat.monthly':'毎月（同日）','ev.repeat.end':'終了日',
+'ev.repeat.weekly':'毎週','ev.repeat.weekly_nohol':'毎週（土日祝除く）','ev.repeat.monthly':'毎月（同日）','ev.repeat.end':'終了日',
 'ev.room':'会議室','ev.conflict':'⚠️ この時間帯はすでに予約があります',
 'ev.people':'参加者 / 対象者','ev.people.search':'名前で検索...',
 'ev.people.schedule':'参加者の当日予定','ev.rental':'端末貸出（任意）','ev.rental.dates':'貸出期間','ev.rental.start':'貸出開始日','ev.rental.end':'返却予定日',
@@ -1587,6 +1603,7 @@ ja:{
 'my.out':'🚶 外出','my.out.unit':'回','my.remote':'🏠 在宅','my.remote.unit':'日',
 'my.trip':'出張','my.trip.unit':'回',
 'my.rental.current':'貸出・予約中の端末','my.rental.return':'返却する','my.rental.none':'貸出中の端末はありません','my.rental.overdue':'⚠️ 返却期日を過ぎています',
+'my.rental.extend':'延長','my.rental.extend.done':'{from} → {to} に延長しました','my.rental.extend.required':'新しい返却予定日を選んでください','my.rental.extend.order':'現在の返却予定日より後の日付を選んでください','my.rental.extend.title':'📱 貸出を延長','my.rental.extend.curlabel':'現在の返却予定日','my.rental.extend.newlabel':'新しい返却予定日','my.rental.extend.submit':'延長する',
 'my.car.recent':'直近の車予約','my.car.returned':'帰社済','my.car.out':'出中',
 'my.car.open':'🔗 Kintoneで開く','my.car.none':'車予約はありません',
 'my.rules':'📖 利用ルール',
@@ -1820,7 +1837,7 @@ vi:{
 'ev.title.ph':'Thêm tiêu đề','ev.allday':'Cả ngày','ev.depart':'Ngày đi','ev.return':'Ngày về',
 'ev.depart.time':'Giờ đi','ev.return.time':'Giờ về',
 'ev.repeat.none':'Không lặp','ev.repeat.daily':'Hàng ngày','ev.repeat.weekday':'Hàng ngày (trừ T7/CN)',
-'ev.repeat.weekly':'Hàng tuần','ev.repeat.monthly':'Hàng tháng','ev.repeat.end':'Ngày kết thúc',
+'ev.repeat.weekly':'Hàng tuần','ev.repeat.weekly_nohol':'Hàng tuần (trừ T7/CN/lễ)','ev.repeat.monthly':'Hàng tháng','ev.repeat.end':'Ngày kết thúc',
 'ev.room':'Phòng họp','ev.conflict':'⚠️ Thời gian này đã có đặt',
 'ev.people':'Người tham gia','ev.people.search':'Tìm theo tên...',
 'ev.people.schedule':'Lịch hôm nay của người tham gia','ev.rental':'Mượn thiết bị (tùy chọn)','ev.rental.dates':'Thời gian mượn','ev.rental.start':'Ngày mượn','ev.rental.end':'Ngày trả dự kiến',
@@ -1867,6 +1884,7 @@ vi:{
 'my.out':'🚶 Ra ngoài','my.out.unit':'lần','my.remote':'🏠 Tại nhà','my.remote.unit':'ngày',
 'my.trip':'Công tác','my.trip.unit':'lần',
 'my.rental.current':'Thiết bị đang mượn/đặt','my.rental.return':'Trả lại','my.rental.none':'Không có thiết bị nào','my.rental.overdue':'⚠️ Đã quá hạn trả',
+'my.rental.extend':'Gia hạn','my.rental.extend.done':'Đã gia hạn {from} → {to}','my.rental.extend.required':'Vui lòng chọn ngày trả mới','my.rental.extend.order':'Vui lòng chọn ngày sau ngày trả hiện tại','my.rental.extend.title':'📱 Gia hạn mượn','my.rental.extend.curlabel':'Ngày trả hiện tại','my.rental.extend.newlabel':'Ngày trả mới','my.rental.extend.submit':'Gia hạn',
 'my.car.recent':'Đặt xe gần đây','my.car.returned':'Đã về','my.car.out':'Đang đi',
 'my.car.open':'🔗 Mở trên Kintone','my.car.none':'Chưa có đặt xe',
 'my.rules':'📖 Quy tắc sử dụng',
@@ -2092,7 +2110,7 @@ ne:{
 'ev.title.ph':'शीर्षक थप्नुहोस्','ev.allday':'दिनभर','ev.depart':'प्रस्थान मिति','ev.return':'फिर्ती मिति',
 'ev.depart.time':'प्रस्थान समय','ev.return.time':'फिर्ती समय',
 'ev.repeat.none':'दोहोर्याउन छैन','ev.repeat.daily':'दैनिक','ev.repeat.weekday':'कार्यदिन मात्र',
-'ev.repeat.weekly':'साप्ताहिक','ev.repeat.monthly':'मासिक','ev.repeat.end':'अन्त्य मिति',
+'ev.repeat.weekly':'साप्ताहिक','ev.repeat.weekly_nohol':'साप्ताहिक (शनि/आइत/बिदा बाहेक)','ev.repeat.monthly':'मासिक','ev.repeat.end':'अन्त्य मिति',
 'ev.room':'बैठक कोठा','ev.conflict':'⚠️ यो समयमा पहिले नै बुक छ',
 'ev.people':'सहभागी','ev.people.search':'नामले खोज्नुहोस्...',
 'ev.people.schedule':'सहभागीको आजको तालिका','ev.rental':'उपकरण भाडा (ऐच्छिक)','ev.rental.dates':'भाडा अवधि','ev.rental.start':'भाडा सुरु मिति','ev.rental.end':'फिर्ता मिति',
@@ -2139,6 +2157,7 @@ ne:{
 'my.out':'🚶 बाहिर','my.out.unit':'पटक','my.remote':'🏠 घरबाट','my.remote.unit':'दिन',
 'my.trip':'व्यापार यात्रा','my.trip.unit':'पटक',
 'my.rental.current':'उधारो/आरक्षित उपकरण','my.rental.return':'फिर्ता गर्नुहोस्','my.rental.none':'कुनै उपकरण छैन','my.rental.overdue':'⚠️ फिर्ता मिति बितिसक्यो',
+'my.rental.extend':'बढाउनुहोस्','my.rental.extend.done':'{from} → {to} मा बढाइयो','my.rental.extend.required':'नयाँ फिर्ता मिति छान्नुहोस्','my.rental.extend.order':'हालको फिर्ता मिति पछिको मिति छान्नुहोस्','my.rental.extend.title':'📱 उधारो बढाउनुहोस्','my.rental.extend.curlabel':'हालको फिर्ता मिति','my.rental.extend.newlabel':'नयाँ फिर्ता मिति','my.rental.extend.submit':'बढाउनुहोस्',
 'my.car.recent':'भर्खरको गाडी बुकिङ','my.car.returned':'फर्किसकेको','my.car.out':'गइरहेको',
 'my.car.open':'🔗 Kintone मा खोल्नुहोस्','my.car.none':'गाडी बुकिङ छैन',
 'my.rules':'📖 प्रयोग नियमहरू',
@@ -2410,7 +2429,7 @@ function applyLanguage(lang){
   if(_evt){const cv=_evt.value;_evt.innerHTML=['会議室','打ち合わせ','外出','出張','休暇','在宅','来社','その他'].map(v=>`<option value="${v}">${TYPE_ICON[v]||''} ${tType(v)}</option>`).join('');_evt.value=cv;}
   // 繰り返しselect
   const _evr=document.getElementById('ev-repeat');
-  if(_evr){const cv=_evr.value;_evr.innerHTML=`<option value="">${t('ev.repeat.none')}</option><option value="daily">${t('ev.repeat.daily')}</option><option value="weekday">${t('ev.repeat.weekday')}</option><option value="weekly">${t('ev.repeat.weekly')}</option><option value="monthly">${t('ev.repeat.monthly')}</option>`;_evr.value=cv;}
+  if(_evr){const cv=_evr.value;_evr.innerHTML=`<option value="">${t('ev.repeat.none')}</option><option value="daily">${t('ev.repeat.daily')}</option><option value="weekday">${t('ev.repeat.weekday')}</option><option value="weekly">${t('ev.repeat.weekly')}</option><option value="weekly_nohol">${t('ev.repeat.weekly_nohol')}</option><option value="monthly">${t('ev.repeat.monthly')}</option>`;_evr.value=cv;}
   const _erel=document.querySelector('#repeat-end-wrap label');if(_erel)_erel.textContent=t('ev.repeat.end');
   // 承認者select先頭option
   const _eap=document.getElementById('ev-approver');if(_eap&&_eap.options[0])_eap.options[0].textContent=t('ev.approver.select');
@@ -4439,6 +4458,36 @@ async function returnDevice(eventId){
   } catch(e){ showToast(t('common.error.toast',{msg:e.message})); }
 }
 
+let _extendId=null, _extendOldEnd='';
+function openExtendModal(eventId, currentEnd){
+  _extendId=eventId; _extendOldEnd=currentEnd||'';
+  document.getElementById('extend-title').textContent=t('my.rental.extend.title');
+  document.getElementById('extend-curlabel').textContent=t('my.rental.extend.curlabel')+'：';
+  document.getElementById('extend-newlabel').textContent=t('my.rental.extend.newlabel');
+  document.getElementById('extend-cancel').textContent=t('common.cancel');
+  document.getElementById('extend-submit').textContent=t('my.rental.extend.submit');
+  document.getElementById('extend-current').textContent=currentEnd||'—';
+  const inp=document.getElementById('extend-date');
+  // 最小値は現在の返却予定日の翌日
+  let min=currentEnd;
+  if(currentEnd){ const d=new Date(currentEnd+'T00:00:00'); d.setDate(d.getDate()+1); min=fmtDate(d); }
+  inp.min=min||'';
+  inp.value=min||'';
+  openModal('extend-modal-backdrop');
+}
+async function doExtendRental(){
+  const newEnd=document.getElementById('extend-date').value;
+  if(!newEnd){ showToast(t('my.rental.extend.required')); return; }
+  if(_extendOldEnd && newEnd<=_extendOldEnd){ showToast(t('my.rental.extend.order')); return; }
+  try {
+    const res=await api('extendRental', {eventId:_extendId, newEnd}, t('common.saving'));
+    closeModal('extend-modal-backdrop');
+    await Promise.all([loadEvents({force:true}), loadRentalMasters()]);
+    renderMyPage();
+    showToast(t('my.rental.extend.done',{from:res.oldEnd||_extendOldEnd, to:res.newEnd||newEnd}));
+  } catch(e){ showToast(t('common.error.toast',{msg:e.message})); }
+}
+
 function openAddModalForUser(targetUserId){
   openAddModal(fmtDate(new Date()));
   selectedPeople = new Set([currentUser.id, targetUserId]);
@@ -6055,8 +6104,11 @@ function renderMyPage() {
           const [sc,bg]=stMap[e.rentalStatus]||['#78909c','#eceff1'];
           const devNames=(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、');
           const canReturn=e.rentalStatus==='貸出中';
+          const canExtend=e.rentalStatus==='貸出中'||e.rentalStatus==='予約中';
           const today2=fmtDate(new Date());
           const isOverdue=canReturn&&e.rentalEnd&&e.rentalEnd<today2;
+          const extendBtn=canExtend?`<button class="btn-outline" style="flex:1;margin-top:0;padding:8px;font-size:0.82em;${isOverdue?'border-color:#e53935;color:#e53935;font-weight:700':''}" onclick="openExtendModal('${e.id}','${e.rentalEnd||''}')">${isOverdue?'⚠️ ':''}${t('my.rental.extend')}</button>`:'';
+          const returnBtn=canReturn?`<button class="btn-primary" style="flex:1;margin-top:0;padding:8px;font-size:0.82em;background:${isOverdue?'#e53935':'#1565c0'}" onclick="returnDevice('${e.id}')">${t('my.rental.return')}</button>`:'';
           return `<div style="padding:10px 0;border-bottom:1px solid var(--border)">
             <div style="display:flex;align-items:center;gap:10px">
               <span style="font-size:1.2em">📱</span>
@@ -6068,7 +6120,7 @@ function renderMyPage() {
               </div>
               <span style="font-size:0.72em;font-weight:700;padding:3px 10px;border-radius:12px;background:${bg};color:${sc}">${e.rentalStatus}</span>
             </div>
-            ${canReturn?`<button class="btn-primary" style="width:100%;margin-top:8px;padding:8px;font-size:0.82em;background:${isOverdue?'#e53935':'#1565c0'}" onclick="returnDevice('${e.id}')">${t('my.rental.return')}</button>`:''}
+            ${(extendBtn||returnBtn)?`<div style="display:flex;gap:8px;margin-top:8px">${extendBtn}${returnBtn}</div>`:''}
           </div>`;
         }).join('')}
       </div>`;
