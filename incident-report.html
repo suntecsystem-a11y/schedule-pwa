@@ -420,8 +420,12 @@ function isManager() {
 }
 
 function goBack() {
-  sessionStorage.setItem('sch_return_tab','apply-incident');
-  window.location.href = 'index.html';
+  if (window.opener || history.length <= 1) {
+    window.close();
+  } else {
+    sessionStorage.setItem('sch_return_tab','apply-incident');
+    window.location.href = 'index.html';
+  }
 }
 
 function selectType(type) {
