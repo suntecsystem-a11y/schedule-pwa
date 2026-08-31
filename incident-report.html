@@ -972,7 +972,7 @@ function resumeMsg(text) {
 }
 
 async function loadResumeList() {
-  if (!isManager()) return; // 一般社員には表示しない
+  if (!sess) return; // 未ログイン時は表示しない
   var section = document.getElementById('resume-section');
   var listEl = document.getElementById('resume-list');
   section.style.display = 'block';
@@ -1064,8 +1064,8 @@ function setVal(id, v) {
 
 renderProgress();
 
-// 途中保存ボタンは一般以外＋管理者のみ表示
-if (isManager()) {
+// 途中保存ボタンは全員に表示
+if (sess) {
   document.getElementById('btn-save-progress').style.display = 'inline-block';
 }
 
