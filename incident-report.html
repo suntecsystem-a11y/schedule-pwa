@@ -422,7 +422,7 @@ function isManager() {
 function goBack() {
   // history.back() だとindex.htmlがbfcacheから復元されて予定が再読込されない
   // ことがあるため、常に新規ロードして初期化を走らせる
-  window.location.href = 'index.html';
+  window.location.href = 'index.html#apply-incident';
 }
 
 function selectType(type) {

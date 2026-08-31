@@ -2895,7 +2895,13 @@ function showApp(opts){
   document.getElementById('elearning-tab-btn').style.display = canSeeElearning ? 'block' : 'none';
   document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
   buildFilterUI();
-  switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
+  if(location.hash==='#apply-incident'){
+    switchTab('apply', document.querySelector('.sidebar-btn[data-tab="apply"]'));
+    switchApplyMode('incident', document.querySelector('.apply-seg-btn:nth-child(2)'));
+    history.replaceState(null,'',location.pathname);
+  } else {
+    switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
+  }
   renderAll();
   Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
