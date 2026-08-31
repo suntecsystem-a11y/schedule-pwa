@@ -2896,15 +2896,13 @@ function showApp(opts){
   document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
   buildFilterUI();
   const _retTab=sessionStorage.getItem('sch_return_tab');
-  if(_retTab){
+  const _fromIncident=document.referrer&&document.referrer.includes('incident-report');
+  if(_retTab==='apply-incident'||_fromIncident){
     sessionStorage.removeItem('sch_return_tab');
-    if(_retTab==='apply-incident'){
-      switchTab('apply', document.querySelector('.sidebar-btn[data-tab="apply"]'));
-      switchApplyMode('incident', document.querySelector('.apply-seg-btn:nth-child(2)'));
-    } else {
-      switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
-    }
+    switchTab('apply', document.querySelector('.sidebar-btn[data-tab="apply"]'));
+    switchApplyMode('incident', document.querySelector('.apply-seg-btn:nth-child(2)'));
   } else {
+    if(_retTab) sessionStorage.removeItem('sch_return_tab');
     switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   }
   renderAll();
