@@ -999,7 +999,16 @@ async function loadResumeList() {
       listEl.innerHTML = resumeMsg(msg);
       return;
     }
-    var records = (result.data || []).filter(function(r) { return r.status === '対応中'; });
+    // getIncidents は { cases, myReports, isMgr } を返す（配列は旧形式フォールバック）
+    var d = result.data || {};
+    var pool;
+    if (Array.isArray(d)) {
+      pool = d;
+    } else {
+      // 管理者は全件(cases)、一般社員は自分の分(myReports)から対応中を抽出
+      pool = d.isMgr ? (d.cases || []) : (d.myReports || []);
+    }
+    var records = pool.filter(function(r) { return r.status === '対応中'; });
     if (records.length === 0) { listEl.innerHTML = resumeMsg('今対応中の報告書はありません'); return; }
 
     listEl.innerHTML = '';
