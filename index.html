@@ -5856,7 +5856,7 @@ function renderMyPage() {
 
   // ミニカレンダー構築
   const _cy=_mypageCM.getFullYear(),_cmo=_mypageCM.getMonth();
-  const _myAll=events.filter(e=>e.approvalStatus!=='否認'&&(e.userId===currentUser.id||(e.people||[]).includes(currentUser.id)));
+  const _myAll=events.filter(e=>e.approvalStatus!=='否認'&&e.type!=='その他'&&(e.userId===currentUser.id||(e.people||[]).includes(currentUser.id)));
   const _natHol=jpNationalHolidays(_cy);
   const _natHolP=_cmo===0?jpNationalHolidays(_cy-1):_natHol;
   const _natHolN=_cmo===11?jpNationalHolidays(_cy+1):_natHol;
@@ -6313,13 +6313,6 @@ function renderSettings() {
         const dots=['会議室','外出','出張','休暇','在宅'].map(k=>`<span style="width:10px;height:10px;border-radius:3px;background:${pal[k]};display:inline-block"></span>`).join('');
         return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="applyColorMode('${m.id}')">${radio(sel)} <span>${m.label}</span> <span style="display:inline-flex;gap:2px;margin-left:2px">${dots}</span></label>`;
       }).join(''))}
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee">
-        <a href="incident-report.html" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;text-decoration:none;color:var(--text2);font-size:0.8em;border:1px solid #eee;background:#fafafa">
-          <span>&#128680;</span>
-          <span>インシデント報告（情報漏洩・盗難・紛失）</span>
-          <span style="margin-left:auto;color:var(--text3);font-size:0.85em">&#9654;</span>
-        </a>
-      </div>
     </div>`;
 }
 

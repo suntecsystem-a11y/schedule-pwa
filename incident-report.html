@@ -992,7 +992,13 @@ async function loadResumeList() {
       redirect: 'follow',
     });
     var result = await res.json();
-    if (result.error) { listEl.innerHTML = resumeMsg('一覧を読み込めませんでした'); return; }
+    if (result.error) {
+      var msg = (result.error === 'SESSION_EXPIRED')
+        ? 'セッションが切れています。スケジュールアプリで再ログインしてから開き直してください'
+        : '一覧を読み込めませんでした（' + esc(result.error) + '）';
+      listEl.innerHTML = resumeMsg(msg);
+      return;
+    }
     var records = (result.data || []).filter(function(r) { return r.status === '対応中'; });
     if (records.length === 0) { listEl.innerHTML = resumeMsg('今対応中の報告書はありません'); return; }
 
