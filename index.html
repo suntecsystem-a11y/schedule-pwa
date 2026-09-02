@@ -73,7 +73,8 @@ input,select{font-family:inherit;outline:none}
 .sidebar-header{display:flex;align-items:center;gap:10px;padding:16px 0;justify-content:center;border-bottom:1px solid rgba(255,255,255,.15);flex-shrink:0}
 .sidebar-logo-icon{font-size:1.4em}
 .sidebar-logo-text{display:none;font-size:0.9em;font-weight:700;color:white;white-space:nowrap}
-.halo-logo{font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-weight:900;font-style:italic;font-size:1.7em;letter-spacing:.03em;line-height:1;background:linear-gradient(90deg,#4a9fd6 0%,#74d0ea 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#74d0ea}
+.halo-logo{display:block;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-weight:900;font-style:italic;font-size:1.7em;letter-spacing:.03em;line-height:1;background:linear-gradient(90deg,#4a9fd6 0%,#74d0ea 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#74d0ea}
+.halo-sub{display:block;font-size:0.62em;font-weight:600;color:rgba(255,255,255,.85);letter-spacing:.08em;margin-top:3px}
 .sidebar-nav{flex:1;padding:8px 0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.3) transparent}
 .sidebar-nav::-webkit-scrollbar{width:6px}
 .sidebar-nav::-webkit-scrollbar-track{background:transparent}
@@ -601,7 +602,7 @@ input,select{font-family:inherit;outline:none}
 <nav id="sidebar">
   <div class="sidebar-header">
     <span class="sidebar-logo-icon">📅</span>
-    <span class="sidebar-logo-text"><span class="halo-logo">HALO</span></span>
+    <span class="sidebar-logo-text"><span class="halo-logo">HALO</span><span class="halo-sub">サンテックポータル</span></span>
     <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="サイドバーを折りたたむ" id="sidebar-collapse-btn">◀</button>
   </div>
   <div class="sidebar-nav">
