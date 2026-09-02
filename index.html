@@ -2697,9 +2697,9 @@ function getFiltered(opts){
       if(!applicant || !canApproveDept(applicant.dept, e.approvedBy)) return false;
     }
     if(filterPeople.size){
-      const inPeople=(e.people||[]).some(p=>filterPeople.has(p));
-      const isOwner=filterPeople.has(e.userId);
-      if(!inPeople&&!isOwner) return false;
+      // 休暇は登録者を除いた参加者に帰属（_isUserInEvent）。他種別は参加者OR登録者
+      const match=[...filterPeople].some(p=>_isUserInEvent(e,p));
+      if(!match) return false;
     }
     if(filterTypes.size && !filterTypes.has(e.type)) return false;
     return true;
@@ -3074,17 +3074,17 @@ function switchApplyMode(mode,btn){
   if(btn) btn.classList.add('active');
   document.getElementById('apply-mode-apply').style.display=mode==='apply'?'block':'none';
   document.getElementById('apply-mode-incident').style.display=mode==='incident'?'block':'none';
-  if(mode==='incident') loadIncidentCases();
+  if(mode==='incident') loadIncidentCases(true);
 }
 function renderApplyTab(){
   const seg=document.getElementById('apply-segment');
   const activeBtn=seg.querySelector('.apply-seg-btn.active');
   const mode=activeBtn&&activeBtn.textContent.includes('インシデント')?'incident':'apply';
-  if(mode==='incident') loadIncidentCases();
+  if(mode==='incident') loadIncidentCases(true);
 }
-function loadIncidentCases(){
+function loadIncidentCases(force){
   const el=document.getElementById('incident-list-content');
-  if(_incidentCache){renderIncidentList(_incidentCache);return;}
+  if(_incidentCache && !force){renderIncidentList(_incidentCache);return;}
   el.innerHTML='<div style="text-align:center;padding:40px 0;color:var(--text2);font-size:0.85em">読み込み中...</div>';
   if(!GAS_URL){
     _incidentCache=_demoIncidentData();
@@ -3165,8 +3165,11 @@ function renderIncidentList(data){
     years.forEach(y=>{h+=`<button class="inc-filter-chip${fYear===y?' on':''}" onclick="toggleIncFilter('year','${y}')">${y}</button>`;});
   }
   h+=`</div>`;
-  // 新規報告ボタン
-  h+=`<button onclick="window.open('incident-report.html','_blank')" style="width:100%;padding:10px;margin-bottom:14px;border-radius:10px;font-size:0.85em;font-weight:600;background:#ffebee;color:#c62828;border:1px solid #ffcdd2;cursor:pointer">⚠️ インシデントを報告する</button>`;
+  // 新規報告ボタン・更新ボタン
+  h+=`<div style="display:flex;gap:8px;margin-bottom:14px">`;
+  h+=`<button onclick="window.open('incident-report.html','_blank')" style="flex:1;padding:10px;border-radius:10px;font-size:0.85em;font-weight:600;background:#ffebee;color:#c62828;border:1px solid #ffcdd2;cursor:pointer">⚠️ インシデントを報告する</button>`;
+  h+=`<button onclick="loadIncidentCases(true)" title="一覧を更新" style="flex:0 0 auto;padding:10px 14px;border-radius:10px;font-size:0.85em;background:var(--surface);color:var(--text2);border:1px solid var(--border);cursor:pointer">🔄</button>`;
+  h+=`</div>`;
   const filtered=_incFilteredCases(cases);
   const hasFilter=fType||fSev||fYear;
   if(hasFilter) h+=`<div style="font-size:0.75em;color:var(--text3);margin-bottom:8px">${filtered.length}件の事例${filtered.length!==total?' / 全'+total+'件':''}</div>`;
@@ -3329,7 +3332,7 @@ function renderSidebarToday() {
   const now = new Date();
   const nowMins = now.getHours()*60 + now.getMinutes();
   const myEvs = events.filter(e => eventIncludesDate(e, ds) &&
-    (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id)));
+    _isUserInEvent(e, currentUser.id));
   myEvs.sort((a,b) => timeToMins(a.start||'00:00') - timeToMins(b.start||'00:00'));
   if (!myEvs.length) {
     el.innerHTML = `<div class="st-title">${t('sidebar.today')}</div><div class="st-empty">${t('sidebar.no.events')}</div>`;
@@ -4094,7 +4097,8 @@ function renderHomeDayWidgets(){
     const myEvs = events.filter(e =>
       eventIncludesDate(e, today) &&
       e.type !== 'その他' &&
-      (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id))
+      e.approvalStatus !== '否認' &&
+      _isUserInEvent(e, currentUser.id)
     ).sort((a,b) => (a.start||'99:99').localeCompare(b.start||'99:99'));
     const isYasumi = yasumiUsers.has(currentUser.id);
     if(isYasumi){
@@ -5859,7 +5863,7 @@ function renderMyPage() {
 
   // ミニカレンダー構築
   const _cy=_mypageCM.getFullYear(),_cmo=_mypageCM.getMonth();
-  const _myAll=events.filter(e=>e.approvalStatus!=='否認'&&e.type!=='その他'&&(e.userId===currentUser.id||(e.people||[]).includes(currentUser.id)));
+  const _myAll=events.filter(e=>e.approvalStatus!=='否認'&&e.type!=='その他'&&_isUserInEvent(e,currentUser.id));
   const _natHol=jpNationalHolidays(_cy);
   const _natHolP=_cmo===0?jpNationalHolidays(_cy-1):_natHol;
   const _natHolN=_cmo===11?jpNationalHolidays(_cy+1):_natHol;
@@ -6060,7 +6064,7 @@ function renderMyPage() {
       const weekDates = Array.from({length:5},(_,i)=>{ const d=new Date(weekStart); d.setDate(weekStart.getDate()+i); return fmtDate(d); });
       const weekEvs = events.filter(e =>
         e.approvalStatus!=='否認' &&
-        (e.userId===currentUser.id || (e.people||[]).includes(currentUser.id)) &&
+        _isUserInEvent(e, currentUser.id) &&
         weekDates.some(ds2 => eventIncludesDate(e, ds2))
       );
       const meetings   = weekEvs.filter(e => e.type==='会議室' || e.type==='打ち合わせ').length;
