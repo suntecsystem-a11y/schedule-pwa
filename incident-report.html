@@ -157,16 +157,6 @@ select.form-input{appearance:none;background:white url("data:image/svg+xml,%3Csv
     </table>
   </div>
 
-  <!-- 下書き復元バナー -->
-  <div id="draft-banner" style="display:none;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
-    <div style="font-size:0.85em;font-weight:600;margin-bottom:8px">&#128221; 入力途中の報告書があります</div>
-    <div style="font-size:0.75em;color:var(--text2);margin-bottom:10px" id="draft-banner-info"></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-primary" style="padding:8px 16px;flex:0 0 auto" onclick="restoreDraft()">続きから再開</button>
-      <button class="btn btn-secondary" style="padding:8px 16px;flex:0 0 auto" onclick="discardDraft()">破棄して新規</button>
-    </div>
-  </div>
-
   <div class="progress-bar" id="progress-bar"></div>
 
   <!-- Step 0: 事案種別選択 -->
@@ -783,7 +773,7 @@ async function doSave(status, isFinal) {
 
   if (!GAS_URL) {
     savedStatus = status;
-    if (isFinal) { clearDraft(); showDone('DEMO-' + Date.now().toString(36).toUpperCase()); }
+    if (isFinal) { showDone('DEMO-' + Date.now().toString(36).toUpperCase()); }
     else { alert('（デモ）途中保存しました'); }
     return;
   }
@@ -802,7 +792,6 @@ async function doSave(status, isFinal) {
     // 以後の保存は更新扱いにする
     if (result.data?.recordId) editingRecordId = result.data.recordId;
     if (result.data?.reportNo) editingReportNo = result.data.reportNo;
-    clearDraft();
     if (isFinal) {
       showDone(editingReportNo || result.data?.reportNo || result.data?.recordId || '');
     } else {
@@ -859,7 +848,6 @@ function resetForm() {
   editingRecordId = null;
   editingReportNo = '';
   savedStatus = '起票';
-  clearDraft();
   document.querySelectorAll('input[type="text"],input[type="date"],input[type="datetime-local"],textarea,select').forEach(function(el) { el.value = ''; el.className = el.className.replace(/ done| na/g, ''); });
   document.querySelectorAll('.type-card').forEach(function(el) { el.classList.remove('selected'); });
   document.querySelectorAll('.severity-btn').forEach(function(el) { el.classList.remove('selected'); });
@@ -880,12 +868,10 @@ function applyDefaults() {
 }
 
 // ============================================================
-// Lv1: 端末内の自動下書き（localStorage）
+// フォーム状態のシリアライズ（Kintone再開・checklistJson用）
 // ============================================================
-var DRAFT_KEY = 'incident_draft_' + (sess?.empId || 'anon');
-var editingRecordId = null; // Lv2: Kintone再開時のレコードID
+var editingRecordId = null; // Kintone再開時のレコードID
 var savedStatus = '起票';    // 直近に保存したステータス（印刷ヘッダー用）
-var _draftTimer = null;
 
 function collectFormState() {
   var state = { incidentType: incidentType, severity: severity, currentStep: currentStep, values: {} };
@@ -915,57 +901,6 @@ function applyFormState(state) {
   if (step < 0 || step > 4) step = 0;
   showStep(step);
 }
-
-function hasContent(state) {
-  if (!state) return false;
-  if (state.incidentType) return true;
-  return Object.keys(state.values || {}).some(function(id) {
-    var v = state.values[id];
-    // 自動セットの発生日時・発生者は「入力あり」に数えない
-    if (id === 'occurred-at' || (id === 'person-involved' && v === (sess?.name || ''))) return false;
-    return v && v.trim && v.trim() !== '';
-  });
-}
-
-function saveDraft() {
-  try {
-    var state = collectFormState();
-    if (!hasContent(state)) { localStorage.removeItem(DRAFT_KEY); return; }
-    state.editingRecordId = editingRecordId;
-    state.savedAt = new Date().toISOString();
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
-  } catch(e) {}
-}
-
-function scheduleSave() {
-  clearTimeout(_draftTimer);
-  _draftTimer = setTimeout(saveDraft, 600);
-}
-
-function loadDraft() {
-  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch(e) { return null; }
-}
-
-function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY);
-  document.getElementById('draft-banner').style.display = 'none';
-}
-
-function restoreDraft() {
-  var d = loadDraft();
-  if (!d) return;
-  editingRecordId = d.editingRecordId || null;
-  applyFormState(d);
-  document.getElementById('draft-banner').style.display = 'none';
-}
-
-function discardDraft() {
-  clearDraft();
-}
-
-// 入力のたびに自動保存（下書き）
-document.addEventListener('input', scheduleSave);
-document.addEventListener('change', scheduleSave);
 
 // ============================================================
 // Lv2: 対応中の報告書一覧（一般以外＋管理者のみ）
@@ -1054,7 +989,6 @@ function populateFromRecord(data) {
   editingReportNo = data.reportNo || '';
   savedStatus = data.status || '対応中';
   document.getElementById('resume-section').style.display = 'none';
-  document.getElementById('draft-banner').style.display = 'none';
 
   // チェックリストJSON（フォーム全体の状態）があれば丸ごと復元
   if (data.checklistJson) {
@@ -1087,18 +1021,8 @@ if (sess) {
   document.getElementById('btn-save-progress').style.display = 'inline-block';
 }
 
-// 起動時：下書きがあれば復元バナー、対応中一覧を読み込み
-(function initDraft() {
-  var d = loadDraft();
-  if (hasContent(d)) {
-    var info = document.getElementById('draft-banner-info');
-    var typeLabel = d.incidentType === 'leak' ? '情報漏洩' : d.incidentType === 'theft' ? '盗難・紛失' : '種別未選択';
-    var when = d.savedAt ? formatDT(d.savedAt) : '';
-    info.textContent = typeLabel + (when ? '（最終入力: ' + when + '）' : '');
-    document.getElementById('draft-banner').style.display = 'block';
-  }
-  loadResumeList();
-})();
+// 起動時：対応中の報告書一覧を読み込み
+loadResumeList();
 
 applyDefaults();
 // URLパラメータ ?id=xxx で報告書を直接開く
