@@ -73,6 +73,7 @@ input,select{font-family:inherit;outline:none}
 .sidebar-header{display:flex;align-items:center;gap:10px;padding:16px 0;justify-content:center;border-bottom:1px solid rgba(255,255,255,.15);flex-shrink:0}
 .sidebar-logo-icon{font-size:1.4em}
 .sidebar-logo-text{display:none;font-size:0.9em;font-weight:700;color:white;white-space:nowrap}
+.halo-logo{font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-weight:900;font-style:italic;font-size:1.7em;letter-spacing:.03em;line-height:1;background:linear-gradient(90deg,#4a9fd6 0%,#74d0ea 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#74d0ea}
 .sidebar-nav{flex:1;padding:8px 0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.3) transparent}
 .sidebar-nav::-webkit-scrollbar{width:6px}
 .sidebar-nav::-webkit-scrollbar-track{background:transparent}
@@ -600,7 +601,7 @@ input,select{font-family:inherit;outline:none}
 <nav id="sidebar">
   <div class="sidebar-header">
     <span class="sidebar-logo-icon">📅</span>
-    <span class="sidebar-logo-text">スケジュール管理</span>
+    <span class="sidebar-logo-text"><span class="halo-logo">HALO</span></span>
     <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="サイドバーを折りたたむ" id="sidebar-collapse-btn">◀</button>
   </div>
   <div class="sidebar-nav">
@@ -2330,7 +2331,7 @@ function applyLanguage(lang){
   currentLang=lang;
   localStorage.setItem('sch_lang',lang);
   document.title=t('app.title');
-  document.querySelector('.sidebar-logo-text').textContent=t('app.title');
+  // サイドバーロゴはHALO（ブランド名なので言語切替で上書きしない）
   document.querySelector('.topbar-title').textContent='📅 '+t('app.title');
   const sideLabels=document.querySelectorAll('.sidebar-label');
   const navKeys=['nav.home','nav.calendar','nav.rooms','nav.team','nav.devices','nav.cars','nav.inquiry','nav.apply','nav.elearning','nav.mypage','nav.settings','nav.admin'];
@@ -4091,6 +4092,7 @@ function renderHomeDayWidgets(){
   if(schedEl){
     const myEvs = events.filter(e =>
       eventIncludesDate(e, today) &&
+      e.type !== 'その他' &&
       (e.userId === currentUser.id || (e.people||[]).includes(currentUser.id))
     ).sort((a,b) => (a.start||'99:99').localeCompare(b.start||'99:99'));
     const isYasumi = yasumiUsers.has(currentUser.id);
