@@ -3249,6 +3249,26 @@ function openIncidentDetail(id){
   if(isMgr&&c.personInvolved) h+=`<tr><td style="color:var(--text3);padding:5px 0;vertical-align:top">👤 発生者</td><td style="padding:5px 0">${esc(c.personInvolved)}</td></tr>`;
   if(isMgr&&c.responder) h+=`<tr><td style="color:var(--text3);padding:5px 0;vertical-align:top">🛠️ 対応者</td><td style="padding:5px 0">${esc(c.responder)}</td></tr>`;
   if(isMgr&&c.manager) h+=`<tr><td style="color:var(--text3);padding:5px 0;vertical-align:top">👔 管理者</td><td style="padding:5px 0">${esc(c.manager)}</td></tr>`;
+  // 種別ごとの詳細（管理者のみ）
+  const _dRow=(label,val)=>val?`<tr><td style="color:var(--text3);padding:5px 0;vertical-align:top;white-space:nowrap">${label}</td><td style="padding:5px 0">${esc(val)}</td></tr>`:'';
+  if(isMgr&&c.type==='盗難・紛失'){
+    h+=_dRow('📦 紛失・盗難物',c.theftItem);
+    h+=_dRow('🕐 最終確認日時',c.theftLastSeen);
+    h+=_dRow('📌 最終確認場所',c.theftLastLocation);
+    h+=_dRow('🔐 個人情報含有',c.theftHasData);
+    h+=_dRow('📄 含まれる情報',c.theftDataDetail);
+  }
+  if(isMgr&&c.type==='情報漏洩'){
+    h+=_dRow('👀 気付いた人',c.leakWhoNoticed);
+    h+=_dRow('📝 気付いた詳細',c.leakNoticeDetail);
+    h+=_dRow('🗂️ 漏洩データ種別',c.leakDataType);
+    h+=_dRow('🔢 件数・対象人数',c.leakCount);
+    h+=_dRow('💾 保存場所',c.leakStorage);
+    h+=_dRow('🔍 原因',c.leakCause);
+    h+=_dRow('📞 報告先',c.leakReportedTo);
+    h+=_dRow('🛠️ その他対応',c.leakOtherAction);
+    h+=_dRow('⚠️ 影響の詳細',c.leakImpactDetail);
+  }
   h+=`</table>`;
   if(c.summary) h+=`<div style="margin-top:12px;padding:10px 12px;background:var(--bg2);border-radius:8px;font-size:0.82em;line-height:1.6;color:var(--text)">${esc(c.summary)}</div>`;
   if(isMgr&&c.severityComment) h+=`<div style="margin-top:8px;font-size:0.78em;color:var(--text2)">重大度メモ: ${esc(c.severityComment)}</div>`;
