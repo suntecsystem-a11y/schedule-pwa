@@ -756,12 +756,12 @@ function collectData() {
   return data;
 }
 
-// 最終保存（新規→起票 / 再開→完了）
+// 最終保存（新規・再開いずれも「完了」）
 async function submitReport() {
-  await doSave(editingRecordId ? '完了' : '起票', true);
+  await doSave('完了', true);
 }
 
-// 途中保存（対応中）：一般以外＋管理者のみ
+// 途中保存（対応中）
 async function saveInProgress() {
   if (!incidentType) { alert('先に事案種別を選択してください'); return; }
   await doSave('対応中', false);
@@ -847,7 +847,7 @@ function resetForm() {
   severity = 0;
   editingRecordId = null;
   editingReportNo = '';
-  savedStatus = '起票';
+  savedStatus = '対応中';
   document.querySelectorAll('input[type="text"],input[type="date"],input[type="datetime-local"],textarea,select').forEach(function(el) { el.value = ''; el.className = el.className.replace(/ done| na/g, ''); });
   document.querySelectorAll('.type-card').forEach(function(el) { el.classList.remove('selected'); });
   document.querySelectorAll('.severity-btn').forEach(function(el) { el.classList.remove('selected'); });
@@ -871,7 +871,7 @@ function applyDefaults() {
 // フォーム状態のシリアライズ（Kintone再開・checklistJson用）
 // ============================================================
 var editingRecordId = null; // Kintone再開時のレコードID
-var savedStatus = '起票';    // 直近に保存したステータス（印刷ヘッダー用）
+var savedStatus = '対応中';  // 直近に保存したステータス（印刷ヘッダー用。最終保存で「完了」に更新）
 
 function collectFormState() {
   var state = { incidentType: incidentType, severity: severity, currentStep: currentStep, values: {} };

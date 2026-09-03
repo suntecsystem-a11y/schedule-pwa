@@ -2725,7 +2725,7 @@ function buildFilterUI(){
       onclick="toggleFilterPeople('${u.id}')">${u.name}</div>`).join('');
 
   // 種別チップ（カラードット常時表示＝凡例兼用）
-  document.getElementById('filter-type-chips').innerHTML = ALL_TYPES.map(tp=>{
+  document.getElementById('filter-type-chips').innerHTML = ALL_TYPES.filter(tp=>tp!=='その他'&&tp!=='休み').map(tp=>{
     const c = STATUS_COLOR[tp]||'#9e9e9e';
     const active = filterTypes.has(tp);
     return `<div class="filter-chip${active?' active':''}"
@@ -4755,8 +4755,9 @@ function onTypeChange(){
     document.getElementById('rental-dates-row').style.display=isRental&&selectedRentals.length?'flex':'none';
     document.getElementById('rental-purpose-row').style.display=isRental&&selectedRentals.length?'flex':'none';
   }
-  const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
-  const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&(currentUser.role==='一般'||(typ==='在宅'&&currentUser.role==='主任'))&&!editingApproved;
+  const _origEdit=editingId?events.find(e=>e.id===editingId):null;
+  const editingApproved=_origEdit&&_origEdit.approvalStatus==='承認済'&&_origEdit.type===typ; // 同種別のまま編集時のみ再承認を省略
+  const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&(!currentUser.role||currentUser.role==='一般'||(typ==='在宅'&&currentUser.role==='主任'))&&!editingApproved;
   document.getElementById('approver-row').style.display=needsApprover?'flex':'none';
   if(needsApprover)renderApproverSelect(typ);
   document.getElementById('remote-reason-row').style.display=typ==='在宅'?'flex':'none';
@@ -5236,8 +5237,9 @@ async function doSaveEvent(){
   const rentalEnd=isRental&&selectedRentals.length?document.getElementById('ev-rental-end').value:'';
   if(isRental&&selectedRentals.length&&rentalStart&&rentalEnd&&rentalEnd<rentalStart){showToast(t('ev.date.order'));return}
   if(selectedRentals.length&&!document.getElementById('ev-rental-purpose').value.trim()){showToast('使用目的を入力してください');return}
-  const editApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
-  const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&(currentUser.role==='一般'||(type==='在宅'&&currentUser.role==='主任'))&&!editApproved;
+  const _origSave=editingId?events.find(e=>e.id===editingId):null;
+  const editApproved=_origSave&&_origSave.approvalStatus==='承認済'&&_origSave.type===type; // 同種別のまま編集時のみ再承認を省略
+  const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&(!currentUser.role||currentUser.role==='一般'||(type==='在宅'&&currentUser.role==='主任'))&&!editApproved;
   const selectedApprover=needsApprover?document.getElementById('ev-approver').value:'';
   if(needsApprover&&!selectedApprover){showToast(t('ev.approver.required.msg'));return}
   const ev={
