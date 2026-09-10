@@ -3812,7 +3812,9 @@ function _isUserInEvent(e, uid) {
     const others = (e.people || []).filter(id => id !== e.userId);
     return others.length > 0 ? others.includes(uid) : (e.people || []).includes(uid);
   }
-  return (e.people || []).includes(uid) || e.userId === uid;
+  // 参加者のみで判定（登録者は含めない）。登録者は登録時にデフォルトで参加者に入る想定。
+  // 代理登録で自分を参加者から外した予定は、自分の表示には出ない。
+  return (e.people || []).includes(uid);
 }
 // 会議室・打ち合わせは時刻チェックあり、それ以外は日付のみで判定
 const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','打ち合わせ','会議中'];
