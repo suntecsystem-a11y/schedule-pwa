@@ -4873,7 +4873,7 @@ function renderRentalPicker(){
     const selStart=document.getElementById('ev-rental-start')?.value||'';
     const selEnd=document.getElementById('ev-rental-end')?.value||selStart;
     const hasDateOverlap=selStart&&details.some(d=>d.rentalStart&&d.rentalEnd&&selStart<=d.rentalEnd&&selEnd>=d.rentalStart&&String(d.eventId)!==String(editingId));
-    const disabled=(isRented||isPending)&&hasDateOverlap&&!isSel;
+    const disabled=(isRented||(isPending&&hasDateOverlap))&&!isSel;
     return`<div class="people-chip${isSel?' selected':''}${disabled?' disabled':''}" style="${disabled?'opacity:.5;pointer-events:none':''}" onclick="toggleRentalItem('${mid}')">${esc(m.purpose)}<span style="font-size:0.85em;opacity:.6;margin-left:4px">(${esc(m.deviceType)})</span>${badge}</div>`;
   }).join('')||`<div style="font-size:0.82em;color:var(--text3);padding:8px 0">${t('ev.rental.none')}</div>`;
   updateRentalSummary();
