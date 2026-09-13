@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>入社情報 登録</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #1a73e8; --primary-dark: #1557b0; --primary-light: #e8f0fe;
+  --danger: #e53935; --success: #43a047; --warn: #fb8c00;
+  --bg: #f5f7fa; --card: #fff; --border: #e0e0e0;
+  --text: #212121; --text-sub: #757575; --radius: 8px;
+}
+body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ===== ログイン ===== */
+#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#1a73e8,#0d47a1); }
+.login-card { background: var(--card); border-radius: 16px; padding: 40px 32px; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
+.login-card h1 { font-size: 20px; text-align: center; margin-bottom: 8px; }
+.login-card p { font-size: 13px; color: var(--text-sub); text-align: center; margin-bottom: 24px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.form-group input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 15px; }
+.form-group input:focus { outline: none; border-color: var(--primary); }
+.btn-primary { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-primary:hover { background: var(--primary-dark); }
+.login-error { color: var(--danger); font-size: 13px; text-align: center; margin-top: 12px; display: none; }
+
+/* ===== ヘッダー ===== */
+.wizard-header {
+  background: var(--primary); color: #fff; padding: 0 16px; height: 56px;
+  display: flex; align-items: center; gap: 12px;
+  position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.wizard-header .btn-back { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px 8px; border-radius: 4px; line-height: 1; }
+.wizard-header .btn-back:hover { background: rgba(255,255,255,.15); }
+.wizard-header h1 { font-size: 17px; font-weight: 700; flex: 1; }
+.wizard-header .step-indicator { font-size: 13px; opacity: .85; white-space: nowrap; }
+
+.wizard-progress { height: 4px; background: var(--primary-light); position: sticky; top: 56px; z-index: 99; }
+.wizard-progress-bar { height: 100%; background: var(--primary); transition: width .3s ease; }
+
+.wizard-body { flex: 1; padding: 20px 16px 100px; max-width: 660px; margin: 0 auto; width: 100%; }
+
+.step-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.step-desc { font-size: 13px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.6; }
+
+/* ===== フォーム ===== */
+.field { margin-bottom: 16px; }
+.field > label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.field .req { color: var(--danger); margin-left: 4px; }
+.field input, .field select {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 15px; font-family: inherit; background: var(--card);
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+.field input.error, .field select.error { border-color: var(--danger); }
+.field .hint { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
+
+.group-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.group-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display:flex; align-items:center; gap:8px; }
+.group-title .badge-opt { font-size: 11px; font-weight: 600; color: var(--text-sub); background: #f0f0f0; padding: 2px 8px; border-radius: 10px; }
+
+/* 性別トグル */
+.seg { display: flex; gap: 10px; }
+.seg-btn { flex: 1; padding: 10px; text-align: center; border: 2px solid var(--border); border-radius: var(--radius); font-size: 14px; font-weight: 600; cursor: pointer; background: var(--card); }
+.seg-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+
+/* 乗り換え追加 */
+.leg-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin-bottom: 8px; }
+.leg-row .arrow { color: var(--text-sub); font-size: 13px; }
+.btn-add { background: none; border: 1px dashed var(--primary); color: var(--primary); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-add:hover { background: var(--primary-light); }
+.btn-remove { background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer; }
+
+/* 確認 */
+.confirm-section { margin-bottom: 20px; }
+.confirm-section-title { font-size: 14px; font-weight: 700; padding: 8px 12px; background: var(--primary-light); color: var(--primary); border-radius: var(--radius) var(--radius) 0 0; }
+.confirm-table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--card); border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); }
+.confirm-table th { text-align: left; padding: 8px 12px; background: #fafafa; color: var(--text-sub); font-size: 12px; border-bottom: 1px solid var(--border); width: 120px; vertical-align: top; }
+.confirm-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.confirm-table tr:last-child th, .confirm-table tr:last-child td { border-bottom: none; }
+
+/* 完了 */
+.complete-box { text-align: center; padding: 40px 20px; background: var(--card); border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+.complete-icon { font-size: 56px; margin-bottom: 16px; }
+.complete-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.complete-sub { font-size: 14px; color: var(--text-sub); margin-bottom: 24px; line-height: 1.6; }
+.complete-info { text-align: left; padding: 16px; background: var(--bg); border-radius: var(--radius); font-size: 13px; }
+.complete-info div { padding: 6px 0; display: flex; gap: 8px; }
+.complete-info .ci-label { color: var(--text-sub); min-width: 90px; }
+
+.wizard-footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: var(--card); border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: center; z-index: 100; }
+.wizard-footer .btn { padding: 12px 32px; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; border: none; min-width: 120px; }
+.wizard-footer .btn-prev { background: none; border: 1px solid var(--border); color: var(--text); }
+.wizard-footer .btn-prev:hover { background: var(--bg); }
+.wizard-footer .btn-next { background: var(--primary); color: #fff; }
+.wizard-footer .btn-next:hover { background: var(--primary-dark); }
+.wizard-footer .btn-submit { background: var(--success); color: #fff; }
+.wizard-footer .btn-submit:hover { background: #388e3c; }
+
+.welcome-card { background: var(--card); border-radius: 12px; padding: 32px 24px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+.welcome-icon { font-size: 48px; margin-bottom: 16px; }
+.welcome-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.welcome-desc { font-size: 14px; color: var(--text-sub); line-height: 1.7; text-align: left; padding: 16px; background: var(--bg); border-radius: var(--radius); margin-top:16px; }
+.info-box { padding: 12px 14px; background: #e3f2fd; border-radius: var(--radius); font-size: 13px; color: #1565c0; margin-top: 12px; line-height: 1.6; }
+
+.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #323232; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; }
+.toast.show { opacity: 1; }
+.loading { text-align: center; padding: 40px; color: var(--text-sub); font-size: 14px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ===== ログイン（総務／システム担当が操作） ===== -->
+<div id="screen-login" class="screen active">
+  <div class="login-card">
+    <h1>入社情報 登録</h1>
+    <p>社員番号とPINコードでログイン</p>
+    <div class="form-group">
+      <label>社員番号</label>
+      <input type="text" id="inp-empid" placeholder="例: 1001" inputmode="numeric">
+    </div>
+    <div class="form-group">
+      <label>PINコード</label>
+      <input type="password" id="inp-pin" placeholder="4桁" inputmode="numeric" maxlength="4">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ===== ウィザード ===== -->
+<div id="screen-wizard" class="screen">
+  <header class="wizard-header">
+    <button class="btn-back" id="header-back" onclick="handleBack()">&#8592;</button>
+    <h1 id="header-title">入社情報 登録</h1>
+    <span class="step-indicator" id="step-indicator"></span>
+  </header>
+  <div class="wizard-progress"><div class="wizard-progress-bar" id="progress-bar"></div></div>
+  <div class="wizard-body" id="wizard-body">
+    <div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>
+  </div>
+  <div class="wizard-footer" id="wizard-footer"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================================================
+// 設定
+// =============================================================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvHJ12cwnKgWIwrAXAeXuv1wSZXQXOHdAxhZ_P7vbe7KhrtEwv1wCigz0IHocrgHg/exec';
+const PREFECTURES = ['大阪府','兵庫県','茨城県','奈良県','京都府','滋賀県','和歌山県'];
+const COMMUTE_METHODS = ['電車','自転車','バイク','徒歩'];
+
+// =============================================================================
+// セッション（申請アプリと共有）
+// =============================================================================
+let currentUser = null;
+let currentToken = null;
+
+function loadSession() {
+  try {
+    const d = JSON.parse(localStorage.getItem('apply_session') || 'null');
+    if (d && Date.now() <= d.expires) { currentToken = d.token; currentUser = d.user; return true; }
+    const s = JSON.parse(localStorage.getItem('sch_sess') || 'null');
+    if (s && s.token && s.user) { currentToken = s.token; currentUser = s.user; return true; }
+    return false;
+  } catch { return false; }
+}
+function saveSession(token, user) {
+  currentToken = token; currentUser = user;
+  localStorage.setItem('apply_session', JSON.stringify({ token, user, expires: Date.now() + 8 * 3600000 }));
+}
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// =============================================================================
+// GAS通信
+// =============================================================================
+async function gas(payload) {
+  const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || '通信エラー');
+  return json.data;
+}
+
+async function doLogin() {
+  const empId = document.getElementById('inp-empid').value.trim();
+  const pin = document.getElementById('inp-pin').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if (!empId || !pin) { errEl.textContent = '社員番号とPINを入力してください'; errEl.style.display = 'block'; return; }
+  try {
+    const data = await gas({ action: 'login', empId, pin });
+    saveSession(data.token, data.user);
+    initWizard();
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  }
+}
+
+// =============================================================================
+// ウィザード状態
+// =============================================================================
+let data = {};
+function resetData() {
+  data = {
+    basic: { lastName:'', firstName:'', lastKana:'', firstKana:'', birthday:'', gender:'',
+             zip:'', pref:'', addr1:'', addr2:'', addrKana1:'', addrKana2:'', phone:'', email:'' },
+    em1: { name:'', kana:'', relation:'', mobile:'', landline:'' },
+    em2: { name:'', kana:'', relation:'', mobile:'', landline:'' },
+    commute: { method:'', transit:'', legs:[{from:'',to:''}], passMonth:'', roundTrip:'' },
+    bank1: { bankName:'', branch:'', type:'', number:'', holder:'' },
+    bank2: { bankName:'', branch:'', type:'', number:'', holder:'' },
+  };
+}
+
+const STEPS = [
+  { id: 'welcome',   title: '入社情報の登録' },
+  { id: 'basic',     title: '基本情報' },
+  { id: 'emergency', title: '緊急連絡先' },
+  { id: 'commute',   title: '通勤情報' },
+  { id: 'bank',      title: '給与振込口座' },
+  { id: 'confirm',   title: '入力内容の確認' },
+  { id: 'complete',  title: '登録完了' },
+];
+
+let currentStepIdx = 0;
+
+async function initWizard() {
+  showScreen('wizard');
+  resetData();
+  document.getElementById('wizard-body').innerHTML = '<div class="loading"><div class="spinner"></div><div>登録済みの情報を読み込み中...</div></div>';
+  await fetchAndPrefill();
+  const draft = loadDraft();
+  if (draft) {
+    const when = formatDraftDate(draft.savedAt);
+    if (confirm(`下書き（${when}保存）があります。続きから再開しますか？\n\n「キャンセル」で最新の登録内容から開始します。`)) {
+      data = draft.data; currentStepIdx = draft.currentStepIdx; renderCurrentStep(); return;
+    }
+    clearDraft();
+  }
+  currentStepIdx = 0; renderCurrentStep();
+}
+
+// 既存レコード（総務が事前登録した内容）を読み込んで data に反映
+async function fetchAndPrefill() {
+  try {
+    const d = await gas({ action: 'getOnboardingDetail', token: currentToken });
+    if (!d) return;
+    if (d.basic) Object.assign(data.basic, d.basic);
+    if (d.em1) Object.assign(data.em1, d.em1);
+    if (d.em2) Object.assign(data.em2, d.em2);
+    if (d.commute) {
+      const c = d.commute;
+      data.commute.method = c.method || '';
+      data.commute.transit = c.transit || '';
+      data.commute.passMonth = c.passMonth || '';
+      data.commute.roundTrip = c.roundTrip || '';
+      const legs = [];
+      if (c.leg1from || c.leg1to) legs.push({ from: c.leg1from || '', to: c.leg1to || '' });
+      if (c.leg2from || c.leg2to) legs.push({ from: c.leg2from || '', to: c.leg2to || '' });
+      if (c.leg3from || c.leg3to) legs.push({ from: c.leg3from || '', to: c.leg3to || '' });
+      data.commute.legs = legs.length ? legs : [{ from: '', to: '' }];
+    }
+    if (d.bank1) Object.assign(data.bank1, d.bank1);
+    if (d.bank2) Object.assign(data.bank2, d.bank2);
+  } catch (e) {
+    // 取得失敗時は空のまま続行（手入力で登録可能）
+  }
+}
+
+function renderCurrentStep() {
+  const step = STEPS[currentStepIdx];
+  document.getElementById('header-title').textContent = step.title;
+  const isComplete = step.id === 'complete';
+  const total = STEPS.length - 1;
+  document.getElementById('step-indicator').textContent = isComplete ? '' : `${currentStepIdx + 1} / ${total}`;
+  document.getElementById('progress-bar').style.width = (isComplete ? 100 : (currentStepIdx / (STEPS.length - 1)) * 100) + '%';
+  document.getElementById('header-back').style.visibility = isComplete ? 'hidden' : 'visible';
+  renderStep(step.id, document.getElementById('wizard-body'));
+  renderFooter(step.id);
+  window.scrollTo(0, 0);
+}
+
+function renderFooter(stepId) {
+  const footer = document.getElementById('wizard-footer');
+  if (stepId === 'complete') {
+    footer.innerHTML = `
+      <button class="btn btn-prev" onclick="location.href='index.html'">申請アプリに戻る</button>
+      <button class="btn btn-next" onclick="startNew()">続けて登録</button>`;
+    return;
+  }
+  if (stepId === 'confirm') {
+    footer.innerHTML = `
+      <button class="btn btn-prev" onclick="goBack()">戻る</button>
+      <button class="btn btn-submit" onclick="submitOnboarding()">この内容で登録する</button>`;
+    return;
+  }
+  footer.innerHTML = `
+    ${currentStepIdx > 0 ? '<button class="btn btn-prev" onclick="goBack()">戻る</button>' : ''}
+    <button class="btn btn-next" onclick="goNext()">次へ</button>`;
+}
+
+function goNext() {
+  const step = STEPS[currentStepIdx];
+  if (!collectAndValidate(step.id)) return;
+  if (currentStepIdx < STEPS.length - 1) { currentStepIdx++; renderCurrentStep(); }
+}
+function goBack() {
+  collectStepData(STEPS[currentStepIdx].id);
+  if (currentStepIdx > 0) { currentStepIdx--; renderCurrentStep(); }
+}
+function handleBack() {
+  if (currentStepIdx === 0) { location.href = 'index.html'; return; }
+  goBack();
+}
+function startNew() { clearDraft(); resetData(); currentStepIdx = 0; renderCurrentStep(); }
+
+// =============================================================================
+// ステップ描画
+// =============================================================================
+function renderStep(stepId, el) {
+  switch (stepId) {
+    case 'welcome':   return renderWelcome(el);
+    case 'basic':     return renderBasic(el);
+    case 'emergency': return renderEmergency(el);
+    case 'commute':   return renderCommute(el);
+    case 'bank':      return renderBank(el);
+    case 'confirm':   return renderConfirm(el);
+    case 'complete':  return renderComplete(el);
+  }
+}
+
+function renderWelcome(el) {
+  el.innerHTML = `
+    <div class="welcome-card">
+      <div class="welcome-icon">🎉</div>
+      <div class="welcome-name">${currentUser ? esc(currentUser.name) : ''} さん、ようこそ</div>
+      <div class="welcome-desc">
+        入社にあたり、下記の情報を登録します。<br><br>
+        ・<b>基本情報</b>（氏名・住所・連絡先）… 総務が登録した内容を<b>確認・修正</b><br>
+        ・<b>緊急連絡先</b> … 入力<br>
+        ・<b>通勤情報</b> … 入力<br>
+        ・<b>給与振込口座</b> … 入力<br><br>
+        入力内容は従業員名簿に保存されます。従業員コード・組織・役職などは総務が入力します。
+      </div>
+    </div>`;
+}
+
+function txt(label, id, val, { req=false, ph='', type='text', mode='' } = {}) {
+  return `<div class="field">
+    <label>${label}${req ? '<span class="req">*</span>' : ''}</label>
+    <input type="${type}" id="${id}" value="${esc(val)}" placeholder="${esc(ph)}" ${mode ? `inputmode="${mode}"` : ''}>
+  </div>`;
+}
+
+function renderBasic(el) {
+  const d = data.basic;
+  el.innerHTML = `
+    <div class="step-title">基本情報の確認</div>
+    <div class="step-desc">総務が登録した内容です。誤りや空欄があれば修正してください（<span class="req">*</span>は必須）</div>
+    <div class="row2">
+      ${txt('姓', 'f-lastName', d.lastName, { req:true, ph:'例: 山田' })}
+      ${txt('名', 'f-firstName', d.firstName, { req:true, ph:'例: 太郎' })}
+    </div>
+    <div class="row2">
+      ${txt('姓カナ', 'f-lastKana', d.lastKana, { req:true, ph:'例: ヤマダ' })}
+      ${txt('名カナ', 'f-firstKana', d.firstKana, { req:true, ph:'例: タロウ' })}
+    </div>
+    <div class="row2">
+      ${txt('生年月日', 'f-birthday', d.birthday, { req:true, type:'date' })}
+      <div class="field">
+        <label>性別<span class="req">*</span></label>
+        <div class="seg">
+          <div class="seg-btn ${d.gender==='男'?'selected':''}" onclick="selectGender('男')">男</div>
+          <div class="seg-btn ${d.gender==='女'?'selected':''}" onclick="selectGender('女')">女</div>
+        </div>
+      </div>
+    </div>
+    ${txt('郵便番号', 'f-zip', d.zip, { req:true, ph:'例: 530-0001', mode:'numeric' })}
+    <div class="field">
+      <label>都道府県<span class="req">*</span></label>
+      <select id="f-pref">
+        <option value="">選択してください</option>
+        ${PREFECTURES.map(p => `<option value="${p}" ${d.pref===p?'selected':''}>${p}</option>`).join('')}
+      </select>
+    </div>
+    ${txt('住所1（番地まで）', 'f-addr1', d.addr1, { req:true, ph:'例: 大阪市北区梅田1-2-3' })}
+    ${txt('住所2（マンション名・号室）', 'f-addr2', d.addr2, { ph:'例: ○○マンション101' })}
+    <div class="row2">
+      ${txt('住所1カナ', 'f-addrKana1', d.addrKana1, { ph:'任意' })}
+      ${txt('住所2カナ', 'f-addrKana2', d.addrKana2, { ph:'任意' })}
+    </div>
+    <div class="row2">
+      ${txt('電話番号', 'f-phone', d.phone, { req:true, ph:'例: 090-1234-5678', mode:'tel' })}
+      ${txt('メールアドレス', 'f-email', d.email, { req:true, ph:'例: taro@example.com', type:'email' })}
+    </div>`;
+}
+function selectGender(v) { collectStepData('basic'); data.basic.gender = v; renderCurrentStep(); }
+
+function renderEmergency(el) {
+  el.innerHTML = `
+    <div class="step-title">緊急連絡先</div>
+    <div class="step-desc">①は必須です。②は任意で入力してください。</div>
+    ${emergencyCard(1, data.em1, true)}
+    ${emergencyCard(2, data.em2, false)}`;
+}
+function emergencyCard(n, d, req) {
+  const s = n === 1 ? '1' : '2';
+  return `<div class="group-card">
+    <div class="group-title">緊急連絡先${n === 1 ? '①' : '②'} ${req ? '' : '<span class="badge-opt">任意</span>'}</div>
+    ${txt('氏名', `f-em${s}-name`, d.name, { req })}
+    ${txt('氏名カナ', `f-em${s}-kana`, d.kana, { req })}
+    ${txt('続柄', `f-em${s}-relation`, d.relation, { req, ph:'例: 父・母・配偶者' })}
+    <div class="row2">
+      ${txt('携帯電話', `f-em${s}-mobile`, d.mobile, { req, ph:'例: 090-1234-5678', mode:'tel' })}
+      ${txt('固定電話', `f-em${s}-landline`, d.landline, { ph:'任意', mode:'tel' })}
+    </div>
+  </div>`;
+}
+
+function renderCommute(el) {
+  const d = data.commute;
+  const isTrain = d.method === '電車';
+  el.innerHTML = `
+    <div class="step-title">通勤情報</div>
+    <div class="step-desc">通勤手段を選択してください。電車の場合は経路などを入力します。</div>
+    <div class="field">
+      <label>通勤手段<span class="req">*</span></label>
+      <select id="f-method" onchange="onMethodChange()">
+        <option value="">選択してください</option>
+        ${COMMUTE_METHODS.map(m => `<option value="${m}" ${d.method===m?'selected':''}>${m}</option>`).join('')}
+      </select>
+    </div>
+    <div id="commute-detail">${isTrain ? commuteDetail(d) : ''}</div>`;
+}
+function commuteDetail(d) {
+  return `
+    ${txt('交通機関', 'f-transit', d.transit, { req:true, ph:'例: JR / 阪急' })}
+    <div class="group-card">
+      <div class="group-title">乗車区間（乗り換え3区間まで）</div>
+      <div id="legs">${d.legs.map((lg, i) => legRow(lg, i)).join('')}</div>
+      ${d.legs.length < 3 ? '<button class="btn-add" onclick="addLeg()">＋ 乗り換えを追加</button>' : ''}
+    </div>
+    <div class="row2">
+      ${txt('1ヶ月定期代（円）', 'f-passMonth', d.passMonth, { req:true, ph:'例: 12000', mode:'numeric' })}
+      ${txt('往復運賃（円）', 'f-roundTrip', d.roundTrip, { req:true, ph:'例: 800', mode:'numeric' })}
+    </div>`;
+}
+function legRow(lg, i) {
+  return `<div class="leg-row">
+    <input type="text" id="f-leg${i}-from" value="${esc(lg.from)}" placeholder="${i===0?'例: 梅田':'乗車駅'}">
+    <span class="arrow">→</span>
+    <input type="text" id="f-leg${i}-to" value="${esc(lg.to)}" placeholder="${i===0?'例: 三宮':'降車駅'}">
+    ${i > 0 ? `<button class="btn-remove" onclick="removeLeg(${i})" title="削除" style="grid-column:1/-1;text-align:right;">この区間を削除</button>` : ''}
+  </div>`;
+}
+function onMethodChange() {
+  collectStepData('commute');
+  data.commute.method = document.getElementById('f-method').value;
+  renderCurrentStep();
+}
+function addLeg() { collectStepData('commute'); if (data.commute.legs.length < 3) data.commute.legs.push({ from:'', to:'' }); renderCurrentStep(); }
+function removeLeg(i) { collectStepData('commute'); data.commute.legs.splice(i, 1); if (!data.commute.legs.length) data.commute.legs.push({ from:'', to:'' }); renderCurrentStep(); }
+
+function renderBank(el) {
+  el.innerHTML = `
+    <div class="step-title">給与振込口座</div>
+    <div class="step-desc">1件目は必須です。2件目（分割振込）は任意で入力してください。</div>
+    ${bankCard(1, data.bank1, true)}
+    ${bankCard(2, data.bank2, false)}`;
+}
+function bankCard(n, d, req) {
+  return `<div class="group-card">
+    <div class="group-title">振込口座${n} ${req ? '' : '<span class="badge-opt">任意</span>'}</div>
+    <div class="row2">
+      ${txt('銀行名', `f-bank${n}-bankName`, d.bankName, { req })}
+      ${txt('支店名', `f-bank${n}-branch`, d.branch, { req })}
+    </div>
+    <div class="row2">
+      ${txt('種別（普通/当座）', `f-bank${n}-type`, d.type, { req, ph:'例: 普通' })}
+      ${txt('口座番号', `f-bank${n}-number`, d.number, { req, mode:'numeric' })}
+    </div>
+    ${txt('口座名義（カナ）', `f-bank${n}-holder`, d.holder, { req, ph:'例: ヤマダタロウ' })}
+  </div>`;
+}
+
+// =============================================================================
+// データ収集
+// =============================================================================
+function v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function collectStepData(stepId) {
+  switch (stepId) {
+    case 'basic': {
+      const d = data.basic;
+      d.lastName=v('f-lastName'); d.firstName=v('f-firstName'); d.lastKana=v('f-lastKana'); d.firstKana=v('f-firstKana');
+      d.birthday=v('f-birthday'); d.zip=v('f-zip'); if (document.getElementById('f-pref')) d.pref=v('f-pref');
+      d.addr1=v('f-addr1'); d.addr2=v('f-addr2'); d.addrKana1=v('f-addrKana1'); d.addrKana2=v('f-addrKana2');
+      d.phone=v('f-phone'); d.email=v('f-email');
+      break;
+    }
+    case 'emergency': {
+      [['1',data.em1],['2',data.em2]].forEach(([s,d]) => {
+        if (document.getElementById(`f-em${s}-name`)) {
+          d.name=v(`f-em${s}-name`); d.kana=v(`f-em${s}-kana`); d.relation=v(`f-em${s}-relation`);
+          d.mobile=v(`f-em${s}-mobile`); d.landline=v(`f-em${s}-landline`);
+        }
+      });
+      break;
+    }
+    case 'commute': {
+      const d = data.commute;
+      if (document.getElementById('f-method')) d.method=v('f-method');
+      if (document.getElementById('f-transit')) {
+        d.transit=v('f-transit'); d.passMonth=v('f-passMonth'); d.roundTrip=v('f-roundTrip');
+        d.legs = d.legs.map((_, i) => ({ from:v(`f-leg${i}-from`), to:v(`f-leg${i}-to`) }));
+      }
+      break;
+    }
+    case 'bank': {
+      [['1',data.bank1],['2',data.bank2]].forEach(([n,d]) => {
+        d.bankName=v(`f-bank${n}-bankName`); d.branch=v(`f-bank${n}-branch`); d.type=v(`f-bank${n}-type`);
+        d.number=v(`f-bank${n}-number`); d.holder=v(`f-bank${n}-holder`);
+      });
+      break;
+    }
+  }
+}
+
+// =============================================================================
+// バリデーション
+// =============================================================================
+function collectAndValidate(stepId) {
+  collectStepData(stepId);
+  switch (stepId) {
+    case 'basic': {
+      const d = data.basic;
+      const need = [['lastName','姓'],['firstName','名'],['lastKana','姓カナ'],['firstKana','名カナ'],
+        ['birthday','生年月日'],['gender','性別'],['zip','郵便番号'],['pref','都道府県'],
+        ['addr1','住所1'],['phone','電話番号'],['email','メールアドレス']];
+      for (const [k,l] of need) if (!d[k]) return no(`${l}を入力してください`);
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return no('メールアドレスの形式が正しくありません');
+      return true;
+    }
+    case 'emergency': {
+      const d = data.em1;
+      for (const [k,l] of [['name','氏名'],['kana','氏名カナ'],['relation','続柄'],['mobile','携帯電話']])
+        if (!d[k]) return no(`緊急連絡先①の${l}を入力してください`);
+      return true;
+    }
+    case 'commute': {
+      const d = data.commute;
+      if (!d.method) return no('通勤手段を選択してください');
+      if (d.method === '電車') {
+        if (!d.transit) return no('交通機関を入力してください');
+        if (!d.legs[0] || !d.legs[0].from || !d.legs[0].to) return no('乗車区間（1区間目）を入力してください');
+        if (!d.passMonth) return no('1ヶ月定期代を入力してください');
+        if (!d.roundTrip) return no('往復運賃を入力してください');
+      }
+      return true;
+    }
+    case 'bank': {
+      const d = data.bank1;
+      for (const [k,l] of [['bankName','銀行名'],['branch','支店名'],['type','種別'],['number','口座番号'],['holder','口座名義']])
+        if (!d[k]) return no(`振込口座1の${l}を入力してください`);
+      return true;
+    }
+    default: return true;
+  }
+}
+function no(msg) { showToast(msg); return false; }
+
+// =============================================================================
+// 確認
+// =============================================================================
+function renderConfirm(el) {
+  const b = data.basic;
+  let html = '<div class="step-title">入力内容の確認</div><div class="step-desc">内容を確認してください。修正は「戻る」で該当ステップに戻れます。</div>';
+  html += section('基本情報', [
+    ['氏名', `${b.lastName} ${b.firstName}（${b.lastKana} ${b.firstKana}）`],
+    ['生年月日', b.birthday], ['性別', b.gender],
+    ['住所', `〒${b.zip} ${b.pref}${b.addr1} ${b.addr2}`.trim()],
+    ['住所カナ', `${b.addrKana1} ${b.addrKana2}`.trim() || '-'],
+    ['電話番号', b.phone], ['メール', b.email],
+  ]);
+  html += section('緊急連絡先①', emRows(data.em1));
+  if (Object.values(data.em2).some(x => x)) html += section('緊急連絡先②', emRows(data.em2));
+  const c = data.commute;
+  const commuteRows = [['通勤手段', c.method]];
+  if (c.method === '電車') {
+    commuteRows.push(['交通機関', c.transit]);
+    commuteRows.push(['乗車区間', c.legs.filter(l => l.from || l.to).map(l => `${l.from}→${l.to}`).join(' / ')]);
+    commuteRows.push(['1ヶ月定期代', c.passMonth ? `${Number(c.passMonth).toLocaleString()}円` : '-']);
+    commuteRows.push(['往復運賃', c.roundTrip ? `${Number(c.roundTrip).toLocaleString()}円` : '-']);
+  }
+  html += section('通勤情報', commuteRows);
+  html += section('振込口座1', bankRows(data.bank1));
+  if (Object.values(data.bank2).some(x => x)) html += section('振込口座2', bankRows(data.bank2));
+  el.innerHTML = html;
+}
+function emRows(d) { return [['氏名', d.name],['氏名カナ', d.kana],['続柄', d.relation],['携帯電話', d.mobile],['固定電話', d.landline || '-']]; }
+function bankRows(d) { return [['銀行名', d.bankName],['支店名', d.branch],['種別', d.type],['口座番号', d.number],['口座名義', d.holder]]; }
+function section(title, rows) {
+  return `<div class="confirm-section"><div class="confirm-section-title">${title}</div>
+    <table class="confirm-table"><tbody>${rows.map(([k,val]) => `<tr><th>${esc(k)}</th><td>${esc(val || '-')}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function renderComplete(el) {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  el.innerHTML = `
+    <div class="complete-box">
+      <div class="complete-icon">✅</div>
+      <div class="complete-title">登録が完了しました</div>
+      <div class="complete-sub">入力内容は従業員名簿に反映されました。<br>総務が内容を確認します。</div>
+      <div class="complete-info">
+        <div><span class="ci-label">氏名</span><span>${esc(data.basic.lastName)} ${esc(data.basic.firstName)}</span></div>
+        <div><span class="ci-label">登録日時</span><span>${dateStr}</span></div>
+      </div>
+    </div>`;
+}
+
+// =============================================================================
+// 送信
+// =============================================================================
+function numOnly(s) { return String(s || '').replace(/[^0-9]/g, ''); }
+function buildPayload() {
+  const b = data.basic, c = data.commute;
+  const legs = c.legs || [];
+  return {
+    basic: {
+      lastName: b.lastName, firstName: b.firstName, lastKana: b.lastKana, firstKana: b.firstKana,
+      birthday: b.birthday, gender: b.gender, zip: b.zip, pref: b.pref,
+      addr1: b.addr1, addr2: b.addr2, addrKana1: b.addrKana1, addrKana2: b.addrKana2,
+      phone: b.phone, email: b.email,
+    },
+    em1: data.em1, em2: data.em2,
+    commute: c.method === '電車' ? {
+      method: c.method, transit: c.transit,
+      leg1from: legs[0]?.from || '', leg1to: legs[0]?.to || '',
+      leg2from: legs[1]?.from || '', leg2to: legs[1]?.to || '',
+      leg3from: legs[2]?.from || '', leg3to: legs[2]?.to || '',
+      passMonth: numOnly(c.passMonth), roundTrip: numOnly(c.roundTrip),
+    } : { method: c.method },
+    bank1: { ...data.bank1, number: numOnly(data.bank1.number) },
+    bank2: Object.values(data.bank2).some(x => x) ? { ...data.bank2, number: numOnly(data.bank2.number) } : null,
+  };
+}
+
+async function submitOnboarding() {
+  const btn = document.querySelector('.btn-submit');
+  if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
+  try {
+    await gas({ action: 'saveOnboarding', token: currentToken, onboarding: buildPayload() });
+    clearDraft();
+    currentStepIdx = STEPS.findIndex(s => s.id === 'complete');
+    renderCurrentStep();
+  } catch (e) {
+    showToast('登録失敗: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'この内容で登録する'; }
+  }
+}
+
+// =============================================================================
+// 下書き
+// =============================================================================
+const DRAFT_KEY = 'onboarding_draft';
+function saveDraft() {
+  try { collectStepData(STEPS[currentStepIdx].id);
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ data, currentStepIdx, savedAt: new Date().toISOString() })); return true;
+  } catch { return false; }
+}
+function loadDraft() { try { const r = localStorage.getItem(DRAFT_KEY); return r ? JSON.parse(r) : null; } catch { return null; } }
+function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
+function formatDraftDate(iso) { const d = new Date(iso); return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`; }
+
+// =============================================================================
+// ユーティリティ
+// =============================================================================
+function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+window.addEventListener('beforeunload', () => { try { saveDraft(); } catch {} });
+document.getElementById('inp-pin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// 起動
+if (loadSession()) initWizard();
+</script>
+</body>
+</html>

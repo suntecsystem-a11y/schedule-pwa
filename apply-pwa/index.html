@@ -242,6 +242,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
       <option value="expense">💴 出張費精算</option>
       <option value="other">📝 その他申請</option>
       <option value="change">📝 従業員情報変更届</option>
+      <option id="opt-onboarding" value="onboarding" hidden>🎉 新入社員 入社登録</option>
     </select>
     <div id="new-type-fields"></div>
     <div class="modal-footer">
@@ -293,6 +294,19 @@ const PHOTO_GAS_URL = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVuU
 // ===================================================
 let currentUser = null;
 let currentToken = null;
+
+const APPROVAL_DEPT_ALIAS = {
+  '事務': '製造',
+  '設計': '製造',
+  '検査': '製造',
+};
+function _canApproveApply(r) {
+  if (r.approverEmpId) return String(r.approverEmpId) === String(currentUser.id);
+  const role = currentUser.role || '';
+  if (role && role !== '一般' && role !== '主任') return true;
+  const effectiveDept = APPROVAL_DEPT_ALIAS[r.applicantDept] || r.applicantDept;
+  return role === '主任' && currentUser.dept === effectiveDept;
+}
 
 function saveSession(token, user) {
   currentToken = token;
@@ -712,9 +726,7 @@ async function openDetail(appType, id) {
       renderApplyDetail(appType, r);
     }
 
-    const isDesignatedApprover = r.approverEmpId && r.approverEmpId === currentUser.id;
-    const isSameDeptShunin = !r.approverEmpId && currentUser.role === '主任' && r.applicantDept && r.applicantDept === currentUser.dept;
-    const canApprove = currentUser.isAdmin || isDesignatedApprover || isSameDeptShunin;
+    const canApprove = _canApproveApply(r);
     const isOwn = r.applicantId === currentUser.id;
     const footer = document.getElementById('detail-footer');
     footer.innerHTML = '';
@@ -1080,6 +1092,14 @@ async function openNewModal() {
   document.querySelector('#modal-new .btn-submit').textContent = '申請する';
   approverData = null;
   openModal('modal-new');
+  // 入社登録メニューは「入社日から1週間以内」の人にだけ表示（新入社員向け）
+  const optOb = document.getElementById('opt-onboarding');
+  if (optOb) {
+    optOb.hidden = true;
+    gas({ action: 'getOnboardingEligible', token: currentToken })
+      .then(r => { optOb.hidden = !(r && r.eligible); })
+      .catch(() => {});
+  }
   await _loadApproverData();
   if (document.getElementById('new-type').value) renderNewFields();
 }
@@ -1176,6 +1196,10 @@ function renderNewFields() {
   } else if (type === 'change') {
     closeModal('modal-new');
     location.href = 'change-form.html';
+    return;
+  } else if (type === 'onboarding') {
+    closeModal('modal-new');
+    location.href = 'onboarding.html';
     return;
   } else if (type === 'other') {
     el.innerHTML = `
@@ -1282,7 +1306,8 @@ async function uploadReceiptBase64(base64, fileName, now) {
         if (xhr.status === 200) { try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error('レスポンス解析失敗')); } }
         else reject(new Error('通信エラー: ' + xhr.status));
       };
-      xhr.send(JSON.stringify({ image: base64, fileName }));
+      // folder:'expense' で領収書用フォルダに保存（写真GAS側で切り替え。未指定だとアルコール用に入る）
+      xhr.send(JSON.stringify({ image: base64, fileName, folder: 'expense' }));
     });
     if (result.url) {
       receiptPhotos.push({ url: result.url, takenAt: now.toISOString().slice(0, 19) + 'Z' });

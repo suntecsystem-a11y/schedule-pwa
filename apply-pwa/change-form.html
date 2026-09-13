@@ -393,6 +393,11 @@ function initWizard() {
     const when = formatDraftDate(draft.savedAt);
     if (confirm(`下書き（${when}保存）があります。続きから再開しますか？\n\n「キャンセル」で新規作成します。`)) {
       wizardData = draft.wizardData;
+      const n = wizardData.basic?.name;
+      if (n) {
+        if (n.before) { n.before.furiganaLast = n.before.furiganaLast || ''; n.before.furiganaFirst = n.before.furiganaFirst || ''; }
+        if (n.after)  { n.after.furiganaLast  = n.after.furiganaLast  || ''; n.after.furiganaFirst  = n.after.furiganaFirst  || ''; }
+      }
       currentStepIdx = draft.currentStepIdx;
       fetchEmployeeDetail().then(() => renderCurrentStep());
       return;
@@ -422,8 +427,8 @@ function renderCurrentStep() {
   const pct = isComplete ? 100 : (currentStepIdx / (active.length - 1)) * 100;
   document.getElementById('progress-bar').style.width = pct + '%';
 
-  // 戻るボタン
-  document.getElementById('header-back').style.visibility = 'visible';
+  // 戻るボタン（完了画面では非表示）
+  document.getElementById('header-back').style.visibility = isComplete ? 'hidden' : 'visible';
 
   // 本体
   const body = document.getElementById('wizard-body');
@@ -478,9 +483,13 @@ function goBack() {
 
 function handleBack() {
   if (currentStepIdx === 0) {
-    saveDraft();
-    showToast('下書きを保存しました');
-    setTimeout(() => { location.href = 'index.html'; }, 500);
+    if (wizardData.categories.length > 0) {
+      const ok = saveDraft();
+      showToast(ok ? '下書きを保存しました' : '下書きの保存に失敗しました');
+      setTimeout(() => { location.href = 'index.html'; }, 500);
+    } else {
+      location.href = 'index.html';
+    }
   } else {
     goBack();
   }
@@ -609,22 +618,22 @@ function renderBasicName(el) {
       <div class="ba-group">
         <div class="ba-title">氏名</div>
         <div class="ba-row">
-          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bName || '(未取得)'}</div></div>
-          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-name-after" value="${d.after.name}" placeholder="変更後の氏名"></div>
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(bName) || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-name-after" value="${esc(d.after.name)}" placeholder="変更後の氏名"></div>
         </div>
       </div>
       <div class="ba-group">
         <div class="ba-title">フリガナ（姓）</div>
         <div class="ba-row">
-          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bFuriLast || '(未取得)'}</div></div>
-          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-furigana-last-after" value="${d.after.furiganaLast}" placeholder="例: スズキ"></div>
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(bFuriLast) || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-furigana-last-after" value="${esc(d.after.furiganaLast)}" placeholder="例: スズキ"></div>
         </div>
       </div>
       <div class="ba-group">
         <div class="ba-title">フリガナ（名）</div>
         <div class="ba-row">
-          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bFuriFirst || '(未取得)'}</div></div>
-          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-furigana-first-after" value="${d.after.furiganaFirst}" placeholder="例: タロウ"></div>
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(bFuriFirst) || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-furigana-first-after" value="${esc(d.after.furiganaFirst)}" placeholder="例: タロウ"></div>
         </div>
       </div>
       <div class="date-field">
@@ -650,15 +659,15 @@ function renderBasicAddress(el) {
       <div class="ba-group">
         <div class="ba-title">郵便番号</div>
         <div class="ba-row">
-          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bZip || '(未取得)'}</div></div>
-          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-zip-after" value="${d.after.zipcode}" placeholder="例: 220-0001"></div>
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(bZip) || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-zip-after" value="${esc(d.after.zipcode)}" placeholder="例: 220-0001"></div>
         </div>
       </div>
       <div class="ba-group">
         <div class="ba-title">住所</div>
         <div class="ba-row">
-          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bAddr || '(未取得)'}</div></div>
-          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-addr-after" value="${d.after.address}" placeholder="変更後の住所"></div>
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(bAddr) || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-addr-after" value="${esc(d.after.address)}" placeholder="変更後の住所"></div>
         </div>
       </div>
       <div class="date-field">
@@ -694,8 +703,8 @@ function renderBasicPhone(el) {
       <div class="ba-group">
         <div class="ba-title">電話番号</div>
         <div class="ba-row">
-          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bPhone || '(未取得)'}</div></div>
-          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-phone-after" value="${d.after}" placeholder="例: 090-1234-5678"></div>
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(bPhone) || '(未取得)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-phone-after" value="${esc(d.after)}" placeholder="例: 090-1234-5678"></div>
         </div>
       </div>
       <div class="date-field">
@@ -741,8 +750,8 @@ function renderEmergency(el) {
             <div class="ba-group">
               <div class="ba-title">${f.label}</div>
               <div class="ba-row">
-                <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${d.contacts[i].before[f.key] || '(未登録)'}</div></div>
-                <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-em${i}-${f.key}" value="${d.contacts[i].after[f.key] || ''}" placeholder="変更後の${f.label}"></div>
+                <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(d.contacts[i].before[f.key]) || '(未登録)'}</div></div>
+                <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-em${i}-${f.key}" value="${esc(d.contacts[i].after[f.key] || '')}" placeholder="変更後の${f.label}"></div>
               </div>
             </div>`).join('')}
         </div>
@@ -821,9 +830,9 @@ function confirmSection(title, rows) {
 
 function confirmRow(label, before, after) {
   if (before && after) {
-    return `<tr><th>${label}</th><td><span class="confirm-before">${before}</span><span class="confirm-arrow"> → </span><span class="confirm-after">${after}</span></td></tr>`;
+    return `<tr><th>${esc(label)}</th><td><span class="confirm-before">${esc(before)}</span><span class="confirm-arrow"> → </span><span class="confirm-after">${esc(after)}</span></td></tr>`;
   }
-  return `<tr><th>${label}</th><td><span class="confirm-after">${after || '-'}</span></td></tr>`;
+  return `<tr><th>${esc(label)}</th><td><span class="confirm-after">${esc(after) || '-'}</span></td></tr>`;
 }
 
 // ----- 完了画面 -----
@@ -1020,7 +1029,8 @@ function saveDraft() {
     if (step) collectStepData(step.id);
     const draft = { wizardData, currentStepIdx, savedAt: new Date().toISOString() };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  } catch (e) {}
+    return true;
+  } catch (e) { return false; }
 }
 
 function loadDraft() {
@@ -1039,6 +1049,8 @@ function formatDraftDate(iso) {
   const d = new Date(iso);
   return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // =============================================================================
 // ユーティリティ
