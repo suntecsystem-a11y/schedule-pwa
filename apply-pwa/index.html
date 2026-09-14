@@ -294,6 +294,7 @@ const PHOTO_GAS_URL = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVuU
 // ===================================================
 let currentUser = null;
 let currentToken = null;
+let onboardingEligible = null; // 入社登録メニュー表示可否（起動時に取得してキャッシュ）
 
 const APPROVAL_DEPT_ALIAS = {
   '事務': '製造',
@@ -500,6 +501,22 @@ function initMain() {
   showScreen('main');
   loadTab('mine');
   if (canApprove) loadPendingBadge();
+  refreshOnboardingEligibility(); // 起動時に先読みしてキャッシュ（モーダルを開いたとき即表示するため）
+}
+
+// 入社登録メニューの表示可否をキャッシュに反映（DOMがあれば即適用）
+function _applyOnboardingOptionVisibility() {
+  const optOb = document.getElementById('opt-onboarding');
+  if (optOb) optOb.hidden = (onboardingEligible !== true);
+}
+async function refreshOnboardingEligibility() {
+  try {
+    const r = await gas({ action: 'getOnboardingEligible', token: currentToken });
+    onboardingEligible = !!(r && r.eligible);
+  } catch {
+    onboardingEligible = false;
+  }
+  _applyOnboardingOptionVisibility();
 }
 
 async function loadPendingBadge() {
@@ -1092,14 +1109,9 @@ async function openNewModal() {
   document.querySelector('#modal-new .btn-submit').textContent = '申請する';
   approverData = null;
   openModal('modal-new');
-  // 入社登録メニューは「入社日から1週間以内」の人にだけ表示（新入社員向け）
-  const optOb = document.getElementById('opt-onboarding');
-  if (optOb) {
-    optOb.hidden = true;
-    gas({ action: 'getOnboardingEligible', token: currentToken })
-      .then(r => { optOb.hidden = !(r && r.eligible); })
-      .catch(() => {});
-  }
+  // 入社登録メニューは起動時キャッシュ済みの判定を即反映（未取得なら取得）
+  _applyOnboardingOptionVisibility();
+  if (onboardingEligible === null) refreshOnboardingEligibility();
   await _loadApproverData();
   if (document.getElementById('new-type').value) renderNewFields();
 }
