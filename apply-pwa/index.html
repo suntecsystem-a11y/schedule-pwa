@@ -152,13 +152,17 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     </div>
     <button class="btn-primary" onclick="doLogin()">ログイン</button>
     <div class="login-error" id="login-error"></div>
+    <button onclick="location.href='../'" style="margin-top:14px;background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;text-decoration:underline">← スケジュールに戻る</button>
   </div>
 </div>
 
 <!-- メイン -->
 <div id="screen-main" class="screen">
   <header class="app-header">
-    <h1>📋 社内申請</h1>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button onclick="location.href='../'" title="スケジュールに戻る" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">← スケジュール</button>
+      <h1>📋 社内申請</h1>
+    </div>
     <div class="header-user">
       <span id="header-username"></span>
       <button class="btn-refresh" onclick="refreshCurrentTab()" title="更新">↻</button>
