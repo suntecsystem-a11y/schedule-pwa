@@ -112,6 +112,8 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 }
 .ba-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
 .ba-input.error { border-color: var(--danger); }
+select.ba-input { appearance: auto; }
+textarea.ba-input { resize: vertical; line-height: 1.6; }
 
 .date-field { margin-top: 12px; }
 .date-field label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
@@ -349,6 +351,25 @@ function resetWizardData() {
       ],
       date: '',
     },
+    commute: {
+      method: { before: '', after: '' },
+      routes: [
+        { before: { from: '', to: '', transport: '' }, after: { from: '', to: '', transport: '' } },
+        { before: { from: '', to: '', transport: '' }, after: { from: '', to: '', transport: '' } },
+        { before: { from: '', to: '', transport: '' }, after: { from: '', to: '', transport: '' } },
+      ],
+      roundTrip: { before: '', after: '' },
+      pass: { before: '', after: '' },
+      date: '',
+    },
+    bank: {
+      account: 1,
+      accounts: [
+        { before: { bankName: '', branch: '', type: '', number: '', holder: '' }, after: { bankName: '', branch: '', type: '', number: '', holder: '' } },
+        { before: { bankName: '', branch: '', type: '', number: '', holder: '' }, after: { bankName: '', branch: '', type: '', number: '', holder: '' } },
+      ],
+    },
+    other: { content: '' },
   };
 }
 
@@ -363,6 +384,9 @@ const STEPS = [
   { id: 'basic_address', title: '住所の変更' },
   { id: 'basic_phone', title: '電話番号の変更' },
   { id: 'emergency', title: '緊急連絡先の変更' },
+  { id: 'commute', title: '通勤情報の変更' },
+  { id: 'bank', title: '給与振込口座の変更' },
+  { id: 'other', title: 'その他の変更' },
   { id: 'confirm', title: '入力内容の確認' },
   { id: 'complete', title: '申請完了' },
 ];
@@ -375,6 +399,9 @@ function isStepActive(step) {
     case 'basic_address': return wizardData.categories.includes('basic') && wizardData.basic.items.includes('address');
     case 'basic_phone': return wizardData.categories.includes('basic') && wizardData.basic.items.includes('phone');
     case 'emergency': return wizardData.categories.includes('emergency');
+    case 'commute': return wizardData.categories.includes('commute');
+    case 'bank': return wizardData.categories.includes('bank');
+    case 'other': return wizardData.categories.includes('other');
     default: return false;
   }
 }
@@ -398,6 +425,20 @@ function initWizard() {
         if (n.before) { n.before.furiganaLast = n.before.furiganaLast || ''; n.before.furiganaFirst = n.before.furiganaFirst || ''; }
         if (n.after)  { n.after.furiganaLast  = n.after.furiganaLast  || ''; n.after.furiganaFirst  = n.after.furiganaFirst  || ''; }
       }
+      if (!wizardData.commute) {
+        wizardData.commute = { method: { before: '', after: '' }, routes: [
+          { before: { from: '', to: '', transport: '' }, after: { from: '', to: '', transport: '' } },
+          { before: { from: '', to: '', transport: '' }, after: { from: '', to: '', transport: '' } },
+          { before: { from: '', to: '', transport: '' }, after: { from: '', to: '', transport: '' } },
+        ], roundTrip: { before: '', after: '' }, pass: { before: '', after: '' }, date: '' };
+      }
+      if (!wizardData.bank) {
+        wizardData.bank = { account: 1, accounts: [
+          { before: { bankName: '', branch: '', type: '', number: '', holder: '' }, after: { bankName: '', branch: '', type: '', number: '', holder: '' } },
+          { before: { bankName: '', branch: '', type: '', number: '', holder: '' }, after: { bankName: '', branch: '', type: '', number: '', holder: '' } },
+        ] };
+      }
+      if (!wizardData.other) wizardData.other = { content: '' };
       currentStepIdx = draft.currentStepIdx;
       fetchEmployeeDetail().then(() => renderCurrentStep());
       return;
@@ -514,6 +555,9 @@ function renderStep(stepId, el) {
     case 'basic_address': return renderBasicAddress(el);
     case 'basic_phone': return renderBasicPhone(el);
     case 'emergency': return renderEmergency(el);
+    case 'commute': return renderCommute(el);
+    case 'bank': return renderBank(el);
+    case 'other': return renderOther(el);
     case 'confirm': return renderConfirm(el);
     case 'complete': return renderComplete(el);
   }
@@ -528,7 +572,7 @@ function renderWelcome(el) {
       <div class="welcome-id">社員番号: ${currentUser.id}</div>
       <div class="welcome-desc">
         従業員情報の変更届を申請します。<br><br>
-        氏名・住所・電話番号・緊急連絡先の変更ができます。<br>
+        氏名・住所・電話番号・緊急連絡先・通勤情報・給与振込口座の変更ができます。<br>
         変更前の情報は自動で表示されます。変更後の情報を入力してください。<br><br>
         申請後、総務部による確認・承認が行われます。
       </div>
@@ -540,10 +584,10 @@ function renderCategories(el) {
   const cats = [
     { id: 'basic', icon: '👤', label: '基本情報', desc: '氏名・住所・電話番号', enabled: true },
     { id: 'emergency', icon: '🆘', label: '緊急連絡先', desc: '緊急連絡先の氏名・電話番号など', enabled: true },
-    { id: 'commute', icon: '🚃', label: '通勤情報', desc: '通勤経路・通勤方法', enabled: false },
-    { id: 'bank', icon: '🏦', label: '給与振込口座', desc: '口座情報の変更', enabled: false },
+    { id: 'commute', icon: '🚃', label: '通勤情報', desc: '通勤経路・通勤手段・定期代', enabled: true },
+    { id: 'bank', icon: '🏦', label: '給与振込口座', desc: '振込先口座の変更', enabled: true },
     { id: 'family', icon: '👨‍👩‍👧', label: '家族に関する変更', desc: '結婚・出産・扶養変更など', enabled: false },
-    { id: 'other', icon: '📋', label: 'その他', desc: '上記以外の変更', enabled: false },
+    { id: 'other', icon: '📋', label: 'その他', desc: '上記以外の変更・連絡事項', enabled: true },
   ];
   el.innerHTML = `
     <div class="step-title">変更する内容を選択してください</div>
@@ -681,7 +725,7 @@ function renderBasicAddress(el) {
         <div class="yn-btn ${commuteVal === true ? 'selected' : ''}" onclick="selectCommute(true)">はい</div>
         <div class="yn-btn ${commuteVal === false ? 'selected' : ''}" onclick="selectCommute(false)">いいえ</div>
       </div>
-      ${commuteVal === true ? '<div class="warn-box">通勤情報の変更は次期アップデートで対応予定です。申請後に総務部へ別途ご連絡ください。</div>' : ''}
+      ${commuteVal === true ? '<div class="info-box">「通勤情報」カテゴリも合わせて選択すると、通勤経路・定期代の変更も申請できます。</div>' : ''}
     </div>
     <div class="info-box">住所変更の場合、住民票・運転免許証等のコピーの提出が必要です。</div>`;
 }
@@ -769,6 +813,168 @@ function toggleContact(idx) {
   renderCurrentStep();
 }
 
+// ----- 通勤情報 -----
+function renderCommute(el) {
+  const d = wizardData.commute;
+  const methodOpts = ['電車', '自転車', 'バイク', '徒歩'];
+  const bMethod = d.method.before || emp('commuteMethod') || '';
+  d.method.before = bMethod;
+
+  const empRouteKeys = [
+    { from: 'commuteFrom1', to: 'commuteTo1', transport: 'commuteTransport1' },
+    { from: 'commuteFrom2', to: 'commuteTo2', transport: 'commuteTransport2' },
+    { from: 'commuteFrom3', to: 'commuteTo3', transport: 'commuteTransport3' },
+  ];
+  for (let i = 0; i < 3; i++) {
+    if (!d.routes[i].before.from) d.routes[i].before.from = emp(empRouteKeys[i].from) || '';
+    if (!d.routes[i].before.to) d.routes[i].before.to = emp(empRouteKeys[i].to) || '';
+    if (!d.routes[i].before.transport) d.routes[i].before.transport = emp(empRouteKeys[i].transport) || '';
+  }
+  const bRound = d.roundTrip.before || emp('commuteRoundTrip') || '';
+  const bPass = d.pass.before || emp('commutePass') || '';
+  d.roundTrip.before = bRound;
+  d.pass.before = bPass;
+
+  const hasRoute2 = d.routes[1].before.from || d.routes[1].after.from;
+  const hasRoute3 = d.routes[2].before.from || d.routes[2].after.from;
+
+  el.innerHTML = `
+    <div class="step-title">通勤情報の変更</div>
+    <div class="step-desc">変更後の通勤手段・経路・定期代を入力してください</div>
+    <div class="field-section">
+      <div class="ba-group">
+        <div class="ba-title">通勤手段</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(bMethod) || '(未登録)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span>
+            <select class="ba-input" id="f-commute-method">
+              <option value="">選択してください</option>
+              ${methodOpts.map(o => `<option value="${esc(o)}" ${d.method.after === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-label" style="margin-top:20px;">通勤経路（路線1）</div>
+      ${renderRouteFields(0, d)}
+
+      <details style="margin-top:12px;" ${hasRoute2 || hasRoute3 ? 'open' : ''}>
+        <summary style="font-size:13px;color:var(--primary);cursor:pointer;">路線2・3を追加</summary>
+        <div class="field-label" style="margin-top:12px;">通勤経路（路線2）</div>
+        ${renderRouteFields(1, d)}
+        <div class="field-label" style="margin-top:12px;">通勤経路（路線3）</div>
+        ${renderRouteFields(2, d)}
+      </details>
+
+      <div class="ba-group" style="margin-top:20px;">
+        <div class="ba-title">往復運賃</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bRound ? '¥' + esc(bRound) : '(未登録)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-commute-round" type="number" value="${esc(d.roundTrip.after)}" placeholder="例: 680"></div>
+        </div>
+      </div>
+      <div class="ba-group">
+        <div class="ba-title">1ヶ月定期代</div>
+        <div class="ba-row">
+          <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${bPass ? '¥' + esc(bPass) : '(未登録)'}</div></div>
+          <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-commute-pass" type="number" value="${esc(d.pass.after)}" placeholder="例: 12000"></div>
+        </div>
+      </div>
+      <div class="date-field">
+        <label>変更日 <span style="color:var(--danger)">*</span></label>
+        <input type="date" class="ba-input" id="f-commute-date" value="${d.date}" style="width:auto;">
+      </div>
+    </div>`;
+}
+
+function renderRouteFields(idx, d) {
+  const r = d.routes[idx];
+  return `
+    <div class="ba-group">
+      <div class="ba-title">乗車区間（始）</div>
+      <div class="ba-row">
+        <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(r.before.from) || '(未登録)'}</div></div>
+        <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-route${idx}-from" value="${esc(r.after.from)}" placeholder="例: 大阪駅"></div>
+      </div>
+    </div>
+    <div class="ba-group">
+      <div class="ba-title">乗車区間（終）</div>
+      <div class="ba-row">
+        <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(r.before.to) || '(未登録)'}</div></div>
+        <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-route${idx}-to" value="${esc(r.after.to)}" placeholder="例: 京都駅"></div>
+      </div>
+    </div>
+    <div class="ba-group">
+      <div class="ba-title">交通機関</div>
+      <div class="ba-row">
+        <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(r.before.transport) || '(未登録)'}</div></div>
+        <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-route${idx}-transport" value="${esc(r.after.transport)}" placeholder="例: JR東海道線"></div>
+      </div>
+    </div>`;
+}
+
+// ----- 給与振込口座 -----
+function renderBank(el) {
+  const d = wizardData.bank;
+  const bankFields = [
+    { key: 'bankName', label: '金融機関名', placeholder: '例: みずほ銀行' },
+    { key: 'branch', label: '支店名', placeholder: '例: 大阪支店' },
+    { key: 'type', label: '口座種別', placeholder: '例: 普通' },
+    { key: 'number', label: '口座番号', placeholder: '例: 1234567', inputType: 'text' },
+    { key: 'holder', label: '口座名義（カナ）', placeholder: '例: ヤマダ タロウ' },
+  ];
+  const empBankKeys = [
+    { bankName: 'bankName1', branch: 'bankBranch1', type: 'bankType1', number: 'bankAccount1', holder: 'bankHolder1' },
+    { bankName: 'bankName2', branch: 'bankBranch2', type: 'bankType2', number: 'bankAccount2', holder: 'bankHolder2' },
+  ];
+  for (let i = 0; i < 2; i++) {
+    bankFields.forEach(f => {
+      if (!d.accounts[i].before[f.key]) d.accounts[i].before[f.key] = emp(empBankKeys[i][f.key]) || '';
+    });
+  }
+
+  el.innerHTML = `
+    <div class="step-title">給与振込口座の変更</div>
+    <div class="step-desc">変更する口座を選択し、変更後の情報を入力してください</div>
+    <div class="field-section" style="margin-bottom:12px;">
+      <div class="ba-title">変更する口座</div>
+      <div class="yn-group">
+        <div class="yn-btn ${d.account === 1 ? 'selected' : ''}" onclick="selectBankAccount(1)">口座1（メイン）</div>
+        <div class="yn-btn ${d.account === 2 ? 'selected' : ''}" onclick="selectBankAccount(2)">口座2（サブ）</div>
+      </div>
+    </div>
+    ${renderBankFields(d.account - 1, d, bankFields)}
+    <div class="info-box">口座変更の場合、通帳またはキャッシュカードのコピーの提出が必要です。</div>`;
+}
+
+function renderBankFields(idx, d, fields) {
+  return fields.map(f => `
+    <div class="ba-group">
+      <div class="ba-title">${f.label}</div>
+      <div class="ba-row">
+        <div class="ba-col"><span class="ba-label before">変更前</span><div class="ba-value">${esc(d.accounts[idx].before[f.key]) || '(未登録)'}</div></div>
+        <div class="ba-col"><span class="ba-label after">変更後</span><input class="ba-input" id="f-bank-${f.key}" type="${f.inputType || 'text'}" value="${esc(d.accounts[idx].after[f.key] || '')}" placeholder="${f.placeholder}"></div>
+      </div>
+    </div>`).join('');
+}
+
+function selectBankAccount(num) {
+  collectStepData('bank');
+  wizardData.bank.account = num;
+  renderCurrentStep();
+}
+
+// ----- その他 -----
+function renderOther(el) {
+  const d = wizardData.other;
+  el.innerHTML = `
+    <div class="step-title">その他の変更・連絡事項</div>
+    <div class="step-desc">上記カテゴリに当てはまらない変更内容や連絡事項を記入してください</div>
+    <div class="field-section">
+      <textarea class="ba-input" id="f-other-content" rows="8" placeholder="変更内容の詳細を記入してください">${esc(d.content)}</textarea>
+    </div>`;
+}
+
 // ----- 確認画面 -----
 function renderConfirm(el) {
   let html = '<div class="step-title">入力内容の確認</div><div class="step-desc">変更内容を確認してください。修正する場合は「戻る」で該当ステップに戻れます。</div>';
@@ -816,6 +1022,45 @@ function renderConfirm(el) {
         html += confirmSection(`緊急連絡先${i === 0 ? '①' : '②'}の変更`, rows);
       }
     });
+  }
+
+  if (wizardData.categories.includes('commute')) {
+    const d = wizardData.commute;
+    const rows = [];
+    if (d.method.after) rows.push(confirmRow('通勤手段', d.method.before, d.method.after));
+    for (let i = 0; i < 3; i++) {
+      const r = d.routes[i];
+      if (r.after.from || r.after.to || r.after.transport) {
+        const label = `路線${i + 1}`;
+        if (r.after.from) rows.push(confirmRow(`${label} 始`, r.before.from, r.after.from));
+        if (r.after.to) rows.push(confirmRow(`${label} 終`, r.before.to, r.after.to));
+        if (r.after.transport) rows.push(confirmRow(`${label} 交通機関`, r.before.transport, r.after.transport));
+      }
+    }
+    if (d.roundTrip.after) rows.push(confirmRow('往復運賃', d.roundTrip.before ? '¥' + d.roundTrip.before : '', '¥' + d.roundTrip.after));
+    if (d.pass.after) rows.push(confirmRow('1ヶ月定期代', d.pass.before ? '¥' + d.pass.before : '', '¥' + d.pass.after));
+    if (d.date) rows.push(confirmRow('変更日', '', d.date));
+    if (rows.length) html += confirmSection('通勤情報の変更', rows);
+  }
+
+  if (wizardData.categories.includes('bank')) {
+    const d = wizardData.bank;
+    const acc = d.accounts[d.account - 1];
+    const labels = { bankName: '金融機関名', branch: '支店名', type: '口座種別', number: '口座番号', holder: '口座名義' };
+    const rows = [];
+    Object.entries(labels).forEach(([k, label]) => {
+      if (acc.after[k]) rows.push(confirmRow(label, acc.before[k], acc.after[k]));
+    });
+    if (rows.length) html += confirmSection(`給与振込口座${d.account}の変更`, rows);
+  }
+
+  if (wizardData.categories.includes('other')) {
+    if (wizardData.other.content) {
+      html += `<div class="confirm-section">
+        <div class="confirm-section-title">その他の変更・連絡事項</div>
+        <div style="padding:12px;background:var(--card);border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);font-size:13px;white-space:pre-wrap;">${esc(wizardData.other.content)}</div>
+      </div>`;
+    }
   }
 
   el.innerHTML = html;
@@ -901,6 +1146,41 @@ function collectStepData(stepId) {
       if (dateEl) d.date = dateEl.value;
       break;
     }
+    case 'commute': {
+      const d = wizardData.commute;
+      const methodEl = document.getElementById('f-commute-method');
+      if (methodEl) d.method.after = methodEl.value;
+      for (let i = 0; i < 3; i++) {
+        const fromEl = document.getElementById(`f-route${i}-from`);
+        const toEl = document.getElementById(`f-route${i}-to`);
+        const transEl = document.getElementById(`f-route${i}-transport`);
+        if (fromEl) d.routes[i].after.from = fromEl.value.trim();
+        if (toEl) d.routes[i].after.to = toEl.value.trim();
+        if (transEl) d.routes[i].after.transport = transEl.value.trim();
+      }
+      const roundEl = document.getElementById('f-commute-round');
+      const passEl = document.getElementById('f-commute-pass');
+      const dateEl = document.getElementById('f-commute-date');
+      if (roundEl) d.roundTrip.after = roundEl.value.trim();
+      if (passEl) d.pass.after = passEl.value.trim();
+      if (dateEl) d.date = dateEl.value;
+      break;
+    }
+    case 'bank': {
+      const d = wizardData.bank;
+      const idx = d.account - 1;
+      const fields = ['bankName', 'branch', 'type', 'number', 'holder'];
+      fields.forEach(f => {
+        const el = document.getElementById(`f-bank-${f}`);
+        if (el) d.accounts[idx].after[f] = el.value.trim();
+      });
+      break;
+    }
+    case 'other': {
+      const el = document.getElementById('f-other-content');
+      if (el) wizardData.other.content = el.value.trim();
+      break;
+    }
   }
 }
 
@@ -944,6 +1224,26 @@ function collectAndValidate(stepId) {
         const hasAny = Object.values(d.contacts[i].after).some(v => v);
         if (!hasAny) { showToast(`緊急連絡先${i === 0 ? '①' : '②'}の変更後を入力してください`); return false; }
       }
+      return true;
+    }
+    case 'commute': {
+      const d = wizardData.commute;
+      const hasMethod = !!d.method.after;
+      const hasRoute = d.routes.some(r => r.after.from || r.after.to);
+      const hasCost = d.roundTrip.after || d.pass.after;
+      if (!hasMethod && !hasRoute && !hasCost) { showToast('変更後の通勤情報を1つ以上入力してください'); return false; }
+      if (!d.date) { showToast('変更日を入力してください'); return false; }
+      return true;
+    }
+    case 'bank': {
+      const d = wizardData.bank;
+      const acc = d.accounts[d.account - 1];
+      const hasAny = Object.values(acc.after).some(v => v);
+      if (!hasAny) { showToast('変更後の口座情報を入力してください'); return false; }
+      return true;
+    }
+    case 'other': {
+      if (!wizardData.other.content) { showToast('変更内容を入力してください'); return false; }
       return true;
     }
     default: return true;
@@ -1013,6 +1313,40 @@ function buildChangesJSON() {
       });
       if (e.date) changes.emergency[key].date = e.date;
     });
+  }
+  if (wizardData.categories.includes('commute')) {
+    const c = wizardData.commute;
+    changes.commute = {};
+    if (c.method.after) changes.commute.method = { before: c.method.before, after: c.method.after, date: c.date };
+    for (let i = 0; i < 3; i++) {
+      const r = c.routes[i];
+      if (r.after.from || r.after.to || r.after.transport) {
+        changes.commute['route' + (i + 1)] = {
+          from: { before: r.before.from, after: r.after.from },
+          to: { before: r.before.to, after: r.after.to },
+          transport: { before: r.before.transport, after: r.after.transport },
+          date: c.date,
+        };
+      }
+    }
+    if (c.roundTrip.after) changes.commute.roundTrip = { before: c.roundTrip.before, after: c.roundTrip.after, date: c.date };
+    if (c.pass.after) changes.commute.pass = { before: c.pass.before, after: c.pass.after, date: c.date };
+  }
+  if (wizardData.categories.includes('bank')) {
+    const b = wizardData.bank;
+    changes.bank = { accountNumber: b.account };
+    const acc = b.accounts[b.account - 1];
+    ['bankName', 'branch', 'type', 'number', 'holder'].forEach(f => {
+      if (acc.after[f]) {
+        const keyMap = { bankName: 'bank_name', branch: 'branch_name', type: 'account_type', number: 'account_number', holder: 'account_holder' };
+        changes.bank[keyMap[f]] = { before: acc.before[f], after: acc.after[f] };
+      }
+    });
+  }
+  if (wizardData.categories.includes('other')) {
+    if (wizardData.other.content) {
+      changes.other = { content: wizardData.other.content };
+    }
   }
   return changes;
 }
