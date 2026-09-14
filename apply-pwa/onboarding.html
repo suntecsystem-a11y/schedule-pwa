@@ -224,7 +224,7 @@ let data = {};
 function resetData() {
   data = {
     basic: { lastName:'', firstName:'', lastKana:'', firstKana:'', birthday:'', gender:'',
-             zip:'', pref:'', addr1:'', addr2:'', addrKana1:'', addrKana2:'', phone:'', email:'' },
+             zip:'', pref:'', addr1:'', addr2:'', addrKana1:'', addrKana2:'', phone:'', email:'', insuranceNo:'' },
     em1: { name:'', kana:'', relation:'', mobile:'', landline:'' },
     em2: { name:'', kana:'', relation:'', mobile:'', landline:'' },
     commute: { method:'', legs:[{transit:'',from:'',to:''}], passMonth:'', roundTrip:'' },
@@ -412,7 +412,9 @@ function renderBasic(el) {
     <div class="row2">
       ${txt('電話番号', 'f-phone', d.phone, { req:true, ph:'例: 090-1234-5678', mode:'tel' })}
       ${txt('メールアドレス', 'f-email', d.email, { req:true, ph:'例: taro@example.com', type:'email' })}
-    </div>`;
+    </div>
+    ${txt('雇用保険被保険者番号', 'f-insuranceNo', d.insuranceNo, { ph:'お持ちの場合のみ（雇用保険被保険者証に記載）' })}
+    <div class="hint" style="margin-top:-8px;">前職で雇用保険に入っていた方はご記入ください。お持ちでなければ空欄で構いません（後日、総務が登録します）。</div>`;
 }
 function selectGender(v) { collectStepData('basic'); data.basic.gender = v; renderCurrentStep(); }
 
@@ -519,7 +521,7 @@ function collectStepData(stepId) {
       d.lastName=v('f-lastName'); d.firstName=v('f-firstName'); d.lastKana=v('f-lastKana'); d.firstKana=v('f-firstKana');
       d.birthday=v('f-birthday'); d.zip=v('f-zip'); if (document.getElementById('f-pref')) d.pref=v('f-pref');
       d.addr1=v('f-addr1'); d.addr2=v('f-addr2'); d.addrKana1=v('f-addrKana1'); d.addrKana2=v('f-addrKana2');
-      d.phone=v('f-phone'); d.email=v('f-email');
+      d.phone=v('f-phone'); d.email=v('f-email'); d.insuranceNo=v('f-insuranceNo');
       break;
     }
     case 'emergency': {
@@ -606,6 +608,7 @@ function renderConfirm(el) {
     ['住所', `〒${b.zip} ${b.pref}${b.addr1} ${b.addr2}`.trim()],
     ['住所カナ', `${b.addrKana1} ${b.addrKana2}`.trim() || '-'],
     ['電話番号', b.phone], ['メール', b.email],
+    ['雇用保険被保険者番号', b.insuranceNo || '-'],
   ]);
   html += section('緊急連絡先①', emRows(data.em1));
   if (Object.values(data.em2).some(x => x)) html += section('緊急連絡先②', emRows(data.em2));
@@ -655,7 +658,7 @@ function buildPayload() {
       lastName: b.lastName, firstName: b.firstName, lastKana: b.lastKana, firstKana: b.firstKana,
       birthday: b.birthday, gender: b.gender, zip: b.zip, pref: b.pref,
       addr1: b.addr1, addr2: b.addr2, addrKana1: b.addrKana1, addrKana2: b.addrKana2,
-      phone: b.phone, email: b.email,
+      phone: b.phone, email: b.email, insuranceNo: b.insuranceNo,
     },
     em1: data.em1, em2: data.em2,
     commute: c.method === '電車' ? {
