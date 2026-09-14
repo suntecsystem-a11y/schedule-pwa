@@ -936,7 +936,7 @@ input,select{font-family:inherit;outline:none}
           <div style="font-size:2.5em;margin-bottom:12px">📋</div>
           <div style="font-size:1em;font-weight:600;margin-bottom:8px">各種申請</div>
           <p style="font-size:0.82em;color:var(--text2);margin-bottom:20px">出張費精算・従業員情報変更届など</p>
-          <button onclick="window.open('./apply-pwa/','_blank')" style="padding:12px 32px;border-radius:10px;background:var(--primary);color:white;font-size:0.9em;font-weight:600;border:none;cursor:pointer">申請アプリを開く →</button>
+          <button onclick="location.href='./apply-pwa/'" style="padding:12px 32px;border-radius:10px;background:var(--primary);color:white;font-size:0.9em;font-weight:600;border:none;cursor:pointer">申請アプリを開く →</button>
         </div>
       </div>
       <div id="apply-mode-incident" style="display:none">
@@ -3064,7 +3064,7 @@ async function loadEvents({ force = false, centerDate } = {}){
 function openApplyApp(btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
-  window.open('./apply-pwa/', '_blank');
+  location.href = './apply-pwa/';
 }
 
 // ===== 申請タブ（申請 / インシデント切り替え） =====
@@ -4465,8 +4465,8 @@ function renderDevices(){
   html+=`</div>`;
   const calEl=document.getElementById('device-calendar');
   if(calEl){
-    if(!rentalEvs.length){
-      calEl.innerHTML=html+`<div style="text-align:center;color:var(--text2);padding:24px 0;font-size:0.88em">${t('devices.empty')}</div>`;
+    if(!rentalMasters.length){
+      calEl.innerHTML=`<div style="text-align:center;color:var(--text2);padding:24px 0;font-size:0.88em">${t('devices.empty')}</div>`;
     } else {
       calEl.innerHTML=html;
     }
