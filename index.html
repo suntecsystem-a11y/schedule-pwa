@@ -4684,11 +4684,8 @@ function openEditModal(id){
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
   document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
   document.getElementById('ev-remote-reason').value=e.remoteReason||'';
-  if(e.approvedBy&&e.approvalStatus==='申請中'){
-    document.getElementById('ev-approver').value=e.approvedBy;
-  } else {
-    document.getElementById('ev-approver').value='';
-  }
+  // 既存の承認者を初期選択（承認済の予定を編集する時も欄が出るため、元の承認者を引き継ぐ）
+  document.getElementById('ev-approver').value=e.approvedBy||'';
   document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();
   if(e.teamsUrl){
     document.getElementById('teams-url-display').style.display='block';
@@ -4751,6 +4748,14 @@ function copyEvent(id){
   updatePeopleSummary();renderPeopleSchedule();
   openModal('add-modal-backdrop');
 }
+// 承認者選択が必要か（新規・編集・コピー共通の単一判定）
+// 承認が必要な種別で、自己承認できない申請者（一般・役職空欄・在宅の主任）なら常にtrue
+function _needsApproverFor(type){
+  if(!currentUser) return false;
+  if(!APPROVAL_TYPES.includes(type)) return false;
+  const role=currentUser.role;
+  return (!role || role==='一般' || (type==='在宅' && role==='主任'));
+}
 function onTypeChange(){
   const typ=document.getElementById('ev-type').value;
   const isOther=typ==='その他';
@@ -4777,9 +4782,7 @@ function onTypeChange(){
     document.getElementById('rental-dates-row').style.display=isRental&&selectedRentals.length?'flex':'none';
     document.getElementById('rental-purpose-row').style.display=isRental&&selectedRentals.length?'flex':'none';
   }
-  const _origEdit=editingId?events.find(e=>e.id===editingId):null;
-  const editingApproved=_origEdit&&_origEdit.approvalStatus==='承認済'&&_origEdit.type===typ; // 同種別のまま編集時のみ再承認を省略
-  const needsApprover=APPROVAL_TYPES.includes(typ)&&currentUser&&(!currentUser.role||currentUser.role==='一般'||(typ==='在宅'&&currentUser.role==='主任'))&&!editingApproved;
+  const needsApprover=_needsApproverFor(typ);
   document.getElementById('approver-row').style.display=needsApprover?'flex':'none';
   if(needsApprover)renderApproverSelect(typ);
   document.getElementById('remote-reason-row').style.display=typ==='在宅'?'flex':'none';
@@ -4935,8 +4938,7 @@ function onApproverChange(){updateSaveButtonState()}
 function updateSaveButtonState(){
   const btn=document.getElementById('btn-save-event');if(!btn)return;
   const t=document.getElementById('ev-type').value;
-  const editingApproved=editingId&&events.find(e=>e.id===editingId)?.approvalStatus==='承認済';
-  const need=APPROVAL_TYPES.includes(t)&&currentUser&&(currentUser.role==='一般'||(t==='在宅'&&currentUser.role==='主任'))&&!editingApproved;
+  const need=_needsApproverFor(t);
   const ok=!need||!!document.getElementById('ev-approver')?.value;
   btn.disabled=!ok;
   btn.style.opacity=ok?'1':'0.4';
@@ -5259,9 +5261,7 @@ async function doSaveEvent(){
   const rentalEnd=isRental&&selectedRentals.length?document.getElementById('ev-rental-end').value:'';
   if(isRental&&selectedRentals.length&&rentalStart&&rentalEnd&&rentalEnd<rentalStart){showToast(t('ev.date.order'));return}
   if(selectedRentals.length&&!document.getElementById('ev-rental-purpose').value.trim()){showToast('使用目的を入力してください');return}
-  const _origSave=editingId?events.find(e=>e.id===editingId):null;
-  const editApproved=_origSave&&_origSave.approvalStatus==='承認済'&&_origSave.type===type; // 同種別のまま編集時のみ再承認を省略
-  const needsApprover=APPROVAL_TYPES.includes(type)&&currentUser&&(!currentUser.role||currentUser.role==='一般'||(type==='在宅'&&currentUser.role==='主任'))&&!editApproved;
+  const needsApprover=_needsApproverFor(type);
   const selectedApprover=needsApprover?document.getElementById('ev-approver').value:'';
   if(needsApprover&&!selectedApprover){showToast(t('ev.approver.required.msg'));return}
   const ev={
