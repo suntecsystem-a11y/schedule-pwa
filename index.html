@@ -91,6 +91,7 @@ input,select{font-family:inherit;outline:none}
 .sidebar-user-info{flex:1;min-width:0;display:none}
 .sidebar-user-name{font-size:0.78em;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-logout-btn{background:rgba(255,255,255,.15);color:white;border-radius:8px;padding:4px 8px;font-size:0.72em;font-weight:600;flex-shrink:0;display:none}
+.sidebar-logout-icon{display:none;font-size:1.3em;line-height:1}
 
 /* サイドバー今日の予定 */
 #sidebar-today{overflow-y:auto;flex:1;min-height:0;padding:10px 8px 4px;display:none}
@@ -146,6 +147,14 @@ input,select{font-family:inherit;outline:none}
   body.app-active .tab-nav{display:none}
 }
 
+/* タブレット(600〜899px)：アイコンのみサイドバーでもログアウトを出す */
+@media(min-width:600px) and (max-width:899px){
+  .sidebar-footer{flex-direction:column;gap:6px;padding:10px 4px}
+  .sidebar-logout-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:8px 0}
+  .sidebar-logout-icon{display:block}
+  .sidebar-logout-label{display:none}
+}
+
 /* PC(900px+)：フルサイドバー（アイコン＋ラベル） */
 @media(min-width:900px){
   #sidebar.visible{width:220px}
@@ -162,7 +171,10 @@ input,select{font-family:inherit;outline:none}
   #sidebar.visible.collapsed .sidebar-label{display:none}
   #sidebar.visible.collapsed .sidebar-header{padding:12px 0 8px;flex-direction:column;align-items:center;gap:6px}
   #sidebar.visible.collapsed .sidebar-user-info{display:none}
-  #sidebar.visible.collapsed .sidebar-logout-btn{display:none}
+  #sidebar.visible.collapsed .sidebar-footer{flex-direction:column;gap:6px;padding:10px 4px}
+  #sidebar.visible.collapsed .sidebar-logout-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:8px 0}
+  #sidebar.visible.collapsed .sidebar-logout-icon{display:block}
+  #sidebar.visible.collapsed .sidebar-logout-label{display:none}
   #sidebar.visible.collapsed .sidebar-collapse-btn{margin-left:0;width:24px;height:24px;font-size:0.75em}
   #sidebar.visible.collapsed #sidebar-today{display:none!important}
   body.app-active.sidebar-collapsed #app{margin-left:64px}
@@ -623,7 +635,7 @@ input,select{font-family:inherit;outline:none}
   <div class="sidebar-footer">
     <div class="sidebar-avatar">👤</div>
     <div class="sidebar-user-info"><div class="sidebar-user-name" id="sidebar-user-name"></div></div>
-    <button class="sidebar-logout-btn" onclick="doLogout()">ログアウト</button>
+    <button class="sidebar-logout-btn" onclick="doLogout()" title="ログアウト"><span class="sidebar-logout-icon">🚪</span><span class="sidebar-logout-label">ログアウト</span></button>
   </div>
 </nav>
 
@@ -2352,7 +2364,8 @@ function applyLanguage(lang){
     const badgeHTML=badge?badge.outerHTML:'';
     btn.innerHTML=tabEmoji[i]+' '+t(tabKeys[i])+badgeHTML;
   });
-  document.querySelectorAll('.sidebar-logout-btn,.btn-logout').forEach(b=>b.textContent=t('nav.logout'));
+  document.querySelectorAll('.btn-logout').forEach(b=>b.textContent=t('nav.logout'));
+  document.querySelectorAll('.sidebar-logout-btn').forEach(b=>{const lbl=b.querySelector('.sidebar-logout-label');if(lbl)lbl.textContent=t('nav.logout');b.title=t('nav.logout')});
   const loginCard=document.querySelector('#login');
   if(loginCard){
     const h1=loginCard.querySelector('h1');if(h1)h1.textContent=t('login.title');
