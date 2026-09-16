@@ -60,6 +60,9 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .field input:focus, .field select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
 .field input.error, .field select.error { border-color: var(--danger); }
 .field .hint { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
+.readonly-field { background: #f0f3f7 !important; color: var(--text-sub); font-weight: 700; cursor: default; }
+.hint-inline { font-size: 11px; font-weight: 600; color: var(--primary); margin-left: 8px; }
+.notice-box { padding: 10px 12px; background: #fff3e0; border-radius: var(--radius); font-size: 12.5px; color: #e65100; margin: 8px 0; line-height: 1.6; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
 
@@ -166,7 +169,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 // =============================================================================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwvHJ12cwnKgWIwrAXAeXuv1wSZXQXOHdAxhZ_P7vbe7KhrtEwv1wCigz0IHocrgHg/exec';
 const PREFECTURES = ['大阪府','兵庫県','茨城県','奈良県','京都府','滋賀県','和歌山県'];
-const COMMUTE_METHODS = ['電車','自転車','バイク','徒歩'];
+const COMMUTE_METHODS = ['公共交通機関','自転車','バイク'];
 
 // =============================================================================
 // セッション（申請アプリと共有）
@@ -227,9 +230,9 @@ function resetData() {
              zip:'', pref:'', addr1:'', addr2:'', addrKana1:'', addrKana2:'', phone:'', email:'', insuranceNo:'' },
     em1: { name:'', kana:'', relation:'', mobile:'', landline:'' },
     em2: { name:'', kana:'', relation:'', mobile:'', landline:'' },
-    commute: { method:'', legs:[{transit:'',from:'',to:''}], passMonth:'', roundTrip:'' },
+    commute: { method:'', legs:[{transit:'',from:'',to:''}], passMonth:'', roundTrip:'', parkingFee:'', allowance:'' },
     bank1: { bankName:'', branch:'', type:'', number:'', holder:'' },
-    bank2: { bankName:'', branch:'', type:'', number:'', holder:'' },
+    bank2: { bankName:'', branch:'', type:'', number:'', holder:'', transferAmount:'' },
   };
 }
 
@@ -274,10 +277,13 @@ async function fetchAndPrefill() {
       data.commute.method = c.method || '';
       data.commute.passMonth = c.passMonth || '';
       data.commute.roundTrip = c.roundTrip || '';
+      data.commute.parkingFee = c.parkingFee || '';
+      data.commute.allowance = c.allowance || '';
       const legs = [];
       if (c.transit || c.leg1from || c.leg1to) legs.push({ transit: c.transit || '', from: c.leg1from || '', to: c.leg1to || '' });
       if (c.transit2 || c.leg2from || c.leg2to) legs.push({ transit: c.transit2 || '', from: c.leg2from || '', to: c.leg2to || '' });
       if (c.transit3 || c.leg3from || c.leg3to) legs.push({ transit: c.transit3 || '', from: c.leg3from || '', to: c.leg3to || '' });
+      if (c.transit4 || c.leg4from || c.leg4to) legs.push({ transit: c.transit4 || '', from: c.leg4from || '', to: c.leg4to || '' });
       data.commute.legs = legs.length ? legs : [{ transit: '', from: '', to: '' }];
     }
     if (d.bank1) Object.assign(data.bank1, d.bank1);
@@ -441,31 +447,60 @@ function emergencyCard(n, d, req) {
 
 function renderCommute(el) {
   const d = data.commute;
-  const isTrain = d.method === '電車';
+  const m = d.method;
   el.innerHTML = `
     <div class="step-title">通勤情報</div>
-    <div class="step-desc">通勤手段を選択してください。電車の場合は経路などを入力します。</div>
+    <div class="step-desc">通勤手段を選択してください。公共交通機関の場合は経路などを入力します。</div>
     <div class="field">
       <label>通勤手段<span class="req">*</span></label>
       <select id="f-method" onchange="onMethodChange()">
         <option value="">選択してください</option>
-        ${COMMUTE_METHODS.map(m => `<option value="${m}" ${d.method===m?'selected':''}>${m}</option>`).join('')}
+        ${COMMUTE_METHODS.map(x => `<option value="${x}" ${m===x?'selected':''}>${x}</option>`).join('')}
       </select>
     </div>
-    <div id="commute-detail">${isTrain ? commuteDetail(d) : ''}</div>`;
+    <div id="commute-detail">${m === '公共交通機関' ? commuteDetail(d) : (m === '自転車' || m === 'バイク') ? bikeDetail(d) : ''}</div>`;
+  recalcAllowance();
 }
 function commuteDetail(d) {
   return `
     <div class="group-card">
-      <div class="group-title">乗車区間（乗り換え3区間まで）</div>
+      <div class="group-title">乗車区間（乗り換え4区間まで）</div>
       <div class="hint" style="margin-bottom:8px;">区間ごとに交通機関（路線）と乗車区間を入力してください。乗り換えがあれば「乗り換えを追加」。</div>
       <div id="legs">${d.legs.map((lg, i) => legRow(lg, i)).join('')}</div>
-      ${d.legs.length < 3 ? '<button class="btn-add" onclick="addLeg()">＋ 乗り換えを追加</button>' : ''}
+      ${d.legs.length < 4 ? '<button class="btn-add" onclick="addLeg()">＋ 乗り換えを追加</button>' : ''}
     </div>
     <div class="row2">
-      ${txt('1ヶ月定期代（円）', 'f-passMonth', d.passMonth, { req:true, ph:'例: 12000', mode:'numeric' })}
+      <div class="field"><label>1ヶ月定期代（円）<span class="req">*</span></label>
+        <input type="text" id="f-passMonth" value="${esc(d.passMonth)}" placeholder="例: 12000" inputmode="numeric" oninput="recalcAllowance()"></div>
       ${txt('往復運賃（円）', 'f-roundTrip', d.roundTrip, { req:true, ph:'例: 800', mode:'numeric' })}
-    </div>`;
+    </div>
+    <div class="notice-box">家から最寄り駅まで2km以上の場合は駐輪場代を通勤手当に追加します。</div>
+    <div class="field"><label>駐輪場代（円）</label>
+      <input type="text" id="f-parking" value="${esc(d.parkingFee)}" placeholder="2km以上で駐輪場を使う場合のみ" inputmode="numeric" oninput="recalcAllowance()"></div>
+    <div class="field"><label>通勤手当（円）<span class="hint-inline">自動計算</span></label>
+      <input type="text" id="f-allowance" class="readonly-field" value="${computeAllowance().toLocaleString()}" readonly>
+      <div class="hint">1ヶ月定期代 ＋ 駐輪場代（自動計算・入力不要）</div></div>`;
+}
+function bikeDetail(d) {
+  return `
+    <div class="notice-box">自転車・バイク通勤の通勤手当は 1,000円 です。</div>
+    <div class="field"><label>通勤手当（円）<span class="hint-inline">自動</span></label>
+      <input type="text" id="f-allowance" class="readonly-field" value="1,000" readonly></div>`;
+}
+function computeAllowance() {
+  const c = data.commute, m = c.method;
+  if (m === '公共交通機関') return (parseInt(numOnly(c.passMonth),10)||0) + (parseInt(numOnly(c.parkingFee),10)||0);
+  if (m === '自転車' || m === 'バイク') return 1000;
+  return 0;
+}
+function recalcAllowance() {
+  const c = data.commute;
+  if (document.getElementById('f-passMonth')) c.passMonth = v('f-passMonth');
+  if (document.getElementById('f-parking')) c.parkingFee = v('f-parking');
+  const amt = computeAllowance();
+  c.allowance = String(amt);
+  const el = document.getElementById('f-allowance');
+  if (el) el.value = amt.toLocaleString();
 }
 function legRow(lg, i) {
   return `<div class="leg-block">
@@ -485,7 +520,7 @@ function onMethodChange() {
   data.commute.method = document.getElementById('f-method').value;
   renderCurrentStep();
 }
-function addLeg() { collectStepData('commute'); if (data.commute.legs.length < 3) data.commute.legs.push({ transit:'', from:'', to:'' }); renderCurrentStep(); }
+function addLeg() { collectStepData('commute'); if (data.commute.legs.length < 4) data.commute.legs.push({ transit:'', from:'', to:'' }); renderCurrentStep(); }
 function removeLeg(i) { collectStepData('commute'); data.commute.legs.splice(i, 1); if (!data.commute.legs.length) data.commute.legs.push({ transit:'', from:'', to:'' }); renderCurrentStep(); }
 
 function renderBank(el) {
@@ -507,6 +542,8 @@ function bankCard(n, d, req) {
       ${txt('口座番号', `f-bank${n}-number`, d.number, { req, mode:'numeric' })}
     </div>
     ${txt('口座名義（カナ）', `f-bank${n}-holder`, d.holder, { req, ph:'例: ヤマダタロウ' })}
+    ${n === 2 ? `${txt('振込金額（万円）', 'f-bank2-transfer', d.transferAmount || '', { ph:'例: 3（＝3万円）', mode:'numeric' })}
+    <div class="hint" style="margin-top:-8px;">口座2を使う場合、この口座へ振り込む固定額を<b>万円単位</b>で入力（残りは口座1へ）。</div>` : ''}
   </div>`;
 }
 
@@ -537,9 +574,10 @@ function collectStepData(stepId) {
       const d = data.commute;
       if (document.getElementById('f-method')) d.method=v('f-method');
       if (document.getElementById('f-passMonth')) {
-        d.passMonth=v('f-passMonth'); d.roundTrip=v('f-roundTrip');
+        d.passMonth=v('f-passMonth'); d.roundTrip=v('f-roundTrip'); d.parkingFee=v('f-parking');
         d.legs = d.legs.map((_, i) => ({ transit:v(`f-leg${i}-transit`), from:v(`f-leg${i}-from`), to:v(`f-leg${i}-to`) }));
       }
+      if (document.getElementById('f-allowance')) d.allowance = numOnly(v('f-allowance'));
       break;
     }
     case 'bank': {
@@ -547,6 +585,7 @@ function collectStepData(stepId) {
         d.bankName=v(`f-bank${n}-bankName`); d.branch=v(`f-bank${n}-branch`); d.type=v(`f-bank${n}-type`);
         d.number=v(`f-bank${n}-number`); d.holder=v(`f-bank${n}-holder`);
       });
+      if (document.getElementById('f-bank2-transfer')) data.bank2.transferAmount = v('f-bank2-transfer');
       break;
     }
   }
@@ -576,7 +615,7 @@ function collectAndValidate(stepId) {
     case 'commute': {
       const d = data.commute;
       if (!d.method) return no('通勤手段を選択してください');
-      if (d.method === '電車') {
+      if (d.method === '公共交通機関') {
         const l0 = d.legs[0] || {};
         if (!l0.transit) return no('1区間目の交通機関を入力してください');
         if (!l0.from || !l0.to) return no('1区間目の乗車区間を入力してください');
@@ -589,6 +628,7 @@ function collectAndValidate(stepId) {
       const d = data.bank1;
       for (const [k,l] of [['bankName','銀行名'],['branch','支店名'],['type','種別'],['number','口座番号'],['holder','口座名義']])
         if (!d[k]) return no(`振込口座1の${l}を入力してください`);
+      if (data.bank2.bankName && !data.bank2.transferAmount) return no('振込口座2を使う場合は振込金額（万円）を入力してください');
       return true;
     }
     default: return true;
@@ -614,14 +654,23 @@ function renderConfirm(el) {
   if (Object.values(data.em2).some(x => x)) html += section('緊急連絡先②', emRows(data.em2));
   const c = data.commute;
   const commuteRows = [['通勤手段', c.method]];
-  if (c.method === '電車') {
+  const yen = n => n ? `${Number(numOnly(n)).toLocaleString()}円` : '-';
+  if (c.method === '公共交通機関') {
     commuteRows.push(['乗車区間', c.legs.filter(l => l.from || l.to || l.transit).map(l => `${l.transit ? l.transit + '：' : ''}${l.from}→${l.to}`).join(' / ')]);
-    commuteRows.push(['1ヶ月定期代', c.passMonth ? `${Number(c.passMonth).toLocaleString()}円` : '-']);
-    commuteRows.push(['往復運賃', c.roundTrip ? `${Number(c.roundTrip).toLocaleString()}円` : '-']);
+    commuteRows.push(['1ヶ月定期代', yen(c.passMonth)]);
+    commuteRows.push(['往復運賃', yen(c.roundTrip)]);
+    commuteRows.push(['駐輪場代', yen(c.parkingFee)]);
+    commuteRows.push(['通勤手当（自動）', yen(c.allowance)]);
+  } else if (c.method === '自転車' || c.method === 'バイク') {
+    commuteRows.push(['通勤手当（自動）', yen(c.allowance)]);
   }
   html += section('通勤情報', commuteRows);
   html += section('振込口座1', bankRows(data.bank1));
-  if (Object.values(data.bank2).some(x => x)) html += section('振込口座2', bankRows(data.bank2));
+  if (Object.values(data.bank2).some(x => x)) {
+    const rows2 = bankRows(data.bank2);
+    rows2.push(['振込金額', data.bank2.transferAmount ? `${Number(numOnly(data.bank2.transferAmount)).toLocaleString()}万円` : '-']);
+    html += section('振込口座2', rows2);
+  }
   el.innerHTML = html;
 }
 function emRows(d) { return [['氏名', d.name],['氏名カナ', d.kana],['続柄', d.relation],['携帯電話', d.mobile],['固定電話', d.landline || '-']]; }
@@ -661,15 +710,19 @@ function buildPayload() {
       phone: b.phone, email: b.email, insuranceNo: b.insuranceNo,
     },
     em1: data.em1, em2: data.em2,
-    commute: c.method === '電車' ? {
+    commute: c.method === '公共交通機関' ? {
       method: c.method,
       transit:  legs[0]?.transit || '', leg1from: legs[0]?.from || '', leg1to: legs[0]?.to || '',
       transit2: legs[1]?.transit || '', leg2from: legs[1]?.from || '', leg2to: legs[1]?.to || '',
       transit3: legs[2]?.transit || '', leg3from: legs[2]?.from || '', leg3to: legs[2]?.to || '',
+      transit4: legs[3]?.transit || '', leg4from: legs[3]?.from || '', leg4to: legs[3]?.to || '',
       passMonth: numOnly(c.passMonth), roundTrip: numOnly(c.roundTrip),
+      parkingFee: numOnly(c.parkingFee), allowance: numOnly(c.allowance),
+    } : (c.method === '自転車' || c.method === 'バイク') ? {
+      method: c.method, allowance: numOnly(c.allowance),
     } : { method: c.method },
     bank1: { ...data.bank1, number: numOnly(data.bank1.number) },
-    bank2: Object.values(data.bank2).some(x => x) ? { ...data.bank2, number: numOnly(data.bank2.number) } : null,
+    bank2: Object.values(data.bank2).some(x => x) ? { ...data.bank2, number: numOnly(data.bank2.number), transferAmount: numOnly(data.bank2.transferAmount) } : null,
   };
 }
 
