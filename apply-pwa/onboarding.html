@@ -419,10 +419,21 @@ function renderBasic(el) {
       ${txt('電話番号', 'f-phone', d.phone, { req:true, ph:'例: 090-1234-5678', mode:'tel' })}
       ${txt('メールアドレス', 'f-email', d.email, { req:true, ph:'例: taro@example.com', type:'email' })}
     </div>
-    ${txt('雇用保険被保険者番号', 'f-insuranceNo', d.insuranceNo, { ph:'お持ちの場合のみ（雇用保険被保険者証に記載）' })}
-    <div class="hint" style="margin-top:-8px;">前職で雇用保険に入っていた方はご記入ください。お持ちでなければ空欄で構いません（後日、総務が登録します）。</div>`;
+    <div class="field">
+      <label>雇用保険被保険者番号</label>
+      <input type="text" id="f-insuranceNo" value="${esc(d.insuranceNo)}" placeholder="例: 1234-567890-1" inputmode="numeric" maxlength="13" oninput="formatInsurance(this)">
+      <div class="hint">お持ちの場合のみ（雇用保険被保険者証に記載）。数字を入れると自動でハイフンが入ります（4桁-6桁-1桁）。空欄なら後日、総務が登録します。</div>
+    </div>`;
 }
 function selectGender(v) { collectStepData('basic'); data.basic.gender = v; renderCurrentStep(); }
+// 雇用保険被保険者番号を 4桁-6桁-1桁 に自動整形
+function formatInsurance(el) {
+  const d = el.value.replace(/[^0-9]/g, '').slice(0, 11);
+  let out = d;
+  if (d.length > 10) out = d.slice(0,4) + '-' + d.slice(4,10) + '-' + d.slice(10);
+  else if (d.length > 4) out = d.slice(0,4) + '-' + d.slice(4);
+  el.value = out;
+}
 
 function renderEmergency(el) {
   el.innerHTML = `
@@ -604,6 +615,7 @@ function collectAndValidate(stepId) {
         ['addr1','住所1'],['phone','電話番号'],['email','メールアドレス']];
       for (const [k,l] of need) if (!d[k]) return no(`${l}を入力してください`);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return no('メールアドレスの形式が正しくありません');
+      if (d.insuranceNo && !/^\d{4}-\d{6}-\d{1}$/.test(d.insuranceNo)) return no('雇用保険被保険者番号は 4桁-6桁-1桁 で入力してください');
       return true;
     }
     case 'emergency': {
