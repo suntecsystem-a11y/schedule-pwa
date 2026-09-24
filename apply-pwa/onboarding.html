@@ -68,6 +68,9 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .ins-sep { color: var(--text-sub); font-weight: 700; }
 .hint-inline { font-size: 11px; font-weight: 600; color: var(--primary); margin-left: 8px; }
 .notice-box { padding: 10px 12px; background: #fff3e0; border-radius: var(--radius); font-size: 12.5px; color: #e65100; margin: 8px 0; line-height: 1.6; }
+.dist-info { font-size: 12.5px; color: var(--text-sub); background: #f5f8fc; border-radius: var(--radius); padding: 8px 12px; margin: 4px 0 10px; line-height: 1.6; }
+.dist-info.over { background: #fff3e0; color: #e65100; }
+.dist-info.under { background: #e8f5e9; color: #2e7d32; }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
 
@@ -235,7 +238,7 @@ function resetData() {
              zip:'', pref:'', addr1:'', addr2:'', addrKana1:'', addrKana2:'', phone:'', email:'', insuranceNo:'' },
     em1: { name:'', kana:'', relation:'', mobile:'', landline:'' },
     em2: { name:'', kana:'', relation:'', mobile:'', landline:'' },
-    commute: { method:'', legs:[{transit:'',from:'',to:''}], passMonth:'', roundTrip:'', parkingFee:'', allowance:'' },
+    commute: { method:'', legs:[{transit:'',from:'',to:''}], passMonth:'', roundTrip:'', parkingFee:'', allowance:'', distMsg:'', distClass:'' },
     bank1: { bankName:'', branch:'', type:'', number:'', holder:'' },
     bank2: { bankName:'', branch:'', type:'', number:'', holder:'', transferAmount:'' },
   };
@@ -498,6 +501,7 @@ function commuteDetail(d) {
       ${txt('往復運賃（円）', 'f-roundTrip', d.roundTrip, { req:true, ph:'例: 800', mode:'numeric' })}
     </div>
     <div class="notice-box">家から最寄り駅まで2km以上の場合は駐輪場代を通勤手当に追加します。</div>
+    <div id="dist-info" class="dist-info ${d.distClass || ''}">${d.distMsg || '住所と1区間目の乗車駅を入れると、家〜最寄り駅の距離を自動表示します'}</div>
     <div class="field"><label>駐輪場代（円）</label>
       <input type="text" id="f-parking" value="${esc(d.parkingFee)}" placeholder="2km以上で駐輪場を使う場合のみ" inputmode="numeric" oninput="recalcAllowance()"></div>
     <div class="field"><label>通勤手当（円）<span class="hint-inline">自動計算</span></label>
@@ -525,6 +529,26 @@ function recalcAllowance() {
   const el = document.getElementById('f-allowance');
   if (el) el.value = amt.toLocaleString();
 }
+// 住所〜1区間目の乗車駅の距離をGASで計算して2km判定を表示（駐輪場代のガイド）
+async function checkDistance() {
+  collectStepData('commute');
+  const c = data.commute, b = data.basic;
+  const station = (c.legs[0] && c.legs[0].from) || '';
+  const address = `${b.zip} ${b.pref}${b.addr1} ${b.addr2 || ''}`.trim();
+  const el = document.getElementById('dist-info');
+  const setInfo = (cls, html) => { c.distClass = cls; c.distMsg = html; if (el) { el.className = 'dist-info ' + cls; el.innerHTML = html; } };
+  if (!station || !b.addr1) { setInfo('', '住所と1区間目の乗車駅を入れると、家〜最寄り駅の距離を自動表示します'); return; }
+  setInfo('', '距離を計算中…');
+  try {
+    const r = await gas({ action: 'getStationDistance', token: currentToken, address, station });
+    if (!r || !r.ok) { setInfo('', '距離を計算できませんでした（住所・駅名をご確認ください）'); return; }
+    const stn = esc(station);
+    if (r.over2km) setInfo('over', `🧭 家 〜 ${stn}：約${r.km}km → <b>2km以上（駐輪場代を入力してください）</b>`);
+    else setInfo('under', `🧭 家 〜 ${stn}：約${r.km}km → <b>2km未満（駐輪場代の対象外）</b>`);
+  } catch (e) {
+    setInfo('', '距離の計算に失敗しました');
+  }
+}
 function legRow(lg, i) {
   return `<div class="leg-block">
     <div class="leg-head">${i + 1}区間目${i === 0 ? '<span class="req">*</span>' : '<span class="badge-opt">任意</span>'}
@@ -532,7 +556,7 @@ function legRow(lg, i) {
     </div>
     <input type="text" class="leg-transit" id="f-leg${i}-transit" value="${esc(lg.transit || '')}" placeholder="交通機関（例: JR / 阪急）">
     <div class="leg-row">
-      <input type="text" id="f-leg${i}-from" value="${esc(lg.from)}" placeholder="${i === 0 ? '例: 梅田' : '乗車駅'}">
+      <input type="text" id="f-leg${i}-from" value="${esc(lg.from)}" placeholder="${i === 0 ? '例: 梅田' : '乗車駅'}" ${i === 0 ? 'onblur="checkDistance()"' : ''}>
       <span class="arrow">→</span>
       <input type="text" id="f-leg${i}-to" value="${esc(lg.to)}" placeholder="${i === 0 ? '例: 三宮' : '降車駅'}">
     </div>
