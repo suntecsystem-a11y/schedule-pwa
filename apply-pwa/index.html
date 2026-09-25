@@ -181,6 +181,10 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div class="filter-bar" id="mine-filter-bar">
       <select id="mine-filter-type" onchange="applyMineFilter()">
         <option value="">すべての種別</option>
+        <option value="leave">🌴 休暇申請</option>
+        <option value="transport">🚃 交通費精算</option>
+        <option value="expense">💴 出張費精算</option>
+        <option value="other">📝 その他</option>
       </select>
       <select id="mine-filter-status" onchange="applyMineFilter()">
         <option value="">すべてのステータス</option>
@@ -206,6 +210,10 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div class="filter-bar">
       <select id="filter-type" onchange="applyFilter()">
         <option value="">すべての種別</option>
+        <option value="leave">🌴 休暇申請</option>
+        <option value="transport">🚃 交通費精算</option>
+        <option value="expense">💴 出張費精算</option>
+        <option value="other">📝 その他</option>
       </select>
       <select id="filter-status" onchange="applyFilter()">
         <option value="">すべてのステータス</option>
@@ -244,6 +252,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <select id="new-type" onchange="renderNewFields()">
       <option value="">選択してください</option>
       <option value="expense">💴 出張費精算</option>
+      <option value="transport">🚃 交通費精算</option>
       <option value="other">📝 その他申請</option>
       <option value="change">📝 従業員情報変更届</option>
       <option id="opt-onboarding" value="onboarding" hidden>🎉 新入社員 入社登録</option>
@@ -554,6 +563,7 @@ async function loadTab(name) {
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       const summaryEl = document.getElementById('mine-summary');
@@ -583,6 +593,7 @@ async function loadTab(name) {
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
       ];
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
@@ -595,6 +606,7 @@ async function loadTab(name) {
       records = [
         ...((applyAll && applyAll.leave)  || []).map(r => ({ ...r, _appType: 'leave' })),
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
+        ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
       ];
       records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
@@ -703,7 +715,7 @@ function renderList(el, records, opts) {
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
           <div class="card-sub">${esc(r.applicantName || r.applicantId)} ・ ${esc(r.applicationDate || r.appliedAt || '')}</div>
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${esc(r.destination || '')}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
-          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); const timeInfo = c.allDay === false && c.startTime ? ` ${esc(c.startTime)}〜${esc(c.endTime)}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${esc(c.title || '')}${c.start ? esc(c.start) + '〜' + esc(c.end) + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
+          ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'transport') { return `<div class="card-sub">${esc(c.destination || '')} ${esc(c.periodStart||'')}〜${esc(c.periodEnd||'')} 計 ${Number(c.totalAmount||0).toLocaleString()} 円</div>`; } const timeInfo = c.allDay === false && c.startTime ? ` ${esc(c.startTime)}〜${esc(c.endTime)}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${esc(c.title || '')}${c.start ? esc(c.start) + '〜' + esc(c.end) + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
           <span class="badge badge-${esc(r.approvalStatus)}">${esc(r.approvalStatus)}</span>
@@ -801,6 +813,13 @@ async function openDetail(appType, id) {
       pdfBtn.onclick = () => printExpensePDF(r);
       footer.appendChild(pdfBtn);
     }
+    if (appType === 'transport') {
+      const pdfBtn = document.createElement('button');
+      pdfBtn.className = 'btn-cancel';
+      pdfBtn.textContent = '🖨 PDF出力';
+      pdfBtn.onclick = () => printTransportPDF(r);
+      footer.appendChild(pdfBtn);
+    }
   } catch (e) {
     document.getElementById('detail-body').innerHTML = `<div class="empty"><p>読み込み失敗: ${esc(e.message)}</p></div>`;
   }
@@ -810,9 +829,33 @@ function renderApplyDetail(appType, r) {
   let contentRows = '';
   try {
     const c = JSON.parse(r.content || '{}');
-    contentRows = Object.entries(c).map(([k, v]) => {
-      return `<div class="detail-row"><span class="detail-label">${esc(contentFieldLabel(k))}</span><span class="detail-val">${esc(String(v || '-'))}</span></div>`;
-    }).join('');
+    r._parsedContent = c;
+    if (appType === 'transport') {
+      const details = c.details || [];
+      const total = details.reduce((s, d) => s + Number(d.amount || 0), 0);
+      contentRows = `
+        <div class="detail-row"><span class="detail-label">日程</span><span class="detail-val">${esc(c.periodStart||'')} 〜 ${esc(c.periodEnd||'')}</span></div>
+        <div class="detail-row"><span class="detail-label">行き先</span><span class="detail-val">${esc(c.destination||'-')}</span></div>
+        <div class="detail-row"><span class="detail-label">合計金額</span><span class="detail-val"><strong>${total.toLocaleString()} 円</strong></span></div>
+        ${details.length ? `
+        <div style="margin-top:14px;font-size:13px;font-weight:700;">明細</div>
+        <div style="overflow-x:auto;margin-top:6px;">
+          <table class="detail-table">
+            <thead><tr><th>日付</th><th>利用機関</th><th>出発地</th><th>到着地</th><th>金額</th><th>備考</th></tr></thead>
+            <tbody>${details.map(d => `<tr>
+              <td>${esc(d.date||'')}</td><td>${esc(d.facility||'')}</td>
+              <td>${esc(d.from||'')}</td><td>${esc(d.to||'')}</td>
+              <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
+              <td>${esc(d.memo||'')}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>` : ''}`;
+    } else {
+      contentRows = Object.entries(c).map(([k, v]) => {
+        if (k === '_appType') return '';
+        return `<div class="detail-row"><span class="detail-label">${esc(contentFieldLabel(k))}</span><span class="detail-val">${esc(String(v || '-'))}</span></div>`;
+      }).join('');
+    }
   } catch {}
   const approverDisplay = r.approverName || r.approverEmpId
     ? `<div class="detail-row"><span class="detail-label">承認者</span><span class="detail-val">${esc(r.approverName || r.approverEmpId)}${r.approvalStatus === '申請中' ? '（承認待ち）' : ''}</span></div>`
@@ -1077,6 +1120,26 @@ async function _fillFormFromRecord(appType, r) {
     } else if (appType === 'other') {
       if (c.title) document.getElementById('f-other-title').value = c.title;
       if (c.body)  document.getElementById('f-other-body').value  = c.body;
+    } else if (appType === 'transport') {
+      if (c.periodStart) document.getElementById('f-tr-period-start').value = c.periodStart;
+      if (c.periodEnd)   document.getElementById('f-tr-period-end').value   = c.periodEnd;
+      if (c.destination)  document.getElementById('f-tr-dest').value        = c.destination;
+      const rows = document.getElementById('transport-rows');
+      if (c.details && c.details.length) {
+        rows.innerHTML = '';
+        c.details.forEach(d => {
+          addTransportRow();
+          const tr = rows.lastElementChild;
+          const inputs = tr.querySelectorAll('input');
+          if (d.date)     inputs[0].value = d.date;
+          if (d.facility) inputs[1].value = d.facility;
+          if (d.from)     inputs[2].value = d.from;
+          if (d.to)       inputs[3].value = d.to;
+          if (d.amount)   inputs[4].value = d.amount;
+          if (d.memo)     inputs[5].value = d.memo;
+        });
+        calcTransportTotal();
+      }
     }
     if (r.approverEmpId) {
       const sel = document.getElementById('f-approver-id');
@@ -1209,6 +1272,25 @@ function renderNewFields() {
     `;
     addDetailRow();
     receiptPhotos = [];
+  } else if (type === 'transport') {
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div><label>日程（開始）</label><input type="date" id="f-tr-period-start"></div>
+        <div><label>日程（終了）</label><input type="date" id="f-tr-period-end"></div>
+      </div>
+      <label>行き先</label><input type="text" id="f-tr-dest" placeholder="例: 本社(通勤)">
+      <label>明細</label>
+      <div style="overflow-x:auto;">
+        <table class="detail-table" id="transport-rows-table">
+          <thead><tr><th>日付</th><th>利用機関</th><th>出発地</th><th>到着地</th><th>金額</th><th>備考</th><th></th></tr></thead>
+          <tbody id="transport-rows"></tbody>
+        </table>
+      </div>
+      <button type="button" class="btn-add-row" onclick="addTransportRow()">＋ 行を追加</button>
+      <div id="transport-total-display" style="text-align:right;font-size:15px;font-weight:700;color:var(--primary);margin-top:8px;">合計：0 円</div>
+      ${getApproverSectionHTML()}
+    `;
+    addTransportRow();
   } else if (type === 'change') {
     closeModal('modal-new');
     location.href = 'change-form.html';
@@ -1254,6 +1336,99 @@ function addDetailRow() {
   `;
   tbody.appendChild(tr);
   calcExpenseTotal();
+}
+
+// ===================================================
+// 交通費精算
+// ===================================================
+function calcTransportTotal() {
+  const rows = document.getElementById('transport-rows');
+  if (!rows) return;
+  const total = [...rows.querySelectorAll('tr')].reduce((sum, tr) => {
+    const amt = Number(tr.querySelectorAll('input')[4]?.value || 0);
+    return sum + (isNaN(amt) ? 0 : amt);
+  }, 0);
+  const el = document.getElementById('transport-total-display');
+  if (el) el.textContent = '合計：' + total.toLocaleString() + ' 円';
+}
+
+function addTransportRow() {
+  const tbody = document.getElementById('transport-rows');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="date"></td>
+    <td><input type="text" placeholder="大阪メトロ"></td>
+    <td><input type="text" placeholder="なんば"></td>
+    <td><input type="text" placeholder="梅田"></td>
+    <td><input type="number" placeholder="0" style="width:70px" oninput="calcTransportTotal()"></td>
+    <td><input type="text" placeholder="備考"></td>
+    <td><button class="btn-del-row" onclick="this.closest('tr').remove();calcTransportTotal()">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  calcTransportTotal();
+}
+
+async function submitTransport() {
+  const periodStart = document.getElementById('f-tr-period-start').value;
+  const periodEnd   = document.getElementById('f-tr-period-end').value;
+  const dest        = document.getElementById('f-tr-dest').value.trim();
+  if (!periodStart || !periodEnd) throw new Error('日程を入力してください');
+  if (!dest) throw new Error('行き先を入力してください');
+  const approverEmpId = _getSelectedApproverEmpId();
+  const rows = document.getElementById('transport-rows');
+  const details = [...rows.querySelectorAll('tr')].map(tr => {
+    const inputs = tr.querySelectorAll('input');
+    return { date: inputs[0].value, facility: inputs[1].value, from: inputs[2].value, to: inputs[3].value, amount: Number(inputs[4].value || 0), memo: inputs[5].value };
+  });
+  const total = details.reduce((s, d) => s + (isNaN(d.amount) ? 0 : d.amount), 0);
+  const content = JSON.stringify({
+    periodStart, periodEnd, destination: dest, details, totalAmount: total,
+  });
+  const applyData = { applicantName: currentUser.name, content, approverEmpId };
+  if (editingRecord && editingRecord.appType === 'transport') applyData.id = editingRecord.id;
+  await gas({ action: 'saveApply', token: currentToken, appType: 'transport', applyData });
+}
+
+function printTransportPDF(r) {
+  const c = typeof r._parsedContent === 'object' ? r._parsedContent : (() => { try { return JSON.parse(r.content || '{}'); } catch { return {}; } })();
+  const details = c.details || [];
+  const detailRows = details.map(d => `
+    <tr>
+      <td>${esc(d.date||'')}</td><td>${esc(d.facility||'')}</td>
+      <td>${esc(d.from||'')}</td><td>${esc(d.to||'')}</td>
+      <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
+      <td>${esc(d.memo||'')}</td>
+    </tr>`).join('');
+  const total = details.reduce((s, d) => s + Number(d.amount || 0), 0);
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html lang="ja"><head>
+    <meta charset="UTF-8">
+    <title>交通費精算書</title>
+    <style>
+      body { font-family: 'Meiryo', sans-serif; font-size: 13px; padding: 24px; color: #212121; }
+      h1 { font-size: 18px; text-align: center; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+      th, td { border: 1px solid #ccc; padding: 6px 8px; }
+      th { background: #f5f5f5; font-weight: 700; width: 120px; }
+      .detail-table th { width: auto; }
+      .total { text-align: right; font-weight: 700; font-size: 15px; margin: 8px 0; }
+      @media print { button { display: none; } }
+    </style>
+  </head><body>
+    <h1>交通費精算書</h1>
+    <table>
+      <tr><th>申請者</th><td>${esc(r.applicantName||'')}</td><th>申請日</th><td>${esc((r.applicationDate || r.createdAt || '').slice(0,10))}</td></tr>
+      <tr><th>日程</th><td>${esc(c.periodStart||'')} 〜 ${esc(c.periodEnd||'')}</td><th>行き先</th><td>${esc(c.destination||'')}</td></tr>
+      <tr><th>承認状態</th><td>${esc(r.approvalStatus||'')}</td><th>承認者</th><td>${esc(r.approverName||r.approverEmpId||'-')}</td></tr>
+    </table>
+    <table class="detail-table">
+      <thead><tr><th>日付</th><th>利用機関</th><th>出発地</th><th>到着地</th><th>金額</th><th>備考</th></tr></thead>
+      <tbody>${detailRows}</tbody>
+    </table>
+    <div class="total">合計金額：${total.toLocaleString()} 円</div>
+    <br><button onclick="window.print()">🖨 印刷</button>
+  </body></html>`);
+  win.document.close();
 }
 
 // ===================================================
@@ -1384,6 +1559,18 @@ async function submitNew() {
         { label: '行先',     value: dest },
         { label: '合計金額', value: document.getElementById('expense-total-display')?.textContent || '0円' },
       ];
+    } else if (type === 'transport') {
+      const periodStart = document.getElementById('f-tr-period-start').value;
+      const periodEnd   = document.getElementById('f-tr-period-end').value;
+      const dest        = document.getElementById('f-tr-dest').value.trim();
+      if (!periodStart || !periodEnd) throw new Error('日程を入力してください');
+      if (!dest) throw new Error('行き先を入力してください');
+      items = [
+        { label: '日程',     value: `${periodStart} 〜 ${periodEnd}` },
+        { label: '行き先',   value: dest },
+        { label: '合計金額', value: document.getElementById('transport-total-display')?.textContent || '0円' },
+        { label: '承認者',   value: _getApproverDisplayName() },
+      ];
     } else {
       const title = document.getElementById('f-other-title').value.trim();
       if (!title) throw new Error('件名を入力してください');
@@ -1400,6 +1587,7 @@ async function submitNew() {
     try {
       if (type === 'leave') await submitLeave();
       else if (type === 'expense') await submitExpense();
+      else if (type === 'transport') await submitTransport();
       else await submitOther();
       closeModal('modal-confirm');
       closeModal('modal-new');
@@ -1536,10 +1724,10 @@ function _sortKey(r) {
   if (d) return d + 'T00:00:00.000Z';
   return '';
 }
-function typeIcon(t)  { return { leave:'🌴', expense:'💴', other:'📝', change:'📝' }[t] || '📋'; }
-function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', other:'その他申請', change:'従業員情報変更届' }[t] || t; }
+function typeIcon(t)  { return { leave:'🌴', expense:'💴', transport:'🚃', other:'📝', change:'📝' }[t] || '📋'; }
+function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', transport:'交通費精算', other:'その他申請', change:'従業員情報変更届' }[t] || t; }
 function contentFieldLabel(k) {
-  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', purpose:'利用目的' }[k] || k;
+  return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', purpose:'利用目的', periodStart:'開始日', periodEnd:'終了日', destination:'行き先', totalAmount:'合計金額', details:'明細' }[k] || k;
 }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
