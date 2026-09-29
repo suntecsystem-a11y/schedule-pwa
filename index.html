@@ -710,6 +710,8 @@ input,select{font-family:inherit;outline:none}
   <div class="content" id="tab-home">
     <!-- 安否確認エリア -->
     <div id="safety-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
+    <!-- 今日の課題（朝の確認）・日報 -->
+    <div id="issue-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
     <!-- お知らせエリア -->
     <div style="max-width:900px;margin:0 auto;padding:12px 12px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px" id="home-top-grid">
       <!-- 今日の自分の予定 -->
@@ -896,6 +898,11 @@ input,select{font-family:inherit;outline:none}
         <button id="notice-submit-btn" onclick="submitNotice()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">投稿</button>
       </div>
     </div>
+  </div>
+
+  <!-- 日報入力／課題確認状況モーダル（中身はJSで描画） -->
+  <div id="dr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)closeDrModal()">
+    <div id="dr-modal-body" style="background:white;border-radius:16px;padding:20px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)"></div>
   </div>
 
   <!-- 安否確認 発信モーダル -->
@@ -2655,6 +2662,8 @@ let _sessionExpired=false;
 let _reloginPromise=null;
 function cancelApiRequest(){if(_apiAbort){_apiAbort.abort();_apiAbort=null}}
 async function api(action, data={}, loadingMsg){
+  // デモモード（GAS_URL未設定時）：日報・課題確認はローカルの模擬データで応答
+  if(!GAS_URL && DR_DEMO_API[action]) return DR_DEMO_API[action](data);
   if(!loadingMsg)loadingMsg=t('common.processing');
   showLoading(loadingMsg);
   _apiAbort=new AbortController();
@@ -3045,7 +3054,7 @@ function showApp(opts){
     switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   }
   renderAll();
-  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices()]);
+  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
@@ -5562,6 +5571,234 @@ function closeModalIfBackdrop(e,id){ if(e.target.id===id) closeModal(id) }
 // ===== 安否確認 =====
 // ============================================================
 let _safetyData = null;
+
+// ============================================================
+// 今日の課題（朝の確認）・日報
+//   GAS: getTodayIssues / confirmIssueCheck / getTeamIssueChecks /
+//        getDailyReportInit / saveDailyReport
+// ============================================================
+let _issueData = null;
+let _drInit = null;
+const DR_RESULTS = ['改善できた', '継続中', 'できなかった'];
+
+function _drTime(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+async function loadIssueCheck() {
+  const area = document.getElementById('issue-check-area');
+  if (!area) return;
+  try {
+    _issueData = await api('getTodayIssues', {}, '');
+  } catch(e) {
+    _issueData = null;
+  }
+  renderIssueCheck();
+}
+
+function renderIssueCheck() {
+  const area = document.getElementById('issue-check-area');
+  if (!area) return;
+  if (!_issueData) { area.style.display = 'none'; return; }
+  const { issues = [], check, canViewTeam } = _issueData;
+  const list = issues.length
+    ? issues.map((i, n) => `
+        <div style="display:flex;gap:8px;padding:8px 10px;background:#fff8e1;border-radius:8px;margin-bottom:6px">
+          <span style="font-weight:700;color:#f57c00">${n+1}.</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.88em;font-weight:600;word-break:break-word">${esc(i.content)}</div>
+            <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${esc(i.date)}〜</div>
+          </div>
+        </div>`).join('')
+    : `<div style="font-size:0.85em;color:var(--text2);padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px">未解決の課題はありません</div>`;
+  const checkBtn = check
+    ? `<div style="flex:1;text-align:center;padding:10px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:700;font-size:0.9em">✅ ${_drTime(check.checkedAt)} 確認済み</div>`
+    : `<button onclick="doIssueCheck()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;font-size:0.95em;cursor:pointer">✅ 確認しました</button>`;
+  area.style.display = '';
+  area.innerHTML = `
+    <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #f57c00">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">📌 今日の課題</span>
+        ${canViewTeam ? `<button onclick="openTeamIssueChecks()" style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.75em;cursor:pointer">👥 メンバーの確認状況</button>` : ''}
+      </div>
+      ${list}
+      <div style="display:flex;gap:8px;margin-top:8px">
+        ${checkBtn}
+        <button onclick="openDailyReport()" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">📝 日報を書く</button>
+      </div>
+    </div>`;
+}
+
+async function doIssueCheck() {
+  try {
+    const res = await api('confirmIssueCheck', {}, '記録中...');
+    _issueData.check = res.check;
+    renderIssueCheck();
+    showToast(res.already ? '本日はすでに確認済みです' : '確認を記録しました');
+  } catch(e) {
+    showToast(e.message);
+  }
+}
+
+function openDrModal(html) {
+  document.getElementById('dr-modal-body').innerHTML = html;
+  document.getElementById('dr-modal').style.display = 'flex';
+}
+function closeDrModal() {
+  document.getElementById('dr-modal').style.display = 'none';
+}
+
+async function openTeamIssueChecks(date) {
+  let res;
+  try {
+    res = await api('getTeamIssueChecks', { date }, t('common.loading'));
+  } catch(e) { showToast(e.message); return; }
+  const members = res.members || [];
+  const done = members.filter(m => m.checkedAt).length;
+  const sorted = [...members].sort((a, b) => (a.checkedAt ? 1 : 0) - (b.checkedAt ? 1 : 0) || String(a.dept).localeCompare(String(b.dept)));
+  const rows = sorted.map(m => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--border);font-size:0.86em">
+      <span style="flex:1">${esc(m.name)}</span>
+      <span style="color:var(--text2);font-size:0.85em;min-width:60px">${esc(m.dept)}</span>
+      ${m.checkedAt
+        ? `<span style="color:#2e7d32;font-weight:700;min-width:84px;text-align:right">✅ ${_drTime(m.checkedAt)}</span>`
+        : `<span style="color:#e53935;font-weight:700;min-width:84px;text-align:right">未確認</span>`}
+    </div>`).join('');
+  openDrModal(`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <h3 style="margin:0;font-size:1em;font-weight:700">👥 課題確認状況</h3>
+      <input type="date" value="${res.date}" onchange="openTeamIssueChecks(this.value)" style="padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em">
+    </div>
+    <div style="font-size:0.8em;color:var(--text2);margin-bottom:8px">対象：${res.scope === 'all' ? '全員' : esc(res.scope) + '（同部署）'}　確認済み ${done} / ${members.length}名</div>
+    ${rows || '<div style="font-size:0.85em;color:var(--text2)">対象者がいません</div>'}
+    <div style="text-align:right;margin-top:14px">
+      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">閉じる</button>
+    </div>`);
+}
+
+async function openDailyReport() {
+  try {
+    _drInit = await api('getDailyReportInit', {}, t('common.loading'));
+  } catch(e) { showToast(e.message); return; }
+  const { date, issues = [] } = _drInit;
+  const lbl = 'font-size:0.82em;font-weight:700;color:var(--text2)';
+  const ta = 'display:block;width:100%;margin-top:6px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit';
+  const prev = issues.length
+    ? issues.map(i => `
+        <div class="dr-prev" data-id="${esc(i.id)}" style="border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-top:8px">
+          <div style="font-size:0.86em;font-weight:600;word-break:break-word">課題：${esc(i.content)}</div>
+          <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${esc(i.date)}〜</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+            ${DR_RESULTS.map(r => `
+              <label style="display:flex;align-items:center;gap:4px;padding:5px 10px;border:1.5px solid var(--border);border-radius:20px;font-size:0.82em;cursor:pointer">
+                <input type="radio" name="dr-res-${esc(i.id)}" value="${r}"> ${r}
+              </label>`).join('')}
+          </div>
+          <textarea class="dr-prev-note" rows="3" placeholder="改善前→改善後、またはできなかった理由" style="${ta}"></textarea>
+        </div>`).join('')
+    : `<div style="font-size:0.85em;color:var(--text2);margin-top:6px">未解決の課題はありません</div>`;
+  openDrModal(`
+    <h3 style="margin:0 0 12px;font-size:1em;font-weight:700">📝 日報</h3>
+    <div style="margin-bottom:14px">
+      <label style="${lbl}">記入日</label>
+      <input id="dr-date" type="date" value="${date}" style="display:block;margin-top:4px;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="${lbl}">前日の課題への取り組み</div>
+      ${prev}
+    </div>
+    <div style="margin-bottom:16px">
+      <div style="${lbl}">本日感じた課題</div>
+      <div id="dr-new-issues"></div>
+      <button id="dr-add-issue-btn" onclick="addDrNewIssue()" style="margin-top:8px;padding:6px 12px;border-radius:8px;border:1.5px dashed var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">＋ 課題を追加</button>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
+      <button id="dr-submit-btn" onclick="submitDailyReport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">日報を送信</button>
+    </div>`);
+  addDrNewIssue(); // 本日感じた課題は最初から1件分の入力欄を表示
+}
+
+function addDrNewIssue() {
+  const ta = 'display:block;width:100%;margin-top:6px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit';
+  const wrap = document.createElement('div');
+  wrap.className = 'dr-new';
+  wrap.style.cssText = 'border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-top:8px;position:relative';
+  wrap.innerHTML = `
+    <button onclick="this.parentElement.remove()" style="position:absolute;top:6px;right:8px;border:none;background:none;color:var(--text2);font-size:1em;cursor:pointer">✕</button>
+    <textarea class="dr-new-content" rows="2" placeholder="課題の内容" style="${ta}"></textarea>
+    <textarea class="dr-new-reason" rows="3" placeholder="なぜ課題と感じたか（事実ベースで）" style="${ta}"></textarea>`;
+  document.getElementById('dr-new-issues').appendChild(wrap);
+}
+
+async function submitDailyReport() {
+  const prevIssues = [];
+  for (const el of document.querySelectorAll('.dr-prev')) {
+    const result = el.querySelector('input[type=radio]:checked')?.value;
+    const note = el.querySelector('.dr-prev-note').value.trim();
+    if (!result) { showToast('前日の課題の結果を選択してください'); return; }
+    if (!note) { showToast('前日の課題の取り組み内容を入力してください'); return; }
+    prevIssues.push({ id: el.dataset.id, result, note });
+  }
+  const newIssues = [];
+  for (const el of document.querySelectorAll('.dr-new')) {
+    const content = el.querySelector('.dr-new-content').value.trim();
+    const reason = el.querySelector('.dr-new-reason').value.trim();
+    if (!content && !reason) continue;
+    if (!content || !reason) { showToast('課題の内容と、なぜ課題と感じたかを入力してください'); return; }
+    newIssues.push({ content, reason });
+  }
+  if (!prevIssues.length && !newIssues.length) { showToast('入力内容がありません'); return; }
+  const report = { date: document.getElementById('dr-date').value, prevIssues, newIssues };
+  const btn = document.getElementById('dr-submit-btn');
+  btn.disabled = true; btn.textContent = '送信中...';
+  try {
+    await api('saveDailyReport', { report }, '送信中...');
+    closeDrModal();
+    showToast('日報を記録しました');
+    loadIssueCheck();
+  } catch(e) {
+    showToast(e.message);
+    btn.disabled = false; btn.textContent = '日報を送信';
+  }
+}
+
+// ---- デモモード用の模擬データ（GAS_URL未設定時のみ使用） ----
+const DR_DEMO_API = (() => {
+  const today = () => fmtDate(new Date());
+  let nextId = 40;
+  let issues = [
+    { id: '29', content: 'PLC案件の改造内容・対象案件・納期の情報が散乱しており、人によって認識が異なる', reason: '対応漏れや過去資料の探索に時間がかかっている', date: '2026-09-28' },
+    { id: '26', content: '検査手順書の最新版がどれか分かりにくい', reason: '古い手順書で作業しかけたことがあった', date: '2026-09-24' },
+  ];
+  const checks = { '1002': '08:05', '1004': '08:21' };
+  const iso = hm => { const d = new Date(); const [h, m] = hm.split(':'); d.setHours(+h, +m, 0, 0); return d.toISOString(); };
+  let myCheck = null;
+  const wait = v => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(v))), 300));
+  return {
+    getTodayIssues: () => wait({ date: today(), issues, check: myCheck,
+      canViewTeam: !!(currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般')) }),
+    confirmIssueCheck: () => {
+      const already = !!myCheck;
+      if (!myCheck) myCheck = { id: String(nextId++), checkedAt: new Date().toISOString(), count: issues.length };
+      return wait({ check: myCheck, already });
+    },
+    getTeamIssueChecks: ({ date } = {}) => wait({
+      date: date || today(), scope: 'all',
+      members: USERS.map(u => ({ id: u.id, name: u.name, dept: u.dept,
+        checkedAt: u.id === currentUser.id ? myCheck?.checkedAt || null : (checks[u.id] ? iso(checks[u.id]) : null) })),
+    }),
+    getDailyReportInit: () => wait({ name: currentUser.name, date: today(), issues }),
+    saveDailyReport: ({ report }) => {
+      const resolved = new Set(report.prevIssues.filter(p => p.result === '改善できた').map(p => p.id));
+      issues = issues.filter(i => !resolved.has(i.id))
+        .concat(report.newIssues.map(n => ({ id: String(nextId++), content: n.content, reason: n.reason, date: report.date })));
+      return wait({ reportId: String(nextId++) });
+    },
+  };
+})();
 
 async function loadSafetyCheck() {
   const area = document.getElementById('safety-check-area');
