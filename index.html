@@ -181,6 +181,48 @@ input,select{font-family:inherit;outline:none}
 }
 @media(max-width:899px){.sidebar-collapse-btn{display:none}}
 
+/* タブレット縦(600〜899px)：アイコンの下に短い名前を出す */
+.sidebar-short{display:none}
+@media(min-width:600px) and (max-width:899px){
+  #sidebar.visible{width:76px}
+  body.app-active #app{margin-left:76px}
+  .sidebar-btn{position:relative;flex-direction:column;justify-content:center;gap:3px;padding:8px 2px;min-height:56px}
+  .sidebar-icon{font-size:1.3em;width:auto}
+  .sidebar-short{display:block;max-width:100%;font-size:0.72em;line-height:1.2;text-align:center;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
+  #notice-badge-side{position:absolute;top:4px;right:8px}
+}
+
+/* スマホ(600px未満)：下部ナビ＋その他シート */
+#bottom-nav,#more-sheet-backdrop{display:none}
+#bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:150;background:var(--surface);border-top:1px solid var(--border);padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));justify-content:space-around;align-items:center;box-shadow:0 -2px 10px rgba(0,0,0,.06)}
+.bn-btn{flex:1;min-width:0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;color:var(--text2);font-size:0.7em;font-weight:600}
+.bn-icon-wrap{position:relative;line-height:1}
+.bn-icon{font-size:1.7em;filter:grayscale(1);opacity:.55;transition:all .15s}
+.bn-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bn-btn.active{color:var(--primary)}
+.bn-btn.active .bn-icon{filter:none;opacity:1}
+.bn-badge{position:absolute;top:-5px;right:-12px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--red);color:white;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.bn-add{flex-shrink:0;width:52px;height:52px;margin:0 6px;border-radius:50%;background:var(--primary);color:white;font-size:1.7em;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(92,107,192,.45);transition:transform .15s}
+.bn-add:active{transform:scale(.92)}
+#more-sheet-backdrop{position:fixed;inset:0;z-index:140;background:rgba(0,0,0,.35);align-items:flex-end}
+#more-sheet-backdrop.open{display:flex}
+#more-sheet{width:100%;background:var(--surface);border-radius:20px 20px 0 0;padding:10px 16px calc(80px + env(safe-area-inset-bottom,0px));animation:moreUp .2s ease-out}
+@keyframes moreUp{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.more-handle{width:40px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 14px}
+.more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.more-tile{position:relative;min-height:84px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 4px;background:var(--bg);border-radius:14px;color:var(--text);font-size:0.8em;font-weight:600;line-height:1.25;text-align:center}
+.more-tile .mt-icon{font-size:1.8em;line-height:1}
+.more-tile .mt-prep{font-size:0.82em;font-weight:500;color:var(--text2)}
+.more-tile.active{background:var(--primary-light);color:var(--primary-dark)}
+.more-tile:disabled{opacity:.45;cursor:not-allowed}
+.more-tile .bn-badge{top:8px;right:auto;left:calc(50% + 12px)}
+@media(max-width:599px){
+  body.app-active #bottom-nav{display:flex}
+  body.app-active .tab-nav-wrap{display:none}
+  body.app-active #app{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  .fab{display:none!important}
+}
+
 /* フィルターバー */
 .filter-bar{background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)}
 .filter-label{font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
@@ -618,18 +660,18 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="サイドバーを折りたたむ" id="sidebar-collapse-btn">◀</button>
   </div>
   <div class="sidebar-nav">
-    <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
-    <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span></button>
-    <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span></button>
-    <button class="sidebar-btn" data-tab="team" data-tip="在席ボード" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span></button>
-    <button class="sidebar-btn" data-tab="devices" data-tip="端末" onclick="switchTab('devices',this)"><span class="sidebar-icon">📱</span><span class="sidebar-label">端末</span></button>
-    <button class="sidebar-btn" data-tab="cars" data-tip="車予約" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span></button>
-    <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span></button>
-    <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span></button>
-    <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span></button>
-    <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span></button>
-    <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span></button>
-    <button class="sidebar-btn admin-side" data-tab="admin" data-tip="管理" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span></button>
+    <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span class="sidebar-short">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
+    <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span><span class="sidebar-short">カレンダー</span></button>
+    <button class="sidebar-btn" data-tab="team" data-tip="在席ボード" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span><span class="sidebar-short">在席</span></button>
+    <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span><span class="sidebar-short">申請</span></button>
+    <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
+    <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span><span class="sidebar-short">会議室</span></button>
+    <button class="sidebar-btn" data-tab="devices" data-tip="端末" onclick="switchTab('devices',this)"><span class="sidebar-icon">📱</span><span class="sidebar-label">端末</span><span class="sidebar-short">端末</span></button>
+    <button class="sidebar-btn" data-tab="cars" data-tip="車予約" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">車</span></button>
+    <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">問い合わせ</span></button>
+    <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span><span class="sidebar-short">eラーニング</span></button>
+    <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span><span class="sidebar-short">設定</span></button>
+    <button class="sidebar-btn admin-side" data-tab="admin" data-tip="管理" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span><span class="sidebar-short">管理</span></button>
   </div>
   <div id="sidebar-today" style="display:none"></div>
   <div class="sidebar-footer">
@@ -648,19 +690,19 @@ input,select{font-family:inherit;outline:none}
   </div>
   <div class="tab-nav-wrap" id="tab-nav-wrap">
   <div class="tab-nav" id="tab-nav">
-    <button class="tab-btn active" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
-    <button class="tab-btn" onclick="switchTab('calendar',this)">📅 カレンダー</button>
-    <button class="tab-btn" onclick="switchTab('rooms',this)">🏢 会議室</button>
-    <button class="tab-btn" onclick="switchTab('team',this)">🏢 在席</button>
-    <button class="tab-btn" onclick="switchTab('devices',this)">📱 端末</button>
-    <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
-    <button class="tab-btn" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
-    <button class="tab-btn" onclick="switchTab('apply',this)">📋 申請</button>
-    <button class="tab-btn" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
-    <button class="tab-btn" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
-    <button class="tab-btn" onclick="switchTab('settings',this)">🔧 設定</button>
+    <button class="tab-btn active" data-tab="home" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
+    <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar',this)">📅 カレンダー</button>
+    <button class="tab-btn" data-tab="team" onclick="switchTab('team',this)">👥 在席</button>
+    <button class="tab-btn" data-tab="apply" onclick="switchTab('apply',this)">📋 申請</button>
+    <button class="tab-btn" data-tab="mypage" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
+    <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms',this)">🏢 会議室</button>
+    <button class="tab-btn" data-tab="devices" onclick="switchTab('devices',this)">📱 端末</button>
+    <button class="tab-btn" data-tab="cars" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
+    <button class="tab-btn" data-tab="inquiry" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
+    <button class="tab-btn" data-tab="elearning" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
+    <button class="tab-btn" data-tab="settings" onclick="switchTab('settings',this)">🔧 設定</button>
     <!-- 管理者のみ表示 -->
-    <button class="tab-btn admin-tab" id="admin-tab-btn" onclick="switchTab('admin',this)" style="display:none">⚙️ 管理</button>
+    <button class="tab-btn admin-tab" data-tab="admin" id="admin-tab-btn" onclick="switchTab('admin',this)" style="display:none">⚙️ 管理</button>
   </div>
   </div>
 
@@ -977,6 +1019,15 @@ input,select{font-family:inherit;outline:none}
   </div>
 </div>
 
+<!-- スマホ用下部ナビ（600px未満で表示） -->
+<nav id="bottom-nav">
+  <button class="bn-btn active" data-tab="home" onclick="switchTab('home')"><span class="bn-icon-wrap"><span class="bn-icon">🏠</span><span class="bn-badge" id="notice-badge-bottom" style="display:none"></span></span><span class="bn-label">ホーム</span></button>
+  <button class="bn-btn" data-tab="calendar" onclick="switchTab('calendar')"><span class="bn-icon-wrap"><span class="bn-icon">📅</span></span><span class="bn-label">カレンダー</span></button>
+  <button class="bn-add" onclick="closeMoreSheet();openAddModal()" aria-label="予定を追加">＋</button>
+  <button class="bn-btn" data-tab="team" onclick="switchTab('team')"><span class="bn-icon-wrap"><span class="bn-icon">👥</span></span><span class="bn-label">在席</span></button>
+  <button class="bn-btn" data-tab="more" onclick="toggleMoreSheet()"><span class="bn-icon-wrap"><span class="bn-icon">☰</span><span class="bn-badge" id="bottom-notif-badge" style="display:none"></span></span><span class="bn-label">その他</span></button>
+</nav>
+<div id="more-sheet-backdrop" onclick="closeMoreSheet()"><div id="more-sheet" onclick="event.stopPropagation()"><div class="more-handle"></div><div class="more-grid" id="more-grid"></div></div></div>
 <button class="fab" id="fab-btn" onclick="openAddModal()" style="display:none">＋</button>
 
 <!-- 予定追加・編集モーダル -->
@@ -1493,6 +1544,7 @@ ja:{
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
 'nav.team.short':'在席','nav.devices.short':'端末','nav.cars.short':'車',
+'nav.more':'その他','nav.add':'予定を追加',
 'devices.title':'📱 端末貸出','devices.all':'すべて','devices.available':'空き','devices.rented':'貸出中','devices.pending':'申請中','devices.reserved':'予約中','devices.empty':'端末マスタが登録されていません',
 // アプリ
 'app.title':'スケジュール管理',
@@ -1788,6 +1840,7 @@ vi:{
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
+'nav.more':'Thêm','nav.add':'Thêm lịch',
 'devices.title':'📱 Mượn thiết bị','devices.all':'Tất cả','devices.available':'Trống','devices.rented':'Đang mượn','devices.pending':'Chờ duyệt','devices.reserved':'Đã đặt','devices.empty':'Chưa có thiết bị nào',
 'app.title':'Quản lý lịch trình',
 'login.title':'Quản lý lịch trình','login.subtitle':'Đăng nhập bằng mã nhân viên và PIN',
@@ -2061,6 +2114,7 @@ ne:{
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
+'nav.more':'थप','nav.add':'कार्यक्रम थप्नुहोस्',
 'devices.title':'📱 उपकरण भाडा','devices.all':'सबै','devices.available':'खाली','devices.rented':'भाडामा','devices.pending':'बिचाराधीन','devices.reserved':'आरक्षित','devices.empty':'कुनै उपकरण दर्ता छैन',
 'app.title':'तालिका व्यवस्थापन',
 'login.title':'तालिका व्यवस्थापन','login.subtitle':'कर्मचारी नम्बर र PIN ले लग इन गर्नुहोस्',
@@ -2340,30 +2394,79 @@ function tType(type){
   return m[type]?t(m[type]):type;
 }
 function tDow(i){return[t('common.mon'),t('common.tue'),t('common.wed'),t('common.thu'),t('common.fri'),t('common.sat'),t('common.sun')][i];}
+// ===== ナビゲーション（サイドバー・上部タブ・スマホ下部ナビ共通） =====
+// 並び順はHTMLの並びが正。文言はdata-tabで引くので並べ替えてもずれない
+const NAV_META={
+  home:{e:'🏠',k:'nav.home',s:'nav.home'},
+  calendar:{e:'📅',k:'nav.calendar',s:'nav.calendar'},
+  team:{e:'👥',k:'nav.team',s:'nav.team.short'},
+  apply:{e:'📋',k:'nav.apply',s:'nav.apply'},
+  mypage:{e:'👤',k:'nav.mypage',s:'nav.mypage'},
+  rooms:{e:'🏢',k:'nav.rooms',s:'nav.rooms'},
+  devices:{e:'📱',k:'nav.devices',s:'nav.devices.short'},
+  cars:{e:'🚗',k:'nav.cars',s:'nav.cars.short',prep:true},
+  inquiry:{e:'💬',k:'nav.inquiry',s:'nav.inquiry',prep:true},
+  elearning:{e:'📚',k:'nav.elearning',s:'nav.elearning'},
+  settings:{e:'🔧',k:'nav.settings',s:'nav.settings'},
+  admin:{e:'⚙️',k:'nav.admin',s:'nav.admin'}
+};
+const BOTTOM_TABS=['home','calendar','team'];
+const MORE_TABS=['apply','mypage','rooms','devices','cars','inquiry','elearning','settings','admin'];
+let _currentTab='home';
+let _moreNotifCount=0;
+function _applyNavLabels(){
+  document.querySelectorAll('.sidebar-btn[data-tab]').forEach(btn=>{
+    const m=NAV_META[btn.dataset.tab];if(!m)return;
+    const lbl=btn.querySelector('.sidebar-label');
+    if(lbl){
+      if(m.prep)lbl.innerHTML=t(m.k)+' <span style="font-size:0.72em">'+t('nav.preparing')+'</span>';
+      else lbl.textContent=t(m.k);
+    }
+    const sh=btn.querySelector('.sidebar-short');if(sh)sh.textContent=t(m.s);
+    btn.dataset.tip=t(m.k);
+  });
+  document.querySelectorAll('#tab-nav .tab-btn[data-tab]').forEach(btn=>{
+    const m=NAV_META[btn.dataset.tab];if(!m)return;
+    const badge=btn.querySelector('.notif-badge,span[id]');
+    btn.innerHTML=m.e+' '+t(m.s)+(badge?badge.outerHTML:'');
+  });
+  renderBottomNav();
+}
+function _canSeeNavTab(tab){
+  if(tab==='admin')return !!(currentUser&&currentUser.isAdmin);
+  if(tab==='elearning')return !!(currentUser&&(currentUser.isAdmin||(currentUser.role&&currentUser.role!=='一般')));
+  return true;
+}
+function renderBottomNav(){
+  document.querySelectorAll('#bottom-nav .bn-btn[data-tab]').forEach(btn=>{
+    const lbl=btn.querySelector('.bn-label');if(!lbl)return;
+    const tab=btn.dataset.tab;
+    lbl.textContent=tab==='more'?t('nav.more'):t(NAV_META[tab].s);
+  });
+  const add=document.querySelector('#bottom-nav .bn-add');
+  if(add)add.setAttribute('aria-label',t('nav.add'));
+  const grid=document.getElementById('more-grid');if(!grid)return;
+  grid.innerHTML=MORE_TABS.filter(_canSeeNavTab).map(tab=>{
+    const m=NAV_META[tab];
+    if(m.prep)return '<button class="more-tile" disabled><span class="mt-icon">'+m.e+'</span>'+t(m.k)+'<span class="mt-prep">'+t('nav.preparing')+'</span></button>';
+    const badge=(tab==='mypage'&&_moreNotifCount)?'<span class="bn-badge">'+_moreNotifCount+'</span>':'';
+    return '<button class="more-tile'+(tab===_currentTab?' active':'')+'" onclick="switchTab(\''+tab+'\')"><span class="mt-icon">'+m.e+'</span>'+t(m.k)+badge+'</button>';
+  }).join('');
+}
+function openMoreSheet(){renderBottomNav();document.getElementById('more-sheet-backdrop').classList.add('open');}
+function closeMoreSheet(){const b=document.getElementById('more-sheet-backdrop');if(b)b.classList.remove('open');}
+function toggleMoreSheet(){
+  const b=document.getElementById('more-sheet-backdrop');
+  if(b&&b.classList.contains('open'))closeMoreSheet();else openMoreSheet();
+}
+
 function applyLanguage(lang){
   currentLang=lang;
   localStorage.setItem('sch_lang',lang);
   document.title=t('app.title');
   // サイドバーロゴはHALO（ブランド名なので言語切替で上書きしない）
   document.querySelector('.topbar-title').textContent='📅 '+t('app.title');
-  const sideLabels=document.querySelectorAll('.sidebar-label');
-  const navKeys=['nav.home','nav.calendar','nav.rooms','nav.team','nav.devices','nav.cars','nav.inquiry','nav.apply','nav.elearning','nav.mypage','nav.settings','nav.admin'];
-  const prepIdx=[5,6,7];
-  sideLabels.forEach((el,i)=>{
-    if(navKeys[i]){
-      if(prepIdx.includes(i)){el.innerHTML=t(navKeys[i])+' <span style="font-size:0.72em">'+t('nav.preparing')+'</span>';}
-      else{el.textContent=t(navKeys[i]);}
-    }
-  });
-  const tabBtns=document.querySelectorAll('#tab-nav .tab-btn');
-  const tabEmoji=['🏠','📅','🏢','🏢','📱','🚗','💬','📋','📚','👤','🔧','⚙️'];
-  const tabKeys=['nav.home','nav.calendar','nav.rooms','nav.team.short','nav.devices.short','nav.cars.short','nav.inquiry','nav.apply','nav.elearning','nav.mypage','nav.settings','nav.admin'];
-  tabBtns.forEach((btn,i)=>{
-    if(!tabKeys[i])return;
-    const badge=btn.querySelector('.notif-badge,span[id]');
-    const badgeHTML=badge?badge.outerHTML:'';
-    btn.innerHTML=tabEmoji[i]+' '+t(tabKeys[i])+badgeHTML;
-  });
+  _applyNavLabels();
   document.querySelectorAll('.btn-logout').forEach(b=>b.textContent=t('nav.logout'));
   document.querySelectorAll('.sidebar-logout-btn').forEach(b=>{const lbl=b.querySelector('.sidebar-logout-label');if(lbl)lbl.textContent=t('nav.logout');b.title=t('nav.logout')});
   const loginCard=document.querySelector('#login');
@@ -2854,6 +2957,7 @@ function showLoginScreen(){
   document.getElementById('fab-btn').style.display='none';
   document.getElementById('sidebar').classList.remove('visible');
   document.body.classList.remove('app-active');
+  closeMoreSheet();
 }
 
 function showSessionExpiredDialog() {
@@ -2928,6 +3032,7 @@ function showApp(opts){
   const canSeeElearning = isAdmin || (currentUser.role && currentUser.role !== '一般');
   document.getElementById('elearning-tab-btn').style.display = canSeeElearning ? 'block' : 'none';
   document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
+  _applyNavLabels();
   buildFilterUI();
   const _retTab=sessionStorage.getItem('sch_return_tab');
   const _fromIncident=document.referrer&&document.referrer.includes('incident-report');
@@ -3307,13 +3412,11 @@ function switchTab(tab, btn){
   ['home','calendar','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.remove('active'));
-  const sideBtn = document.querySelector(`.sidebar-btn[data-tab="${tab}"]`);
-  if(sideBtn) sideBtn.classList.add('active');
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const idx=['home','calendar','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].indexOf(tab);
-  if(idx>=0 && tabBtns[idx]) tabBtns[idx].classList.add('active');
+  document.querySelectorAll('.tab-btn,.sidebar-btn,.bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  if(!BOTTOM_TABS.includes(tab)){const mb=document.querySelector('.bn-btn[data-tab="more"]');if(mb)mb.classList.add('active');}
+  _currentTab=tab;
+  closeMoreSheet();
+  renderBottomNav();
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); }
   else                { _markNoticesAsSeen(); }
   if(tab==='rooms')   renderRoomTimeline();
@@ -5665,7 +5768,7 @@ async function loadNotices() {
 function _updateNoticeBadge(count) {
   const CIRCLED = ['','①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
   const label = count <= 0 ? '' : count < CIRCLED.length ? CIRCLED[count] : `${count}`;
-  ['notice-badge-side','notice-badge-tab'].forEach(id => {
+  ['notice-badge-side','notice-badge-tab','notice-badge-bottom'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = label;
@@ -6386,6 +6489,10 @@ function updateNotifBadge(count) {
   const tabBadge = document.getElementById('tab-notif-badge');
   if (badge) { badge.textContent = count || ''; badge.style.display = count ? 'flex' : 'none'; }
   if (tabBadge) { tabBadge.textContent = count || ''; tabBadge.style.display = count ? 'inline' : 'none'; }
+  const bottomBadge = document.getElementById('bottom-notif-badge');
+  if (bottomBadge) { bottomBadge.textContent = count || ''; bottomBadge.style.display = count ? 'inline-block' : 'none'; }
+  _moreNotifCount = count || 0;
+  renderBottomNav();
 }
 
 // 既読済み通知IDセット
