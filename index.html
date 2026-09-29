@@ -894,7 +894,7 @@ input,select{font-family:inherit;outline:none}
         <textarea id="notice-body" rows="5" placeholder="本文を入力" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit"></textarea>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button id="notice-cancel-btn" onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
+        <button id="notice-cancel-btn" onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
         <button id="notice-submit-btn" onclick="submitNotice()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">投稿</button>
       </div>
     </div>
@@ -925,7 +925,7 @@ input,select{font-family:inherit;outline:none}
         ⚠️ 全社員にプッシュ通知が送信されます
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="closeSafetySendModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
+        <button onclick="closeSafetySendModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
         <button id="safety-send-submit-btn" onclick="submitSafetyCheck()" style="padding:8px 18px;border-radius:10px;border:none;background:#e65100;color:white;font-weight:700;font-size:0.9em;cursor:pointer">発信する</button>
       </div>
     </div>
@@ -1545,6 +1545,39 @@ const RELEASE_NOTES = [
 let currentLang = localStorage.getItem('sch_lang') || 'ja';
 const I18N = {
 ja:{
+// Daily Action／今日の課題
+'dr.title':'📌 今日の課題',
+'dr.team.btn':'👥 メンバーの確認状況',
+'dr.none':'未解決の課題はありません',
+'dr.check':'✅ 確認しました',
+'dr.checked':'✅ {time} 確認済み',
+'dr.recording':'記録中...',
+'dr.already':'本日はすでに確認済みです',
+'dr.recorded':'確認を記録しました',
+'dr.team.title':'👥 課題確認状況',
+'dr.scope':'対象：{scope}　確認済み {done} / {total}名',
+'dr.scope.all':'全員',
+'dr.scope.dept':'{dept}（同部署）',
+'dr.unchecked':'未確認',
+'dr.team.empty':'対象者がいません',
+'dr.date':'記入日',
+'dr.prev':'前日の課題への取り組み',
+'dr.issue':'課題：{content}',
+'dr.since':'{date}〜',
+'dr.res.improved':'改善できた',
+'dr.res.continuing':'継続中',
+'dr.res.notdone':'できなかった',
+'dr.prev.ph':'改善前→改善後、またはできなかった理由',
+'dr.new':'本日感じた課題',
+'dr.add':'＋ 課題を追加',
+'dr.new.content.ph':'課題の内容',
+'dr.new.reason.ph':'なぜ課題と感じたか（事実ベースで）',
+'dr.err.result':'前日の課題の結果を選択してください',
+'dr.err.note':'前日の課題の取り組み内容を入力してください',
+'dr.err.new':'課題の内容と、なぜ課題と感じたかを入力してください',
+'dr.err.empty':'入力内容がありません',
+'dr.sending':'送信中...',
+'dr.saved':'Daily Actionを記録しました',
 // ナビ
 'nav.home':'ホーム','nav.calendar':'カレンダー','nav.rooms':'会議室','nav.team':'在席ボード',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
@@ -1843,6 +1876,39 @@ ja:{
 'el.back.list':'一覧に戻る',
 },
 vi:{
+// Daily Action／今日の課題
+'dr.title':'📌 Vấn đề hôm nay',
+'dr.team.btn':'👥 Tình trạng xác nhận',
+'dr.none':'Không có vấn đề chưa giải quyết',
+'dr.check':'✅ Đã xác nhận',
+'dr.checked':'✅ Đã xác nhận lúc {time}',
+'dr.recording':'Đang ghi...',
+'dr.already':'Hôm nay bạn đã xác nhận rồi',
+'dr.recorded':'Đã ghi nhận xác nhận',
+'dr.team.title':'👥 Tình trạng xác nhận vấn đề',
+'dr.scope':'Phạm vi: {scope}　Đã xác nhận {done} / {total} người',
+'dr.scope.all':'Tất cả',
+'dr.scope.dept':'{dept} (cùng bộ phận)',
+'dr.unchecked':'Chưa xác nhận',
+'dr.team.empty':'Không có đối tượng',
+'dr.date':'Ngày ghi',
+'dr.prev':'Xử lý vấn đề của hôm trước',
+'dr.issue':'Vấn đề: {content}',
+'dr.since':'Từ {date}',
+'dr.res.improved':'Đã cải thiện',
+'dr.res.continuing':'Đang tiếp tục',
+'dr.res.notdone':'Chưa làm được',
+'dr.prev.ph':'Trước → sau khi cải thiện, hoặc lý do chưa làm được',
+'dr.new':'Vấn đề nhận thấy hôm nay',
+'dr.add':'＋ Thêm vấn đề',
+'dr.new.content.ph':'Nội dung vấn đề',
+'dr.new.reason.ph':'Vì sao bạn thấy đó là vấn đề (dựa trên sự thật)',
+'dr.err.result':'Hãy chọn kết quả cho vấn đề hôm trước',
+'dr.err.note':'Hãy nhập nội dung xử lý vấn đề hôm trước',
+'dr.err.new':'Hãy nhập nội dung vấn đề và lý do',
+'dr.err.empty':'Chưa có nội dung',
+'dr.sending':'Đang gửi...',
+'dr.saved':'Đã ghi Daily Action',
 'nav.home':'Trang chủ','nav.calendar':'Lịch','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
@@ -2117,6 +2183,39 @@ vi:{
 'el.back.list':'Quay lại danh sách',
 },
 ne:{
+// Daily Action／今日の課題
+'dr.title':'📌 आजका समस्याहरू',
+'dr.team.btn':'👥 सदस्यहरूको पुष्टि स्थिति',
+'dr.none':'समाधान नभएका समस्या छैनन्',
+'dr.check':'✅ पुष्टि गरें',
+'dr.checked':'✅ {time} मा पुष्टि भयो',
+'dr.recording':'रेकर्ड गर्दै...',
+'dr.already':'आज पहिले नै पुष्टि गरिसक्नुभयो',
+'dr.recorded':'पुष्टि रेकर्ड गरियो',
+'dr.team.title':'👥 समस्या पुष्टि स्थिति',
+'dr.scope':'दायरा: {scope}　पुष्टि भयो {done} / {total} जना',
+'dr.scope.all':'सबै',
+'dr.scope.dept':'{dept} (उही विभाग)',
+'dr.unchecked':'पुष्टि भएको छैन',
+'dr.team.empty':'कोही छैन',
+'dr.date':'मिति',
+'dr.prev':'अघिल्लो दिनको समस्यामा गरिएको काम',
+'dr.issue':'समस्या: {content}',
+'dr.since':'{date} देखि',
+'dr.res.improved':'सुधार भयो',
+'dr.res.continuing':'जारी छ',
+'dr.res.notdone':'गर्न सकिएन',
+'dr.prev.ph':'सुधार अघि → पछि, वा गर्न नसकिएको कारण',
+'dr.new':'आज महसुस भएका समस्या',
+'dr.add':'＋ समस्या थप्नुहोस्',
+'dr.new.content.ph':'समस्याको विवरण',
+'dr.new.reason.ph':'किन समस्या लाग्यो (तथ्यमा आधारित)',
+'dr.err.result':'अघिल्लो दिनको समस्याको नतिजा छान्नुहोस्',
+'dr.err.note':'अघिल्लो दिनको समस्यामा गरिएको काम लेख्नुहोस्',
+'dr.err.new':'समस्याको विवरण र कारण दुवै लेख्नुहोस्',
+'dr.err.empty':'केही लेखिएको छैन',
+'dr.sending':'पठाउँदै...',
+'dr.saved':'Daily Action रेकर्ड गरियो',
 'nav.home':'गृहपृष्ठ','nav.calendar':'पात्रो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
@@ -2587,6 +2686,7 @@ function applyLanguage(lang){
   renderAll();
   renderSettings();
   buildFilterUI();
+  if(typeof renderIssueCheck==='function') renderIssueCheck();
 }
 
 // ============================================================
@@ -5579,7 +5679,8 @@ let _safetyData = null;
 // ============================================================
 let _issueData = null;
 let _drInit = null;
-const DR_RESULTS = ['改善できた', '継続中', 'できなかった'];
+const DR_RESULTS = ['改善できた', '継続中', 'できなかった']; // kintoneへ保存する値（表示はDR_RESULT_KEYで翻訳）
+const DR_RESULT_KEY = { '改善できた': 'dr.res.improved', '継続中': 'dr.res.continuing', 'できなかった': 'dr.res.notdone' };
 
 function _drTime(iso){
   if(!iso) return '';
@@ -5609,19 +5710,19 @@ function renderIssueCheck() {
           <span style="font-weight:700;color:#f57c00">${n+1}.</span>
           <div style="flex:1;min-width:0">
             <div style="font-size:0.88em;font-weight:600;word-break:break-word">${esc(i.content)}</div>
-            <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${esc(i.date)}〜</div>
+            <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${esc(t('dr.since',{date:i.date}))}</div>
           </div>
         </div>`).join('')
-    : `<div style="font-size:0.85em;color:var(--text2);padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px">未解決の課題はありません</div>`;
+    : `<div style="font-size:0.85em;color:var(--text2);padding:8px 10px;background:var(--bg);border-radius:8px;margin-bottom:6px">${t('dr.none')}</div>`;
   const checkBtn = check
-    ? `<div style="flex:1;text-align:center;padding:10px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:700;font-size:0.9em">✅ ${_drTime(check.checkedAt)} 確認済み</div>`
-    : `<button onclick="doIssueCheck()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;font-size:0.95em;cursor:pointer">✅ 確認しました</button>`;
+    ? `<div style="flex:1;text-align:center;padding:10px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:700;font-size:0.9em">${esc(t('dr.checked',{time:_drTime(check.checkedAt)}))}</div>`
+    : `<button onclick="doIssueCheck()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;font-size:0.95em;cursor:pointer">${t('dr.check')}</button>`;
   area.style.display = '';
   area.innerHTML = `
     <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #f57c00">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">📌 今日の課題</span>
-        ${canViewTeam ? `<button onclick="openTeamIssueChecks()" style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.75em;cursor:pointer">👥 メンバーの確認状況</button>` : ''}
+        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">${t('dr.title')}</span>
+        ${canViewTeam ? `<button onclick="openTeamIssueChecks()" style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.75em;cursor:pointer">${t('dr.team.btn')}</button>` : ''}
       </div>
       ${list}
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -5633,10 +5734,10 @@ function renderIssueCheck() {
 
 async function doIssueCheck() {
   try {
-    const res = await api('confirmIssueCheck', {}, '記録中...');
+    const res = await api('confirmIssueCheck', {}, t('dr.recording'));
     _issueData.check = res.check;
     renderIssueCheck();
-    showToast(res.already ? '本日はすでに確認済みです' : '確認を記録しました');
+    showToast(res.already ? t('dr.already') : t('dr.recorded'));
   } catch(e) {
     showToast(e.message);
   }
@@ -5664,17 +5765,17 @@ async function openTeamIssueChecks(date) {
       <span style="color:var(--text2);font-size:0.85em;min-width:60px">${esc(m.dept)}</span>
       ${m.checkedAt
         ? `<span style="color:#2e7d32;font-weight:700;min-width:84px;text-align:right">✅ ${_drTime(m.checkedAt)}</span>`
-        : `<span style="color:#e53935;font-weight:700;min-width:84px;text-align:right">未確認</span>`}
+        : `<span style="color:#e53935;font-weight:700;min-width:84px;text-align:right">${t('dr.unchecked')}</span>`}
     </div>`).join('');
   openDrModal(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <h3 style="margin:0;font-size:1em;font-weight:700">👥 課題確認状況</h3>
+      <h3 style="margin:0;font-size:1em;font-weight:700">${t('dr.team.title')}</h3>
       <input type="date" value="${res.date}" onchange="openTeamIssueChecks(this.value)" style="padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em">
     </div>
-    <div style="font-size:0.8em;color:var(--text2);margin-bottom:8px">対象：${res.scope === 'all' ? '全員' : esc(res.scope) + '（同部署）'}　確認済み ${done} / ${members.length}名</div>
-    ${rows || '<div style="font-size:0.85em;color:var(--text2)">対象者がいません</div>'}
+    <div style="font-size:0.8em;color:var(--text2);margin-bottom:8px">${esc(t('dr.scope',{scope: res.scope === 'all' ? t('dr.scope.all') : t('dr.scope.dept',{dept:res.scope}), done, total: members.length}))}</div>
+    ${rows || '<div style="font-size:0.85em;color:var(--text2)">' + t('dr.team.empty') + '</div>'}
     <div style="text-align:right;margin-top:14px">
-      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">閉じる</button>
+      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.close')}</button>
     </div>`);
 }
 
@@ -5688,35 +5789,35 @@ async function openDailyReport() {
   const prev = issues.length
     ? issues.map(i => `
         <div class="dr-prev" data-id="${esc(i.id)}" style="border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-top:8px">
-          <div style="font-size:0.86em;font-weight:600;word-break:break-word">課題：${esc(i.content)}</div>
-          <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${esc(i.date)}〜</div>
+          <div style="font-size:0.86em;font-weight:600;word-break:break-word">${esc(t('dr.issue',{content:i.content}))}</div>
+          <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${esc(t('dr.since',{date:i.date}))}</div>
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
             ${DR_RESULTS.map(r => `
               <label style="display:flex;align-items:center;gap:4px;padding:5px 10px;border:1.5px solid var(--border);border-radius:20px;font-size:0.82em;cursor:pointer">
-                <input type="radio" name="dr-res-${esc(i.id)}" value="${r}"> ${r}
+                <input type="radio" name="dr-res-${esc(i.id)}" value="${r}"> ${t(DR_RESULT_KEY[r])}
               </label>`).join('')}
           </div>
-          <textarea class="dr-prev-note" rows="3" placeholder="改善前→改善後、またはできなかった理由" style="${ta}"></textarea>
+          <textarea class="dr-prev-note" rows="3" placeholder="${t('dr.prev.ph')}" style="${ta}"></textarea>
         </div>`).join('')
-    : `<div style="font-size:0.85em;color:var(--text2);margin-top:6px">未解決の課題はありません</div>`;
+    : `<div style="font-size:0.85em;color:var(--text2);margin-top:6px">${t('dr.none')}</div>`;
   openDrModal(`
     <h3 style="margin:0 0 12px;font-size:1em;font-weight:700">📝 Daily Action</h3>
     <div style="margin-bottom:14px">
-      <label style="${lbl}">記入日</label>
+      <label style="${lbl}">${t('dr.date')}</label>
       <input id="dr-date" type="date" value="${date}" style="display:block;margin-top:4px;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
     </div>
     <div style="margin-bottom:16px">
-      <div style="${lbl}">前日の課題への取り組み</div>
+      <div style="${lbl}">${t('dr.prev')}</div>
       ${prev}
     </div>
     <div style="margin-bottom:16px">
-      <div style="${lbl}">本日感じた課題</div>
+      <div style="${lbl}">${t('dr.new')}</div>
       <div id="dr-new-issues"></div>
-      <button id="dr-add-issue-btn" onclick="addDrNewIssue()" style="margin-top:8px;padding:6px 12px;border-radius:8px;border:1.5px dashed var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">＋ 課題を追加</button>
+      <button id="dr-add-issue-btn" onclick="addDrNewIssue()" style="margin-top:8px;padding:6px 12px;border-radius:8px;border:1.5px dashed var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">${t('dr.add')}</button>
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
-      <button id="dr-submit-btn" onclick="submitDailyReport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">送信</button>
+      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
+      <button id="dr-submit-btn" onclick="submitDailyReport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">${t('common.send')}</button>
     </div>`);
   addDrNewIssue(); // 本日感じた課題は最初から1件分の入力欄を表示
 }
@@ -5728,8 +5829,8 @@ function addDrNewIssue() {
   wrap.style.cssText = 'border:1.5px solid var(--border);border-radius:10px;padding:10px;margin-top:8px;position:relative';
   wrap.innerHTML = `
     <button onclick="this.parentElement.remove()" style="position:absolute;top:6px;right:8px;border:none;background:none;color:var(--text2);font-size:1em;cursor:pointer">✕</button>
-    <textarea class="dr-new-content" rows="2" placeholder="課題の内容" style="${ta}"></textarea>
-    <textarea class="dr-new-reason" rows="3" placeholder="なぜ課題と感じたか（事実ベースで）" style="${ta}"></textarea>`;
+    <textarea class="dr-new-content" rows="2" placeholder="${t('dr.new.content.ph')}" style="${ta}"></textarea>
+    <textarea class="dr-new-reason" rows="3" placeholder="${t('dr.new.reason.ph')}" style="${ta}"></textarea>`;
   document.getElementById('dr-new-issues').appendChild(wrap);
 }
 
@@ -5738,8 +5839,8 @@ async function submitDailyReport() {
   for (const el of document.querySelectorAll('.dr-prev')) {
     const result = el.querySelector('input[type=radio]:checked')?.value;
     const note = el.querySelector('.dr-prev-note').value.trim();
-    if (!result) { showToast('前日の課題の結果を選択してください'); return; }
-    if (!note) { showToast('前日の課題の取り組み内容を入力してください'); return; }
+    if (!result) { showToast(t('dr.err.result')); return; }
+    if (!note) { showToast(t('dr.err.note')); return; }
     prevIssues.push({ id: el.dataset.id, result, note });
   }
   const newIssues = [];
@@ -5747,21 +5848,21 @@ async function submitDailyReport() {
     const content = el.querySelector('.dr-new-content').value.trim();
     const reason = el.querySelector('.dr-new-reason').value.trim();
     if (!content && !reason) continue;
-    if (!content || !reason) { showToast('課題の内容と、なぜ課題と感じたかを入力してください'); return; }
+    if (!content || !reason) { showToast(t('dr.err.new')); return; }
     newIssues.push({ content, reason });
   }
-  if (!prevIssues.length && !newIssues.length) { showToast('入力内容がありません'); return; }
+  if (!prevIssues.length && !newIssues.length) { showToast(t('dr.err.empty')); return; }
   const report = { date: document.getElementById('dr-date').value, prevIssues, newIssues };
   const btn = document.getElementById('dr-submit-btn');
-  btn.disabled = true; btn.textContent = '送信中...';
+  btn.disabled = true; btn.textContent = t('dr.sending');
   try {
-    await api('saveDailyReport', { report }, '送信中...');
+    await api('saveDailyReport', { report }, t('dr.sending'));
     closeDrModal();
-    showToast('Daily Actionを記録しました');
+    showToast(t('dr.saved'));
     loadIssueCheck();
   } catch(e) {
     showToast(e.message);
-    btn.disabled = false; btn.textContent = '送信';
+    btn.disabled = false; btn.textContent = t('common.send');
   }
 }
 
@@ -5925,7 +6026,7 @@ function closeSafetySendModal() {
 
 async function submitSafetyCheck() {
   const btn = document.getElementById('safety-send-submit-btn');
-  btn.disabled = true; btn.textContent = '送信中...';
+  btn.disabled = true; btn.textContent = t('dr.sending');
   try {
     const disasterType = document.getElementById('safety-disaster-type').value;
     const message = document.getElementById('safety-message').value;
