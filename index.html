@@ -5626,7 +5626,7 @@ function renderIssueCheck() {
       ${list}
       <div style="display:flex;gap:8px;margin-top:8px">
         ${checkBtn}
-        <button onclick="openDailyReport()" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">📝 日報を書く</button>
+        <button onclick="openDailyReport()" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">📝 Daily Action</button>
       </div>
     </div>`;
 }
@@ -5700,7 +5700,7 @@ async function openDailyReport() {
         </div>`).join('')
     : `<div style="font-size:0.85em;color:var(--text2);margin-top:6px">未解決の課題はありません</div>`;
   openDrModal(`
-    <h3 style="margin:0 0 12px;font-size:1em;font-weight:700">📝 日報</h3>
+    <h3 style="margin:0 0 12px;font-size:1em;font-weight:700">📝 Daily Action</h3>
     <div style="margin-bottom:14px">
       <label style="${lbl}">記入日</label>
       <input id="dr-date" type="date" value="${date}" style="display:block;margin-top:4px;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
@@ -5716,7 +5716,7 @@ async function openDailyReport() {
     </div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
-      <button id="dr-submit-btn" onclick="submitDailyReport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">日報を送信</button>
+      <button id="dr-submit-btn" onclick="submitDailyReport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">送信</button>
     </div>`);
   addDrNewIssue(); // 本日感じた課題は最初から1件分の入力欄を表示
 }
@@ -5757,11 +5757,11 @@ async function submitDailyReport() {
   try {
     await api('saveDailyReport', { report }, '送信中...');
     closeDrModal();
-    showToast('日報を記録しました');
+    showToast('Daily Actionを記録しました');
     loadIssueCheck();
   } catch(e) {
     showToast(e.message);
-    btn.disabled = false; btn.textContent = '日報を送信';
+    btn.disabled = false; btn.textContent = '送信';
   }
 }
 
