@@ -710,6 +710,8 @@ input,select{font-family:inherit;outline:none}
   <div class="content" id="tab-home">
     <!-- 安否確認エリア -->
     <div id="safety-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
+    <!-- KING OF TIME（本人のKOTリンク） -->
+    <div id="kot-link-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
     <!-- 今日の課題（朝の確認）・日報 -->
     <div id="issue-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
     <!-- お知らせエリア -->
@@ -1546,6 +1548,7 @@ let currentLang = localStorage.getItem('sch_lang') || 'ja';
 const I18N = {
 ja:{
 // Daily Action／今日の課題
+'kot.open':'🕒 KING OF TIME（打刻・勤怠）',
 'dr.title':'📌 今日の課題',
 'dr.team.btn':'👥 メンバーの確認状況',
 'dr.none':'未解決の課題はありません',
@@ -1877,6 +1880,7 @@ ja:{
 },
 vi:{
 // Daily Action／今日の課題
+'kot.open':'🕒 KING OF TIME (chấm công)',
 'dr.title':'📌 Vấn đề hôm nay',
 'dr.team.btn':'👥 Tình trạng xác nhận',
 'dr.none':'Không có vấn đề chưa giải quyết',
@@ -2184,6 +2188,7 @@ vi:{
 },
 ne:{
 // Daily Action／今日の課題
+'kot.open':'🕒 KING OF TIME (हाजिरी)',
 'dr.title':'📌 आजका समस्याहरू',
 'dr.team.btn':'👥 सदस्यहरूको पुष्टि स्थिति',
 'dr.none':'समाधान नभएका समस्या छैनन्',
@@ -2687,6 +2692,7 @@ function applyLanguage(lang){
   renderSettings();
   buildFilterUI();
   if(typeof renderIssueCheck==='function') renderIssueCheck();
+  if(typeof renderKotLink==='function') renderKotLink();
 }
 
 // ============================================================
@@ -3154,7 +3160,7 @@ function showApp(opts){
     switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   }
   renderAll();
-  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck()]);
+  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
@@ -5866,6 +5872,24 @@ async function submitDailyReport() {
   }
 }
 
+// ---- KING OF TIME：従業員名簿のKOTリンク（本人分のみGASから取得） ----
+let _kotUrl = '';
+async function loadKotLink() {
+  try {
+    _kotUrl = (await api('getMyKotLink', {}, '')).url || '';
+  } catch(e) {
+    _kotUrl = '';
+  }
+  renderKotLink();
+}
+function renderKotLink() {
+  const area = document.getElementById('kot-link-area');
+  if (!area) return;
+  if (!_kotUrl) { area.style.display = 'none'; area.innerHTML = ''; return; }
+  area.style.display = '';
+  area.innerHTML = `<a href="${esc(_kotUrl)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:var(--radius);background:white;box-shadow:var(--shadow);color:var(--primary-dark);font-weight:700;font-size:0.95em;text-decoration:none;border-left:4px solid var(--primary)">${t('kot.open')}<span style="font-size:0.8em;color:var(--text2)">↗</span></a>`;
+}
+
 // ---- デモモード用の模擬データ（GAS_URL未設定時のみ使用） ----
 const DR_DEMO_API = (() => {
   const today = () => fmtDate(new Date());
@@ -5891,6 +5915,7 @@ const DR_DEMO_API = (() => {
       members: USERS.map(u => ({ id: u.id, name: u.name, dept: u.dept,
         checkedAt: u.id === currentUser.id ? myCheck?.checkedAt || null : (checks[u.id] ? iso(checks[u.id]) : null) })),
     }),
+    getMyKotLink: () => wait({ url: 'https://s2.ta.kingoftime.jp/' }),
     getDailyReportInit: () => wait({ name: currentUser.name, date: today(), issues }),
     saveDailyReport: ({ report }) => {
       const resolved = new Set(report.prevIssues.filter(p => p.result === '改善できた').map(p => p.id));
