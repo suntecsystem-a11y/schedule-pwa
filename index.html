@@ -6814,7 +6814,6 @@ async function loadBentoMyPage(force){
 function _bentoRenderList(el,list){
     const today=_bentoFmtYmd(new Date());
     const future=list.filter(x=>x.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
-    const past=list.filter(x=>x.date<today).slice(0,5);
     const rowHtml=(x,canEdit)=>{
       const d=new Date(x.date);
       const badge=`<span class="bento-badge" style="${_BENTO_BADGE[x.status]||''}">${x.status}</span>`;
@@ -6834,11 +6833,7 @@ function _bentoRenderList(el,list){
         <div style="text-align:right;flex-shrink:0">${badge}${acts}</div>
       </div>`;
     };
-    let html='';
-    html+= future.length? future.map(x=>rowHtml(x,true)).join('') : '<div style="color:var(--text2);font-size:0.82em;padding:6px 0">今後の予約はありません</div>';
-    if(past.length){
-      html+=`<div style="font-size:0.72em;color:var(--text2);font-weight:700;margin:10px 0 4px">過去の予約</div>`+past.map(x=>rowHtml(x,false)).join('');
-    }
+    const html = future.length? future.map(x=>rowHtml(x,true)).join('') : '<div style="color:var(--text2);font-size:0.82em;padding:6px 0">今後の予約はありません</div>';
     el.innerHTML=html;
 }
 function _bentoEsc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML.replace(/'/g,'&#39;');}
