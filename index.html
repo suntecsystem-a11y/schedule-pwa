@@ -6963,19 +6963,25 @@ function _bentoCalc(){
   const p=(_bentoState.rice==='大盛'&&m.omori)?m.omori:m.nami;
   t.textContent='¥'+p.total.toLocaleString();c.textContent='¥'+(p.total-p.self).toLocaleString();s.textContent='¥'+p.self.toLocaleString();
 }
+let _bentoSubmitting=false;
 async function _bentoSubmit(){
+  if(_bentoSubmitting)return;               // 連打・二重送信ガード（1回目のみ有効）
   const sel=document.getElementById('bento-menu');const m=sel?_bentoState.menus[sel.value]:null;
   if(!m){showToast('メニューを選んでください');return;}
+  _bentoSubmitting=true;
+  const btn=document.getElementById('submitBtn');if(btn){btn.disabled=true;btn.style.opacity='0.6';}
   try{
     if(_bentoState.editId){
       await api('editBentoReservation',{data:{recordId:_bentoState.editId,menu:m.name,rice:_bentoState.rice}},'変更を保存中...');
       showToast('変更を保存しました');
     }else{
-      await api('saveBentoReservation',{data:{date:_bentoCurDate(),menu:m.name,rice:_bentoState.rice}},'予約中...');
-      showToast('予約しました');
+      const res=await api('saveBentoReservation',{data:{date:_bentoCurDate(),menu:m.name,rice:_bentoState.rice}},'予約中...');
+      if(res&&res.statusWarn){console.warn('bento statusWarn:',res.statusWarn);showToast('予約は保存しましたが状態確定に失敗: '+res.statusWarn);}
+      else showToast('予約しました');
     }
     closeBentoSheet();await loadBentoMyPage(true);if(document.getElementById('bento-all-list'))_bentoRenderAll();
   }catch(e){showToast(e.message||'保存に失敗しました');}
+  finally{_bentoSubmitting=false;if(btn){btn.disabled=false;btn.style.opacity='';}}
 }
 async function _bentoAskCancel(recordId,btn){
   const row=btn.closest('.bento-rcard');
