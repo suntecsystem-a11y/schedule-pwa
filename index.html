@@ -6533,10 +6533,10 @@ function renderMyPage() {
 
     ${currentUser.id==='90' ? `
     <!-- 弁当予約（社員90番・試験公開） -->
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
+    <div style="background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);max-width:520px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:0.95em;font-weight:700">🍱 弁当予約</span>
-        <button onclick="openBentoSheet()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:0.85em;font-weight:700;cursor:pointer">＋ 予約する</button>
+        <span style="font-size:0.9em;font-weight:700">🍱 弁当予約</span>
+        <button onclick="openBentoSheet()" style="background:var(--primary);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:0.82em;font-weight:700;cursor:pointer">＋ 予約する</button>
       </div>
       <div id="bento-mypage-list"><div style="color:var(--text2);font-size:0.82em;padding:6px 0">読み込み中...</div></div>
     </div>
@@ -6781,6 +6781,20 @@ function _bentoEnsureStyle(){
   .bento-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border,#eee)}
   .bento-item:last-child{border-bottom:none}
   .bento-badge{font-size:0.7em;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .bento-rcard{border:1px solid var(--border,#e2e4ec);border-radius:14px;background:var(--surface,#fff);padding:12px 14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(40,44,80,.05)}
+  .bento-rcard:last-child{margin-bottom:0}
+  .bento-rtop{display:flex;align-items:center;gap:12px}
+  .bento-dbadge{flex-shrink:0;width:50px;text-align:center;background:var(--primary-light,#e8eaf6);color:var(--primary-dark,#3949ab);border-radius:10px;padding:5px 0;line-height:1.15}
+  .bento-dbadge .mo{font-size:0.6em;font-weight:700;opacity:.85}
+  .bento-dbadge .dd{font-size:1.35em;font-weight:800}
+  .bento-dbadge .ww{font-size:0.6em;font-weight:700}
+  .bento-rmenu{flex:1;min-width:0;font-size:0.95em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bento-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;padding-left:62px}
+  .bento-tag{font-size:0.72em;color:var(--text2,#6b7280);background:var(--surface-2,#f5f6fa);border:1px solid var(--border,#eee);border-radius:7px;padding:2px 8px}
+  .bento-ractions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+  .bento-rbtn{font-size:0.78em;font-weight:700;border-radius:8px;padding:6px 14px;cursor:pointer;background:var(--surface,#fff)}
+  .bento-rbtn.edit{color:var(--primary-dark,#3949ab);border:1.5px solid var(--primary-light,#e8eaf6)}
+  .bento-rbtn.cancel{color:#e08600;border:1.5px solid #f6d6a0}
   `;
   document.head.appendChild(s);
 }
@@ -6804,6 +6818,7 @@ const _BENTO_BADGE={'予約':'background:#e6f4ec;color:#2e9e5b','キャンセル
 let _bentoCache=null;
 async function loadBentoMyPage(force){
   const el=document.getElementById('bento-mypage-list');if(!el)return;
+  _bentoEnsureStyle();
   if(!force && _bentoCache){ _bentoRenderList(el,_bentoCache); return; }
   try{
     const r=await api('getMyBentoReservations',{},'弁当予約を読み込み中...');
@@ -6811,30 +6826,65 @@ async function loadBentoMyPage(force){
     _bentoRenderList(el,_bentoCache);
   }catch(e){ el.innerHTML=`<div style="color:var(--red,#e53935);font-size:0.8em">読み込みに失敗しました（${_bentoEsc(e.message||'')}）</div>`; }
 }
+function _bentoCardHtml(x){
+  const d=new Date(x.date);
+  const badge=`<span class="bento-badge" style="${_BENTO_BADGE[x.status]||''};font-size:0.72em;padding:3px 10px">${x.status}</span>`;
+  let acts='';
+  if(x.status==='予約'){
+    const dl=_bentoAt15(_bentoPrevBiz(new Date(x.date)));
+    if(new Date()<=dl){
+      acts=`<div class="bento-ractions">
+        <button class="bento-rbtn edit" onclick="openBentoSheet('${x.recordId}','${x.date}','${_bentoEsc(x.menu)}','${x.rice}')">✏️ 変更</button>
+        <button class="bento-rbtn cancel" onclick="_bentoAskCancel('${x.recordId}',this)">キャンセル依頼</button>
+      </div>`;
+    }
+  }
+  const riceTag = x.rice==='大盛' ? '🍚 大盛' : '🍚 並盛';
+  return `<div class="bento-rcard">
+    <div class="bento-rtop">
+      <div class="bento-dbadge"><div class="mo">${d.getMonth()+1}月</div><div class="dd">${d.getDate()}</div><div class="ww">(${_BWD[d.getDay()]})</div></div>
+      <div class="bento-rmenu">🍱 ${_bentoEsc(x.menu)}</div>
+      ${badge}
+    </div>
+    <div class="bento-tags"><span class="bento-tag">${riceTag}</span><span class="bento-tag">自己負担 ¥${(x.self||0).toLocaleString()}</span></div>
+    ${acts}
+  </div>`;
+}
 function _bentoRenderList(el,list){
     const today=_bentoFmtYmd(new Date());
     const future=list.filter(x=>x.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
-    const rowHtml=(x,canEdit)=>{
-      const d=new Date(x.date);
-      const badge=`<span class="bento-badge" style="${_BENTO_BADGE[x.status]||''}">${x.status}</span>`;
-      let acts='';
-      if(canEdit&&x.status==='予約'){
-        const dl=_bentoAt15(_bentoPrevBiz(new Date(x.date)));
-        if(new Date()<=dl){
-          acts=`<div style="display:flex;gap:10px;margin-top:2px">
-            <button onclick="openBentoSheet('${x.recordId}','${x.date}','${_bentoEsc(x.menu)}','${x.rice}')" style="background:none;border:none;color:var(--primary-dark);font-size:0.78em;text-decoration:underline;cursor:pointer;padding:0">変更</button>
-            <button onclick="_bentoAskCancel('${x.recordId}',this)" style="background:none;border:none;color:#e08600;font-size:0.78em;text-decoration:underline;cursor:pointer;padding:0">キャンセル依頼</button>
-          </div>`;
-        }
-      }
-      return `<div class="bento-item">
-        <div style="width:46px;text-align:center;flex-shrink:0"><div style="font-size:1.1em;font-weight:800">${d.getMonth()+1}/${d.getDate()}</div><div style="font-size:0.7em;color:var(--text2)">(${_BWD[d.getDay()]})</div></div>
-        <div style="flex:1;min-width:0"><div style="font-size:0.86em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_bentoEsc(x.menu)}</div><div style="font-size:0.75em;color:var(--text2)">${x.rice}・自己負担 ¥${(x.self||0).toLocaleString()}</div></div>
-        <div style="text-align:right;flex-shrink:0">${badge}${acts}</div>
-      </div>`;
-    };
-    const html = future.length? future.map(x=>rowHtml(x,true)).join('') : '<div style="color:var(--text2);font-size:0.82em;padding:6px 0">今後の予約はありません</div>';
+    let html = future.length? future.slice(0,2).map(_bentoCardHtml).join('') : '<div style="color:var(--text2);font-size:0.82em;padding:6px 0">今後の予約はありません</div>';
+    if(future.length>2){ html += `<button onclick="openBentoAllSheet()" style="width:100%;margin-top:2px;padding:9px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2,#f5f6fa);color:var(--primary-dark);font-size:0.82em;font-weight:700;cursor:pointer">すべて見る（${future.length}件）</button>`; }
     el.innerHTML=html;
+}
+// 全予約シート（週ごと・スクロール）
+function _bentoWeekKey(dstr){const dt=new Date(dstr);const off=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-off);return _bentoFmtYmd(dt);}
+function _bentoWeekLabel(ws){const s=new Date(ws);const now=new Date(_bentoWeekKey(_bentoFmtYmd(new Date())));const diff=Math.round((s-now)/(7*86400000));if(diff<=0)return '今週';if(diff===1)return '来週';if(diff===2)return '再来週';const e=new Date(s);e.setDate(e.getDate()+6);return `${s.getMonth()+1}/${s.getDate()}〜${e.getMonth()+1}/${e.getDate()}`;}
+function openBentoAllSheet(){
+  _bentoEnsureStyle();
+  const ov=document.createElement('div');ov.className='bento-ov';ov.id='bento-all-ov';
+  ov.onclick=(e)=>{if(e.target===ov)closeBentoAll();};
+  ov.innerHTML=`<div class="bento-sheet"><div class="bento-grab"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h3 style="margin:0">🍱 今後の弁当予約</h3>
+      <button onclick="closeBentoAll()" style="background:none;border:none;font-size:1.3em;color:var(--text2);cursor:pointer;line-height:1">×</button>
+    </div>
+    <div id="bento-all-list"></div>
+  </div>`;
+  document.body.appendChild(ov);
+  _bentoRenderAll();
+}
+function closeBentoAll(){const ov=document.getElementById('bento-all-ov');if(ov)ov.remove();}
+function _bentoRenderAll(){
+  const el=document.getElementById('bento-all-list');if(!el)return;
+  const today=_bentoFmtYmd(new Date());
+  const future=(_bentoCache||[]).filter(x=>x.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!future.length){el.innerHTML='<div style="color:var(--text2);font-size:0.85em;padding:12px 0;text-align:center">今後の予約はありません</div>';return;}
+  const groups={};future.forEach(x=>{const k=_bentoWeekKey(x.date);(groups[k]||(groups[k]=[])).push(x);});
+  el.innerHTML=Object.keys(groups).sort().map(k=>
+    `<div style="font-size:0.75em;font-weight:700;color:var(--primary-dark);margin:14px 0 8px;padding-bottom:4px;border-bottom:1.5px solid var(--primary-light,#e8eaf6)">${_bentoWeekLabel(k)}</div>`+
+    groups[k].map(x=>_bentoCardHtml(x)).join('')
+  ).join('');
 }
 function _bentoEsc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML.replace(/'/g,'&#39;');}
 
@@ -6924,11 +6974,11 @@ async function _bentoSubmit(){
       await api('saveBentoReservation',{data:{date:_bentoCurDate(),menu:m.name,rice:_bentoState.rice}},'予約中...');
       showToast('予約しました');
     }
-    closeBentoSheet();loadBentoMyPage(true);
+    closeBentoSheet();await loadBentoMyPage(true);if(document.getElementById('bento-all-list'))_bentoRenderAll();
   }catch(e){showToast(e.message||'保存に失敗しました');}
 }
 async function _bentoAskCancel(recordId,btn){
-  const row=btn.closest('.bento-item');
+  const row=btn.closest('.bento-rcard');
   if(row.querySelector('.bento-confirm'))return;
   const box=document.createElement('div');box.className='bento-confirm';box.style.cssText='width:100%;background:#fdf1de;border:1px solid #e08600;border-radius:8px;padding:8px 10px;margin-top:6px';
   box.innerHTML=`<div style="font-size:0.76em;color:#e08600;font-weight:700;margin-bottom:6px">キャンセルを依頼しますか？（総務の承認で確定）</div>
@@ -6936,7 +6986,7 @@ async function _bentoAskCancel(recordId,btn){
     <button style="flex:1;background:#fff;border:1px solid var(--border);border-radius:6px;padding:6px;font-size:0.78em;cursor:pointer">やめる</button></div>`;
   const [yes,no]=box.querySelectorAll('button');
   no.onclick=()=>box.remove();
-  yes.onclick=async()=>{try{await api('requestCancelBento',{recordId},'キャンセル依頼中...');showToast('キャンセル依頼を送信しました（総務の承認待ち）');loadBentoMyPage(true);}catch(e){showToast(e.message||'依頼に失敗しました');}};
+  yes.onclick=async()=>{try{await api('requestCancelBento',{recordId},'キャンセル依頼中...');showToast('キャンセル依頼を送信しました（総務の承認待ち）');await loadBentoMyPage(true);if(document.getElementById('bento-all-list'))_bentoRenderAll();}catch(e){showToast(e.message||'依頼に失敗しました');}};
   row.appendChild(box);
 }
 
