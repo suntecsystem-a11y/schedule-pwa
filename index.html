@@ -9,7 +9,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --primary:#5c6bc0;--primary-dark:#3949ab;--primary-light:#e8eaf6;
-  --bg:#f5f6fa;--surface:#ffffff;--border:#e0e0e0;--text:#212121;--text2:#757575;--text3:#bdbdbd;
+  --bg:#f5f6fa;--surface:#ffffff;--surface-1:#f5f5f5;--surface-2:#ffffff;--border:#e0e0e0;--text:#212121;--text2:#757575;--text3:#bdbdbd;
   --red:#e53935;--green:#43a047;--orange:#fb8c00;--blue:#1e88e5;--purple:#8e24aa;
   --radius:12px;--shadow:0 2px 12px rgba(0,0,0,.10);
 }
@@ -656,7 +656,7 @@ input,select{font-family:inherit;outline:none}
 <nav id="sidebar">
   <div class="sidebar-header">
     <span class="sidebar-logo-icon">📅</span>
-    <span class="sidebar-logo-text"><span class="halo-logo">HALO</span><span class="halo-sub">サンテックポータル</span></span>
+    <span class="sidebar-logo-text"><span class="halo-logo notranslate" translate="no">HALO</span><span class="halo-sub">サンテックポータル</span></span>
     <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="サイドバーを折りたたむ" id="sidebar-collapse-btn">◀</button>
   </div>
   <div class="sidebar-nav">
@@ -7632,8 +7632,8 @@ async function loadElearningCourses() {
       api('getElearningCourses', {}, t('el.loading')),
       api('getElearningHistory', {}, ''),
     ]);
-    _elCourses = courses;
-    _elHistory = history;
+    _elCourses = Array.isArray(courses) ? courses : [];
+    _elHistory = Array.isArray(history) ? history : [];
     renderElearningList();
   } catch (e) {
     wrap.innerHTML = '<div class="el-wrap"><p style="color:var(--text2);font-size:0.85em">'+t('el.load.fail')+'</p></div>';
@@ -7816,6 +7816,8 @@ function renderElearningQuiz() {
   if (!s) return;
   const q = s.questions[s.current];
   const wrap = document.getElementById('elearning-content');
+  if (!wrap) return;
+  if (!q) { finishElearningQuiz(); return; }
   const num = s.current + 1;
   const total = s.questions.length;
 
@@ -7824,7 +7826,8 @@ function renderElearningQuiz() {
   const selected = s.answers[s.current];
   const answered = s.answered;
 
-  let choicesHtml = q.choices.map((c, i) => {
+  const choices = Array.isArray(q.choices) ? q.choices : [];
+  let choicesHtml = choices.map((c, i) => {
     if (!c || !c.trim()) return '';
     const idx = String(i + 1);
     let cls = 'el-quiz-choice';
