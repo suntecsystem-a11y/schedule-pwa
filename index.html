@@ -1548,6 +1548,8 @@ let currentLang = localStorage.getItem('sch_lang') || 'ja';
 const I18N = {
 ja:{
 // Daily Action／今日の課題
+'dr.dept.count':'確認済み {done} / {total}名',
+'dr.dept.none':'（部門未設定）',
 'kot.open':'🕒 KING OF TIME（打刻・勤怠）',
 'dr.title':'📌 今日の課題',
 'dr.team.btn':'👥 メンバーの確認状況',
@@ -1880,6 +1882,8 @@ ja:{
 },
 vi:{
 // Daily Action／今日の課題
+'dr.dept.count':'Đã xác nhận {done} / {total}',
+'dr.dept.none':'(Chưa có bộ phận)',
 'kot.open':'🕒 KING OF TIME (chấm công)',
 'dr.title':'📌 Vấn đề hôm nay',
 'dr.team.btn':'👥 Tình trạng xác nhận',
@@ -2188,6 +2192,8 @@ vi:{
 },
 ne:{
 // Daily Action／今日の課題
+'dr.dept.count':'पुष्टि {done} / {total} जना',
+'dr.dept.none':'(विभाग छैन)',
 'kot.open':'🕒 KING OF TIME (हाजिरी)',
 'dr.title':'📌 आजका समस्याहरू',
 'dr.team.btn':'👥 सदस्यहरूको पुष्टि स्थिति',
@@ -5764,15 +5770,29 @@ async function openTeamIssueChecks(date) {
   } catch(e) { showToast(e.message); return; }
   const members = res.members || [];
   const done = members.filter(m => m.checkedAt).length;
-  const sorted = [...members].sort((a, b) => (a.checkedAt ? 1 : 0) - (b.checkedAt ? 1 : 0) || String(a.dept).localeCompare(String(b.dept)));
-  const rows = sorted.map(m => `
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--border);font-size:0.86em">
-      <span style="flex:1">${esc(m.name)}</span>
-      <span style="color:var(--text2);font-size:0.85em;min-width:60px">${esc(m.dept)}</span>
-      ${m.checkedAt
-        ? `<span style="color:#2e7d32;font-weight:700;min-width:84px;text-align:right">✅ ${_drTime(m.checkedAt)}</span>`
-        : `<span style="color:#e53935;font-weight:700;min-width:84px;text-align:right">${t('dr.unchecked')}</span>`}
-    </div>`).join('');
+  // 部門ごとにまとめる（人数の多い部門から）。部門内は未確認→確認済み（時刻順）
+  const byDept = {};
+  members.forEach(m => { (byDept[m.dept || t('dr.dept.none')] ||= []).push(m); });
+  const depts = Object.keys(byDept).sort((a, b) => byDept[b].length - byDept[a].length || a.localeCompare(b, 'ja'));
+  const rows = depts.map(dept => {
+    const list = byDept[dept].sort((a, b) =>
+      (a.checkedAt ? 1 : 0) - (b.checkedAt ? 1 : 0) || String(a.checkedAt || '').localeCompare(String(b.checkedAt || '')));
+    const deptDone = list.filter(m => m.checkedAt).length;
+    return `
+    <div style="margin-top:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 4px;border-bottom:2px solid var(--border)">
+        <span style="font-size:0.88em;font-weight:700">${esc(dept)}</span>
+        <span style="font-size:0.76em;color:${deptDone === list.length ? '#2e7d32' : 'var(--text2)'};font-weight:600">${esc(t('dr.dept.count', { done: deptDone, total: list.length }))}</span>
+      </div>
+      ${list.map(m => `
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 4px 7px 12px;border-bottom:1px solid var(--border);font-size:0.86em">
+        <span style="flex:1">${esc(m.name)}</span>
+        ${m.checkedAt
+          ? `<span style="color:#2e7d32;font-weight:700;min-width:84px;text-align:right">✅ ${_drTime(m.checkedAt)}</span>`
+          : `<span style="color:#e53935;font-weight:700;min-width:84px;text-align:right">${t('dr.unchecked')}</span>`}
+      </div>`).join('')}
+    </div>`;
+  }).join('');
   openDrModal(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <h3 style="margin:0;font-size:1em;font-weight:700">${t('dr.team.title')}</h3>
