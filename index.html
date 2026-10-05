@@ -1548,6 +1548,30 @@ let currentLang = localStorage.getItem('sch_lang') || 'ja';
 const I18N = {
 ja:{
 // Daily Action／今日の課題
+'dr.prev.hint':'取り組んだ課題だけ入力してください',
+'dr.clear':'入力を取り消す',
+'dash.btn':'📊 ダッシュボード',
+'dash.title':'📊 Daily Action ダッシュボード',
+'dash.range':'直近{n}営業日',
+'dash.scope':'対象：{scope}　期間：{from}〜{to}',
+'dash.people':'名',
+'dash.today.check':'今日の朝の確認',
+'dash.today.report':'今日のDaily Action',
+'dash.trend':'日別の推移',
+'dash.check':'朝の確認',
+'dash.report':'Daily Action',
+'dash.dept':'部門別',
+'dash.col.dept':'部門',
+'dash.col.checkToday':'今日 確認',
+'dash.col.reportToday':'今日 記入',
+'dash.col.checkAvg':'期間 確認率',
+'dash.col.reportAvg':'期間 記入率',
+'dash.issues':'課題の動き（期間内）',
+'dash.new':'新規',
+'dash.improved':'改善',
+'dash.open':'未解決（現在）',
+'dash.topOpen':'未解決の課題が多い人',
+'dash.none':'ありません',
 'dr.done':'✅ 登録済み {time}',
 'dr.done.kintone':'✅ kintoneで登録済み',
 'dr.edit':'✏️ 編集',
@@ -1897,6 +1921,30 @@ ja:{
 },
 vi:{
 // Daily Action／今日の課題
+'dr.prev.hint':'Chỉ nhập các vấn đề đã xử lý',
+'dr.clear':'Xóa nhập',
+'dash.btn':'📊 Bảng tổng quan',
+'dash.title':'📊 Bảng tổng quan Daily Action',
+'dash.range':'{n} ngày làm việc gần nhất',
+'dash.scope':'Phạm vi: {scope}　{from}〜{to}',
+'dash.people':' người',
+'dash.today.check':'Xác nhận sáng nay',
+'dash.today.report':'Daily Action hôm nay',
+'dash.trend':'Theo ngày',
+'dash.check':'Xác nhận',
+'dash.report':'Daily Action',
+'dash.dept':'Theo bộ phận',
+'dash.col.dept':'Bộ phận',
+'dash.col.checkToday':'Hôm nay xác nhận',
+'dash.col.reportToday':'Hôm nay ghi',
+'dash.col.checkAvg':'Tỷ lệ xác nhận',
+'dash.col.reportAvg':'Tỷ lệ ghi',
+'dash.issues':'Vấn đề (trong kỳ)',
+'dash.new':'Mới',
+'dash.improved':'Đã cải thiện',
+'dash.open':'Chưa giải quyết',
+'dash.topOpen':'Người có nhiều vấn đề chưa giải quyết',
+'dash.none':'Không có',
 'dr.done':'✅ Đã ghi lúc {time}',
 'dr.done.kintone':'✅ Đã ghi trên kintone',
 'dr.edit':'✏️ Sửa',
@@ -2222,6 +2270,30 @@ vi:{
 },
 ne:{
 // Daily Action／今日の課題
+'dr.prev.hint':'काम गरेका समस्या मात्र लेख्नुहोस्',
+'dr.clear':'मेटाउनुहोस्',
+'dash.btn':'📊 ड्यासबोर्ड',
+'dash.title':'📊 Daily Action ड्यासबोर्ड',
+'dash.range':'पछिल्ला {n} कार्य दिन',
+'dash.scope':'दायरा: {scope}　{from}〜{to}',
+'dash.people':' जना',
+'dash.today.check':'आजको बिहानको पुष्टि',
+'dash.today.report':'आजको Daily Action',
+'dash.trend':'दैनिक प्रवृत्ति',
+'dash.check':'पुष्टि',
+'dash.report':'Daily Action',
+'dash.dept':'विभाग अनुसार',
+'dash.col.dept':'विभाग',
+'dash.col.checkToday':'आज पुष्टि',
+'dash.col.reportToday':'आज लेखन',
+'dash.col.checkAvg':'पुष्टि दर',
+'dash.col.reportAvg':'लेखन दर',
+'dash.issues':'समस्याहरू (अवधिमा)',
+'dash.new':'नयाँ',
+'dash.improved':'सुधार',
+'dash.open':'समाधान नभएको',
+'dash.topOpen':'धेरै समस्या भएका व्यक्ति',
+'dash.none':'छैन',
 'dr.done':'✅ {time} मा दर्ता भयो',
 'dr.done.kintone':'✅ kintone मा दर्ता भयो',
 'dr.edit':'✏️ सम्पादन',
@@ -5787,6 +5859,7 @@ function renderIssueCheck() {
         <span style="display:flex;gap:6px">
         ${canExport ? `<button onclick="openDailyActionExport()" style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;font-size:0.75em;cursor:pointer">${t('dr.export.btn')}</button>` : ''}
         ${canViewTeam ? `<button onclick="openTeamIssueChecks()" style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.75em;cursor:pointer">${t('dr.team.btn')}</button>` : ''}
+        ${canViewTeam ? `<button onclick="openDailyActionDashboard()" style="padding:4px 10px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.75em;cursor:pointer">${t('dash.btn')}</button>` : ''}
         </span>
       </div>
       ${list}
@@ -5866,7 +5939,7 @@ async function openDailyReport() {
   const rep = _drInit.report || {};
   const date = isEdit ? rep.date : _drInit.date;
   // 編集時は登録した時点の課題と内容を表示する
-  const issues = isEdit ? (rep.prevIssues || []) : (_drInit.issues || []);
+  const issues = isEdit ? [...(rep.prevIssues || []), ...(_drInit.issues || [])] : (_drInit.issues || []);
   const lbl = 'font-size:0.82em;font-weight:700;color:var(--text2)';
   const ta = 'display:block;width:100%;margin-top:6px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit';
   const prev = issues.length
@@ -5881,6 +5954,7 @@ async function openDailyReport() {
               </label>`).join('')}
           </div>
           <textarea class="dr-prev-note" rows="3" placeholder="${t('dr.prev.ph')}" style="${ta}">${esc(i.note || '')}</textarea>
+          <div style="text-align:right;margin-top:4px"><button type="button" onclick="clearDrPrev(this)" style="border:none;background:none;color:var(--text2);font-size:0.75em;cursor:pointer;text-decoration:underline">${t('dr.clear')}</button></div>
         </div>`).join('')
     : `<div style="font-size:0.85em;color:var(--text2);margin-top:6px">${t('dr.none')}</div>`;
   openDrModal(`
@@ -5891,6 +5965,7 @@ async function openDailyReport() {
     </div>
     <div style="margin-bottom:16px">
       <div style="${lbl}">${t('dr.prev')}</div>
+      ${issues.length ? `<div style="font-size:0.75em;color:var(--text2);margin-top:2px">${t('dr.prev.hint')}</div>` : ''}
       ${prev}
     </div>
     <div style="margin-bottom:16px">
@@ -5905,6 +5980,13 @@ async function openDailyReport() {
     </div>`);
   if (isEdit && (rep.newIssues || []).length) rep.newIssues.forEach(i => addDrNewIssue(i));
   else addDrNewIssue(); // 本日感じた課題は最初から1件分の入力欄を表示
+}
+
+function clearDrPrev(btn) {
+  const el = btn.closest('.dr-prev');
+  el.querySelectorAll('input[type=radio]').forEach(r => { r.checked = false; });
+  el.querySelector('.dr-prev-note').value = '';
+  el.style.borderColor = '';
 }
 
 function addDrNewIssue(item) {
@@ -5936,6 +6018,7 @@ async function submitDailyReport() {
   for (const el of document.querySelectorAll('.dr-prev')) {
     const result = el.querySelector('input[type=radio]:checked')?.value;
     const note = el.querySelector('.dr-prev-note').value.trim();
+    if (!result && !note) continue; // 取り組んでいない課題は入力不要
     if (!result) { _drError(t('dr.err.result'), el); return; }
     if (!note) { _drError(t('dr.err.note'), el); return; }
     prevIssues.push({ id: el.dataset.id, result, note });
@@ -5949,7 +6032,7 @@ async function submitDailyReport() {
     newIssues.push({ id: el.dataset.id || '', content, reason });
   }
   const isEdit = _drInit?.mode === 'edit';
-  if (!isEdit && !prevIssues.length && !newIssues.length) { _drError(t('dr.err.empty')); return; }
+  if (!prevIssues.length && !newIssues.length) { _drError(t('dr.err.empty')); return; }
   const report = { date: document.getElementById('dr-date').value, prevIssues, newIssues };
   if (isEdit) report.id = _drInit.report.id;
   const btn = document.getElementById('dr-submit-btn');
@@ -5965,6 +6048,77 @@ async function submitDailyReport() {
   }
 }
 
+
+// ---- Daily Action 進捗ダッシュボード（主任以上。GAS: getDailyActionDashboard） ----
+async function openDailyActionDashboard(days) {
+  let d;
+  try {
+    d = await api('getDailyActionDashboard', { days: days || 5 }, t('common.loading'));
+  } catch(e) { showToast(e.message); return; }
+  const pct = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  const color = p => p >= 80 ? '#2e7d32' : p >= 50 ? '#f57c00' : '#e53935';
+  const bar = (p, c) => `<div style="height:8px;border-radius:4px;background:#eceff1;overflow:hidden"><div style="height:100%;width:${p}%;background:${c}"></div></div>`;
+  const today = d.daily[d.daily.length - 1] || { checked: 0, reported: 0, total: d.total };
+  const tile = (label, a, b) => { const p = pct(a, b); return `
+    <div style="flex:1;min-width:130px;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+      <div style="font-size:0.75em;color:var(--text2);font-weight:700">${label}</div>
+      <div style="font-size:1.5em;font-weight:800;color:${color(p)}">${p}%</div>
+      <div style="font-size:0.75em;color:var(--text2)">${a} / ${b}${esc(t('dash.people'))}</div>
+    </div>`; };
+  const dow = ds => tDow((new Date(ds + 'T00:00:00').getDay() + 6) % 7);
+  const dailyRows = d.daily.map(x => { const pc = pct(x.checked, x.total), pr = pct(x.reported, x.total); return `
+    <tr>
+      <td style="padding:5px 4px;white-space:nowrap">${esc(x.date.slice(5).replace('-', '/'))}（${dow(x.date)}）</td>
+      <td style="padding:5px 4px;width:38%">${bar(pc, color(pc))}<div style="font-size:0.75em;color:var(--text2)">${pc}%</div></td>
+      <td style="padding:5px 4px;width:38%">${bar(pr, color(pr))}<div style="font-size:0.75em;color:var(--text2)">${pr}%</div></td>
+    </tr>`; }).join('');
+  const deptRows = d.depts.map(x => `
+    <tr style="border-top:1px solid var(--border)">
+      <td style="padding:6px 4px;font-weight:600">${esc(x.dept)}</td>
+      <td style="padding:6px 4px;text-align:center">${x.checkedToday}/${x.total}</td>
+      <td style="padding:6px 4px;text-align:center">${x.reportedToday}/${x.total}</td>
+      <td style="padding:6px 4px;text-align:center;color:${color(x.checkedRate)}">${x.checkedRate}%</td>
+      <td style="padding:6px 4px;text-align:center;color:${color(x.reportedRate)}">${x.reportedRate}%</td>
+    </tr>`).join('');
+  const top = d.issues.topOpen.length
+    ? d.issues.topOpen.map(x => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:0.85em"><span>${esc(x.name)} <span style="color:var(--text2);font-size:0.85em">${esc(x.dept)}</span></span><b>${x.open}</b></div>`).join('')
+    : `<div style="font-size:0.85em;color:var(--text2)">${t('dash.none')}</div>`;
+  const h4 = 'font-size:0.82em;font-weight:700;color:var(--text2);margin:16px 0 6px';
+  const th = 'padding:4px;font-size:0.75em;color:var(--text2);font-weight:700';
+  openDrModal(`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+      <h3 style="margin:0;font-size:1em;font-weight:700">${t('dash.title')}</h3>
+      <select onchange="openDailyActionDashboard(+this.value)" style="padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em">
+        ${[5, 10, 20].map(n => `<option value="${n}"${n === (days || 5) ? ' selected' : ''}>${esc(t('dash.range', { n }))}</option>`).join('')}
+      </select>
+    </div>
+    <div style="font-size:0.78em;color:var(--text2);margin-bottom:10px">${esc(t('dash.scope', { scope: d.scope === 'all' ? t('dr.scope.all') : t('dr.scope.dept', { dept: d.scope }), from: d.from.slice(5).replace('-', '/'), to: d.to.slice(5).replace('-', '/') }))}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${tile(t('dash.today.check'), today.checked, today.total)}
+      ${tile(t('dash.today.report'), today.reported, today.total)}
+    </div>
+    <div style="${h4}">${t('dash.trend')}</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85em">
+      <tr><th style="${th};text-align:left"></th><th style="${th};text-align:left">${t('dash.check')}</th><th style="${th};text-align:left">${t('dash.report')}</th></tr>
+      ${dailyRows}
+    </table>
+    <div style="${h4}">${t('dash.dept')}</div>
+    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.85em">
+      <tr><th style="${th};text-align:left">${t('dash.col.dept')}</th><th style="${th}">${t('dash.col.checkToday')}</th><th style="${th}">${t('dash.col.reportToday')}</th><th style="${th}">${t('dash.col.checkAvg')}</th><th style="${th}">${t('dash.col.reportAvg')}</th></tr>
+      ${deptRows}
+    </table></div>
+    <div style="${h4}">${t('dash.issues')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.85em">
+      <div style="flex:1;min-width:90px;border:1px solid var(--border);border-radius:10px;padding:8px 10px">${t('dash.new')}<div style="font-size:1.3em;font-weight:800">${d.issues.newCount}</div></div>
+      <div style="flex:1;min-width:90px;border:1px solid var(--border);border-radius:10px;padding:8px 10px">${t('dash.improved')}<div style="font-size:1.3em;font-weight:800;color:#2e7d32">${d.issues.improvedCount}</div></div>
+      <div style="flex:1;min-width:90px;border:1px solid var(--border);border-radius:10px;padding:8px 10px">${t('dash.open')}<div style="font-size:1.3em;font-weight:800;color:#f57c00">${d.issues.openTotal}</div></div>
+    </div>
+    <div style="${h4}">${t('dash.topOpen')}</div>
+    ${top}
+    <div style="text-align:right;margin-top:16px">
+      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.close')}</button>
+    </div>`);
+}
 
 // ---- Daily Action CSV出力（期間指定。GAS: exportDailyActionCsv） ----
 function _drWeekRange(offsetWeeks) {
@@ -6056,6 +6210,14 @@ const DR_DEMO_API = (() => {
       if (!myCheck) myCheck = { id: String(nextId++), checkedAt: new Date().toISOString(), count: issues.length };
       return wait({ check: myCheck, already });
     },
+    getDailyActionDashboard: ({ days = 5 } = {}) => {
+      const out = []; for (let d = new Date(); out.length < days; d.setDate(d.getDate() - 1)) { const w = d.getDay(); if (w && w !== 6) out.unshift(fmtDate(d)); }
+      const total = USERS.length;
+      return wait({ from: out[0], to: out[out.length - 1], scope: 'all', total,
+        daily: out.map((dt, i) => ({ date: dt, checked: Math.min(total, 2 + i % 4), reported: Math.min(total, 1 + i % 3), total })),
+        depts: USERS.map(u => ({ dept: u.dept, total: 1, checkedToday: u.id === '1002' ? 1 : 0, reportedToday: 0, checkedRate: 60, reportedRate: 40 })),
+        issues: { newCount: 4, improvedCount: 2, openTotal: issues.length + 3, topOpen: [{ name: currentUser.name, dept: currentUser.dept, open: issues.length }] } });
+    },
     getTeamIssueChecks: ({ date } = {}) => wait({
       date: date || today(), scope: 'all',
       members: USERS.map(u => ({ id: u.id, name: u.name, dept: u.dept,
@@ -6065,7 +6227,7 @@ const DR_DEMO_API = (() => {
       csv: '記入日,氏名,組織名,区分,課題No,課題内容,結果,取り組み内容・理由,課題の現在の状態\r\n' + from + ',田中 花子,営業部,本日感じた課題,99,デモ用の課題,,デモ,未解決' }),
     getMyKotLink: () => wait({ url: 'https://s2.ta.kingoftime.jp/' }),
     getDailyReportInit: () => wait(myReport
-      ? { name: currentUser.name, date: today(), mode: 'edit', report: myReport }
+      ? { name: currentUser.name, date: today(), mode: 'edit', report: myReport, issues: issues.filter(i => !myReport.prevIssues.some(p => p.id === i.id) && i.date !== today()) }
       : { name: currentUser.name, date: today(), mode: 'new', issues }),
     saveDailyReport: ({ report }) => {
       if (report.id) {
