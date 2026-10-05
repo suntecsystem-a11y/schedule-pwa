@@ -19,7 +19,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 input,select{font-family:inherit;outline:none}
 
 /* ローディングオーバーレイ */
-#loading{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+#loading{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:1500;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px}
 #loading.show{display:flex}
 .spinner{width:40px;height:40px;border:3px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -454,7 +454,7 @@ input,select{font-family:inherit;outline:none}
 .fab{position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--primary);color:white;font-size:1.5em;box-shadow:0 4px 16px rgba(92,107,192,.5);z-index:150;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s}
 .fab:hover{box-shadow:0 6px 20px rgba(92,107,192,.65);transform:scale(1.05)}
 .fab:active{transform:scale(.92)}
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:#323232;color:white;padding:10px 20px;border-radius:20px;font-size:0.85em;z-index:300;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);background:#323232;color:white;padding:10px 20px;border-radius:20px;font-size:0.85em;z-index:2000;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* PINモーダル内 */
@@ -5874,6 +5874,7 @@ async function openDailyReport() {
       <div id="dr-new-issues"></div>
       <button id="dr-add-issue-btn" onclick="addDrNewIssue()" style="margin-top:8px;padding:6px 12px;border-radius:8px;border:1.5px dashed var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">${t('dr.add')}</button>
     </div>
+    <div id="dr-error" role="alert" style="display:none;margin-bottom:10px;padding:8px 12px;border-radius:8px;background:#ffebee;color:#c62828;font-size:0.85em;font-weight:600"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
       <button id="dr-submit-btn" onclick="submitDailyReport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">${t('common.send')}</button>
@@ -5893,13 +5894,24 @@ function addDrNewIssue() {
   document.getElementById('dr-new-issues').appendChild(wrap);
 }
 
+// 入力画面の中にエラーを表示し、該当箇所までスクロールする
+function _drError(msg, el) {
+  const box = document.getElementById('dr-error');
+  if (box) { box.textContent = msg; box.style.display = ''; }
+  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.style.borderColor = '#e53935'; }
+  else if (box) box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  showToast(msg);
+}
+
 async function submitDailyReport() {
+  const errBox = document.getElementById('dr-error'); if (errBox) errBox.style.display = 'none';
+  document.querySelectorAll('.dr-prev, .dr-new').forEach(el => { el.style.borderColor = ''; });
   const prevIssues = [];
   for (const el of document.querySelectorAll('.dr-prev')) {
     const result = el.querySelector('input[type=radio]:checked')?.value;
     const note = el.querySelector('.dr-prev-note').value.trim();
-    if (!result) { showToast(t('dr.err.result')); return; }
-    if (!note) { showToast(t('dr.err.note')); return; }
+    if (!result) { _drError(t('dr.err.result'), el); return; }
+    if (!note) { _drError(t('dr.err.note'), el); return; }
     prevIssues.push({ id: el.dataset.id, result, note });
   }
   const newIssues = [];
@@ -5907,10 +5919,10 @@ async function submitDailyReport() {
     const content = el.querySelector('.dr-new-content').value.trim();
     const reason = el.querySelector('.dr-new-reason').value.trim();
     if (!content && !reason) continue;
-    if (!content || !reason) { showToast(t('dr.err.new')); return; }
+    if (!content || !reason) { _drError(t('dr.err.new'), el); return; }
     newIssues.push({ content, reason });
   }
-  if (!prevIssues.length && !newIssues.length) { showToast(t('dr.err.empty')); return; }
+  if (!prevIssues.length && !newIssues.length) { _drError(t('dr.err.empty')); return; }
   const report = { date: document.getElementById('dr-date').value, prevIssues, newIssues };
   const btn = document.getElementById('dr-submit-btn');
   btn.disabled = true; btn.textContent = t('dr.sending');
@@ -5920,7 +5932,7 @@ async function submitDailyReport() {
     showToast(t('dr.saved'));
     loadIssueCheck();
   } catch(e) {
-    showToast(e.message);
+    _drError(e.message);
     btn.disabled = false; btn.textContent = t('common.send');
   }
 }
