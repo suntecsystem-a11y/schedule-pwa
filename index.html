@@ -1548,6 +1548,16 @@ let currentLang = localStorage.getItem('sch_lang') || 'ja';
 const I18N = {
 ja:{
 // Daily Action／今日の課題
+'dr.export.btn':'⬇ CSV',
+'dr.export.title':'Daily Action CSV出力（全社）',
+'dr.export.thisweek':'今週',
+'dr.export.lastweek':'先週',
+'dr.export.from':'開始日',
+'dr.export.to':'終了日',
+'dr.export.run':'出力',
+'dr.export.range':'期間を正しく指定してください',
+'dr.export.none':'この期間のDaily Actionはありません',
+'dr.export.done':'{n}行のCSVを出力しました',
 'dr.dept.count':'確認済み {done} / {total}名',
 'dr.dept.none':'（部門未設定）',
 'kot.open':'🕒 KING OF TIME（打刻・勤怠）',
@@ -1882,6 +1892,16 @@ ja:{
 },
 vi:{
 // Daily Action／今日の課題
+'dr.export.btn':'⬇ CSV',
+'dr.export.title':'Xuất CSV Daily Action (toàn công ty)',
+'dr.export.thisweek':'Tuần này',
+'dr.export.lastweek':'Tuần trước',
+'dr.export.from':'Từ ngày',
+'dr.export.to':'Đến ngày',
+'dr.export.run':'Xuất',
+'dr.export.range':'Hãy chọn khoảng thời gian hợp lệ',
+'dr.export.none':'Không có Daily Action trong khoảng này',
+'dr.export.done':'Đã xuất CSV {n} dòng',
 'dr.dept.count':'Đã xác nhận {done} / {total}',
 'dr.dept.none':'(Chưa có bộ phận)',
 'kot.open':'🕒 KING OF TIME (chấm công)',
@@ -2192,6 +2212,16 @@ vi:{
 },
 ne:{
 // Daily Action／今日の課題
+'dr.export.btn':'⬇ CSV',
+'dr.export.title':'Daily Action CSV निर्यात (सबै)',
+'dr.export.thisweek':'यो हप्ता',
+'dr.export.lastweek':'गत हप्ता',
+'dr.export.from':'सुरु मिति',
+'dr.export.to':'अन्त्य मिति',
+'dr.export.run':'निर्यात',
+'dr.export.range':'सही अवधि छान्नुहोस्',
+'dr.export.none':'यो अवधिमा Daily Action छैन',
+'dr.export.done':'{n} पङ्क्तिको CSV निर्यात भयो',
 'dr.dept.count':'पुष्टि {done} / {total} जना',
 'dr.dept.none':'(विभाग छैन)',
 'kot.open':'🕒 KING OF TIME (हाजिरी)',
@@ -5715,7 +5745,7 @@ function renderIssueCheck() {
   const area = document.getElementById('issue-check-area');
   if (!area) return;
   if (!_issueData) { area.style.display = 'none'; return; }
-  const { issues = [], check, canViewTeam } = _issueData;
+  const { issues = [], check, canViewTeam, canExport } = _issueData;
   const list = issues.length
     ? issues.map((i, n) => `
         <div style="display:flex;gap:8px;padding:8px 10px;background:#fff8e1;border-radius:8px;margin-bottom:6px">
@@ -5734,7 +5764,10 @@ function renderIssueCheck() {
     <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #f57c00">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span style="font-size:0.82em;font-weight:700;color:var(--text2)">${t('dr.title')}</span>
+        <span style="display:flex;gap:6px">
+        ${canExport ? `<button onclick="openDailyActionExport()" style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;font-size:0.75em;cursor:pointer">${t('dr.export.btn')}</button>` : ''}
         ${canViewTeam ? `<button onclick="openTeamIssueChecks()" style="padding:4px 10px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.75em;cursor:pointer">${t('dr.team.btn')}</button>` : ''}
+        </span>
       </div>
       ${list}
       <div style="display:flex;gap:8px;margin-top:8px">
@@ -5892,6 +5925,57 @@ async function submitDailyReport() {
   }
 }
 
+
+// ---- Daily Action CSV出力（期間指定。GAS: exportDailyActionCsv） ----
+function _drWeekRange(offsetWeeks) {
+  const d = new Date();
+  const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7) + offsetWeeks * 7);
+  const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+  return [fmtDate(mon), fmtDate(sun)];
+}
+function setDrExportRange(offsetWeeks) {
+  const [from, to] = _drWeekRange(offsetWeeks);
+  document.getElementById('dr-exp-from').value = from;
+  document.getElementById('dr-exp-to').value = to;
+}
+function openDailyActionExport() {
+  const [from, to] = _drWeekRange(0);
+  const inp = 'display:block;width:100%;margin-top:4px;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;background:var(--bg)';
+  const chip = 'padding:5px 12px;border-radius:20px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.8em;cursor:pointer';
+  openDrModal(`
+    <h3 style="margin:0 0 12px;font-size:1em;font-weight:700">${t('dr.export.title')}</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button onclick="setDrExportRange(0)" style="${chip}">${t('dr.export.thisweek')}</button>
+      <button onclick="setDrExportRange(-1)" style="${chip}">${t('dr.export.lastweek')}</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <label style="font-size:0.82em;font-weight:700;color:var(--text2)">${t('dr.export.from')}<input id="dr-exp-from" type="date" value="${from}" style="${inp}"></label>
+      <label style="font-size:0.82em;font-weight:700;color:var(--text2)">${t('dr.export.to')}<input id="dr-exp-to" type="date" value="${to}" style="${inp}"></label>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
+      <button onclick="runDailyActionExport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">${t('dr.export.run')}</button>
+    </div>`);
+}
+async function runDailyActionExport() {
+  const from = document.getElementById('dr-exp-from').value;
+  const to = document.getElementById('dr-exp-to').value;
+  if (!from || !to || from > to) { showToast(t('dr.export.range')); return; }
+  let res;
+  try {
+    res = await api('exportDailyActionCsv', { from, to }, t('common.loading'));
+  } catch(e) { showToast(e.message); return; }
+  if (!res.count) { showToast(t('dr.export.none')); return; }
+  const blob = new Blob(['\uFEFF' + res.csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = res.filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  closeDrModal();
+  showToast(t('dr.export.done', { n: res.count }));
+}
+
 // ---- KING OF TIME：従業員名簿のKOTリンク（本人分のみGASから取得） ----
 let _kotUrl = '';
 async function loadKotLink() {
@@ -5923,7 +6007,7 @@ const DR_DEMO_API = (() => {
   let myCheck = null;
   const wait = v => new Promise(r => setTimeout(() => r(JSON.parse(JSON.stringify(v))), 300));
   return {
-    getTodayIssues: () => wait({ date: today(), issues, check: myCheck,
+    getTodayIssues: () => wait({ date: today(), issues, check: myCheck, canExport: true,
       canViewTeam: !!(currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般')) }),
     confirmIssueCheck: () => {
       const already = !!myCheck;
@@ -5935,6 +6019,8 @@ const DR_DEMO_API = (() => {
       members: USERS.map(u => ({ id: u.id, name: u.name, dept: u.dept,
         checkedAt: u.id === currentUser.id ? myCheck?.checkedAt || null : (checks[u.id] ? iso(checks[u.id]) : null) })),
     }),
+    exportDailyActionCsv: ({ from, to }) => wait({ filename: `DailyAction_全社_${from.replace(/-/g,'')}-${to.replace(/-/g,'')}.csv`, count: 1,
+      csv: '記入日,氏名,組織名,区分,課題No,課題内容,結果,取り組み内容・理由,課題の現在の状態\r\n' + from + ',田中 花子,営業部,本日感じた課題,99,デモ用の課題,,デモ,未解決' }),
     getMyKotLink: () => wait({ url: 'https://s2.ta.kingoftime.jp/' }),
     getDailyReportInit: () => wait({ name: currentUser.name, date: today(), issues }),
     saveDailyReport: ({ report }) => {
