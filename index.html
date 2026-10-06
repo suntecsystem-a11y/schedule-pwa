@@ -6636,7 +6636,7 @@ function renderMyPage() {
       ${_resultNotifs.map(n => {
         const isApproved = n.type === 'approved';
         const isApply = n.source === 'apply';
-        const applyLabels = { leave:'🌴 休暇申請', other:'📝 その他申請', rental:'📱 端末貸出', expense:'💴 出張費精算' };
+        const applyLabels = { leave:'🌴 休暇申請', other:'📝 その他申請', rental:'📱 端末貸出', expense:'💴 出張費精算', transport:'🚃 交通費精算' };
         const ev = isApply ? null : events.find(e => String(e.id) === String(n.eventId));
         const detailLine = isApply
           ? `<br>${applyLabels[n.appType] || '📋 申請'}${n.summary ? '　' + esc(n.summary) : ''}`
@@ -6650,6 +6650,7 @@ function renderMyPage() {
             ${t('my.approver.label')}${esc(n.approverName||'—')}
             ${detailLine}
             ${n.rejectionReason?`<br><span style="color:#c62828">${t('my.reject.reason')}${esc(n.rejectionReason)}</span>`:''}
+            ${isApproved && n.appType === 'transport' ? '<br><span style="color:#1565c0;font-weight:700;">💰 1週間以内に総務に取りに来てください</span>' : ''}
           </div>
           <button class="notif-dismiss" style="border-color:${isApproved?'#81c784':'#ef9a9a'};color:${isApproved?'#388e3c':'#c62828'}" onclick="dismissApprovalNotifLocal('${n.eventId}')">${t('my.dismiss')}</button>
         </div>`;
