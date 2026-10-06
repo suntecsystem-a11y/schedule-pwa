@@ -1190,11 +1190,14 @@ async function _loadApproverData() {
   if (document.getElementById('new-type').value) renderNewFields();
 }
 
-function getApproverSectionHTML() {
+function getApproverSectionHTML(appType) {
   if (!approverData) return '<div style="margin-top:14px;padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 承認者情報の取得に失敗しました。<button onclick="_loadApproverData()" style="margin-left:8px;padding:4px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;cursor:pointer;font-size:12px;">再取得</button></div>';
-  const shuninUp = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
+  let candidates = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
+  if (appType === 'transport') {
+    candidates = candidates.filter(a => (a.dept || '').includes('総務'));
+  }
   const isSelf = id => !approverData.isIppan && id === currentUser.id;
-  const options = shuninUp.map(a =>
+  const options = candidates.map(a =>
     `<option value="${esc(a.id)}">${esc(a.name)}${isSelf(a.id) ? '（自分・自動承認）' : ''} [${esc(a.role)}]</option>`
   ).join('');
   return `<label>承認者 <span style="color:var(--danger)">*</span></label>
@@ -1275,8 +1278,8 @@ function renderNewFields() {
   } else if (type === 'transport') {
     el.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div><label>日程（開始）</label><input type="date" id="f-tr-period-start"></div>
-        <div><label>日程（終了）</label><input type="date" id="f-tr-period-end"></div>
+        <div><label>日程（開始）</label><input type="date" id="f-tr-period-start" onchange="updateTransportDateRange()"></div>
+        <div><label>日程（終了）</label><input type="date" id="f-tr-period-end" onchange="updateTransportDateRange()"></div>
       </div>
       <label>行き先</label><input type="text" id="f-tr-dest" placeholder="例: 本社(通勤)">
       <label>明細</label>
@@ -1288,7 +1291,7 @@ function renderNewFields() {
       </div>
       <button type="button" class="btn-add-row" onclick="addTransportRow()">＋ 行を追加</button>
       <div id="transport-total-display" style="text-align:right;font-size:15px;font-weight:700;color:var(--primary);margin-top:8px;">合計：0 円</div>
-      ${getApproverSectionHTML()}
+      ${getApproverSectionHTML('transport')}
     `;
     addTransportRow();
   } else if (type === 'change') {
@@ -1354,9 +1357,11 @@ function calcTransportTotal() {
 
 function addTransportRow() {
   const tbody = document.getElementById('transport-rows');
+  const minDate = document.getElementById('f-tr-period-start')?.value || '';
+  const maxDate = document.getElementById('f-tr-period-end')?.value || '';
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="date"></td>
+    <td><input type="date" ${minDate ? `min="${minDate}"` : ''} ${maxDate ? `max="${maxDate}"` : ''}></td>
     <td><input type="text" placeholder="大阪メトロ"></td>
     <td><input type="text" placeholder="なんば"></td>
     <td><input type="text" placeholder="梅田"></td>
@@ -1366,6 +1371,15 @@ function addTransportRow() {
   `;
   tbody.appendChild(tr);
   calcTransportTotal();
+}
+
+function updateTransportDateRange() {
+  const minDate = document.getElementById('f-tr-period-start')?.value || '';
+  const maxDate = document.getElementById('f-tr-period-end')?.value || '';
+  document.querySelectorAll('#transport-rows input[type="date"]').forEach(inp => {
+    inp.min = minDate;
+    inp.max = maxDate;
+  });
 }
 
 async function submitTransport() {
