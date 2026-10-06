@@ -847,7 +847,7 @@ function renderApplyDetail(appType, r) {
           <table class="detail-table">
             <thead><tr><th>日付</th><th>利用機関</th><th>出発地</th><th>到着地</th><th>金額</th><th>備考</th></tr></thead>
             <tbody>${details.map(d => `<tr>
-              <td>${esc(d.date||'')}</td><td>${esc(d.facility||'')}</td>
+              <td style="white-space:nowrap">${esc(_trDateRange(d))}</td><td>${esc(d.facility||'')}</td>
               <td>${esc(d.from||'')}</td><td>${esc(d.to||'')}</td>
               <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
               <td>${esc(d.memo||'')}</td>
@@ -1134,13 +1134,14 @@ async function _fillFormFromRecord(appType, r) {
         c.details.forEach(d => {
           addTransportRow();
           const tr = rows.lastElementChild;
-          const inputs = tr.querySelectorAll('input');
-          if (d.date)     inputs[0].value = d.date;
-          if (d.facility) inputs[1].value = d.facility;
-          if (d.from)     inputs[2].value = d.from;
-          if (d.to)       inputs[3].value = d.to;
-          if (d.amount)   inputs[4].value = d.amount;
-          if (d.memo)     inputs[5].value = d.memo;
+          const s = (f, v) => { const el = tr.querySelector(`[data-f="${f}"]`); if (el && v) el.value = v; };
+          s('dateFrom', d.dateFrom || d.date); // 旧形式（単一date）との後方互換
+          s('dateTo',   d.dateTo   || d.date);
+          s('facility', d.facility);
+          s('from',     d.from);
+          s('to',       d.to);
+          s('amount',   d.amount);
+          s('memo',     d.memo);
         });
         calcTransportTotal();
       }
@@ -1199,9 +1200,14 @@ function getApproverSectionHTML(appType) {
   let candidates;
   if (appType === 'transport') {
     // 交通費精算は総務が窓口のため、組織名に「総務」を含む全員（役職不問）
-    candidates = (approverData.somuApprovers || []).slice();
-    if (!candidates.length) {
-      return '<label>承認者 <span style="color:var(--danger)">*</span></label><div style="padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 組織名に「総務」を含む社員が見つかりませんでした。総務担当者にご確認ください。</div>';
+    const warn = msg => `<label>承認者 <span style="color:var(--danger)">*</span></label><div style="padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ ${msg}</div>`;
+    if (!Array.isArray(approverData.somuApprovers)) {
+      // 旧GASはsomuApproversを返さない → 既存リストから暫定で総務を拾う
+      candidates = (approverData.selectableApprovers || []).filter(a => (a.dept || '').includes('総務'));
+      if (!candidates.length) return warn('承認者候補を取得できませんでした。GASの再デプロイが必要な可能性があります（管理者にご連絡ください）。');
+    } else {
+      candidates = approverData.somuApprovers.slice();
+      if (!candidates.length) return warn('組織名に「総務」を含む社員が見つかりませんでした。総務担当者にご確認ください。');
     }
   } else {
     candidates = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
@@ -1358,7 +1364,7 @@ function calcTransportTotal() {
   const rows = document.getElementById('transport-rows');
   if (!rows) return;
   const total = [...rows.querySelectorAll('tr')].reduce((sum, tr) => {
-    const amt = Number(tr.querySelectorAll('input')[4]?.value || 0);
+    const amt = Number(tr.querySelector('[data-f="amount"]')?.value || 0);
     return sum + (isNaN(amt) ? 0 : amt);
   }, 0);
   const el = document.getElementById('transport-total-display');
@@ -1369,18 +1375,30 @@ function addTransportRow() {
   const tbody = document.getElementById('transport-rows');
   const minDate = document.getElementById('f-tr-period-start')?.value || '';
   const maxDate = document.getElementById('f-tr-period-end')?.value || '';
+  const range = `${minDate ? `min="${minDate}"` : ''} ${maxDate ? `max="${maxDate}"` : ''}`;
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td><input type="date" ${minDate ? `min="${minDate}"` : ''} ${maxDate ? `max="${maxDate}"` : ''}></td>
-    <td><input type="text" placeholder="大阪メトロ"></td>
-    <td><input type="text" placeholder="なんば"></td>
-    <td><input type="text" placeholder="梅田"></td>
-    <td><input type="number" placeholder="0" style="width:70px" oninput="calcTransportTotal()"></td>
-    <td><input type="text" placeholder="備考"></td>
+    <td style="white-space:nowrap">
+      <input type="date" data-f="dateFrom" ${range} style="width:132px">
+      <span style="margin:0 2px;color:var(--text-sub)">〜</span>
+      <input type="date" data-f="dateTo" ${range} style="width:132px">
+    </td>
+    <td><input type="text" data-f="facility" placeholder="大阪メトロ"></td>
+    <td><input type="text" data-f="from" placeholder="なんば"></td>
+    <td><input type="text" data-f="to" placeholder="梅田"></td>
+    <td><input type="number" data-f="amount" placeholder="0" style="width:70px" oninput="calcTransportTotal()"></td>
+    <td><input type="text" data-f="memo" placeholder="備考"></td>
     <td><button class="btn-del-row" onclick="this.closest('tr').remove();calcTransportTotal()">✕</button></td>
   `;
   tbody.appendChild(tr);
   calcTransportTotal();
+}
+
+// 明細の日付「開始〜終了」を表示用の文字列にする（旧形式のdateも拾う）
+function _trDateRange(d) {
+  const a = d.dateFrom || d.date || '';
+  const b = d.dateTo || '';
+  return b && b !== a ? `${a} 〜 ${b}` : a;
 }
 
 function updateTransportDateRange() {
@@ -1401,8 +1419,8 @@ async function submitTransport() {
   const approverEmpId = _getSelectedApproverEmpId();
   const rows = document.getElementById('transport-rows');
   const details = [...rows.querySelectorAll('tr')].map(tr => {
-    const inputs = tr.querySelectorAll('input');
-    return { date: inputs[0].value, facility: inputs[1].value, from: inputs[2].value, to: inputs[3].value, amount: Number(inputs[4].value || 0), memo: inputs[5].value };
+    const g = f => tr.querySelector(`[data-f="${f}"]`)?.value || '';
+    return { dateFrom: g('dateFrom'), dateTo: g('dateTo'), facility: g('facility'), from: g('from'), to: g('to'), amount: Number(g('amount') || 0), memo: g('memo') };
   });
   const total = details.reduce((s, d) => s + (isNaN(d.amount) ? 0 : d.amount), 0);
   const content = JSON.stringify({
@@ -1418,7 +1436,7 @@ function printTransportPDF(r) {
   const details = c.details || [];
   const detailRows = details.map(d => `
     <tr>
-      <td>${esc(d.date||'')}</td><td>${esc(d.facility||'')}</td>
+      <td style="white-space:nowrap">${esc(_trDateRange(d))}</td><td>${esc(d.facility||'')}</td>
       <td>${esc(d.from||'')}</td><td>${esc(d.to||'')}</td>
       <td style="text-align:right">${Number(d.amount||0).toLocaleString()}</td>
       <td>${esc(d.memo||'')}</td>
