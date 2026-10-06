@@ -513,7 +513,8 @@ function initMain() {
   document.getElementById('tab-all-btn').style.display     = currentUser.isAdmin ? '' : 'none';
   showScreen('main');
   loadTab('mine');
-  if (canApprove) loadPendingBadge();
+  // 一般社員でも承認者に指名されていればタブを出す（交通費精算を総務が承認するケース）
+  loadPendingBadge();
   refreshOnboardingEligibility(); // 起動時に先読みしてキャッシュ（モーダルを開いたとき即表示するため）
 }
 
@@ -535,7 +536,10 @@ async function refreshOnboardingEligibility() {
 async function loadPendingBadge() {
   try {
     const data = await gas({ action: 'getApplyPending', token: currentToken });
-    updatePendingBadge(data.count || 0);
+    const count = data.count || 0;
+    updatePendingBadge(count);
+    // 役職が一般でも承認者に指名された申請があればタブを出す
+    if (count > 0) document.getElementById('tab-pending-btn').style.display = '';
   } catch {}
 }
 
@@ -1192,13 +1196,19 @@ async function _loadApproverData() {
 
 function getApproverSectionHTML(appType) {
   if (!approverData) return '<div style="margin-top:14px;padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 承認者情報の取得に失敗しました。<button onclick="_loadApproverData()" style="margin-left:8px;padding:4px 12px;border:1px solid #e65100;border-radius:6px;background:#fff;color:#e65100;cursor:pointer;font-size:12px;">再取得</button></div>';
-  let candidates = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
+  let candidates;
   if (appType === 'transport') {
-    candidates = candidates.filter(a => (a.dept || '').includes('総務'));
+    // 交通費精算は総務が窓口のため、組織名に「総務」を含む全員（役職不問）
+    candidates = (approverData.somuApprovers || []).slice();
+    if (!candidates.length) {
+      return '<label>承認者 <span style="color:var(--danger)">*</span></label><div style="padding:10px;background:#fff3e0;border-radius:8px;font-size:13px;color:#e65100;">⚠ 組織名に「総務」を含む社員が見つかりませんでした。総務担当者にご確認ください。</div>';
+    }
+  } else {
+    candidates = (approverData.selectableApprovers || []).filter(a => a.role && a.role !== '一般');
   }
   const isSelf = id => !approverData.isIppan && id === currentUser.id;
   const options = candidates.map(a =>
-    `<option value="${esc(a.id)}">${esc(a.name)}${isSelf(a.id) ? '（自分・自動承認）' : ''} [${esc(a.role)}]</option>`
+    `<option value="${esc(a.id)}">${esc(a.name)}${isSelf(a.id) ? '（自分・自動承認）' : ''}${a.role ? ' [' + esc(a.role) + ']' : ''}</option>`
   ).join('');
   return `<label>承認者 <span style="color:var(--danger)">*</span></label>
     <select id="f-approver-id">
