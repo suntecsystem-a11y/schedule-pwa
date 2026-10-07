@@ -6600,13 +6600,36 @@ function renderMyPage() {
   // 承認結果通知（request タイプは承認依頼なので結果通知から除外）
   const approvalNotifs = getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected');
 
+  // 申請アプリからの承認依頼（自分が承認者に指名されたもの）
+  const applyRequests = getApprovalPendingNotifs().filter(n=>n.type==='request');
+
   // 承認待ち件数（主任のみ）
   const pendingApprovals = getPendingApprovals();
 
   // バッジ更新
-  updateNotifBadge(approvalNotifs.length + pendingApprovals.length);
+  updateNotifBadge(approvalNotifs.length + pendingApprovals.length + applyRequests.length);
 
   document.getElementById('mypage-content').innerHTML = `
+    <!-- 申請の承認依頼 -->
+    ${applyRequests.length ? `
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #e65100">
+      <div style="font-size:0.72em;color:#e65100;font-weight:700;letter-spacing:.05em;margin-bottom:10px">承認をお願いします（${applyRequests.length}件）</div>
+      ${applyRequests.map(n => {
+        const applyLabels = { leave:'🌴 休暇申請', other:'📝 その他申請', rental:'📱 端末貸出', expense:'💴 出張費精算', transport:'🚃 交通費精算' };
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1">
+              <div style="font-size:0.88em;font-weight:700">${applyLabels[n.appType] || '📋 申請'}</div>
+              <div style="font-size:0.75em;color:var(--text2);margin-top:2px">
+                ${esc(n.applicantName || '')}${n.summary ? '　' + esc(n.summary) : ''}
+              </div>
+            </div>
+            <button class="btn-primary" style="padding:6px 12px;font-size:0.78em;margin-top:0;width:auto" onclick="location.href='./apply-pwa/'">${t('my.check')}</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
     <!-- 承認待ち（主任向け） -->
     ${pendingApprovals.length ? `
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #e65100">
@@ -6650,7 +6673,7 @@ function renderMyPage() {
             ${t('my.approver.label')}${esc(n.approverName||'—')}
             ${detailLine}
             ${n.rejectionReason?`<br><span style="color:#c62828">${t('my.reject.reason')}${esc(n.rejectionReason)}</span>`:''}
-            ${isApproved && n.appType === 'transport' ? '<br><span style="color:#1565c0;font-weight:700;">💰 1週間以内に総務に取りに来てください</span>' : ''}
+            ${isApproved && n.appType === 'transport' ? '<div style="margin-top:8px;padding:8px 10px;background:#ffebee;border:1px solid #ef9a9a;border-radius:6px;color:#c62828;font-weight:700;font-size:1.05em;">⚠ 1週間以内に総務に取りに来てください</div>' : ''}
           </div>
           <button class="notif-dismiss" style="border-color:${isApproved?'#81c784':'#ef9a9a'};color:${isApproved?'#388e3c':'#c62828'}" onclick="dismissApprovalNotifLocal('${n.eventId}')">${t('my.dismiss')}</button>
         </div>`;
@@ -7039,7 +7062,7 @@ async function checkApprovalNotifs() {
     const filtered = notifs.filter(n => !dismissed.has(String(n.eventId)));
     localStorage.setItem(pendingKey, JSON.stringify(filtered));
     const carCount = getPendingNotifs().length;
-    const approvalCount = filtered.filter(n => n.type === 'approved' || n.type === 'rejected').length;
+    const approvalCount = filtered.filter(n => n.type === 'approved' || n.type === 'rejected' || n.type === 'request').length;
     const pendingApprovalCount = getPendingApprovals().length;
     updateNotifBadge(carCount + approvalCount + pendingApprovalCount);
   } catch(e) {
