@@ -1587,7 +1587,11 @@ ja:{
 'dr.export.range':'期間を正しく指定してください',
 'dr.export.none':'この期間のDaily Actionはありません',
 'dr.export.done':'{n}行のCSVを出力しました',
-'dr.dept.count':'確認済み {done} / {total}名',
+'dr.dept.count':'確認 {done}・前日DA {prev}・当日DA {today} / {total}名',
+'dr.col.prev':'前日DA',
+'dr.col.check':'課題確認',
+'dr.col.today':'当日DA',
+'dr.notSubmitted':'未提出',
 'dr.dept.none':'（部門未設定）',
 'kot.open':'🕒 KING OF TIME（打刻・勤怠）',
 'dr.title':'📌 今日の課題',
@@ -1599,7 +1603,7 @@ ja:{
 'dr.already':'本日はすでに確認済みです',
 'dr.recorded':'確認を記録しました',
 'dr.team.title':'👥 課題確認状況',
-'dr.scope':'対象：{scope}　確認済み {done} / {total}名',
+'dr.scope':'対象：{scope}　確認済み {done} / {total}名　前日（{prevDate}）のDaily Action 提出 {prev} / {total}名',
 'dr.scope.all':'全員',
 'dr.scope.dept':'{dept}（同部署）',
 'dr.unchecked':'未確認',
@@ -1960,7 +1964,11 @@ vi:{
 'dr.export.range':'Hãy chọn khoảng thời gian hợp lệ',
 'dr.export.none':'Không có Daily Action trong khoảng này',
 'dr.export.done':'Đã xuất CSV {n} dòng',
-'dr.dept.count':'Đã xác nhận {done} / {total}',
+'dr.dept.count':'Xác nhận {done}・DA hôm trước {prev}・DA hôm nay {today} / {total}',
+'dr.col.prev':'DA hôm trước',
+'dr.col.check':'Xác nhận',
+'dr.col.today':'DA hôm nay',
+'dr.notSubmitted':'Chưa nộp',
 'dr.dept.none':'(Chưa có bộ phận)',
 'kot.open':'🕒 KING OF TIME (chấm công)',
 'dr.title':'📌 Vấn đề hôm nay',
@@ -1972,7 +1980,7 @@ vi:{
 'dr.already':'Hôm nay bạn đã xác nhận rồi',
 'dr.recorded':'Đã ghi nhận xác nhận',
 'dr.team.title':'👥 Tình trạng xác nhận vấn đề',
-'dr.scope':'Phạm vi: {scope}　Đã xác nhận {done} / {total} người',
+'dr.scope':'Phạm vi: {scope}　Đã xác nhận {done} / {total} người　Daily Action ngày trước ({prevDate}) đã nộp {prev} / {total} người',
 'dr.scope.all':'Tất cả',
 'dr.scope.dept':'{dept} (cùng bộ phận)',
 'dr.unchecked':'Chưa xác nhận',
@@ -2309,7 +2317,11 @@ ne:{
 'dr.export.range':'सही अवधि छान्नुहोस्',
 'dr.export.none':'यो अवधिमा Daily Action छैन',
 'dr.export.done':'{n} पङ्क्तिको CSV निर्यात भयो',
-'dr.dept.count':'पुष्टि {done} / {total} जना',
+'dr.dept.count':'पुष्टि {done}・अघिल्लो DA {prev}・आजको DA {today} / {total} जना',
+'dr.col.prev':'अघिल्लो DA',
+'dr.col.check':'पुष्टि',
+'dr.col.today':'आजको DA',
+'dr.notSubmitted':'पेश भएको छैन',
 'dr.dept.none':'(विभाग छैन)',
 'kot.open':'🕒 KING OF TIME (हाजिरी)',
 'dr.title':'📌 आजका समस्याहरू',
@@ -2321,7 +2333,7 @@ ne:{
 'dr.already':'आज पहिले नै पुष्टि गरिसक्नुभयो',
 'dr.recorded':'पुष्टि रेकर्ड गरियो',
 'dr.team.title':'👥 समस्या पुष्टि स्थिति',
-'dr.scope':'दायरा: {scope}　पुष्टि भयो {done} / {total} जना',
+'dr.scope':'दायरा: {scope}　पुष्टि भयो {done} / {total} जना　अघिल्लो दिन ({prevDate}) को Daily Action पेश {prev} / {total} जना',
 'dr.scope.all':'सबै',
 'dr.scope.dept':'{dept} (उही विभाग)',
 'dr.unchecked':'पुष्टि भएको छैन',
@@ -5896,6 +5908,12 @@ async function openTeamIssueChecks(date) {
   } catch(e) { showToast(e.message); return; }
   const members = res.members || [];
   const done = members.filter(m => m.checkedAt).length;
+  const prevDone = members.filter(m => m.prevReportedAt).length;
+  const prevLabel = res.prevDate ? res.prevDate.slice(5).replace('-', '/') : '';
+  // 1マス分の表示（済みは時刻、未は赤字）
+  const cell = (at, ngKey) => at
+    ? `<span style="color:#2e7d32;font-weight:700;width:72px;text-align:center">✅ ${_drTime(at)}</span>`
+    : `<span style="color:#e53935;font-weight:700;width:72px;text-align:center;font-size:0.92em">${t(ngKey)}</span>`;
   // 部門ごとにまとめる（人数の多い部門から）。部門内は未確認→確認済み（時刻順）
   const byDept = {};
   members.forEach(m => { (byDept[m.dept || t('dr.dept.none')] ||= []).push(m); });
@@ -5904,18 +5922,18 @@ async function openTeamIssueChecks(date) {
     const list = byDept[dept].sort((a, b) =>
       (a.checkedAt ? 1 : 0) - (b.checkedAt ? 1 : 0) || String(a.checkedAt || '').localeCompare(String(b.checkedAt || '')));
     const deptDone = list.filter(m => m.checkedAt).length;
+    const deptPrev = list.filter(m => m.prevReportedAt).length;
+    const deptToday = list.filter(m => m.reportedAt).length;
     return `
     <div style="margin-top:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 4px;border-bottom:2px solid var(--border)">
         <span style="font-size:0.88em;font-weight:700">${esc(dept)}</span>
-        <span style="font-size:0.76em;color:${deptDone === list.length ? '#2e7d32' : 'var(--text2)'};font-weight:600">${esc(t('dr.dept.count', { done: deptDone, total: list.length }))}</span>
+        <span style="font-size:0.76em;color:${deptDone === list.length ? '#2e7d32' : 'var(--text2)'};font-weight:600">${esc(t('dr.dept.count', { done: deptDone, prev: deptPrev, today: deptToday, total: list.length }))}</span>
       </div>
       ${list.map(m => `
       <div style="display:flex;align-items:center;gap:8px;padding:7px 4px 7px 12px;border-bottom:1px solid var(--border);font-size:0.86em">
-        <span style="flex:1">${esc(m.name)}</span>
-        ${m.checkedAt
-          ? `<span style="color:#2e7d32;font-weight:700;min-width:84px;text-align:right">✅ ${_drTime(m.checkedAt)}</span>`
-          : `<span style="color:#e53935;font-weight:700;min-width:84px;text-align:right">${t('dr.unchecked')}</span>`}
+        <span style="flex:1;min-width:0">${esc(m.name)}</span>
+        ${cell(m.prevReportedAt, 'dr.notSubmitted')}${cell(m.checkedAt, 'dr.unchecked')}${cell(m.reportedAt, 'dr.notSubmitted')}
       </div>`).join('')}
     </div>`;
   }).join('');
@@ -5924,7 +5942,13 @@ async function openTeamIssueChecks(date) {
       <h3 style="margin:0;font-size:1em;font-weight:700">${t('dr.team.title')}</h3>
       <input type="date" value="${res.date}" onchange="openTeamIssueChecks(this.value)" style="padding:4px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em">
     </div>
-    <div style="font-size:0.8em;color:var(--text2);margin-bottom:8px">${esc(t('dr.scope',{scope: res.scope === 'all' ? t('dr.scope.all') : t('dr.scope.dept',{dept:res.scope}), done, total: members.length}))}</div>
+    <div style="font-size:0.8em;color:var(--text2);margin-bottom:8px">${esc(t('dr.scope',{scope: res.scope === 'all' ? t('dr.scope.all') : t('dr.scope.dept',{dept:res.scope}), done, total: members.length, prev: prevDone, prevDate: prevLabel}))}</div>
+    <div style="display:flex;gap:8px;padding:4px 4px 4px 12px;font-size:0.72em;color:var(--text2);font-weight:600;position:sticky;top:0;background:white">
+      <span style="flex:1"></span>
+      <span style="width:72px;text-align:center">${t('dr.col.prev')}<br>${prevLabel}</span>
+      <span style="width:72px;text-align:center">${t('dr.col.check')}<br>${res.date.slice(5).replace('-', '/')}</span>
+      <span style="width:72px;text-align:center">${t('dr.col.today')}<br>${res.date.slice(5).replace('-', '/')}</span>
+    </div>
     ${rows || '<div style="font-size:0.85em;color:var(--text2)">' + t('dr.team.empty') + '</div>'}
     <div style="text-align:right;margin-top:14px">
       <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.close')}</button>
@@ -6218,11 +6242,16 @@ const DR_DEMO_API = (() => {
         depts: USERS.map(u => ({ dept: u.dept, total: 1, checkedToday: u.id === '1002' ? 1 : 0, reportedToday: 0, checkedRate: 60, reportedRate: 40 })),
         issues: { newCount: 4, improvedCount: 2, openTotal: issues.length + 3, topOpen: [{ name: currentUser.name, dept: currentUser.dept, open: issues.length }] } });
     },
-    getTeamIssueChecks: ({ date } = {}) => wait({
-      date: date || today(), scope: 'all',
-      members: USERS.map(u => ({ id: u.id, name: u.name, dept: u.dept,
-        checkedAt: u.id === currentUser.id ? myCheck?.checkedAt || null : (checks[u.id] ? iso(checks[u.id]) : null) })),
-    }),
+    getTeamIssueChecks: ({ date } = {}) => {
+      const d = new Date(date || today()); do { d.setDate(d.getDate() - 1); } while (!d.getDay() || d.getDay() === 6);
+      return wait({
+        date: date || today(), prevDate: fmtDate(d), scope: 'all',
+        members: USERS.map((u, i) => ({ id: u.id, name: u.name, dept: u.dept,
+          checkedAt: u.id === currentUser.id ? myCheck?.checkedAt || null : (checks[u.id] ? iso(checks[u.id]) : null),
+          reportedAt: u.id === currentUser.id && myReport ? myReport.savedAt : null,
+          prevReportedAt: i % 3 ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), 16, 30 + i).toISOString() : null })),
+      });
+    },
     exportDailyActionCsv: ({ from, to }) => wait({ filename: `DailyAction_全社_${from.replace(/-/g,'')}-${to.replace(/-/g,'')}.csv`, count: 1,
       csv: '記入日,氏名,組織名,区分,課題No,課題内容,結果,取り組み内容・理由,課題の現在の状態\r\n' + from + ',田中 花子,営業部,本日感じた課題,99,デモ用の課題,,デモ,未解決' }),
     getMyKotLink: () => wait({ url: 'https://s2.ta.kingoftime.jp/' }),
