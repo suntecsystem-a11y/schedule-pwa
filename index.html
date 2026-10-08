@@ -5911,6 +5911,8 @@ async function openTeamIssueChecks(date) {
   const prevDone = members.filter(m => m.prevReportedAt).length;
   const prevLabel = res.prevDate ? res.prevDate.slice(5).replace('-', '/') : '';
   // 1マス分の表示（済みは時刻、未は赤字）
+  // 前日の列と当日の列（確認・当日DA）の間に区切りを入れる
+  const sep = '<span style="align-self:stretch;border-left:1.5px dashed var(--border);margin:0 10px"></span>';
   const cell = (at, ngKey) => at
     ? `<span style="color:#2e7d32;font-weight:700;width:72px;text-align:center">✅ ${_drTime(at)}</span>`
     : `<span style="color:#e53935;font-weight:700;width:72px;text-align:center;font-size:0.92em">${t(ngKey)}</span>`;
@@ -5933,7 +5935,7 @@ async function openTeamIssueChecks(date) {
       ${list.map(m => `
       <div style="display:flex;align-items:center;gap:8px;padding:7px 4px 7px 12px;border-bottom:1px solid var(--border);font-size:0.86em">
         <span style="flex:1;min-width:0">${esc(m.name)}</span>
-        ${cell(m.prevReportedAt, 'dr.notSubmitted')}${cell(m.checkedAt, 'dr.unchecked')}${cell(m.reportedAt, 'dr.notSubmitted')}
+        ${cell(m.prevReportedAt, 'dr.notSubmitted')}${sep}${cell(m.checkedAt, 'dr.unchecked')}${cell(m.reportedAt, 'dr.notSubmitted')}
       </div>`).join('')}
     </div>`;
   }).join('');
@@ -5945,7 +5947,7 @@ async function openTeamIssueChecks(date) {
     <div style="font-size:0.8em;color:var(--text2);margin-bottom:8px">${esc(t('dr.scope',{scope: res.scope === 'all' ? t('dr.scope.all') : t('dr.scope.dept',{dept:res.scope}), done, total: members.length, prev: prevDone, prevDate: prevLabel}))}</div>
     <div style="display:flex;gap:8px;padding:4px 4px 4px 12px;font-size:0.72em;color:var(--text2);font-weight:600;position:sticky;top:0;background:white">
       <span style="flex:1"></span>
-      <span style="width:72px;text-align:center">${t('dr.col.prev')}<br>${prevLabel}</span>
+      <span style="width:72px;text-align:center">${t('dr.col.prev')}<br>${prevLabel}</span>${sep}
       <span style="width:72px;text-align:center">${t('dr.col.check')}<br>${res.date.slice(5).replace('-', '/')}</span>
       <span style="width:72px;text-align:center">${t('dr.col.today')}<br>${res.date.slice(5).replace('-', '/')}</span>
     </div>
