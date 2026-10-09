@@ -7203,27 +7203,55 @@ async function bentoFetchMenus(){
   try{
     const r=await api('getBentoMenus', { date });
     _bentoMenus = r.menus||[];
+    if(r.closed){ box.innerHTML='<div style="color:#c62828;font-weight:600">'+esc(r.closed)+'</div>'; return; }
     if(!_bentoMenus.length){ box.innerHTML='この日は予約できるメニューがありません'; return; }
-    box.innerHTML = (r.isKurofune?`<div style="font-size:0.8em;color:#c2185b;font-weight:700;margin-bottom:6px">🚢 本日は黒船デーです</div>`:'')
-      + _bentoMenus.map((m,i)=>{
-      const omori = m.omoriOk ? `<label style="font-size:0.78em;margin-left:10px"><input type="radio" name="rice-${i}" value="大盛"> 大盛${m.omori?`（${m.omori.self}円）`:''}</label>` : '';
-      return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
-        <div style="font-weight:600;color:var(--text)">${esc(m.displayName||m.name)}</div>
-        <div style="margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
-          <label style="font-size:0.78em"><input type="radio" name="rice-${i}" value="並盛" checked> 並盛（${m.nami.self}円）</label>
-          ${omori}
-          <button class="btn-primary" style="width:auto;margin:0 0 0 auto;padding:6px 12px;font-size:0.8em" onclick="bentoReserve(${i})">予約</button>
-        </div>
+    const note = r.isKurofune
+      ? `<div style="font-size:0.8em;color:#c2185b;font-weight:700;margin-bottom:6px">🚢 本日は黒船デーです（複数予約できます）</div>`
+      : `<div style="font-size:0.75em;color:var(--text2);margin-bottom:6px">※予約できるのは1日1個までです</div>`;
+    box.innerHTML = note + `
+      <label style="font-size:0.8em;color:var(--text2);font-weight:600">メニュー</label>
+      <select id="bento-menu-select" onchange="bentoOnMenuChange()" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:0.92em;margin:6px 0 0;background:#fff">
+        <option value="">選択してください</option>
+        ${_bentoMenus.map((m,i)=>`<option value="${i}">${esc(m.displayName||m.name)}</option>`).join('')}
+      </select>
+      <div id="bento-choose" style="display:none;margin-top:14px">
+        <label style="font-size:0.8em;color:var(--text2);font-weight:600">ごはん</label>
+        <div id="bento-rice" style="margin:8px 0 12px;display:flex;gap:20px"></div>
+        <div id="bento-price" style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:14px"></div>
+        <button class="btn-primary" style="width:100%;margin:0;padding:12px;font-size:0.95em" onclick="bentoReserveSelected()">この内容で予約する</button>
       </div>`;
-    }).join('');
   }catch(e){ box.textContent='メニュー取得に失敗: '+e.message; }
 }
 
-async function bentoReserve(idx){
-  const m=_bentoMenus[idx]; if(!m) return;
+function bentoOnMenuChange(){
+  const sel=document.getElementById('bento-menu-select');
+  const area=document.getElementById('bento-choose');
+  const idx=sel.value;
+  if(idx===''){ area.style.display='none'; return; }
+  const m=_bentoMenus[idx];
+  document.getElementById('bento-rice').innerHTML =
+    `<label style="font-size:0.88em"><input type="radio" name="bento-rice-r" value="並盛" checked onchange="bentoUpdatePrice()"> 並盛</label>`
+    + (m.omoriOk ? `<label style="font-size:0.88em"><input type="radio" name="bento-rice-r" value="大盛" onchange="bentoUpdatePrice()"> 大盛</label>` : '');
+  area.style.display='block';
+  bentoUpdatePrice();
+}
+
+function bentoUpdatePrice(){
+  const idx=document.getElementById('bento-menu-select').value; if(idx==='') return;
+  const m=_bentoMenus[idx];
+  const rsel=document.querySelector('input[name="bento-rice-r"]:checked');
+  const rice=rsel?rsel.value:'並盛';
+  const cost=(rice==='大盛'&&m.omori)?m.omori:m.nami;
+  document.getElementById('bento-price').textContent=`自己負担 ${cost.self}円（税込 ${cost.total}円）`;
+}
+
+async function bentoReserveSelected(){
+  const idx=document.getElementById('bento-menu-select').value;
+  if(idx===''){ showToast('メニューを選んでください'); return; }
+  const m=_bentoMenus[idx];
   const date=document.getElementById('bento-date').value;
-  const sel=document.querySelector(`input[name="rice-${idx}"]:checked`);
-  const rice=sel?sel.value:'並盛';
+  const rsel=document.querySelector('input[name="bento-rice-r"]:checked');
+  const rice=rsel?rsel.value:'並盛';
   if(!confirm(`${date} に「${m.name}（${rice}）」を予約します。よろしいですか？`)) return;
   try{
     await api('saveBentoReservation', { data:{ date, menu:m.name, rice } }, '予約しています…');
