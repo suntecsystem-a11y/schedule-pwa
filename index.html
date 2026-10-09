@@ -6907,6 +6907,16 @@ function renderMyPage() {
       </div>
     </div>
 
+    ${currentUser.id === '90' ? `
+    <!-- 弁当予約（デモ・社員90のみ） -->
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:0.9em;font-weight:700">🍱 弁当予約</div>
+        <button class="btn-primary" style="padding:6px 12px;font-size:0.8em;width:auto;margin:0" onclick="openBentoSheet()">＋ 予約する</button>
+      </div>
+      <div id="bento-mine" style="font-size:0.82em;color:var(--text2)">読み込み中…</div>
+    </div>` : ''}
+
     <!-- マイカレンダー -->
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -7113,6 +7123,7 @@ function renderMyPage() {
       <button class="btn-primary" style="width:100%;padding:9px;font-size:0.85em" onclick="submitFeedback()">${t('fb.submit')}</button>
     </div>
   `;
+  if(currentUser && currentUser.id==='90') initBentoSection();
 }
 
 async function submitFeedback(){
@@ -7130,6 +7141,96 @@ async function submitFeedback(){
     document.getElementById('fb-anon').checked=false;
     showToast(t('fb.thanks'));
   } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
+}
+
+/* ===== 弁当予約（デモ・社員90のみ）Phase 1 ===== */
+let _bentoMenus = [];
+
+async function initBentoSection(){ await bentoLoadMine(); }
+
+async function bentoLoadMine(){
+  const el = document.getElementById('bento-mine');
+  if(!el) return;
+  if(!GAS_URL){ el.textContent='（GAS未接続のため表示できません）'; return; }
+  try{
+    const r = await api('getMyBentoReservations', {});
+    const list = (r.reservations||[]).filter(x=>x.status==='予約'||x.status==='キャンセル依頼').slice(0,5);
+    if(!list.length){ el.innerHTML='今後の予約はありません'; return; }
+    el.innerHTML = list.map(x=>{
+      const stColor = x.status==='キャンセル依頼' ? '#e65100' : 'var(--primary)';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1">
+          <div style="font-size:0.9em;font-weight:600;color:var(--text)">${esc(x.date)}　${esc(x.menu)}（${esc(x.rice)}）</div>
+          <div style="font-size:0.74em;color:var(--text2)">自己負担 ${x.self}円 ／ <span style="color:${stColor}">${esc(x.status)}</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){ el.textContent='読み込みに失敗しました: '+e.message; }
+}
+
+function _bentoDefaultDate(){ const d=new Date(); d.setDate(d.getDate()+1); return fmtDate(d); }
+
+function openBentoSheet(){
+  closeBentoSheet();
+  const ov=document.createElement('div');
+  ov.id='bento-ov';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:3000;display:flex;align-items:flex-end;justify-content:center';
+  ov.onclick=(e)=>{ if(e.target===ov) closeBentoSheet(); };
+  const pane=document.createElement('div');
+  pane.style.cssText='background:#fff;width:100%;max-width:520px;max-height:85vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px';
+  pane.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:1em;font-weight:700">🍱 弁当を予約</div>
+      <span style="font-size:1.4em;color:var(--text2);cursor:pointer;padding:0 6px" onclick="closeBentoSheet()">×</span>
+    </div>
+    <label style="font-size:0.8em;color:var(--text2);font-weight:600">必要日</label>
+    <div style="display:flex;gap:8px;margin:6px 0 12px">
+      <input type="date" id="bento-date" value="${_bentoDefaultDate()}" style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.9em">
+      <button class="btn-primary" style="width:auto;margin:0;padding:8px 14px;font-size:0.85em" onclick="bentoFetchMenus()">メニューを見る</button>
+    </div>
+    <div id="bento-menus" style="font-size:0.85em;color:var(--text2)">必要日を選んで「メニューを見る」を押してください</div>
+  `;
+  ov.appendChild(pane);
+  document.body.appendChild(ov);
+}
+function closeBentoSheet(){ const o=document.getElementById('bento-ov'); if(o) o.remove(); }
+
+async function bentoFetchMenus(){
+  const date=document.getElementById('bento-date').value;
+  const box=document.getElementById('bento-menus');
+  if(!date){ box.textContent='日付を選んでください'; return; }
+  box.textContent='読み込み中…';
+  try{
+    const r=await api('getBentoMenus', { date });
+    _bentoMenus = r.menus||[];
+    if(!_bentoMenus.length){ box.innerHTML='この日は予約できるメニューがありません'; return; }
+    box.innerHTML = (r.isKurofune?`<div style="font-size:0.8em;color:#c2185b;font-weight:700;margin-bottom:6px">🚢 本日は黒船デーです</div>`:'')
+      + _bentoMenus.map((m,i)=>{
+      const omori = m.omoriOk ? `<label style="font-size:0.78em;margin-left:10px"><input type="radio" name="rice-${i}" value="大盛"> 大盛${m.omori?`（${m.omori.self}円）`:''}</label>` : '';
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-weight:600;color:var(--text)">${esc(m.displayName||m.name)}</div>
+        <div style="margin-top:4px;display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+          <label style="font-size:0.78em"><input type="radio" name="rice-${i}" value="並盛" checked> 並盛（${m.nami.self}円）</label>
+          ${omori}
+          <button class="btn-primary" style="width:auto;margin:0 0 0 auto;padding:6px 12px;font-size:0.8em" onclick="bentoReserve(${i})">予約</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){ box.textContent='メニュー取得に失敗: '+e.message; }
+}
+
+async function bentoReserve(idx){
+  const m=_bentoMenus[idx]; if(!m) return;
+  const date=document.getElementById('bento-date').value;
+  const sel=document.querySelector(`input[name="rice-${idx}"]:checked`);
+  const rice=sel?sel.value:'並盛';
+  if(!confirm(`${date} に「${m.name}（${rice}）」を予約します。よろしいですか？`)) return;
+  try{
+    await api('saveBentoReservation', { data:{ date, menu:m.name, rice } }, '予約しています…');
+    showToast('予約しました');
+    closeBentoSheet();
+    bentoLoadMine();
+  }catch(e){ showToast('予約に失敗: '+e.message); }
 }
 
 function mypageCalNav(dir){_mypageCM=new Date(_mypageCM.getFullYear(),_mypageCM.getMonth()+dir,1);renderMyPage()}
