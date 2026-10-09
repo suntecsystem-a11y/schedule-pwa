@@ -7218,7 +7218,8 @@ async function bentoFetchMenus(){
         <label style="font-size:0.8em;color:var(--text2);font-weight:600">ごはん</label>
         <div id="bento-rice" style="margin:8px 0 12px;display:flex;gap:20px"></div>
         <div id="bento-price" style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:14px"></div>
-        <button class="btn-primary" style="width:100%;margin:0;padding:12px;font-size:0.95em" onclick="bentoReserveSelected()">この内容で予約する</button>
+        <button id="bento-submit-btn" class="btn-primary" style="width:100%;margin:0;padding:12px;font-size:0.95em" onclick="bentoReserveSelected()">この内容で予約する</button>
+        <div id="bento-msg" style="display:none;margin-top:12px;font-size:0.95em;font-weight:700;text-align:center;padding:10px;border-radius:8px"></div>
       </div>`;
   }catch(e){ box.textContent='メニュー取得に失敗: '+e.message; }
 }
@@ -7245,20 +7246,36 @@ function bentoUpdatePrice(){
   document.getElementById('bento-price').textContent=`自己負担 ${cost.self}円（税込 ${cost.total}円）`;
 }
 
+function _bentoMsg(text, ok){
+  const msg=document.getElementById('bento-msg');
+  if(!msg) return;
+  msg.style.display='block';
+  msg.style.background = ok ? '#e8f5e9' : '#ffebee';
+  msg.style.color = ok ? '#2e7d32' : '#c62828';
+  msg.textContent = text;
+}
+
 async function bentoReserveSelected(){
   const idx=document.getElementById('bento-menu-select').value;
-  if(idx===''){ showToast('メニューを選んでください'); return; }
+  if(idx===''){ _bentoMsg('メニューを選んでください', false); return; }
   const m=_bentoMenus[idx];
   const date=document.getElementById('bento-date').value;
   const rsel=document.querySelector('input[name="bento-rice-r"]:checked');
   const rice=rsel?rsel.value:'並盛';
-  if(!confirm(`${date} に「${m.name}（${rice}）」を予約します。よろしいですか？`)) return;
+  const btn=document.getElementById('bento-submit-btn');
+  const msg=document.getElementById('bento-msg');
+  if(msg) msg.style.display='none';
+  btn.disabled=true; btn.style.opacity='.6'; btn.textContent='予約中…';
   try{
     await api('saveBentoReservation', { data:{ date, menu:m.name, rice } }, '予約しています…');
-    showToast('予約しました');
-    closeBentoSheet();
+    _bentoMsg('✅ 予約しました', true);
+    btn.textContent='予約しました';
     bentoLoadMine();
-  }catch(e){ showToast('予約に失敗: '+e.message); }
+    setTimeout(closeBentoSheet, 1300);
+  }catch(e){
+    _bentoMsg('❌ 予約できませんでした：'+e.message, false);
+    btn.disabled=false; btn.style.opacity='1'; btn.textContent='この内容で予約する';
+  }
 }
 
 function mypageCalNav(dir){_mypageCM=new Date(_mypageCM.getFullYear(),_mypageCM.getMonth()+dir,1);renderMyPage()}
