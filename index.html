@@ -7200,6 +7200,12 @@ function openBentoSheet(editCtx){
       <input type="date" id="bento-date" value="${dateVal}" ${isEdit?'disabled':''} style="flex:1;padding:8px;border:1px solid var(--border);border-radius:8px;font-size:0.9em;${isEdit?'background:#f2f2f2;color:var(--text2)':''}">
       ${isEdit?'':`<button class="btn-primary" style="width:auto;margin:0;padding:8px 14px;font-size:0.85em" onclick="bentoFetchMenus()">メニューを見る</button>`}
     </div>
+    ${(!isEdit && (currentUser.dept==='総務'||currentUser.id==='90')) ? `
+    <label style="font-size:0.8em;color:var(--text2);font-weight:600">予約者（代理予約・総務のみ）</label>
+    <select id="bento-reserver" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:0.9em;margin:6px 0 12px;background:#fff">
+      <option value="">自分（${esc(currentUser.name)}）</option>
+      ${(typeof USERS!=='undefined'?USERS:[]).filter(u=>!u.isPartner && String(u.id)!==String(currentUser.id)).map(u=>`<option value="${esc(String(u.id))}">${esc(u.name)}（${esc(u.dept||'')}）</option>`).join('')}
+    </select>` : ''}
     <div id="bento-menus" style="font-size:0.85em;color:var(--text2)">${isEdit?'読み込み中…':'必要日を選んで「メニューを見る」を押してください'}</div>
   `;
   ov.appendChild(pane);
@@ -7296,9 +7302,11 @@ async function bentoReserveSelected(){
       _bentoMsg('✅ 変更しました', true);
       btn.textContent='変更しました';
     }else{
-      await api('saveBentoReservation', { data:{ date, menu:m.name, rice } }, '予約しています…');
-      _bentoMsg('✅ 予約しました', true);
-      btn.textContent='予約しました';
+      const rsv=document.getElementById('bento-reserver');
+      const proxyEmpId = rsv ? rsv.value : '';
+      await api('saveBentoReservation', { data:{ date, menu:m.name, rice, proxyEmpId } }, '予約しています…');
+      _bentoMsg(proxyEmpId ? '✅ 代理予約しました' : '✅ 予約しました', true);
+      btn.textContent=proxyEmpId?'代理予約しました':'予約しました';
     }
     bentoLoadMine();
     setTimeout(closeBentoSheet, 1300);
