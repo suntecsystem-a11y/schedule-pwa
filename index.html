@@ -7159,8 +7159,8 @@ async function bentoLoadMine(){
     const all = r.reservations || [];
     const today = fmtDate(new Date());
     const stColor = s => s==='キャンセル依頼' ? '#e65100' : s==='注文済み' ? '#2e7d32' : s==='キャンセル' ? '#999' : 'var(--primary)';
-    // 今後（今日以降・キャンセル除く。注文済みも表示＝発注確定が分かる）
-    _bentoMine = all.filter(x=>x.date>=today && x.status!=='キャンセル');
+    // 今後（今日以降・キャンセル除く。注文済みも表示＝発注確定が分かる）※近い順に並べる（遠い未来を折り畳む）
+    _bentoMine = all.filter(x=>x.date>=today && x.status!=='キャンセル').sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     // 過去（今日より前・直近3件・全状態）
     const past = all.filter(x=>x.date<today).slice(0,3);
 
