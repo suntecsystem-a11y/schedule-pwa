@@ -7164,24 +7164,35 @@ async function bentoLoadMine(){
     // 過去（今日より前・直近3件・全状態）
     const past = all.filter(x=>x.date<today).slice(0,3);
 
+    const rowHtml = (x,i)=>{
+      const actions = x.status==='予約'
+        ? `<div style="display:flex;gap:6px;flex-shrink:0">
+             <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer" onclick="openBentoEdit(${i})">変更</button>
+             <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:#c62828;border:1px solid #f3c0c0;border-radius:6px;cursor:pointer" onclick="bentoCancel(${i})">キャンセル</button>
+           </div>`
+        : '';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.9em;font-weight:600;color:var(--text)">${esc(x.date)}　${esc(x.menu)}（${esc(x.rice)}）</div>
+          <div style="font-size:0.74em;color:var(--text2)">自己負担 ${x.self}円 ／ <span style="color:${stColor(x.status)};font-weight:700">${esc(x.status)}</span></div>
+        </div>
+        ${actions}
+      </div>`;
+    };
+
     let html='';
-    html += _bentoMine.length
-      ? _bentoMine.map((x,i)=>{
-          const actions = x.status==='予約'
-            ? `<div style="display:flex;gap:6px;flex-shrink:0">
-                 <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer" onclick="openBentoEdit(${i})">変更</button>
-                 <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:#c62828;border:1px solid #f3c0c0;border-radius:6px;cursor:pointer" onclick="bentoCancel(${i})">キャンセル</button>
-               </div>`
-            : '';
-          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:0.9em;font-weight:600;color:var(--text)">${esc(x.date)}　${esc(x.menu)}（${esc(x.rice)}）</div>
-              <div style="font-size:0.74em;color:var(--text2)">自己負担 ${x.self}円 ／ <span style="color:${stColor(x.status)};font-weight:700">${esc(x.status)}</span></div>
-            </div>
-            ${actions}
-          </div>`;
-        }).join('')
-      : '<div style="color:var(--text2)">今後の予約はありません</div>';
+    if(!_bentoMine.length){
+      html += '<div style="color:var(--text2)">今後の予約はありません</div>';
+    } else {
+      html += _bentoMine.slice(0,3).map((x,i)=>rowHtml(x,i)).join('');
+      if(_bentoMine.length>3){
+        html += `<details style="margin-top:4px">
+          <summary style="cursor:pointer;font-size:0.8em;color:var(--text2);font-weight:600">今後の予約をすべて表示（残り${_bentoMine.length-3}件）</summary>
+          <div style="margin-top:4px">`
+          + _bentoMine.slice(3).map((x,i)=>rowHtml(x,i+3)).join('')
+          + `</div></details>`;
+      }
+    }
 
     if(past.length){
       html += `<details style="margin-top:10px">
