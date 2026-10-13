@@ -7156,24 +7156,44 @@ async function bentoLoadMine(){
   if(!GAS_URL){ el.textContent='（GAS未接続のため表示できません）'; return; }
   try{
     const r = await api('getMyBentoReservations', {});
-    _bentoMine = (r.reservations||[]).filter(x=>x.status==='予約'||x.status==='キャンセル依頼').slice(0,5);
-    if(!_bentoMine.length){ el.innerHTML='今後の予約はありません'; return; }
-    el.innerHTML = _bentoMine.map((x,i)=>{
-      const stColor = x.status==='キャンセル依頼' ? '#e65100' : 'var(--primary)';
-      const actions = x.status==='予約'
-        ? `<div style="display:flex;gap:6px;flex-shrink:0">
-             <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer" onclick="openBentoEdit(${i})">変更</button>
-             <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:#c62828;border:1px solid #f3c0c0;border-radius:6px;cursor:pointer" onclick="bentoCancel(${i})">キャンセル</button>
-           </div>`
-        : '';
-      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <div style="flex:1;min-width:0">
-          <div style="font-size:0.9em;font-weight:600;color:var(--text)">${esc(x.date)}　${esc(x.menu)}（${esc(x.rice)}）</div>
-          <div style="font-size:0.74em;color:var(--text2)">自己負担 ${x.self}円 ／ <span style="color:${stColor}">${esc(x.status)}</span></div>
-        </div>
-        ${actions}
-      </div>`;
-    }).join('');
+    const all = r.reservations || [];
+    const today = fmtDate(new Date());
+    const stColor = s => s==='キャンセル依頼' ? '#e65100' : s==='注文済み' ? '#2e7d32' : s==='キャンセル' ? '#999' : 'var(--primary)';
+    // 今後（今日以降・キャンセル除く。注文済みも表示＝発注確定が分かる）
+    _bentoMine = all.filter(x=>x.date>=today && x.status!=='キャンセル');
+    // 過去（今日より前・直近3件・全状態）
+    const past = all.filter(x=>x.date<today).slice(0,3);
+
+    let html='';
+    html += _bentoMine.length
+      ? _bentoMine.map((x,i)=>{
+          const actions = x.status==='予約'
+            ? `<div style="display:flex;gap:6px;flex-shrink:0">
+                 <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:6px;cursor:pointer" onclick="openBentoEdit(${i})">変更</button>
+                 <button style="width:auto;margin:0;padding:5px 10px;font-size:0.75em;background:#fff;color:#c62828;border:1px solid #f3c0c0;border-radius:6px;cursor:pointer" onclick="bentoCancel(${i})">キャンセル</button>
+               </div>`
+            : '';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:0.9em;font-weight:600;color:var(--text)">${esc(x.date)}　${esc(x.menu)}（${esc(x.rice)}）</div>
+              <div style="font-size:0.74em;color:var(--text2)">自己負担 ${x.self}円 ／ <span style="color:${stColor(x.status)};font-weight:700">${esc(x.status)}</span></div>
+            </div>
+            ${actions}
+          </div>`;
+        }).join('')
+      : '<div style="color:var(--text2)">今後の予約はありません</div>';
+
+    if(past.length){
+      html += `<details style="margin-top:10px">
+        <summary style="cursor:pointer;font-size:0.8em;color:var(--text2);font-weight:600">過去の履歴（直近${past.length}件）</summary>
+        <div style="margin-top:6px">` +
+        past.map(x=>`<div style="padding:5px 0;border-bottom:1px dashed var(--border)">
+            <div style="font-size:0.84em;color:var(--text)">${esc(x.date)}　${esc(x.menu)}（${esc(x.rice)}）</div>
+            <div style="font-size:0.72em;color:var(--text2)">自己負担 ${x.self}円 ／ <span style="color:${stColor(x.status)}">${esc(x.status)}</span></div>
+          </div>`).join('') +
+        `</div></details>`;
+    }
+    el.innerHTML = html;
   }catch(e){ el.textContent='読み込みに失敗しました: '+e.message; }
 }
 
