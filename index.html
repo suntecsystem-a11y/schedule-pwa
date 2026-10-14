@@ -1590,6 +1590,22 @@ ja:{
 'fb.stat.done':'改善済み',
 'fb.stat.ongoing':'継続中',
 'fb.stat.recur':'再発',
+'fb.issues':'■ 課題一覧',
+'fb.daily':'■ 日次記録（アプリのエクスポート原文）',
+'fb.col.no':'課題No',
+'fb.col.content':'課題内容',
+'fb.col.target':'対象',
+'fb.col.start':'起票日',
+'fb.col.closed':'閉じた日',
+'fb.col.state':'現在の状態',
+'fb.col.recur':'再発元',
+'fb.col.note':'所見（運用・記述の質）',
+'fb.col.date':'記入日',
+'fb.col.kind':'区分',
+'fb.col.result':'結果',
+'fb.col.work':'取り組み内容・理由',
+'fb.col.week':'週',
+'fb.col.memo':'備考',
 'fb.good':'良かった点',
 'fb.next':'次週に向けて',
 'fb.chief':'主任コメント',
@@ -6237,9 +6253,28 @@ function _fbCard(r, opts = {}) {
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
         ${stat(t('fb.stat.days'), r.days)}${stat(t('fb.stat.issues'), r.issues)}${stat(t('fb.stat.done'), r.done)}${stat(t('fb.stat.ongoing'), r.ongoing)}${stat(t('fb.stat.recur'), r.recur)}
       </div>
+      ${_fbTable(t('fb.issues'), ['fb.col.no', 'fb.col.content', 'fb.col.target', 'fb.col.start', 'fb.col.closed', 'fb.col.state', 'fb.col.recur', 'fb.col.note'], r.issueTable, true)}
+      ${_fbTable(t('fb.daily'), ['fb.col.date', 'fb.col.kind', 'fb.col.no', 'fb.col.content', 'fb.col.result', 'fb.col.work', 'fb.col.week', 'fb.col.memo'], r.dailyTable, false)}
       ${block(t('fb.good'), r.good)}${block(t('fb.next'), r.next)}
       ${opts.commentHtml || block(t('fb.chief'), r.chiefComment)}
     </div>`;
+}
+
+// Excel個人シートと同じ列の表（横スクロール）。課題一覧は現在の状態を色分けして最初から開く
+function _fbTable(title, colKeys, rows, open) {
+  if (!rows || !rows.length) return '';
+  const color = { '改善済み': '#2e7d32', '未解決': '#e65100' };
+  const th = colKeys.map(k => `<th style="padding:4px 8px;background:var(--primary-light);font-size:0.74em;white-space:nowrap;text-align:left">${esc(t(k))}</th>`).join('');
+  const body = rows.map(row => `<tr>${row.map((c, i) => {
+    const isState = open && i === 5, isLong = i === 1 || i === 3 || i === 5 || i === 7;
+    const st = isState && color[c] ? `color:${color[c]};font-weight:700;` : '';
+    return `<td style="padding:4px 8px;border-top:1px solid var(--border);font-size:0.78em;vertical-align:top;${st}${isLong && !isState ? 'min-width:160px;' : ''}white-space:pre-wrap;word-break:break-word">${esc(c)}</td>`;
+  }).join('')}</tr>`).join('');
+  return `
+    <details${open ? ' open' : ''} style="margin-top:10px">
+      <summary style="font-size:0.78em;font-weight:700;color:var(--primary-dark);cursor:pointer">${esc(title)}（${rows.length}）</summary>
+      <div style="overflow-x:auto;margin-top:4px;border:1px solid var(--border);border-radius:8px"><table style="border-collapse:collapse;width:100%"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table></div>
+    </details>`;
 }
 
 async function openMyFeedback() {
