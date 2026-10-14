@@ -5837,19 +5837,20 @@ function openDetail(id){
 
 // ===== 議事録（SharePointへ保存・参加者のみ閲覧） =====
 // 閲覧・アップできる人: 作成者・参加者・各人の部署の主任・役員（GAS側の判定と同じ。最終判定はGASが行う）
+const MINUTES_EXEC_ROLES = ['社長', '副社長', '専務', '役員'];
+function minutesAudience(e) {
+  const base = [String(e.userId)].concat((e.people || []).map(String)).filter(id => USERS.some(u => String(u.id) === id));
+  const set = new Set(USERS.filter(u => MINUTES_EXEC_ROLES.includes(u.role)).map(u => String(u.id)));
+  base.forEach(id => {
+    set.add(id);
+    const p = USERS.find(u => String(u.id) === id);
+    const eff = APPROVAL_DEPT_ALIAS[p.dept] || p.dept;
+    USERS.forEach(o => { if (o.role === '主任' && o.dept === eff) set.add(String(o.id)); });
+  });
+  return Array.from(set).map(id => USERS.find(u => String(u.id) === id)).filter(Boolean);
+}
 function minutesEligible(e) {
-  const me = String(currentUser.id);
-  const ids = [String(e.userId)].concat((e.people || []).map(String));
-  if (ids.includes(me)) return true;
-  const role = currentUser.role || (USERS.find(u => String(u.id) === me)?.role) || '';
-  if (['社長', '副社長', '専務', '役員'].includes(role)) return true;
-  if (role === '主任') {
-    return ids.some(id => {
-      const u = USERS.find(x => String(x.id) === id);
-      return u && currentUser.dept === (APPROVAL_DEPT_ALIAS[u.dept] || u.dept);
-    });
-  }
-  return false;
+  return minutesAudience(e).some(u => String(u.id) === String(currentUser.id));
 }
 
 // 一覧の読み込み中表示（回転マーク＋文字）。既存の spin アニメーションを使う
@@ -5915,6 +5916,18 @@ async function uploadMinutesFile(eventId) {
   if (!file) return;
   if (file.size > 4 * 1024 * 1024) { showToast('ファイルサイズは4MBまでです'); input.value = ''; return; }
   if (!/\.(docx|doc|txt)$/i.test(file.name)) { showToast('Word（.docx/.doc）かテキスト（.txt）を選んでください'); input.value = ''; return; }
+
+  // アップ前の確認: 誰に閲覧権限が付くかを示す（誤って見せてはいけない資料を上げる事故の防止）
+  const ev = events.find(x => String(x.id) === String(eventId));
+  const aud = ev ? minutesAudience(ev) : [];
+  const names = aud.map(u => u.name);
+  const shown = names.length > 15 ? names.slice(0, 15).join('、') + ' ほか' + (names.length - 15) + '人' : names.join('、');
+  const msg = '「' + file.name + '」をアップします。\n\n'
+    + '次の' + names.length + '人が閲覧できるようになります:\n' + shown + '\n\n'
+    + '（参加者・作成者・部署の主任・役員）\n'
+    + 'この範囲に見せてよい資料ですか？';
+  if (!confirm(msg)) { input.value = ''; return; }
+
   try {
     const base64 = await new Promise((resolve, reject) => {
       const fr = new FileReader();
