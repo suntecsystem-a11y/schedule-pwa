@@ -5789,6 +5789,7 @@ function openDetail(id){
       ${e.remoteReason&&(String(e.userId)===String(currentUser.id)||String(e.approvedBy)===String(currentUser.id)||canApprove)?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
       ${e.teamsUrl?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(e.teamsUrl)}" target="_blank" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
       ${e.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.memo')}</td><td>${esc(e.memo)}</td></tr>`:''}
+      ${GAS_URL&&(e.people||[]).length?`<tr id="minutes-row" style="display:none"><td style="color:var(--text2);padding:7px 0;vertical-align:top">📝 議事録</td><td id="minutes-box"></td></tr>`:''}
       <tr><td style="color:var(--text2);padding:7px 0">${t('detail.creator')}</td><td>${userName(e.userId)}</td></tr>
       ${approvalRow}
     </table>`;
@@ -5831,6 +5832,53 @@ function openDetail(id){
   }
   document.getElementById('detail-actions').innerHTML = actionsHTML;
   openModal('detail-modal-backdrop');
+  if (document.getElementById('minutes-row')) loadMinutes(id);
+}
+
+// ===== 議事録（SharePointへ保存・参加者のみ閲覧） =====
+async function loadMinutes(eventId) {
+  try {
+    // 詳細を開くたびに全画面の処理中表示が出ないよう、api()ではなく静かに取得する
+    const sess = loadSession();
+    const res = await fetch(GAS_URL, { method:'POST', body: JSON.stringify({ action:'getMinutes', token: sess?.token, eventId }), redirect:'follow' });
+    const j = await res.json();
+    if (!j.ok) return;                               // セッション切れ等は欄を出さないだけにする
+    const r = j.data;
+    if (detailId !== eventId) return;               // 別の予定に切り替わっていたら描画しない
+    const row = document.getElementById('minutes-row');
+    const box = document.getElementById('minutes-box');
+    if (!row || !box || !r || !r.canUpload) return;  // 参加者以外には欄ごと出さない
+    const files = (r.files || []).map(f =>
+      `<div style="margin-bottom:4px"><a href="${esc(f.url)}" target="_blank" rel="noopener" style="color:var(--primary);font-size:0.9em">📄 ${esc(f.name)}</a></div>`).join('');
+    box.innerHTML = (files || '<div style="color:var(--text2);font-size:0.85em;margin-bottom:6px">まだアップされていません</div>')
+      + `<input type="file" id="minutes-file" accept=".docx,.doc,.txt" style="display:none" onchange="uploadMinutesFile('${eventId}')">`
+      + `<button class="btn-outline" style="font-size:0.82em;padding:5px 12px" onclick="document.getElementById('minutes-file').click()">＋ 議事録をアップ（Word・テキスト）</button>`
+      + `<div style="color:var(--text2);font-size:0.75em;margin-top:4px">SharePointに保存され、この予定の参加者のみ閲覧できます</div>`;
+    row.style.display = '';
+  } catch (err) { console.error('getMinutes:', err); }
+}
+
+async function uploadMinutesFile(eventId) {
+  const input = document.getElementById('minutes-file');
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) { showToast('ファイルサイズは4MBまでです'); input.value = ''; return; }
+  if (!/\.(docx|doc|txt)$/i.test(file.name)) { showToast('Word（.docx/.doc）かテキスト（.txt）を選んでください'); input.value = ''; return; }
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+      fr.onerror = () => reject(new Error('ファイルを読み込めませんでした'));
+      fr.readAsDataURL(file);
+    });
+    const r = await api('uploadMinutes', { eventId, fileName: file.name, base64 }, 'アップロード中…');
+    showToast('議事録をアップしました（' + r.shared + '人に閲覧権限を付与）');
+    if (r.skipped && r.skipped.length) {
+      alert('次の方はMicrosoft 365アカウントが特定できず、閲覧権限を付与できませんでした:\n' + r.skipped.join('、'));
+    }
+    loadMinutes(eventId);
+  } catch (err) { showToast(t('common.error.toast', { msg: err.message })); }
+  finally { if (input) input.value = ''; }
 }
 
 // ===== 承認・却下アクション =====
