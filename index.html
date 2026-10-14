@@ -5942,7 +5942,9 @@ function openDrModal(html) {
 }
 function closeDrModal() {
   document.getElementById('dr-modal').style.display = 'none';
+  document.getElementById('dr-modal-body').style.maxWidth = '560px';  // 週次フィードバックで広げた幅を元に戻す
 }
+function widenDrModal() { document.getElementById('dr-modal-body').style.maxWidth = 'min(1000px, 96vw)'; }
 
 async function openTeamIssueChecks(date) {
   let res;
@@ -6282,6 +6284,7 @@ async function openMyFeedback() {
   try { res = await api('getMyFeedback', {}, t('common.loading')); }
   catch(e) { showToast(e.message); return; }
   const list = (res.records || []).map(r => _fbCard(r)).join('');
+  widenDrModal();
   openDrModal(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <h3 style="margin:0;font-size:1em;font-weight:700">${t('fb.my.title')}</h3>
@@ -6316,6 +6319,7 @@ function renderTeamFeedback() {
         ${r.published ? '' : `<div style="text-align:right;margin-top:6px"><button onclick="publishFb(['${esc(r.id)}'])" style="padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.publish')}</button></div>`}
       </div>`,
   })).join('');
+  widenDrModal();
   openDrModal(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
       <h3 style="margin:0;font-size:1em;font-weight:700">${t('fb.team.title')}</h3>
