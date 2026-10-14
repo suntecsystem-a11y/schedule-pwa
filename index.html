@@ -1590,6 +1590,23 @@ ja:{
 'fb.stat.done':'改善済み',
 'fb.stat.ongoing':'継続中',
 'fb.stat.recur':'再発',
+'fb.up.btn':'📤 Excelアップロード',
+'fb.up.title':'📤 週次フィードバックのアップロード',
+'fb.up.help':'日野さん作成の週次Excel（デイリーアクション_個人別記録…xlsx）を選ぶと、個人シートごとに下書きとして登録します。登録後、主任が確認・コメントして公開します。',
+'fb.up.week':'対象週：{w}',
+'fb.up.col.name':'氏名',
+'fb.up.col.dept':'部門',
+'fb.up.col.daily':'日次記録',
+'fb.up.col.mode':'登録',
+'fb.up.new':'新規（下書き）',
+'fb.up.update':'更新',
+'fb.up.published':'（公開済み・公開状態は変わりません）',
+'fb.up.note':'同じ週・同じ氏名のデータは上書き更新されます。公開済みの分は公開のままで、中身だけが更新されます。',
+'fb.up.run':'登録する',
+'fb.up.done':'登録しました（新規 {n}件／更新 {u}件）',
+'fb.up.err.lib':'Excel読み取り用ライブラリを読み込めませんでした。通信状況を確認してください',
+'fb.up.err.none':'個人シートが見つかりませんでした。週次Excel（個人記録シートを含むもの）か確認してください',
+'fb.up.err.week':'対象週（例: 10/5〜10/11）を読み取れませんでした',
 'fb.issues':'■ 課題一覧',
 'fb.daily':'■ 日次記録（アプリのエクスポート原文）',
 'fb.col.no':'課題No',
@@ -5921,6 +5938,7 @@ function renderIssueCheck() {
       <div style="display:flex;gap:8px;margin-top:8px">
         <button onclick="openMyFeedback()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.my.btn')}</button>
         ${canViewTeam ? `<button onclick="openTeamFeedback()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.team.btn')}</button>` : ''}
+        ${canExport ? `<button onclick="openFbUpload()" style="flex:1;padding:8px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.up.btn')}</button>` : ''}
       </div>
     </div>`;
 }
@@ -6372,6 +6390,122 @@ async function publishFb(ids) {
   } catch(e) { showToast(e.message); return; }
   openTeamFeedback(_fbTeam?.weekStart, _fbTeam?.records?.[_fbIdx]?.id);
 }
+
+// ---- 週次フィードバックのExcelアップロード（日野さん・永野さん。GAS: importFeedback） ----
+// Excelはブラウザ内で読み取り、個人シート単位の内容だけをGASへ送る（SheetJSは初回のみ読み込む）
+let _fbUp = null;
+function _loadSheetJs() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise((ok, ng) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = ok; s.onerror = () => ng(new Error(t('fb.up.err.lib')));
+    document.head.appendChild(s);
+  });
+}
+
+// 個人シート（「デイリーアクション 個人記録 ○○」）→ 登録用データ
+function _fbParseSheet(rows) {
+  const cell = (r, c) => String((rows[r] || [])[c] ?? '').trim();
+  const find = (prefix, from = 0) => { for (let i = from; i < rows.length; i++) if (cell(i, 0).startsWith(prefix)) return i; return -1; };
+  const a1 = cell(0, 0);
+  if (!a1.includes('個人記録')) return null;
+  const r0 = find('■ 課題一覧'), r1 = find('■ 日次記録'), r2 = find('■ 週次フィードバック');
+  if (r0 < 0 || r1 < 0 || r2 < 0) return null;
+  const name = a1.replace(/^.*個人記録\s*/, '').trim();
+  const dept = (cell(1, 0).match(/部門:\s*([^\s／（]+)/) || [])[1] || '';
+  const row8 = r => Array.from({ length: 8 }, (_, c) => cell(r, c));
+  const issueTable = [], dailyTable = [];
+  for (let r = r0 + 2; r < r1; r++) if (cell(r, 0)) issueTable.push(row8(r));
+  for (let r = r1 + 2; r < r2; r++) if (cell(r, 0)) dailyTable.push(row8(r));
+  const target = issueTable.filter(i => i[2] === '〇');
+  const days = new Set(dailyTable.filter(d => d[7] !== 'テスト入力').map(d => d[0].slice(0, 10)));
+  let last = rows.length - 1;
+  while (last > r2 + 1 && !cell(last, 0)) last--;
+  return {
+    name, dept, week: cell(last, 0), good: cell(last, 1), next: cell(last, 3),
+    days: days.size, issues: target.length,
+    done: target.filter(i => i[5] === '改善済み').length,
+    ongoing: target.filter(i => i[5] === '未解決').length,
+    recur: target.filter(i => i[6]).length,
+    issueTable, dailyTable,
+  };
+}
+
+function _fbWeekStart(label, year) {
+  const m = String(label).match(/(\d{1,2})\/(\d{1,2})/);
+  return m ? `${year}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}` : '';
+}
+
+function openFbUpload() {
+  _fbUp = null;
+  widenDrModal();
+  openDrModal(`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <h3 style="margin:0;font-size:1em;font-weight:700">${t('fb.up.title')}</h3>
+      <button onclick="closeDrModal()" style="border:none;background:none;font-size:1.2em;cursor:pointer;color:var(--text2)">✕</button>
+    </div>
+    <div style="font-size:0.82em;color:var(--text2);margin-bottom:10px">${t('fb.up.help')}</div>
+    <input id="fb-up-file" type="file" accept=".xlsx" onchange="onFbUploadFile(this)" style="font-size:0.9em">
+    <div id="fb-up-result" style="margin-top:12px"></div>`);
+}
+
+async function onFbUploadFile(input) {
+  const out = document.getElementById('fb-up-result');
+  const file = input.files && input.files[0];
+  if (!file) return;
+  out.innerHTML = `<div style="color:var(--text2);font-size:0.85em">${t('common.loading')}</div>`;
+  try {
+    await _loadSheetJs();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const items = [];
+    let year = '';
+    wb.SheetNames.forEach(sn => {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: false, defval: '' });
+      if (!year) year = (String(rows[1]?.[0] || '').match(/作成:\s*(\d{4})/) || [])[1] || '';
+      const it = _fbParseSheet(rows);
+      if (it) items.push(it);
+    });
+    if (!items.length) throw new Error(t('fb.up.err.none'));
+    const week = items[0].week;
+    const weekStart = _fbWeekStart(week, year || new Date().getFullYear());
+    if (!weekStart) throw new Error(t('fb.up.err.week'));
+    const res = await api('importFeedback', { weekStart, weekLabel: week, items, dry: true }, t('common.loading'));
+    _fbUp = { weekStart, weekLabel: week, items };
+    const td = 'padding:5px 8px;border-top:1px solid var(--border)';
+    const rowsHtml = items.map(it => {
+      const r = res.results.find(x => x.name === it.name) || {};
+      const badge = r.mode === 'update'
+        ? `<span style="color:#1565c0;font-weight:700">${t('fb.up.update')}${r.published ? t('fb.up.published') : ''}</span>`
+        : `<span style="color:#2e7d32;font-weight:700">${t('fb.up.new')}</span>`;
+      return `<tr><td style="${td}">${esc(it.name)}</td><td style="${td}">${esc(it.dept)}</td><td style="${td};text-align:right">${it.days}</td><td style="${td};text-align:right">${it.issues}</td><td style="${td};text-align:right">${it.dailyTable.length}</td><td style="${td}">${badge}</td></tr>`;
+    }).join('');
+    out.innerHTML = `
+      <div style="font-weight:700;font-size:0.9em;margin-bottom:6px">${esc(t('fb.up.week', { w: week }))}</div>
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px"><table style="border-collapse:collapse;width:100%;font-size:0.82em">
+        <thead><tr style="background:var(--primary-light)"><th style="padding:5px 8px;text-align:left">${t('fb.up.col.name')}</th><th style="padding:5px 8px;text-align:left">${t('fb.up.col.dept')}</th><th style="padding:5px 8px">${t('fb.stat.days')}</th><th style="padding:5px 8px">${t('fb.stat.issues')}</th><th style="padding:5px 8px">${t('fb.up.col.daily')}</th><th style="padding:5px 8px;text-align:left">${t('fb.up.col.mode')}</th></tr></thead>
+        <tbody>${rowsHtml}</tbody></table></div>
+      <div style="font-size:0.78em;color:var(--text2);margin-top:8px">${t('fb.up.note')}</div>
+      <div style="text-align:right;margin-top:10px"><button onclick="runFbUpload()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">${t('fb.up.run')}</button></div>`;
+  } catch (e) {
+    out.innerHTML = `<div role="alert" style="padding:8px 12px;border-radius:8px;background:#ffebee;color:#c62828;font-size:0.85em;font-weight:600">${esc(e.message)}</div>`;
+  }
+}
+
+async function runFbUpload() {
+  if (!_fbUp) return;
+  const out = document.getElementById('fb-up-result');
+  try {
+    const res = await api('importFeedback', { weekStart: _fbUp.weekStart, weekLabel: _fbUp.weekLabel, items: _fbUp.items }, t('common.loading'));
+    const n = res.results.filter(r => r.mode === 'new').length, u = res.results.length - n;
+    showToast(t('fb.up.done', { n, u }));
+    closeDrModal();
+    openTeamFeedback(_fbUp.weekStart);
+  } catch (e) {
+    out.insertAdjacentHTML('beforeend', `<div role="alert" style="margin-top:8px;padding:8px 12px;border-radius:8px;background:#ffebee;color:#c62828;font-size:0.85em;font-weight:600">${esc(e.message)}</div>`);
+  }
+}
+
 // ---- KING OF TIME：従業員名簿のKOTリンク（本人分のみGASから取得） ----
 let _kotUrl = '';
 async function loadKotLink() {
@@ -6446,6 +6580,7 @@ const DR_DEMO_API = (() => {
       fbDemoGet().forEach(r => { if (ids.includes(r.id)) { if (comments[r.id] != null) r.chiefComment = comments[r.id]; if (!r.published) { r.published = true; published++; } } });
       return wait({ published, total: ids.length });
     },
+    importFeedback: ({ weekStart, items, dry }) => wait({ dry: !!dry, weekStart, results: items.map(it => ({ name: it.name, mode: it.name === currentUser.name ? 'update' : 'new', published: false })) }),
     getMyKotLink: () => wait({ url: 'https://s2.ta.kingoftime.jp/' }),
     getDailyReportInit: () => wait(myReport
       ? { name: currentUser.name, date: today(), mode: 'edit', report: myReport, issues: issues.filter(i => !myReport.prevIssues.some(p => p.id === i.id) && i.date !== today()) }
