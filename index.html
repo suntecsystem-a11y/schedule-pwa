@@ -5832,30 +5832,59 @@ function openDetail(id){
   }
   document.getElementById('detail-actions').innerHTML = actionsHTML;
   openModal('detail-modal-backdrop');
-  if (document.getElementById('minutes-row')) loadMinutes(id);
+  if (document.getElementById('minutes-row')) showMinutesBox(id, e);
 }
 
 // ===== 議事録（SharePointへ保存・参加者のみ閲覧） =====
+// 閲覧・アップできる人: 作成者・参加者・各人の部署の主任・役員（GAS側の判定と同じ。最終判定はGASが行う）
+function minutesEligible(e) {
+  const me = String(currentUser.id);
+  const ids = [String(e.userId)].concat((e.people || []).map(String));
+  if (ids.includes(me)) return true;
+  const role = currentUser.role || (USERS.find(u => String(u.id) === me)?.role) || '';
+  if (['社長', '副社長', '専務', '役員'].includes(role)) return true;
+  if (role === '主任') {
+    return ids.some(id => {
+      const u = USERS.find(x => String(x.id) === id);
+      return u && currentUser.dept === (APPROVAL_DEPT_ALIAS[u.dept] || u.dept);
+    });
+  }
+  return false;
+}
+
+// ボタンは画面側の判定で先に出し、ファイル一覧だけを後から読み込む（サーバー応答待ちでボタンが遅れないようにする）
+function showMinutesBox(eventId, e) {
+  const row = document.getElementById('minutes-row');
+  const box = document.getElementById('minutes-box');
+  if (!row || !box || !minutesEligible(e)) return;   // 対象外には欄ごと出さない
+  box.innerHTML = `<div id="minutes-files" style="color:var(--text2);font-size:0.85em;margin-bottom:6px">読み込み中…</div>`
+    + `<input type="file" id="minutes-file" accept=".docx,.doc,.txt" style="display:none" onchange="uploadMinutesFile('${eventId}')">`
+    + `<button class="btn-outline" style="font-size:0.82em;padding:5px 12px" onclick="document.getElementById('minutes-file').click()">＋ 議事録をアップ（Word・テキスト）</button>`
+    + `<div style="color:var(--text2);font-size:0.75em;margin-top:4px">SharePointに保存され、この予定の参加者のみ閲覧できます</div>`;
+  row.style.display = '';
+  loadMinutes(eventId);
+}
+
 async function loadMinutes(eventId) {
   try {
     // 詳細を開くたびに全画面の処理中表示が出ないよう、api()ではなく静かに取得する
     const sess = loadSession();
     const res = await fetch(GAS_URL, { method:'POST', body: JSON.stringify({ action:'getMinutes', token: sess?.token, eventId }), redirect:'follow' });
     const j = await res.json();
-    if (!j.ok) return;                               // セッション切れ等は欄を出さないだけにする
-    const r = j.data;
     if (detailId !== eventId) return;               // 別の予定に切り替わっていたら描画しない
     const row = document.getElementById('minutes-row');
-    const box = document.getElementById('minutes-box');
-    if (!row || !box || !r || !r.canUpload) return;  // 参加者以外には欄ごと出さない
-    const files = (r.files || []).map(f =>
+    const list = document.getElementById('minutes-files');
+    if (!row || !list) return;
+    if (!j.ok || !j.data || !j.data.canUpload) { row.style.display = 'none'; return; }  // サーバー判定で対象外なら欄を隠す
+    const files = (j.data.files || []).map(f =>
       `<div style="margin-bottom:4px"><a href="${esc(f.url)}" target="_blank" rel="noopener" style="color:var(--primary);font-size:0.9em">📄 ${esc(f.name)}</a></div>`).join('');
-    box.innerHTML = (files || '<div style="color:var(--text2);font-size:0.85em;margin-bottom:6px">まだアップされていません</div>')
-      + `<input type="file" id="minutes-file" accept=".docx,.doc,.txt" style="display:none" onchange="uploadMinutesFile('${eventId}')">`
-      + `<button class="btn-outline" style="font-size:0.82em;padding:5px 12px" onclick="document.getElementById('minutes-file').click()">＋ 議事録をアップ（Word・テキスト）</button>`
-      + `<div style="color:var(--text2);font-size:0.75em;margin-top:4px">SharePointに保存され、この予定の参加者のみ閲覧できます</div>`;
-    row.style.display = '';
-  } catch (err) { console.error('getMinutes:', err); }
+    list.style.color = ''; list.style.fontSize = '';
+    list.innerHTML = files || '<span style="color:var(--text2);font-size:0.85em">まだアップされていません</span>';
+  } catch (err) {
+    console.error('getMinutes:', err);
+    const list = document.getElementById('minutes-files');
+    if (list) list.textContent = '一覧を読み込めませんでした';
+  }
 }
 
 async function uploadMinutesFile(eventId) {
