@@ -6295,19 +6295,40 @@ async function openMyFeedback() {
 }
 
 let _fbTeam = null;
-async function openTeamFeedback(weekStart) {
+let _fbIdx = 0;   // 主任画面で表示中のメンバー（records のインデックス）
+async function openTeamFeedback(weekStart, keepId) {
   let res;
   try { res = await api('getTeamFeedback', { weekStart }, t('common.loading')); }
   catch(e) { showToast(e.message); return; }
   _fbTeam = res;
+  const i = keepId ? res.records.findIndex(r => r.id === keepId) : -1;
+  _fbIdx = i >= 0 ? i : 0;
   renderTeamFeedback();
 }
+
+// 入力中の主任コメントをメモリへ退避（メンバー切替・公開の前に呼ぶ）
+function _fbSyncComment() {
+  const r = _fbTeam?.records?.[_fbIdx];
+  const el = r && document.getElementById('fb-cm-' + r.id);
+  if (el) r.chiefComment = el.value;
+}
+function fbGo(i) {
+  _fbSyncComment();
+  const n = _fbTeam.records.length;
+  _fbIdx = (i + n) % n;
+  renderTeamFeedback();
+}
+function fbChangeWeek(w) { _fbSyncComment(); openTeamFeedback(w); }
 
 function renderTeamFeedback() {
   const { weekStart, weeks = [], records = [] } = _fbTeam;
   const drafts = records.filter(r => !r.published);
   const opts = weeks.map(w => `<option value="${esc(w.weekStart)}"${w.weekStart === weekStart ? ' selected' : ''}>${esc(w.weekLabel)}</option>`).join('');
-  const cards = records.map(r => _fbCard(r, {
+  const r = records[_fbIdx];
+  const navBtn = 'padding:6px 12px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.9em;cursor:pointer';
+  // 名前タブ（未公開は橙の●、公開済みは緑の✓）
+  const tabs = records.map((x, i) => `<button onclick="fbGo(${i})" style="padding:5px 10px;border-radius:16px;border:1.5px solid ${i === _fbIdx ? 'var(--primary)' : 'var(--border)'};background:${i === _fbIdx ? 'var(--primary)' : 'white'};color:${i === _fbIdx ? 'white' : 'var(--text)'};font-weight:700;font-size:0.8em;cursor:pointer;white-space:nowrap"><span style="color:${i === _fbIdx ? 'white' : (x.published ? '#2e7d32' : '#e65100')}">${x.published ? '✓' : '●'}</span> ${esc(x.name)}</button>`).join('');
+  const card = r ? _fbCard(r, {
     showName: true,
     badge: r.published
       ? `<span style="padding:2px 10px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:700;font-size:0.75em">${t('fb.published')}</span>`
@@ -6318,7 +6339,7 @@ function renderTeamFeedback() {
         <textarea id="fb-cm-${esc(r.id)}" rows="2" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88em;background:var(--bg);font-family:inherit" placeholder="${t('fb.chief.ph')}">${esc(r.chiefComment)}</textarea>
         ${r.published ? '' : `<div style="text-align:right;margin-top:6px"><button onclick="publishFb(['${esc(r.id)}'])" style="padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.publish')}</button></div>`}
       </div>`,
-  })).join('');
+  }) : '';
   widenDrModal();
   openDrModal(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -6326,27 +6347,31 @@ function renderTeamFeedback() {
       <button onclick="closeDrModal()" style="border:none;background:none;font-size:1.2em;cursor:pointer;color:var(--text2)">✕</button>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <select onchange="openTeamFeedback(this.value)" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em">${opts}</select>
+      <select onchange="fbChangeWeek(this.value)" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em">${opts}</select>
       <span style="font-size:0.8em;color:var(--text2)">${esc(t('fb.team.count', { n: records.length, d: drafts.length }))}</span>
-      ${drafts.length ? `<button onclick="publishFb(${esc(JSON.stringify(drafts.map(r => r.id)))})" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.publish.all')}</button>` : ''}
+      ${drafts.length ? `<button onclick="publishFb(${esc(JSON.stringify(drafts.map(x => x.id)))})" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.publish.all')}</button>` : ''}
     </div>
-    ${cards || `<div style="padding:20px 0;text-align:center;color:var(--text2);font-size:0.9em">${t('fb.team.none')}</div>`}`);
+    ${records.length ? `
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+      <button onclick="fbGo(${_fbIdx - 1})" aria-label="prev" style="${navBtn}">◀</button>
+      <div style="flex:1;display:flex;gap:6px;overflow-x:auto;padding:2px">${tabs}</div>
+      <button onclick="fbGo(${_fbIdx + 1})" aria-label="next" style="${navBtn}">▶</button>
+    </div>
+    <div style="text-align:center;font-size:0.75em;color:var(--text2);margin-top:4px">${_fbIdx + 1} / ${records.length}</div>
+    ${card}` : `<div style="padding:20px 0;text-align:center;color:var(--text2);font-size:0.9em">${t('fb.team.none')}</div>`}`);
 }
 
 async function publishFb(ids) {
+  _fbSyncComment();
   const comments = {};
-  (_fbTeam?.records || []).forEach(r => {
-    const el = document.getElementById('fb-cm-' + r.id);
-    if (el && ids.includes(r.id)) comments[r.id] = el.value;
-  });
+  (_fbTeam?.records || []).forEach(r => { if (ids.includes(r.id)) comments[r.id] = r.chiefComment || ''; });
   if (!confirm(t('fb.publish.confirm', { n: ids.length }))) return;
   try {
     const res = await api('publishFeedback', { ids, comments }, t('common.loading'));
     showToast(t('fb.published.toast', { n: res.published }));
   } catch(e) { showToast(e.message); return; }
-  openTeamFeedback(_fbTeam?.weekStart);
+  openTeamFeedback(_fbTeam?.weekStart, _fbTeam?.records?.[_fbIdx]?.id);
 }
-
 // ---- KING OF TIME：従業員名簿のKOTリンク（本人分のみGASから取得） ----
 let _kotUrl = '';
 async function loadKotLink() {
