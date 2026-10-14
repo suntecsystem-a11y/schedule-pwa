@@ -5852,12 +5852,18 @@ function minutesEligible(e) {
   return false;
 }
 
+// 一覧の読み込み中表示（回転マーク＋文字）。既存の spin アニメーションを使う
+function minutesLoadingHtml() {
+  return `<div style="display:flex;align-items:center;gap:8px;color:var(--text2);font-size:0.85em">`
+    + `<span style="width:14px;height:14px;border:2px solid var(--primary-light);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;flex:none"></span>読み込み中…</div>`;
+}
+
 // ボタンは画面側の判定で先に出し、ファイル一覧だけを後から読み込む（サーバー応答待ちでボタンが遅れないようにする）
 function showMinutesBox(eventId, e) {
   const row = document.getElementById('minutes-row');
   const box = document.getElementById('minutes-box');
   if (!row || !box || !minutesEligible(e)) return;   // 対象外には欄ごと出さない
-  box.innerHTML = `<div id="minutes-files" style="color:var(--text2);font-size:0.85em;margin-bottom:6px">読み込み中…</div>`
+  box.innerHTML = `<div id="minutes-files" style="margin-bottom:6px">${minutesLoadingHtml()}</div>`
     + `<input type="file" id="minutes-file" accept=".docx,.doc,.txt" style="display:none" onchange="uploadMinutesFile('${eventId}')">`
     + `<button class="btn-outline" style="font-size:0.82em;padding:5px 12px" onclick="document.getElementById('minutes-file').click()">＋ 議事録をアップ（Word・テキスト）</button>`
     + `<div style="color:var(--text2);font-size:0.75em;margin-top:4px">SharePointに保存され、この予定の参加者のみ閲覧できます</div>`;
@@ -5878,12 +5884,11 @@ async function loadMinutes(eventId) {
     if (!j.ok || !j.data || !j.data.canUpload) { row.style.display = 'none'; return; }  // サーバー判定で対象外なら欄を隠す
     const files = (j.data.files || []).map(f =>
       `<div style="margin-bottom:4px"><a href="${esc(f.url)}" target="_blank" rel="noopener" style="color:var(--primary);font-size:0.9em">📄 ${esc(f.name)}</a></div>`).join('');
-    list.style.color = ''; list.style.fontSize = '';
     list.innerHTML = files || '<span style="color:var(--text2);font-size:0.85em">まだアップされていません</span>';
   } catch (err) {
     console.error('getMinutes:', err);
     const list = document.getElementById('minutes-files');
-    if (list) list.textContent = '一覧を読み込めませんでした';
+    if (list) list.innerHTML = '<span style="color:var(--text2);font-size:0.85em">一覧を読み込めませんでした</span>';
   }
 }
 
@@ -5905,6 +5910,8 @@ async function uploadMinutesFile(eventId) {
     if (r.skipped && r.skipped.length) {
       alert('次の方はMicrosoft 365アカウントが特定できず、閲覧権限を付与できませんでした:\n' + r.skipped.join('、'));
     }
+    const lst = document.getElementById('minutes-files');
+    if (lst) lst.innerHTML = minutesLoadingHtml();   // 再読み込み中も回転マークを出す
     loadMinutes(eventId);
   } catch (err) { showToast(t('common.error.toast', { msg: err.message })); }
   finally { if (input) input.value = ''; }
