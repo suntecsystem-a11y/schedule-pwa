@@ -3681,7 +3681,7 @@ function switchTab(tab, btn){
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
   if(tab==='elearning') { if(window._elQuizState && !confirm(t('el.exit.desc'))) return; window._elQuizState = null; loadElearningCourses(); }
-  if(tab==='mypage')  renderMyPage();
+  if(tab==='mypage')  { _bentoNeedReload=true; renderMyPage(); }
   if(tab==='settings') renderSettings();
   if(tab==='apply')   renderApplyTab();
   if(tab==='admin')   loadAdminUsers();
@@ -7176,8 +7176,8 @@ async function bentoLoadMine(force){
     _bentoNeedReload = false;
     const today = fmtDate(new Date());
     _bentoMine = _bentoAll.filter(x=>x.date>=today && x.status!=='キャンセル').sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
-    _bentoByDate = {};
-    _bentoAll.forEach(x=>{ if(x.status!=='キャンセル') _bentoByDate[x.date]=x; });
+    _bentoByDate = {};  // 日付 → 予約の配列（黒船デーは複数可）
+    _bentoAll.forEach(x=>{ if(x.status!=='キャンセル'){ (_bentoByDate[x.date]||(_bentoByDate[x.date]=[])).push(x); } });
     bentoAfterLoad();
   }catch(e){
     const slot=document.getElementById('bento-day-slot');
@@ -7192,12 +7192,13 @@ function bentoAfterLoad(){ bentoDecorateCalendar(); bentoRenderDay(); }
 function bentoDecorateCalendar(){
   document.querySelectorAll('.mini-c[data-date]').forEach(cell=>{
     const old=cell.querySelector('.bento-dot'); if(old) old.remove();
-    const x=_bentoByDate[cell.getAttribute('data-date')];
-    if(!x) return;
+    const arr=_bentoByDate[cell.getAttribute('data-date')];
+    if(!arr||!arr.length) return;
+    const allReq = arr.every(x=>x.status==='キャンセル依頼'); // 全部キャンセル依頼中なら薄く
     const dot=document.createElement('span');
     dot.className='bento-dot';
-    dot.textContent='🍱';
-    dot.style.cssText='position:absolute;bottom:0;right:1px;font-size:9px;line-height:1;pointer-events:none;opacity:'+(x.status==='キャンセル依頼'?'.45':'1');
+    dot.textContent = arr.length>1 ? '🍱'+arr.length : '🍱'; // 黒船デーの複数予約は件数表示
+    dot.style.cssText='position:absolute;bottom:0;right:1px;font-size:9px;line-height:1;pointer-events:none;opacity:'+(allReq?'.45':'1');
     cell.appendChild(dot);
   });
 }
@@ -7207,16 +7208,18 @@ function bentoRenderDay(){
   const slot=document.getElementById('bento-day-slot');
   if(!slot) return;
   const ds=_mypageSD;
-  const x=_bentoByDate[ds];
-  if(x){
-    const canEdit = x.status==='予約';
-    const badge = `<span style="font-size:0.68em;background:#fff;color:${_bentoStColor(x.status)};border:1px solid currentColor;border-radius:20px;padding:1px 8px">${esc(x.status)}</span>`;
-    const actions = canEdit ? `
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button style="flex:1;margin:0;padding:7px;font-size:0.8em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;cursor:pointer" onclick="bentoDayEdit()">変更</button>
-        <button style="flex:1;margin:0;padding:7px;font-size:0.8em;background:#fff;color:#c62828;border:1px solid #f3c0c0;border-radius:8px;cursor:pointer" onclick="bentoDayCancel()">キャンセル</button>
-      </div>` : '';
-    slot.innerHTML = `
+  const arr=_bentoByDate[ds]||[];
+  if(arr.length){
+    // 黒船デーは複数予約あり得るので全件表示（それぞれに変更/キャンセル）
+    slot.innerHTML = arr.map((x,i)=>{
+      const canEdit = x.status==='予約';
+      const badge = `<span style="font-size:0.68em;background:#fff;color:${_bentoStColor(x.status)};border:1px solid currentColor;border-radius:20px;padding:1px 8px">${esc(x.status)}</span>`;
+      const actions = canEdit ? `
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button style="flex:1;margin:0;padding:7px;font-size:0.8em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;cursor:pointer" onclick="bentoDayEdit(${i})">変更</button>
+          <button style="flex:1;margin:0;padding:7px;font-size:0.8em;background:#fff;color:#c62828;border:1px solid #f3c0c0;border-radius:8px;cursor:pointer" onclick="bentoDayCancel(${i})">キャンセル</button>
+        </div>` : '';
+      return `
       <div style="background:#e8f5e9;border-radius:10px;padding:10px 12px;margin-bottom:10px">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
           <div style="font-size:0.86em;font-weight:700;color:#2e7d32">🍱 ${esc(x.menu)}（${esc(x.rice)}）</div>
@@ -7225,6 +7228,7 @@ function bentoRenderDay(){
         <div style="font-size:0.74em;color:var(--text2);margin-top:4px">自己負担 ${x.self}円${x.total?` ／ 税込 ${x.total}円`:''}</div>
         ${actions}
       </div>`;
+    }).join('');
     return;
   }
   // 未予約：予約可能な平日のみボタンを出す
@@ -7232,17 +7236,17 @@ function bentoRenderDay(){
   const dow=d.getDay();
   const isHol = !!(holidays.find(h=>h.date===ds) || jpNationalHolidays(d.getFullYear()).get(ds));
   const today=fmtDate(new Date());
-  const reservable = ds>=today && dow!==0 && dow!==6 && !isHol;
+  const reservable = ds>today && dow!==0 && dow!==6 && !isHol; // 当日は予約不可（翌営業日以降）
   slot.innerHTML = reservable ? `
     <button class="btn-primary" style="width:100%;margin:0 0 10px;padding:9px;font-size:0.82em" onclick="openBentoSheet({date:'${ds}'})">🍱 この日に弁当を予約する</button>` : '';
 }
 
-function bentoDayEdit(){
-  const x=_bentoByDate[_mypageSD]; if(!x) return;
+function bentoDayEdit(i){
+  const x=(_bentoByDate[_mypageSD]||[])[i||0]; if(!x) return;
   openBentoSheet({ recordId:x.recordId, date:x.date, menu:x.menu, rice:x.rice });
 }
-async function bentoDayCancel(){
-  const x=_bentoByDate[_mypageSD]; if(!x) return;
+async function bentoDayCancel(i){
+  const x=(_bentoByDate[_mypageSD]||[])[i||0]; if(!x) return;
   if(!confirm(`${x.date} の「${x.menu}」のキャンセルを依頼します。よろしいですか？（総務に通知されます）`)) return;
   try{
     await api('requestCancelBento', { recordId:x.recordId }, 'キャンセル依頼中…');
