@@ -318,6 +318,7 @@ const PHOTO_GAS_URL = 'https://script.google.com/macros/s/AKfycbwp8eTk9iDA3hPVuU
 // セッション
 // ===================================================
 let currentUser = null;
+let applyPerms = {};   // GASから取得する申請アプリ内の権限 { canViewAll, isHrViewer }
 let currentToken = null;
 let onboardingEligible = null; // 入社登録メニュー表示可否（起動時に取得してキャッシュ）
 
@@ -522,7 +523,15 @@ function initMain() {
   document.getElementById('header-username').textContent = currentUser.name;
   const canApprove = currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般');
   document.getElementById('tab-pending-btn').style.display = canApprove ? '' : 'none';
-  document.getElementById('tab-all-btn').style.display     = currentUser.isAdmin ? '' : 'none';
+  // 全申請タブは HR_VIEWERS(88,100) / DEV_VIEWERS のみ。
+  // 管理者フラグでは出さない（2026-10-16）。権限はGAS側に問い合わせる。
+  document.getElementById('tab-all-btn').style.display = 'none';
+  gas({ action: 'getApplyPerms', token: currentToken })
+    .then(p => {
+      applyPerms = p || {};
+      document.getElementById('tab-all-btn').style.display = applyPerms.canViewAll ? '' : 'none';
+    })
+    .catch(() => { /* 取得できなければ非表示のまま */ });
   showScreen('main');
   loadTab('mine');
   // 一般社員でも承認者に指名されていればタブを出す（交通費精算を総務が承認するケース）
@@ -573,7 +582,7 @@ async function loadTab(name) {
     if (name === 'mine') {
       const [applyAll, expenses] = await Promise.all([
         gas({ action: 'getApplyAll', token: currentToken }),
-        gas({ action: 'getExpenses', token: currentToken }).catch(() => []),
+        gas({ action: 'getExpenses', token: currentToken }).catch(() => []), // scope省略=自分の申請のみ
       ]);
       if (seq !== _loadTabSeq) return;
       records = [
@@ -603,7 +612,8 @@ async function loadTab(name) {
     } else if (name === 'pending') {
       const [applyAll, expenses] = await Promise.all([
         gas({ action: 'getApplyForApprovalAll', token: currentToken }),
-        currentUser.isAdmin ? gas({ action: 'getExpenses', token: currentToken }).catch(() => []) : Promise.resolve([]),
+        // 管理者フラグではなく scope='pending' でGAS側が「自分が承認者の申請中」だけを返す（2026-10-16）
+        gas({ action: 'getExpenses', token: currentToken, scope: 'pending' }).catch(() => []),
       ]);
       if (seq !== _loadTabSeq) return;
       records = [
@@ -616,7 +626,7 @@ async function loadTab(name) {
     } else if (name === 'all') {
       const [applyAll, expenses] = await Promise.all([
         gas({ action: 'getApplyAll', token: currentToken, scope: 'all' }),
-        gas({ action: 'getExpenses', token: currentToken }).catch(() => []),
+        gas({ action: 'getExpenses', token: currentToken, scope: 'all' }).catch(() => []),
       ]);
       if (seq !== _loadTabSeq) return;
       records = [
