@@ -307,6 +307,12 @@ input,select{font-family:inherit;outline:none}
 .mini-hol{position:absolute;top:2px;left:20px;font-size:0.55em;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;right:1px;line-height:18px;pointer-events:none}
 .mini-more{position:absolute;bottom:1px;left:0;right:0;text-align:center;font-size:0.58em;color:var(--primary);font-weight:700;cursor:pointer}
 
+/* マイページ：カレンダー＋選択日 2カラム（広い画面のみ・スマホは縦積み） */
+.mypage-cal-row{display:block}
+@media(min-width:768px){
+  .mypage-cal-row{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;align-items:start}
+}
+
 /* 週表示 */
 .week-grid{background:white;border-radius:var(--radius);box-shadow:var(--shadow);max-height:560px;overflow:auto;min-width:0}
 .week-header,.week-allday-row,.week-leave-row,.week-body{min-width:600px}
@@ -6917,8 +6923,9 @@ function renderMyPage() {
       <div style="font-size:0.72em;color:var(--text2);margin-top:6px;line-height:1.5">カレンダーの🍱がある日をタップすると、予約内容の確認・変更ができます</div>
     </div>` : ''}
 
+    <div class="mypage-cal-row">
     <!-- マイカレンダー -->
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
+    <div class="mypage-cal-card" style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <span style="font-size:1.2em;color:var(--text2);cursor:pointer;padding:4px 8px" onclick="mypageCalNav(-1)">‹</span>
         <span style="font-size:0.88em;font-weight:700">${t('cal.month.title',{year:_cy,month:_cmo+1})}</span>
@@ -6945,6 +6952,7 @@ function renderMyPage() {
         </div>`).join('') :
         `<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">${t('my.no.events')}</div>`}
     </div>
+    </div><!-- /mypage-cal-row -->
 
     <!-- 今週のサマリー -->
     ${(() => {
