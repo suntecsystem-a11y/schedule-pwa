@@ -775,6 +775,8 @@ input,select{font-family:inherit;outline:none}
 .tk-dl-row.sub{font-size:.88em;color:var(--text2);min-height:32px}
 .tk-dl-grp{background:#f7f9fc;border-top:1px solid var(--tk-line);font-weight:700;cursor:pointer;gap:8px;padding-right:10px}
 .tk-dl-grp:hover{background:#eef1f8}
+.tk-dl-grp.top{background:#e8eaf6;min-height:42px}
+.tk-dl-grp.top:hover{background:#dde1f3}
 .tk-dl-type{font-size:.7em;color:#fff;border-radius:4px;padding:2px 7px;flex:none;font-weight:700}
 .tk-dl-gname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tk-dl-cnt{font-size:.8em;font-weight:400;color:var(--text2);flex:none}
@@ -4077,8 +4079,9 @@ function tkDashTree(items,isSub){
   if(isSub)items.forEach(s=>{if(!taskSubs.has(s.task))taskSubs.set(s.task,[]);taskSubs.get(s.task).push(s);});
   const root={ch:new Map(),items:[],count:0};
   tasks.forEach(t=>{
-    const chain=[];let p=(_tk.pmap||{})[t.parent]||_tk.byId[t.parent];
-    for(let i=0;p&&i<12;i++){chain.unshift(p);p=(_tk.pmap||{})[p.parent]||_tk.byId[p.parent];}
+    const chainAll=[];let p=(_tk.pmap||{})[t.parent]||_tk.byId[t.parent];
+    for(let i=0;p&&i<12;i++){chainAll.unshift(p);p=(_tk.pmap||{})[p.parent]||_tk.byId[p.parent];}
+    const chain=chainAll.filter(n=>n.type==='施策'||n.type==='活動');
     let g=root;g.count++;
     chain.forEach(n=>{if(!g.ch.has(n.id))g.ch.set(n.id,{node:n,ch:new Map(),items:[],count:0});g=g.ch.get(n.id);g.count++;});
     g.items.push(t);
@@ -4104,13 +4107,19 @@ function tkDashTree(items,isSub){
     [...g.ch.values()].sort((a,b)=>(+a.node.id)-(+b.node.id)).forEach(c=>{
       const closed=!!_tk.dashClosed[c.node.id];
       const col=TK_TYPE_COL[c.node.type]||'#757575';
-      h+='<div class="tk-dl-grp" style="padding-left:'+(8+depth*16)+'px" onclick="tkDashToggle(\''+c.node.id+'\')"><span class="tk-tw">'+(closed?'▶':'▼')+'</span><span class="tk-dl-type" style="background:'+col+'">'+tkEsc(c.node.type)+'</span><span class="tk-dl-gname">'+tkEsc(c.node.title)+'</span><span class="tk-dl-cnt">'+c.count+'件</span></div>';
+      h+='<div class="tk-dl-grp'+(c.node.type==='施策'?' top':'')+'" style="padding-left:'+(8+depth*16)+'px" onclick="tkDashToggle(\''+c.node.id+'\')"><span class="tk-tw">'+(closed?'▶':'▼')+'</span><span class="tk-dl-type" style="background:'+col+'">'+tkEsc(c.node.type)+'</span><span class="tk-dl-gname">'+tkEsc(c.node.title)+'</span><span class="tk-dl-cnt">'+c.count+'件</span></div>';
       if(!closed){h+=walk(c,depth+1);h+=c.items.slice().sort(cmp).map(t=>row(t,depth+1)).join('');}
     });
     return h;
   };
   const head='<div class="tk-dl-head"><span class="tk-dl-name">タスク</span><span class="tk-dl-who">担当者</span><span class="tk-dl-st">状態</span><span class="tk-dl-d">開始</span><span class="tk-dl-d">期限</span><span class="tk-dl-p">進捗</span></div>';
-  return '<div class="tk-dl">'+head+walk(root,0)+root.items.slice().sort(cmp).map(t=>row(t,0)).join('')+'</div>';
+  let rest='';
+  if(root.items.length){
+    const closed=!!_tk.dashClosed['__none'];
+    rest='<div class="tk-dl-grp" style="padding-left:8px" onclick="tkDashToggle(\'__none\')"><span class="tk-tw">'+(closed?'▶':'▼')+'</span><span class="tk-dl-type" style="background:#9e9e9e">未分類</span><span class="tk-dl-gname">施策・活動に属さないタスク</span><span class="tk-dl-cnt">'+root.items.length+'件</span></div>'
+      +(closed?'':root.items.slice().sort(cmp).map(t=>row(t,1)).join(''));
+  }
+  return '<div class="tk-dl">'+head+walk(root,0)+rest+'</div>';
 }
 function tkDashHtml(){
   const D=tkDashData();
