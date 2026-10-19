@@ -759,7 +759,6 @@ input,select{font-family:inherit;outline:none}
   <div class="sidebar-nav">
     <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span class="sidebar-short">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
     <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span><span class="sidebar-short">カレンダー</span></button>
-    <button class="sidebar-btn" data-tab="tasks" data-tip="タスク" onclick="switchTab('tasks',this)"><span class="sidebar-icon">✅</span><span class="sidebar-label">タスク</span><span class="sidebar-short">タスク</span></button>
     <button class="sidebar-btn" data-tab="team" data-tip="在席ボード" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span><span class="sidebar-short">在席</span></button>
     <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span><span class="sidebar-short">申請</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
@@ -767,6 +766,7 @@ input,select{font-family:inherit;outline:none}
     <button class="sidebar-btn" data-tab="devices" data-tip="端末" onclick="switchTab('devices',this)"><span class="sidebar-icon">📱</span><span class="sidebar-label">端末</span><span class="sidebar-short">端末</span></button>
     <button class="sidebar-btn" data-tab="cars" data-tip="車予約" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">車</span></button>
     <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">問い合わせ</span></button>
+    <button class="sidebar-btn" data-tab="tasks" data-tip="タスク" onclick="switchTab('tasks',this)"><span class="sidebar-icon">✅</span><span class="sidebar-label">タスク</span><span class="sidebar-short">タスク</span></button>
     <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span><span class="sidebar-short">eラーニング</span></button>
     <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span><span class="sidebar-short">設定</span></button>
     <button class="sidebar-btn admin-side" data-tab="admin" data-tip="管理" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span><span class="sidebar-short">管理</span></button>
@@ -790,7 +790,6 @@ input,select{font-family:inherit;outline:none}
   <div class="tab-nav" id="tab-nav">
     <button class="tab-btn active" data-tab="home" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
     <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar',this)">📅 カレンダー</button>
-    <button class="tab-btn" data-tab="tasks" onclick="switchTab('tasks',this)">✅ タスク</button>
     <button class="tab-btn" data-tab="team" onclick="switchTab('team',this)">👥 在席</button>
     <button class="tab-btn" data-tab="apply" onclick="switchTab('apply',this)">📋 申請</button>
     <button class="tab-btn" data-tab="mypage" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
@@ -798,6 +797,7 @@ input,select{font-family:inherit;outline:none}
     <button class="tab-btn" data-tab="devices" onclick="switchTab('devices',this)">📱 端末</button>
     <button class="tab-btn" data-tab="cars" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
     <button class="tab-btn" data-tab="inquiry" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
+    <button class="tab-btn" data-tab="tasks" onclick="switchTab('tasks',this)">✅ タスク</button>
     <button class="tab-btn" data-tab="elearning" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
     <button class="tab-btn" data-tab="settings" onclick="switchTab('settings',this)">🔧 設定</button>
     <!-- 管理者のみ表示 -->
@@ -2749,7 +2749,6 @@ function tDow(i){return[t('common.mon'),t('common.tue'),t('common.wed'),t('commo
 const NAV_META={
   home:{e:'🏠',k:'nav.home',s:'nav.home'},
   calendar:{e:'📅',k:'nav.calendar',s:'nav.calendar'},
-  tasks:{e:'✅',k:'nav.tasks',s:'nav.tasks'},
   team:{e:'👥',k:'nav.team',s:'nav.team.short'},
   apply:{e:'📋',k:'nav.apply',s:'nav.apply'},
   mypage:{e:'👤',k:'nav.mypage',s:'nav.mypage'},
@@ -2757,15 +2756,17 @@ const NAV_META={
   devices:{e:'📱',k:'nav.devices',s:'nav.devices.short'},
   cars:{e:'🚗',k:'nav.cars',s:'nav.cars.short',prep:true},
   inquiry:{e:'💬',k:'nav.inquiry',s:'nav.inquiry',prep:true},
+  tasks:{e:'✅',k:'nav.tasks',s:'nav.tasks',get prep(){return !tkAllowed();}},
   elearning:{e:'📚',k:'nav.elearning',s:'nav.elearning'},
   settings:{e:'🔧',k:'nav.settings',s:'nav.settings'},
   admin:{e:'⚙️',k:'nav.admin',s:'nav.admin'}
 };
 const BOTTOM_TABS=['home','calendar','team'];
-const MORE_TABS=['tasks','apply','mypage','rooms','devices','cars','inquiry','elearning','settings','admin'];
+const MORE_TABS=['apply','mypage','rooms','devices','cars','inquiry','tasks','elearning','settings','admin'];
 let _currentTab='home';
 let _moreNotifCount=0;
 function _applyNavLabels(){
+  document.querySelectorAll('.sidebar-btn[data-tab="tasks"],.tab-btn[data-tab="tasks"]').forEach(b=>{const ok=tkAllowed();b.disabled=!ok;b.style.opacity=ok?'':'0.4';b.style.cursor=ok?'':'not-allowed';});
   document.querySelectorAll('.sidebar-btn[data-tab]').forEach(btn=>{
     const m=NAV_META[btn.dataset.tab];if(!m)return;
     const lbl=btn.querySelector('.sidebar-label');
@@ -3787,6 +3788,8 @@ const TK_SCOL={'未着手':'#9e9e9e','進行中':'#5c6bc0','確認待ち':'#fb8c
 const TK_STS=['未着手','進行中','確認待ち','完了','保留'];
 const TK_AVCOL=['#5c6bc0','#43a047','#fb8c00','#8e24aa','#e91e63','#00897b','#6d4c41','#039be5'];
 const TK_KINTONE_URL='https://zcbwgd3ubjo5.cybozu.com/k/945/show#record=';
+const TK_ALLOWED_IDS=['81','90']; // 永野・畑村のみ（サーバー側 TASK_ALLOWED_EMP_IDS と同じ）
+function tkAllowed(){return !!(currentUser&&TK_ALLOWED_IDS.includes(String(currentUser.id)));}
 let _tk={loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,open:{},error:'',range:null,fresh:true};
 function tkEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tkToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
@@ -3986,6 +3989,7 @@ function tkDashHtml(){
     +'<div class="tk-dp"><h4>期限超過 <small style="color:var(--red)">'+late.length+'件</small></h4>'+(late.slice(0,30).map(li).join('')||'<div class="ds">なし</div>')+'<h4 style="margin-top:14px">今週期限 <small>'+wk.length+'件</small></h4>'+(wk.map(li).join('')||'<div class="ds">なし</div>')+'</div></div></div>';
 }
 function switchTab(tab, btn){
+  if(tab==='tasks'&&!tkAllowed())return;
   ['home','calendar','tasks','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
