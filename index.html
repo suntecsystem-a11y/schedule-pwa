@@ -6653,7 +6653,7 @@ function showMinutesBox(eventId, e) {
   if (!row || !box || !minutesEligible(e)) return;   // 対象外には欄ごと出さない
   box.innerHTML = `<div id="minutes-files" style="margin-bottom:6px">${minutesLoadingHtml()}</div>`
     + `<input type="file" id="minutes-file" accept=".docx,.doc,.txt" style="display:none" onchange="uploadMinutesFile('${eventId}')">`
-    + `<button class="btn-outline" style="font-size:0.82em;padding:5px 12px" onclick="document.getElementById('minutes-file').click()">＋ 議事録をアップ（Word・テキスト）</button>`
+    + `<button class="btn-outline" style="font-size:1.05em;padding:10px 12px" onclick="document.getElementById('minutes-file').click()">＋ 議事録をアップ（Word・テキスト）</button>`
     + `<div style="color:var(--text2);font-size:0.75em;margin-top:4px">SharePointに保存され、この予定の参加者のみ閲覧できます</div>`;
   row.style.display = '';
   loadMinutes(eventId);
@@ -6674,7 +6674,7 @@ async function loadMinutes(eventId) {
     const files = (j.data.files || []).map((f, i) =>
       `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">`
       + `<a href="${esc(f.url)}" target="_blank" rel="noopener" style="flex:1;min-width:0;color:var(--primary);font-size:0.9em;word-break:break-all">📄 ${esc(f.name)}</a>`
-      + `<button class="btn-outline" title="削除" onclick="deleteMinutesFile('${eventId}',${i})" style="font-size:0.75em;padding:2px 8px;flex:none;width:auto;margin-top:0;white-space:nowrap">🗑️ 削除</button></div>`).join('');
+      + `<button class="btn-outline" title="削除" onclick="deleteMinutesFile('${eventId}',${i})" style="font-size:1.05em;padding:8px 14px;flex:none;width:auto;margin-top:0;white-space:nowrap">🗑️ 削除</button></div>`).join('');
     list.innerHTML = files || '<span style="color:var(--text2);font-size:0.85em">まだアップされていません</span>';
   } catch (err) {
     console.error('getMinutes:', err);
