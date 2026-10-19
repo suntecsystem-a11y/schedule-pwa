@@ -623,6 +623,97 @@ input,select{font-family:inherit;outline:none}
 .inc-filter-chip.on.sev3{background:#ffebee;color:#c62828;border-color:#ef9a9a}
 .inc-filter-chip.on.sev2{background:#fff3e0;color:#e65100;border-color:#ffcc80}
 .inc-filter-chip.on.sev1{background:#e3f2fd;color:#1565c0;border-color:#90caf9}
+
+/* タスク管理タブ */
+#tab-tasks{--tk-leftw:540px;--tk-rowh:34px;--tk-line:#e6e8ee}
+.tk-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.tk-head h2{font-size:1.15em}
+.tk-head small{color:var(--text2);font-size:.78em}
+.tk-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.tk-tabs{display:flex;padding:0 8px;border-bottom:1px solid var(--border)}
+.tk-tabs button{background:none;color:var(--text2);padding:10px 16px;font-size:.88em;border-bottom:3px solid transparent;border-radius:0;cursor:pointer}
+.tk-tabs button.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+.tk-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--border);font-size:.8em}
+.tk-bar select,.tk-btn{font-size:1em;border:1px solid #cfd6e0;background:#fff;border-radius:6px;padding:5px 9px;color:var(--text);cursor:pointer}
+.tk-bar label{display:flex;align-items:center;gap:5px;color:var(--text2)}
+.tk-sp{flex:1}
+.tk-grp{display:inline-flex}
+.tk-grp button{border:1px solid #cfd6e0;background:#fff;color:var(--text);padding:5px 11px;font-size:1em;margin-left:-1px;cursor:pointer;border-radius:0}
+.tk-grp button:first-child{border-radius:6px 0 0 6px;margin-left:0}
+.tk-grp button:last-child{border-radius:0 6px 6px 0}
+.tk-grp button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.tk-empty{padding:48px 16px;text-align:center;color:var(--text2)}
+#tk-view{position:relative;height:calc(100vh - 250px);min-height:380px}
+#tk-wrap,#tk-kanban,#tk-dash{position:absolute;inset:0;overflow:auto}
+#tk-content{position:relative}
+.tk-hrow{position:sticky;top:0;z-index:6;display:flex;height:52px;background:#f0f3f8}
+.tk-row{display:flex;height:var(--tk-rowh);border-bottom:1px solid var(--tk-line)}
+.tk-left{position:sticky;left:0;z-index:5;width:var(--tk-leftw);flex:none;display:flex;align-items:center;background:#fff;border-right:2px solid #cfd6e0}
+.tk-hrow .tk-left{background:#f0f3f8;font-weight:700;color:var(--text2);font-size:.78em;align-items:stretch}
+.tk-row:hover .tk-left{background:var(--primary-light)}
+.tk-row.l0 .tk-left{background:#f7f9fc}
+.tk-row.l0 .tk-nm{font-weight:700}
+.tk-c{padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;align-items:center;border-right:1px solid var(--tk-line);font-size:.8em}
+.tk-hrow .tk-c{border-bottom:1px solid var(--tk-line)}
+.tk-c.name{width:260px;font-size:.85em}.tk-c.who{width:110px;gap:6px}.tk-c.st{width:70px}.tk-c.d{width:50px;justify-content:center}.tk-c.pg{width:50px;justify-content:flex-end;border-right:0}
+.tk-tw{width:16px;flex:none;cursor:pointer;color:var(--text2);text-align:center;user-select:none;font-size:.7em}
+.tk-nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.tk-lnk{flex:none;margin-left:4px;color:var(--text3);text-decoration:none;font-size:.85em}
+.tk-lnk:hover{color:var(--primary)}
+.tk-av{width:20px;height:20px;border-radius:50%;color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex:none;margin-right:5px}
+.tk-c.who .tk-av{margin-right:0}
+.tk-co{font-size:.8em;color:var(--text2);margin-left:2px}
+.tk-tag{font-size:.75em;padding:2px 7px;border-radius:10px;color:#fff}
+.tk-tl{position:relative;flex:none}
+.tk-tl.body{background-image:linear-gradient(to right,var(--tk-line) 1px,transparent 1px)}
+.tk-hd{position:absolute;inset:0}
+.tk-mo{position:absolute;top:0;height:26px;border-right:1px solid #cfd6e0;border-bottom:1px solid var(--tk-line);padding:5px 6px;font-size:.78em;font-weight:700;color:var(--text2);overflow:hidden;white-space:nowrap}
+.tk-dy{position:absolute;top:26px;height:26px;border-right:1px solid var(--tk-line);font-size:.7em;color:var(--text2);text-align:center;padding-top:6px;overflow:hidden;white-space:nowrap}
+.tk-dy.we{color:#d36;background:#f6e9ee}
+#tk-weekend{position:absolute;top:52px;bottom:0;z-index:1;pointer-events:none}
+#tk-weekend i{position:absolute;top:0;bottom:0;background:rgba(120,130,150,.07)}
+#tk-today{position:absolute;top:52px;bottom:0;width:2px;background:var(--red);z-index:4;pointer-events:none}
+#tk-today b{position:absolute;top:-14px;left:-14px;background:var(--red);color:#fff;font-size:10px;padding:1px 5px;border-radius:3px;font-weight:400}
+.tk-gb{position:absolute;top:8px;height:18px;border-radius:4px;z-index:2;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.tk-gb .pf{position:absolute;inset:0 auto 0 0;background:rgba(0,0,0,.28)}
+.tk-gb span{position:absolute;left:6px;top:2px;font-size:11px;color:#fff;white-space:nowrap;text-shadow:0 0 2px rgba(0,0,0,.4)}
+.tk-gb.sum{top:11px;height:12px;border-radius:2px;background:var(--primary-dark)!important;clip-path:polygon(0 0,100% 0,100% 100%,calc(100% - 6px) 55%,6px 55%,0 100%)}
+#tk-kanban{display:flex;gap:14px;padding:16px;background:var(--surface-1)}
+.tk-col{width:280px;flex:none;background:#e9edf3;border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;max-height:100%;overflow:auto}
+.tk-col h3{font-size:.85em;display:flex;justify-content:space-between;margin-bottom:2px}
+.tk-col h3 em{font-style:normal;color:var(--text2);font-weight:400}
+.tk-card{background:#fff;border-radius:6px;padding:10px;box-shadow:0 1px 2px rgba(0,0,0,.12);border-left:4px solid var(--text3)}
+.tk-card .p{font-size:.72em;color:var(--text2);margin-bottom:3px}
+.tk-card .t{font-weight:700;margin-bottom:6px;font-size:.88em}
+.tk-card .f{display:flex;justify-content:space-between;align-items:center;font-size:.78em;color:var(--text2)}
+.tk-card .f.late b{color:var(--red)}
+.tk-pbar{height:4px;background:#e3e8ef;border-radius:2px;margin:4px 0 8px;overflow:hidden}
+.tk-pbar i{display:block;height:100%;background:var(--primary)}
+#tk-dash{padding:16px;background:var(--surface-1)}
+.tk-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:14px}
+.tk-dt{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.tk-dt .dl{font-size:.75em;color:var(--text2)}.tk-dt .dv{font-size:1.9em;font-weight:700;line-height:1.3}.tk-dt .ds{font-size:.7em;color:var(--text2)}
+.tk-dg{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:12px}
+.tk-dp{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.85em}
+.tk-dp h4{font-size:.95em;margin-bottom:10px}.tk-dp h4 small{font-weight:400;color:var(--text2);margin-left:6px}
+.tk-dp .ds{font-size:.85em;color:var(--text2)}
+.tk-stk{display:flex;height:26px;border-radius:6px;overflow:hidden;margin-bottom:8px}
+.tk-stk i{color:#fff;font-size:.8em;font-style:normal;display:flex;align-items:center;justify-content:center}
+.tk-lg2{display:flex;gap:12px;font-size:.8em;color:var(--text2);flex-wrap:wrap}
+.tk-lg2 i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+.tk-wr{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:.85em}
+.tk-wr .wn{width:100px;flex:none;display:flex;align-items:center;overflow:hidden;white-space:nowrap}
+.tk-wr .wb{flex:1;height:14px;background:#eceef3;border-radius:7px;overflow:hidden;display:flex}
+.tk-wr .wb i{display:block;height:100%}
+.tk-wr .wc{width:110px;flex:none;text-align:right;color:var(--text2)}
+.tk-li{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:.9em}
+.tk-li .nm{flex:1}
+@media(max-width:700px){
+  #tab-tasks{--tk-leftw:230px}
+  .tk-c.who,.tk-c.st,.tk-hrow .tk-c.who,.tk-hrow .tk-c.st{display:none}
+  .tk-c.name{width:130px}
+  #tk-view{height:calc(100vh - 330px)}
+}
 </style>
 </head>
 <body>
@@ -668,6 +759,7 @@ input,select{font-family:inherit;outline:none}
   <div class="sidebar-nav">
     <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span class="sidebar-short">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
     <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span><span class="sidebar-short">カレンダー</span></button>
+    <button class="sidebar-btn" data-tab="tasks" data-tip="タスク" onclick="switchTab('tasks',this)"><span class="sidebar-icon">✅</span><span class="sidebar-label">タスク</span><span class="sidebar-short">タスク</span></button>
     <button class="sidebar-btn" data-tab="team" data-tip="在席ボード" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span><span class="sidebar-short">在席</span></button>
     <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span><span class="sidebar-short">申請</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
@@ -698,6 +790,7 @@ input,select{font-family:inherit;outline:none}
   <div class="tab-nav" id="tab-nav">
     <button class="tab-btn active" data-tab="home" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
     <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar',this)">📅 カレンダー</button>
+    <button class="tab-btn" data-tab="tasks" onclick="switchTab('tasks',this)">✅ タスク</button>
     <button class="tab-btn" data-tab="team" onclick="switchTab('team',this)">👥 在席</button>
     <button class="tab-btn" data-tab="apply" onclick="switchTab('apply',this)">📋 申請</button>
     <button class="tab-btn" data-tab="mypage" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
@@ -816,6 +909,8 @@ input,select{font-family:inherit;outline:none}
   </div>
 
   <!-- チーム -->
+  <div class="content" id="tab-tasks" style="display:none"></div>
+
   <div class="content" id="tab-team" style="display:none">
     <div style="background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="display:flex;gap:6px;margin-bottom:10px">
@@ -1633,7 +1728,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Daily Actionを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.calendar':'カレンダー','nav.rooms':'会議室','nav.team':'在席ボード',
+'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','nav.rooms':'会議室','nav.team':'在席ボード',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -2010,7 +2105,7 @@ vi:{
 'dr.err.empty':'Chưa có nội dung',
 'dr.sending':'Đang gửi...',
 'dr.saved':'Đã ghi Daily Action',
-'nav.home':'Trang chủ','nav.calendar':'Lịch','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
+'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
@@ -2364,7 +2459,7 @@ ne:{
 'dr.err.empty':'केही लेखिएको छैन',
 'dr.sending':'पठाउँदै...',
 'dr.saved':'Daily Action रेकर्ड गरियो',
-'nav.home':'गृहपृष्ठ','nav.calendar':'पात्रो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
+'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
@@ -2654,6 +2749,7 @@ function tDow(i){return[t('common.mon'),t('common.tue'),t('common.wed'),t('commo
 const NAV_META={
   home:{e:'🏠',k:'nav.home',s:'nav.home'},
   calendar:{e:'📅',k:'nav.calendar',s:'nav.calendar'},
+  tasks:{e:'✅',k:'nav.tasks',s:'nav.tasks'},
   team:{e:'👥',k:'nav.team',s:'nav.team.short'},
   apply:{e:'📋',k:'nav.apply',s:'nav.apply'},
   mypage:{e:'👤',k:'nav.mypage',s:'nav.mypage'},
@@ -2666,7 +2762,7 @@ const NAV_META={
   admin:{e:'⚙️',k:'nav.admin',s:'nav.admin'}
 };
 const BOTTOM_TABS=['home','calendar','team'];
-const MORE_TABS=['apply','mypage','rooms','devices','cars','inquiry','elearning','settings','admin'];
+const MORE_TABS=['tasks','apply','mypage','rooms','devices','cars','inquiry','elearning','settings','admin'];
 let _currentTab='home';
 let _moreNotifCount=0;
 function _applyNavLabels(){
@@ -3686,8 +3782,211 @@ function openIncidentDetail(id){
   modal.classList.add('open');
 }
 
+// ===== タスク管理（kintoneアプリ945の表示：ガント／かんばん／ダッシュボード。閲覧のみ） =====
+const TK_SCOL={'未着手':'#9e9e9e','進行中':'#5c6bc0','確認待ち':'#fb8c00','完了':'#43a047','保留':'#78909c'};
+const TK_STS=['未着手','進行中','確認待ち','完了','保留'];
+const TK_AVCOL=['#5c6bc0','#43a047','#fb8c00','#8e24aa','#e91e63','#00897b','#6d4c41','#039be5'];
+const TK_KINTONE_URL='https://zcbwgd3ubjo5.cybozu.com/k/945/show#record=';
+let _tk={loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,open:{},error:'',range:null,fresh:true};
+function tkEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function tkToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function tkParse(s){if(!s)return null;const p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function tkFmt(d){return d?(d.getMonth()+1)+'/'+d.getDate():'-';}
+function tkAddDays(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);}
+function tkDiff(a,b){return Math.round((b-a)/86400000);}
+function tkAv(name){
+  if(!name)return '';
+  let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))>>>0;
+  return '<span class="tk-av" style="background:'+TK_AVCOL[h%TK_AVCOL.length]+'">'+tkEsc(name.replace(/\s/g,'')[0])+'</span>'+tkEsc(name);
+}
+function renderTasksTab(){
+  if(!_tk.loaded&&!_tk.error){tkLoad();return;}
+  tkRender();
+}
+async function tkLoad(scope){
+  if(scope)_tk.scope=scope;
+  try{
+    const r=await api('getTasks',{scope:_tk.scope},'タスクを読み込み中...');
+    _tk.me=r.me;_tk.canAll=r.canAll;_tk.scope=r.scope;_tk.error='';
+    tkBuild(r.nodes);_tk.loaded=true;_tk.fresh=true;
+  }catch(e){_tk.error=(e&&e.message)||String(e);}
+  tkRender();
+}
+function tkBuild(list){
+  const byId={};
+  list.forEach(n=>{n.ch=[];n.sd=tkParse(n.start);n.ed=tkParse(n.end);if(n.sd&&!n.ed)n.ed=n.sd;if(n.ed&&!n.sd)n.sd=n.ed;byId[n.id]=n;});
+  const roots=[];
+  list.forEach(n=>{const p=byId[n.parent];if(p&&p!==n)p.ch.push(n);else roots.push(n);});
+  const leaves=x=>x.ch.length?x.ch.flatMap(leaves):[x];
+  const agg=x=>{
+    x.ch.forEach(agg);
+    if(!x.ch.length)return;
+    const l=leaves(x);const dated=l.filter(a=>a.sd);
+    if(dated.length){x.sd=new Date(Math.min(...dated.map(a=>a.sd)));x.ed=new Date(Math.max(...dated.map(a=>a.ed)));}
+    x.p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);
+    x.cnt=l.length;
+  };
+  roots.forEach(agg);
+  list.forEach(n=>{if(!n.ch.length&&n.st==='完了')n.p=100;});
+  const sortCh=x=>{x.ch.sort((a,b)=>(a.sd?+a.sd:1e15)-(b.sd?+b.sd:1e15)||(+a.id)-(+b.id));x.ch.forEach(sortCh);};
+  roots.sort((a,b)=>(+a.id)-(+b.id));roots.forEach(sortCh);
+  const prevOpen=_tk.open;_tk.open={};
+  list.forEach(n=>{if(n.ch.length)_tk.open[n.id]=prevOpen[n.id]!==undefined?prevOpen[n.id]:(_tk.scope==='mine'||roots.includes(n));});
+  _tk.nodes=list;_tk.byId=byId;_tk.roots=roots;
+  const dates=list.flatMap(n=>[n.sd,n.ed]).filter(Boolean);
+  const today=tkToday();
+  let a=tkAddDays(today,-14),b=tkAddDays(today,45);
+  if(dates.length){
+    const mn=new Date(Math.min(...dates)),mx=new Date(Math.max(...dates));
+    if(tkAddDays(mn,-2)<a)a=tkAddDays(mn,-2);
+    if(tkAddDays(mx,2)>b)b=tkAddDays(mx,2);
+  }
+  const lo=tkAddDays(today,-120),hi=tkAddDays(today,240);
+  _tk.range={start:a<lo?lo:a,end:b>hi?hi:b};
+}
+function tkLeaves(x){return x.ch.length?x.ch.flatMap(tkLeaves):[x];}
+function tkIsLate(x){return !x.ch.length&&x.st!=='完了'&&x.st!=='保留'&&x.ed&&x.ed<tkToday();}
+function tkBarColor(x){return tkIsLate(x)?'var(--red)':(TK_SCOL[x.st]||'#9e9e9e');}
+function tkVisible(x,keepDone){
+  if(x.ch.length)return x.ch.some(c=>tkVisible(c,keepDone));
+  if(_tk.who&&x.who!==_tk.who&&!x.co.includes(_tk.who))return false;
+  if(_tk.st&&x.st!==_tk.st)return false;
+  if(!keepDone&&!_tk.done&&x.st==='完了')return false;
+  return true;
+}
+function tkRows(nodes,depth,out){
+  nodes.forEach(x=>{
+    if(!tkVisible(x))return;
+    out.push({x,depth});
+    if(x.ch.length&&_tk.open[x.id])tkRows(x.ch,depth+1,out);
+  });
+  return out;
+}
+function tkPath(x){const a=[];let p=_tk.byId[x.parent];while(p){a.unshift(p.title);p=_tk.byId[p.parent];}return a.join(' ＞ ');}
+function tkPeople(){
+  const s=new Set();
+  _tk.nodes.forEach(n=>{if(!n.ch.length){if(n.who)s.add(n.who);n.co.forEach(c=>s.add(c));}});
+  return [...s].sort((a,b)=>a.localeCompare(b,'ja'));
+}
+function tkSet(k,v){_tk[k]=v;if(k==='view'&&v==='gantt')_tk.fresh=true;tkRender();}
+function tkToggle(id){_tk.open[id]=!_tk.open[id];tkRender(true);}
+function tkSetAll(v){Object.keys(_tk.open).forEach(k=>_tk.open[k]=v);tkRender(true);}
+function tkZoom(n){_tk.dayW=n;_tk.fresh=true;tkRender();}
+function tkScrollToday(){
+  const w=document.getElementById('tk-wrap');if(!w||!_tk.range)return;
+  const lw=parseInt(getComputedStyle(document.getElementById('tab-tasks')).getPropertyValue('--tk-leftw'))||520;
+  w.scrollLeft=Math.max(0,tkDiff(_tk.range.start,tkToday())*_tk.dayW-(w.clientWidth-lw)/3);
+}
+function tkRender(keepScroll){
+  const root=document.getElementById('tab-tasks');if(!root)return;
+  const old=document.getElementById('tk-wrap');
+  const sl=old?old.scrollLeft:0,st=old?old.scrollTop:0;
+  if(_tk.error){
+    root.innerHTML='<div class="tk-panel" style="padding:24px"><p style="font-weight:700;margin-bottom:8px">タスクを読み込めませんでした</p><p style="color:var(--text2);font-size:.85em;margin-bottom:14px">'+tkEsc(_tk.error)+'</p><button class="tk-btn" onclick="_tk.error=\'\';tkLoad()">再読み込み</button></div>';
+    return;
+  }
+  if(!_tk.loaded){root.innerHTML='';return;}
+  const people=tkPeople();
+  const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">全員</button></div>':'';
+  const bar='<div class="tk-bar">'+scopeBtns
+    +'<label>担当者 <select onchange="tkSet(\'who\',this.value)"><option value="">全員</option>'+people.map(p=>'<option'+(p===_tk.who?' selected':'')+'>'+tkEsc(p)+'</option>').join('')+'</select></label>'
+    +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
+    +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了を表示</label>'
+    +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkSetAll(true)">すべて展開</button><button class="tk-btn" onclick="tkSetAll(false)">すべて折りたたむ</button>':'')
+    +'<span class="tk-sp"></span>'
+    +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
+    +'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad()">🔄 更新</button></div>';
+  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
+  let body='';
+  if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
+  else if(_tk.view==='gantt')body=tkGanttHtml();
+  else if(_tk.view==='kanban')body=tkKanbanHtml();
+  else body=tkDashHtml();
+  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ（閲覧のみ）'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+bar+'<div id="tk-view">'+body+'</div></div>';
+  const w=document.getElementById('tk-wrap');
+  if(w){
+    if(_tk.fresh&&!keepScroll){tkScrollToday();_tk.fresh=false;}
+    else{w.scrollLeft=sl;w.scrollTop=st;}
+  }
+}
+function tkGanttHtml(){
+  const rows=tkRows(_tk.roots,0,[]);
+  if(!rows.length)return '<div class="tk-empty">条件に合うタスクがありません</div>';
+  const R=_tk.range,dayW=_tk.dayW,today=tkToday();
+  const days=tkDiff(R.start,R.end)+1,W=days*dayW;
+  let mo='',dy='',we='',curM=-1,ms=0;
+  for(let i=0;i<=days;i++){
+    const d=tkAddDays(R.start,i);
+    const m=i<days?d.getFullYear()*12+d.getMonth():-2;
+    if(m!==curM){
+      if(curM!==-1&&i>0){const e=tkAddDays(R.start,ms);mo+='<div class="tk-mo" style="left:'+(ms*dayW)+'px;width:'+((i-ms)*dayW)+'px">'+e.getFullYear()+'年'+(e.getMonth()+1)+'月</div>';}
+      curM=m;ms=i;
+    }
+    if(i<days){
+      const w=d.getDay()===0||d.getDay()===6;
+      let label='';
+      if(dayW>=20)label=d.getDate();else if(d.getDay()===1)label=d.getDate();
+      dy+='<div class="tk-dy'+(w&&dayW>=10?' we':'')+'" style="left:'+(i*dayW)+'px;width:'+dayW+'px">'+label+'</div>';
+      if(w)we+='<i style="left:'+(i*dayW)+'px;width:'+dayW+'px"></i>';
+    }
+  }
+  let h='<div id="tk-wrap"><div id="tk-content" style="width:calc(var(--tk-leftw) + '+W+'px)">';
+  h+='<div class="tk-hrow"><div class="tk-left"><div class="tk-c name">タスク</div><div class="tk-c who">担当者</div><div class="tk-c st">状態</div><div class="tk-c d">期限</div><div class="tk-c pg">進捗</div></div><div class="tk-tl" style="width:'+W+'px"><div class="tk-hd">'+mo+dy+'</div></div></div>';
+  h+='<div id="tk-weekend" style="left:var(--tk-leftw);width:'+W+'px">'+we+'</div>';
+  const tx=tkDiff(R.start,today);
+  if(tx>=0&&tx<days)h+='<div id="tk-today" style="left:calc(var(--tk-leftw) + '+(tx*dayW+dayW/2-1)+'px)"><b>今日</b></div>';
+  rows.forEach(({x,depth})=>{
+    const tw=x.ch.length?'<span class="tk-tw" onclick="tkToggle(\''+x.id+'\')">'+(_tk.open[x.id]?'▼':'▶')+'</span>':'<span class="tk-tw"></span>';
+    const late=tkIsLate(x);
+    const stc=x.ch.length?'<span style="color:var(--text2);font-size:.85em">'+x.cnt+'件</span>':'<span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[x.st]||'#9e9e9e'))+'">'+(late?'超過':tkEsc(x.st))+'</span>';
+    const whoTxt=x.ch.length?'':tkAv(x.who)+(x.co.length?'<span class="tk-co" title="共同：'+tkEsc(x.co.join('、'))+'">+'+x.co.length+'</span>':'');
+    let bar='';
+    if(x.sd){
+      const left=tkDiff(R.start,x.sd)*dayW,w=(tkDiff(x.sd,x.ed)+1)*dayW;
+      const lbl=!x.ch.length&&w>60?'<span>'+x.p+'%</span>':'';
+      bar='<div class="tk-gb'+(x.ch.length?' sum':'')+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+'</div>';
+    }
+    h+='<div class="tk-row l'+Math.min(depth,2)+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+tkEsc(x.title)+'</span><a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener" title="kintoneで開く">↗</a></div>'
+      +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
+      +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+'</div></div>';
+  });
+  return h+'</div></div>';
+}
+function tkKanbanHtml(){
+  const all=_tk.nodes.filter(n=>!n.ch.length&&tkVisible(n));
+  const cols=TK_STS.filter(s=>s!=='保留'||all.some(x=>x.st==='保留'));
+  return '<div id="tk-kanban">'+cols.map(s=>{
+    const items=all.filter(x=>x.st===s).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
+    return '<div class="tk-col"><h3><span>'+s+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
+      const late=tkIsLate(x);
+      return '<div class="tk-card" style="border-left-color:'+tkBarColor(x)+'"><div class="p">'+tkEsc(tkPath(x))+'</div><div class="t">'+tkEsc(x.title)+' <a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener">↗</a></div>'
+        +'<div class="tk-pbar"><i style="width:'+x.p+'%"></i></div><div class="f'+(late?' late':'')+'"><span>'+tkAv(x.who)+'</span><span>'+(late?'<b>期限超過</b> ':'')+(x.ed?'期限 '+tkFmt(x.ed):'期限なし')+'</span></div></div>';
+    }).join('')+'</div>';
+  }).join('')+'</div>';
+}
+function tkDashHtml(){
+  const all=_tk.nodes.filter(n=>!n.ch.length&&tkVisible(n,true));
+  const total=all.length,done=all.filter(x=>x.st==='完了').length;
+  const today=tkToday(),wkEnd=tkAddDays(today,7);
+  const late=all.filter(tkIsLate).sort((a,b)=>a.ed-b.ed);
+  const wk=all.filter(x=>x.st!=='完了'&&x.st!=='保留'&&x.ed&&x.ed>=today&&x.ed<=wkEnd).sort((a,b)=>a.ed-b.ed);
+  const rate=total?Math.round(done/total*100):0;
+  const tile=(l,v,s,c)=>'<div class="tk-dt"><div class="dl">'+l+'</div><div class="dv" style="color:'+(c||'var(--text)')+'">'+v+'</div><div class="ds">'+(s||'&nbsp;')+'</div></div>';
+  const cnt=s=>all.filter(x=>x.st===s).length;
+  const stBar='<div class="tk-stk">'+TK_STS.map(s=>cnt(s)?'<i style="width:'+(cnt(s)/total*100)+'%;background:'+TK_SCOL[s]+'">'+cnt(s)+'</i>':'').join('')+'</div><div class="tk-lg2">'+TK_STS.map(s=>'<span><i style="background:'+TK_SCOL[s]+'"></i>'+s+' '+cnt(s)+'</span>').join('')+'</div>';
+  const people=[...new Set(all.map(x=>x.who).filter(Boolean))].map(p=>{const m=all.filter(x=>x.who===p);return {p,open:m.filter(x=>x.st!=='完了'&&x.st!=='保留').length,late:m.filter(tkIsLate).length,done:m.filter(x=>x.st==='完了').length};}).sort((a,b)=>b.open-a.open);
+  const mx=Math.max(1,...people.map(r=>r.open+r.done));
+  const whoH=people.slice(0,15).map(r=>'<div class="tk-wr"><span class="wn">'+tkAv(r.p)+'</span><div class="wb"><i style="width:'+(r.done/mx*100)+'%;background:var(--green)"></i><i style="width:'+((r.open-r.late)/mx*100)+'%;background:var(--primary)"></i><i style="width:'+(r.late/mx*100)+'%;background:var(--red)"></i></div><span class="wc">未完了 '+r.open+(r.late?' <b style="color:var(--red)">（超過'+r.late+'）</b>':'')+'</span></div>').join('');
+  const prj=_tk.roots.map(t=>{const l=tkLeaves(t).filter(n=>tkVisible(n,true));if(!l.length)return '';const p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);return '<div class="tk-wr"><span class="wn" style="width:200px">'+tkEsc(t.title)+'</span><div class="wb"><i style="width:'+p+'%;background:var(--primary)"></i></div><span class="wc">'+p+'%（'+l.length+'件）</span></div>';}).join('');
+  const li=x=>'<div class="tk-li"><span class="nm">'+tkEsc(x.title)+'</span><span>'+tkAv(x.who)+'</span><span style="color:'+(tkIsLate(x)?'var(--red)':'var(--text2)')+'">'+tkFmt(x.ed)+'</span></div>';
+  return '<div id="tk-dash"><div class="tk-tiles">'+tile('全タスク',total,'表示中の件数')+tile('進行中',cnt('進行中'),'',TK_SCOL['進行中'])+tile('期限超過',late.length,'要対応',late.length?'var(--red)':'')+tile('今週期限',wk.length,'7日以内')+tile('完了率',rate+'%',done+' / '+total+' 件','var(--green)')+'</div>'
+    +'<div class="tk-dg"><div class="tk-dp"><h4>ステータス別</h4>'+(total?stBar:'<div class="ds">なし</div>')+'</div>'
+    +'<div class="tk-dp"><h4>施策別の進捗</h4>'+(prj||'<div class="ds">なし</div>')+'</div>'
+    +'<div class="tk-dp"><h4>担当者別の負荷 <small>緑=完了 紫=未完了 赤=超過</small></h4>'+(whoH||'<div class="ds">なし</div>')+'</div>'
+    +'<div class="tk-dp"><h4>期限超過 <small style="color:var(--red)">'+late.length+'件</small></h4>'+(late.slice(0,30).map(li).join('')||'<div class="ds">なし</div>')+'<h4 style="margin-top:14px">今週期限 <small>'+wk.length+'件</small></h4>'+(wk.map(li).join('')||'<div class="ds">なし</div>')+'</div></div></div>';
+}
 function switchTab(tab, btn){
-  ['home','calendar','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
+  ['home','calendar','tasks','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn,.sidebar-btn,.bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -3697,6 +3996,7 @@ function switchTab(tab, btn){
   renderBottomNav();
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); }
   else                { _markNoticesAsSeen(); }
+  if(tab==='tasks')   renderTasksTab();
   if(tab==='rooms')   renderRoomTimeline();
   if(tab==='team')    renderTeam();
   if(tab==='devices') { loadEvents().then(()=>renderDevices()); }
