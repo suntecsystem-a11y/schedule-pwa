@@ -1764,6 +1764,7 @@ ja:{
 'my.trip':'出張','my.trip.unit':'回',
 'my.rental.current':'貸出・予約中の端末','my.rental.return':'返却する','my.rental.none':'貸出中の端末はありません','my.rental.overdue':'⚠️ 返却期日を過ぎています',
 'my.rental.extend':'延長','my.rental.extend.done':'{from} → {to} に延長しました','my.rental.extend.required':'新しい返却予定日を選んでください','my.rental.extend.order':'現在の返却予定日より後の日付を選んでください','my.rental.extend.title':'📱 貸出を延長','my.rental.extend.curlabel':'現在の返却予定日','my.rental.extend.newlabel':'新しい返却予定日','my.rental.extend.submit':'延長する',
+'my.rental.overdue.title':'返却期限が過ぎています（{n}件）','my.rental.overdue.days':'{d}日超過','my.rental.overdue.due':'返却予定日 {date}','my.rental.overdue.guide':'すぐに返却するか、返却予定日を延長してください。',
 'my.car.recent':'直近の車予約','my.car.returned':'帰社済','my.car.out':'出中',
 'my.car.open':'🔗 Kintoneで開く','my.car.none':'車予約はありません',
 'my.rules':'📖 利用ルール',
@@ -2125,6 +2126,7 @@ vi:{
 'my.trip':'Công tác','my.trip.unit':'lần',
 'my.rental.current':'Thiết bị đang mượn/đặt','my.rental.return':'Trả lại','my.rental.none':'Không có thiết bị nào','my.rental.overdue':'⚠️ Đã quá hạn trả',
 'my.rental.extend':'Gia hạn','my.rental.extend.done':'Đã gia hạn {from} → {to}','my.rental.extend.required':'Vui lòng chọn ngày trả mới','my.rental.extend.order':'Vui lòng chọn ngày sau ngày trả hiện tại','my.rental.extend.title':'📱 Gia hạn mượn','my.rental.extend.curlabel':'Ngày trả hiện tại','my.rental.extend.newlabel':'Ngày trả mới','my.rental.extend.submit':'Gia hạn',
+'my.rental.overdue.title':'Đã quá hạn trả ({n})','my.rental.overdue.days':'Quá {d} ngày','my.rental.overdue.due':'Ngày trả {date}','my.rental.overdue.guide':'Vui lòng trả ngay hoặc gia hạn ngày trả.',
 'my.car.recent':'Đặt xe gần đây','my.car.returned':'Đã về','my.car.out':'Đang đi',
 'my.car.open':'🔗 Mở trên Kintone','my.car.none':'Chưa có đặt xe',
 'my.rules':'📖 Quy tắc sử dụng',
@@ -2478,6 +2480,7 @@ ne:{
 'my.trip':'व्यापार यात्रा','my.trip.unit':'पटक',
 'my.rental.current':'उधारो/आरक्षित उपकरण','my.rental.return':'फिर्ता गर्नुहोस्','my.rental.none':'कुनै उपकरण छैन','my.rental.overdue':'⚠️ फिर्ता मिति बितिसक्यो',
 'my.rental.extend':'बढाउनुहोस्','my.rental.extend.done':'{from} → {to} मा बढाइयो','my.rental.extend.required':'नयाँ फिर्ता मिति छान्नुहोस्','my.rental.extend.order':'हालको फिर्ता मिति पछिको मिति छान्नुहोस्','my.rental.extend.title':'📱 उधारो बढाउनुहोस्','my.rental.extend.curlabel':'हालको फिर्ता मिति','my.rental.extend.newlabel':'नयाँ फिर्ता मिति','my.rental.extend.submit':'बढाउनुहोस्',
+'my.rental.overdue.title':'फिर्ता मिति नाघिसको ({n})','my.rental.overdue.days':'{d} दिन ढिलाइ','my.rental.overdue.due':'फिर्ता मिति {date}','my.rental.overdue.guide':'तुरन्त फिर्ता गर्नुहोस् वा मिति बढाउनुहोस्।',
 'my.car.recent':'भर्खरको गाडी बुकिङ','my.car.returned':'फर्किसकेको','my.car.out':'गइरहेको',
 'my.car.open':'🔗 Kintone मा खोल्नुहोस्','my.car.none':'गाडी बुकिङ छैन',
 'my.rules':'📖 प्रयोग नियमहरू',
@@ -3056,6 +3059,25 @@ function getPendingApprovals() {
     if (!applicant) return false;
     return canApproveDept(applicant.dept, e.approvedBy);
   });
+}
+
+// 返却期限を過ぎている自分の端末貸出を返す（[{ev, days}] / days=超過日数）
+function getOverdueRentals() {
+  if (!currentUser) return [];
+  const today = fmtDate(new Date());
+  return events
+    .filter(e =>
+      e.approvalStatus !== '否認' &&
+      e.userId === currentUser.id &&
+      (e.rentals || []).length > 0 &&
+      e.rentalStatus === '貸出中' &&
+      e.rentalEnd && e.rentalEnd < today
+    )
+    .sort((a, b) => a.rentalEnd.localeCompare(b.rentalEnd))
+    .map(e => ({
+      ev: e,
+      days: Math.max(1, Math.round((new Date(today) - new Date(e.rentalEnd)) / 86400000)),
+    }));
 }
 
 // ===== フィルター =====
@@ -3696,7 +3718,8 @@ function switchTab(tab, btn){
       const carCount = getPendingNotifs().length;
       const approvalCount = getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length;
       const pendingApprovalCount = getPendingApprovals().length;
-      updateNotifBadge(carCount + approvalCount + pendingApprovalCount);
+      const overdueCount = getOverdueRentals().length;
+      updateNotifBadge(carCount + approvalCount + pendingApprovalCount + overdueCount);
     });
   }
 }
@@ -6805,10 +6828,36 @@ function renderMyPage() {
   // 承認待ち件数（主任のみ）
   const pendingApprovals = getPendingApprovals();
 
+  // 返却期限超過の端末貸出
+  const overdueRentals = getOverdueRentals();
+
   // バッジ更新
-  updateNotifBadge(approvalNotifs.length + pendingApprovals.length + applyRequests.length);
+  updateNotifBadge(approvalNotifs.length + pendingApprovals.length + applyRequests.length + overdueRentals.length);
 
   document.getElementById('mypage-content').innerHTML = `
+    <!-- 返却期限超過の通知 -->
+    ${overdueRentals.length ? `
+    <div class="notif-item" style="background:linear-gradient(135deg,#ffebee,#fff5f5);border-color:#ef9a9a;margin-bottom:12px">
+      <div class="notif-item-header">
+        <span style="font-size:1.3em">⚠️</span>
+        <div class="notif-item-title" style="color:#c62828">${t('my.rental.overdue.title',{n:overdueRentals.length})}</div>
+      </div>
+      <div class="notif-item-detail">
+        ${overdueRentals.map(o => {
+          const devNames = (o.ev.rentals||[]).map(r => typeof r==='string' ? r : r.label).join('、');
+          return `<div style="padding:8px 0;border-bottom:1px solid #ffcdd2">
+            <div style="font-size:1em;font-weight:700;color:var(--text)">📱 ${esc(devNames)}</div>
+            <div style="margin-top:3px">${t('my.rental.overdue.due',{date:o.ev.rentalEnd||''})}　<span style="color:#c62828;font-weight:700">${t('my.rental.overdue.days',{d:o.days})}</span></div>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn-outline" style="flex:1;margin-top:0;padding:7px;font-size:0.82em;border-color:#e53935;color:#c62828;font-weight:700;background:white" onclick="openExtendModal('${o.ev.id}','${o.ev.rentalEnd||''}')">${t('my.rental.extend')}</button>
+              <button class="btn-primary" style="flex:1;margin-top:0;padding:7px;font-size:0.82em;background:#e53935" onclick="returnDevice('${o.ev.id}')">${t('my.rental.return')}</button>
+            </div>
+          </div>`;
+        }).join('')}
+        <div style="margin-top:10px;color:#c62828;font-weight:700">${t('my.rental.overdue.guide')}</div>
+      </div>
+    </div>` : ''}
+
     <!-- 申請の承認依頼 -->
     ${applyRequests.length ? `
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #e65100">
@@ -7486,14 +7535,22 @@ function checkCarConfirmNotifs() {
   // pending通知としてlocalStorageに保存
   const pendingKey = 'sch_notif_pending_' + (currentUser?.id || '');
   localStorage.setItem(pendingKey, JSON.stringify(newlyConfirmed));
-  updateNotifBadge(newlyConfirmed.length);
+  updateNotifBadge(newlyConfirmed.length + getOverdueRentals().length);
 }
 
 function updateNotifBadge(count) {
   const badge = document.getElementById('sidebar-notif-badge');
   const tabBadge = document.getElementById('tab-notif-badge');
   if (badge) { badge.textContent = count || ''; badge.style.display = count ? 'flex' : 'none'; }
-  if (tabBadge) { tabBadge.textContent = count || ''; tabBadge.style.display = count ? 'inline' : 'none'; }
+  if (tabBadge) { tabBadge.textContent = count || ''; tabBadge.style.display = count ? 'inline-flex' : 'none'; }
+  // 2桁以上は丸が潰れるので横に伸ばす
+  [badge, tabBadge].forEach(b => {
+    if (!b) return;
+    const wide = (count || 0) > 9;
+    b.style.width = wide ? 'auto' : '';
+    b.style.padding = wide ? '0 4px' : '';
+    b.style.borderRadius = wide ? '7px' : '';
+  });
   const bottomBadge = document.getElementById('bottom-notif-badge');
   if (bottomBadge) { bottomBadge.textContent = count || ''; bottomBadge.style.display = count ? 'inline-block' : 'none'; }
   _moreNotifCount = count || 0;
@@ -7523,7 +7580,7 @@ async function checkApprovalNotifs() {
     const carCount = getPendingNotifs().length;
     const approvalCount = filtered.filter(n => n.type === 'approved' || n.type === 'rejected' || n.type === 'request').length;
     const pendingApprovalCount = getPendingApprovals().length;
-    updateNotifBadge(carCount + approvalCount + pendingApprovalCount);
+    updateNotifBadge(carCount + approvalCount + pendingApprovalCount + getOverdueRentals().length);
   } catch(e) {
     // 取得失敗は無視
   }
@@ -7540,7 +7597,7 @@ function dismissApprovalNotifLocal(eventId) {
   const remaining = getApprovalPendingNotifs().filter(n => String(n.eventId) !== String(eventId));
   localStorage.setItem(pendingKey, JSON.stringify(remaining));
   const carCount = getPendingNotifs().length;
-  updateNotifBadge(carCount + remaining.length + getPendingApprovals().length);
+  updateNotifBadge(carCount + remaining.length + getPendingApprovals().length + getOverdueRentals().length);
   renderMyPage();
   if (GAS_URL) {
     api('dismissApprovalNotif', { eventId }, ' ').catch(()=>{});
@@ -7560,7 +7617,7 @@ function dismissNotif(carEventId) {
   const pendingKey = 'sch_notif_pending_' + (currentUser?.id || '');
   const pending = getPendingNotifs().filter(e => String(e.id) !== String(carEventId));
   localStorage.setItem(pendingKey, JSON.stringify(pending));
-  updateNotifBadge(pending.length + getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length + getPendingApprovals().length);
+  updateNotifBadge(pending.length + getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length + getPendingApprovals().length + getOverdueRentals().length);
   renderMyPage();
 }
 
@@ -7570,7 +7627,7 @@ function dismissAllNotifs() {
   saveNotifSeen(seen);
   const pendingKey = 'sch_notif_pending_' + (currentUser?.id || '');
   localStorage.setItem(pendingKey, '[]');
-  updateNotifBadge(getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length + getPendingApprovals().length);
+  updateNotifBadge(getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length + getPendingApprovals().length + getOverdueRentals().length);
   renderMyPage();
 }
 
