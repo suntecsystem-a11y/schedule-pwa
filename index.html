@@ -790,6 +790,30 @@ input,select{font-family:inherit;outline:none}
 .tk-dl-p b{position:relative;font-size:.7em;font-weight:700;line-height:16px;display:block;text-align:center}
 .tk-dl-head .tk-dl-p{background:none;height:auto}
 @media(max-width:700px){.tk-dl-who{display:none}.tk-dl-d:nth-of-type(4){display:none}}
+.tk-fl{font-size:.88em;border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:72vh;background:#fff}
+.tk-fl table{border-collapse:separate;border-spacing:0;width:100%;min-width:960px;table-layout:fixed}
+.tk-fl th{position:sticky;top:0;z-index:2;background:#f0f3f8;font-size:.78em;font-weight:700;color:var(--text2);text-align:left;padding:9px 10px;border-bottom:1px solid #cfd6e0;border-right:1px solid var(--tk-line);cursor:pointer;user-select:none;white-space:nowrap}
+.tk-fl th:hover{color:var(--primary)}
+.tk-fl td{padding:0 10px;height:36px;border-bottom:1px solid var(--tk-line);border-right:1px solid var(--tk-line);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.tk-fl th:last-child,.tk-fl td:last-child{border-right:0}
+.tk-fl .tk-fl-s{width:170px}.tk-fl .tk-fl-a{width:200px}.tk-fl .tk-fl-w{width:140px}.tk-fl .tk-fl-st{width:76px}.tk-fl .tk-fl-d{width:66px;text-align:center}.tk-fl .tk-fl-p{width:92px}
+.tk-fl td.tk-fl-n{font-weight:700}
+.tk-fl tr.tk-fl-row{cursor:pointer}
+.tk-fl tr.tk-fl-row:hover td:not(.tk-fl-grp){background:var(--primary-light)}
+.tk-fl td.tk-fl-grp{white-space:normal;vertical-align:top;padding:8px 10px;cursor:default;border-bottom:1px solid #dfe3ea;line-height:1.45}
+.tk-fl td.tk-fl-gs{border-bottom:1px solid #b9c0cc}
+.tk-fl td.tk-fl-gs,.tk-fl td.tk-fl-ga{background:#fff;font-weight:400;color:var(--text)}
+.tk-fl td.tk-fl-gs>div::before,.tk-fl td.tk-fl-ga>div::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.tk-fl td.tk-fl-gs>div::before{background:#8e24aa}
+.tk-fl td.tk-fl-ga>div::before{background:#1e88e5}
+.tk-fl td.tk-fl-grp small{display:none}
+.tk-fl td.tk-fl-grp em{color:var(--text3);font-style:normal}
+.tk-fl td.tk-fl-grp>div{position:sticky;top:40px}
+.tk-fl .tk-fl-d.late{color:var(--red);font-weight:700}
+.tk-fl td.tk-fl-w{overflow:visible}
+.tk-fl .bar{position:relative;height:16px;background:#eceef3;border-radius:8px;overflow:hidden}
+.tk-fl .bar i{position:absolute;inset:0 auto 0 0;background:#9fa8da}
+.tk-fl .bar b{position:relative;font-size:.7em;font-weight:700;line-height:16px;display:block;text-align:center}
 </style>
 </head>
 <body>
@@ -4121,13 +4145,47 @@ function tkDashTree(items,isSub){
   }
   return '<div class="tk-dl">'+head+walk(root,0)+rest+'</div>';
 }
+// 1行1タスクの表。施策・活動は列として表示（階層のグループ見出しは出さない）。見出しを押すと並べ替え
+function tkDashSort(k){const c=_tk.dashSort||{k:'def',d:1};_tk.dashSort=c.k===k?{k,d:-c.d}:{k,d:1};tkRender(true);}
+function tkAncestor(t,type){let p=(_tk.pmap||{})[t.parent]||_tk.byId[t.parent];for(let i=0;p&&i<12;i++){if(p.type===type)return p;p=(_tk.pmap||{})[p.parent]||_tk.byId[p.parent];}return null;}
+function tkDashFlat(items){
+  if(!items.length)return '';
+  const rows=items.map(t=>({t,s:tkAncestor(t,'施策'),a:tkAncestor(t,'活動')}));
+  const sort=_tk.dashSort||{k:'def',d:1};
+  const val={
+    s:r=>r.s?r.s.title:'￿',a:r=>r.a?r.a.title:'￿',n:r=>r.t.title,w:r=>r.t.who||'￿',
+    st:r=>TK_STS.indexOf(r.t.st),sd:r=>r.t.start||'9999',ed:r=>r.t.end||'9999',p:r=>r.t.p
+  };
+  const cmpDef=(x,y)=>((x.s?+x.s.id:1e9)-(y.s?+y.s.id:1e9))||((x.a?+x.a.id:1e9)-(y.a?+y.a.id:1e9))||String(x.t.end||'9999').localeCompare(String(y.t.end||'9999'))||(+x.t.id)-(+y.t.id);
+  rows.sort(sort.k==='def'?cmpDef:(x,y)=>{const a=val[sort.k](x),b=val[sort.k](y);const c=typeof a==='number'?a-b:String(a).localeCompare(String(b),'ja');return (c||cmpDef(x,y))*sort.d;});
+  // セル結合：並び順で隣り合う同じ施策・同じ活動を縦にまとめる（Excelのセル結合と同じ見た目）
+  const sKey=r=>r.s?r.s.id:'-',aKey=r=>sKey(r)+'/'+(r.a?r.a.id:'-');
+  const spanS=[],spanA=[];
+  for(let i=0;i<rows.length;){let j=i;while(j<rows.length&&sKey(rows[j])===sKey(rows[i]))j++;spanS[i]=j-i;i=j;}
+  for(let i=0;i<rows.length;){let j=i;while(j<rows.length&&aKey(rows[j])===aKey(rows[i]))j++;spanA[i]=j-i;i=j;}
+  const th=(k,label,cls)=>'<th class="'+cls+'" onclick="tkDashSort(\''+k+'\')">'+label+(sort.k===k?(sort.d>0?' ▲':' ▼'):'')+'</th>';
+  const head='<thead><tr>'+th('s','施策','tk-fl-s')+th('a','活動','tk-fl-a')+th('n','タスク','tk-fl-n')+th('w','担当者','tk-fl-w')+th('st','状態','tk-fl-st')+th('sd','開始','tk-fl-d')+th('ed','期限','tk-fl-d')+th('p','進捗','tk-fl-p')+'</tr></thead>';
+  const body=rows.map(({t,s,a},i)=>{
+    const late=tkIsLate(t);
+    const cs=spanS[i]?'<td class="tk-fl-grp tk-fl-gs" rowspan="'+spanS[i]+'" title="'+tkEsc(s?s.title:'')+'"><div>'+(s?tkEsc(s.title):'<em>施策なし</em>')+'<small>'+spanS[i]+'件</small></div></td>':'';
+    const ca=spanA[i]?'<td class="tk-fl-grp tk-fl-ga" rowspan="'+spanA[i]+'" title="'+tkEsc(a?a.title:'')+'"><div>'+(a?tkEsc(a.title):'<em>活動なし</em>')+'<small>'+spanA[i]+'件</small></div></td>':'';
+    return '<tr class="tk-fl-row" data-id="'+t.id+'">'+cs+ca
+      +'<td class="tk-fl-n" title="'+tkEsc(t.title)+'">'+tkEsc(t.title)+' <a class="tk-lnk" href="'+TK_KINTONE_URL+t.id+'" target="_blank" rel="noopener">↗</a></td>'
+      +'<td class="tk-fl-w">'+tkAv(t.who)+'</td>'
+      +'<td class="tk-fl-st"><span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[t.st]||'#9e9e9e'))+'">'+(late?'遅延':tkEsc(t.st))+'</span></td>'
+      +'<td class="tk-fl-d">'+(t.start?tkFmt(tkParse(t.start)):'-')+'</td>'
+      +'<td class="tk-fl-d'+(late?' late':'')+'">'+(t.end?tkFmt(tkParse(t.end)):'-')+'</td>'
+      +'<td class="tk-fl-p"><div class="bar"><i style="width:'+t.p+'%"></i><b>'+t.p+'%</b></div></td></tr>';
+  }).join('');
+  return '<div class="tk-fl"><table>'+head+'<tbody>'+body+'</tbody></table></div>';
+}
 function tkDashHtml(){
   const D=tkDashData();
   const card=c=>'<div class="tk-dt'+(_tk.dashSel===c[0]?' sel':'')+'" style="--acc:'+c[3]+'" onclick="tkDashSel(\''+c[0]+'\')"><div class="dl">'+c[2]+'</div><div class="dv" style="color:'+c[3]+'">'+D[c[0]].length+'</div><div class="ds">'+c[1]+'</div></div>';
   const cards='<div class="tk-tiles">'+TK_DASH_CARDS.map(card).join('')+'</div>';
   const sel=TK_DASH_CARDS.find(c=>c[0]===_tk.dashSel)||TK_DASH_CARDS[1];
   const items=D[sel[0]];
-  const list=tkDashTree(items,false);
+  const list=tkDashFlat(items);
   const all=D.all,total=all.length;
   const cnt=s=>all.filter(x=>x.st===s).length;
   const stBar='<div class="tk-stk">'+TK_STS.map(s=>cnt(s)?'<i style="width:'+(cnt(s)/total*100)+'%;background:'+TK_SCOL[s]+'">'+cnt(s)+'</i>':'').join('')+'</div><div class="tk-lg2">'+TK_STS.map(s=>'<span><i style="background:'+TK_SCOL[s]+'"></i>'+s+' '+cnt(s)+'</span>').join('')+'</div>';
@@ -4367,7 +4425,8 @@ document.addEventListener('click',e=>{
   const root=document.getElementById('tab-tasks');
   if(!root||!root.contains(e.target)||_tkf)return;
   if(e.target.closest('.tk-tw,.tk-lnk,a,button,select,input,label'))return;
-  const el=e.target.closest('.tk-left,.tk-card,.tk-li,.tk-gb,.tk-dl-row');
+  if(e.target.closest('td.tk-fl-grp,th'))return;
+  const el=e.target.closest('.tk-left,.tk-card,.tk-li,.tk-gb,.tk-dl-row,.tk-fl-row');
   if(!el)return;
   const host=el.closest('[data-id]');
   if(host&&host.dataset.id)tkfOpenEdit(host.dataset.id);
