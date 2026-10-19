@@ -763,10 +763,31 @@ input,select{font-family:inherit;outline:none}
 .tkf-foot a{font-size:.8em;color:var(--primary);text-decoration:none}
 .tkf-sp{flex:1}
 /* 行・カードを押せることを示す */
-#tab-tasks .tk-row .tk-left,#tab-tasks .tk-card,#tab-tasks .tk-li{cursor:pointer}
+#tab-tasks .tk-row .tk-left,#tab-tasks .tk-card,#tab-tasks .tk-li,#tab-tasks .tk-dl-row{cursor:pointer}
 #tab-tasks .tk-gb{cursor:pointer}
 #tab-tasks .tk-new{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700}
 @media(max-width:600px){.tkf-grid{grid-template-columns:1fr}}
+.tk-dl{font-size:.9em;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.tk-dl-head,.tk-dl-row,.tk-dl-grp{display:flex;align-items:center;min-height:38px}
+.tk-dl-head{background:#f0f3f8;font-size:.78em;font-weight:700;color:var(--text2);padding-left:12px;position:sticky;top:0;z-index:2}
+.tk-dl-row{border-top:1px solid var(--tk-line);padding-right:10px}
+.tk-dl-row:hover{background:var(--primary-light)}
+.tk-dl-row.sub{font-size:.88em;color:var(--text2);min-height:32px}
+.tk-dl-grp{background:#f7f9fc;border-top:1px solid var(--tk-line);font-weight:700;cursor:pointer;gap:8px;padding-right:10px}
+.tk-dl-grp:hover{background:#eef1f8}
+.tk-dl-type{font-size:.7em;color:#fff;border-radius:4px;padding:2px 7px;flex:none;font-weight:700}
+.tk-dl-gname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-dl-cnt{font-size:.8em;font-weight:400;color:var(--text2);flex:none}
+.tk-dl-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-dl-who{width:130px;flex:none;display:flex;align-items:center;overflow:hidden;white-space:nowrap}
+.tk-dl-st{width:70px;flex:none}
+.tk-dl-d{width:52px;flex:none;text-align:center;font-size:.9em}
+.tk-dl-d.late{color:var(--red);font-weight:700}
+.tk-dl-p{width:74px;flex:none;position:relative;height:16px;background:#eceef3;border-radius:8px;overflow:hidden;margin-left:6px}
+.tk-dl-p i{position:absolute;inset:0 auto 0 0;background:#9fa8da}
+.tk-dl-p b{position:relative;font-size:.7em;font-weight:700;line-height:16px;display:block;text-align:center}
+.tk-dl-head .tk-dl-p{background:none;height:auto}
+@media(max-width:700px){.tk-dl-who{display:none}.tk-dl-d:nth-of-type(4){display:none}}
 </style>
 </head>
 <body>
@@ -3863,7 +3884,7 @@ async function tkLoad(scope,keep){
   if(scope)_tk.scope=scope;
   try{
     const r=await api('getTasks',{scope:_tk.scope},'タスクを読み込み中...');
-    _tk.me=r.me;_tk.canAll=r.canAll;_tk.scope=r.scope;_tk.error='';_tk.parents=r.parents||[];
+    _tk.me=r.me;_tk.canAll=r.canAll;_tk.scope=r.scope;_tk.error='';_tk.parents=r.parents||[];_tk.pmap={};_tk.parents.forEach(p=>{_tk.pmap[p.id]=p;});
     tkBuild(r.nodes);_tk.loaded=true;_tk.fresh=!keep;
   }catch(e){_tk.error=(e&&e.message)||String(e);}
   tkRender(!!keep);
@@ -3901,13 +3922,10 @@ function tkBuild(list){
   _tk.range={start:a<lo?lo:a,end:b>hi?hi:b};
 }
 function tkLeaves(x){return x.ch.length?x.ch.flatMap(tkLeaves):[x];}
-function tkSubLate(s){return !s.done&&!!s.due&&tkParse(s.due)<tkToday();}
-// kintoneタスク管理の isDelayed と同じ：完了以外で、終了日を過ぎている／遅延した小タスクがある
+// 遅延：完了以外で、終了日を過ぎているもの（小タスクは運用終了のため見ない）
 function tkIsLate(x){
-  if(x.ch.length||x.st==='完了')return false;
-  const sublate=(x.sub||[]).some(tkSubLate);
-  if(!x.end)return sublate;
-  return tkParse(x.end)<tkToday()||sublate;
+  if(x.ch.length||x.st==='完了'||!x.end)return false;
+  return tkParse(x.end)<tkToday();
 }
 function tkBarColor(x){return tkIsLate(x)?'var(--red)':(TK_SCOL[x.st]||'#9e9e9e');}
 function tkVisible(x,keepDone){
@@ -4034,17 +4052,12 @@ function tkBizAdd(d,n){const r=new Date(d);const dir=n>0?1:-1;let k=Math.abs(n);
 function tkDashData(){
   const today=tkToday(),lim=tkBizAdd(today,3);
   const tasks=_tk.nodes.filter(n=>n.type==='タスク'&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));
-  const subs=[];
-  tasks.forEach(t=>(t.sub||[]).forEach(s=>subs.push({task:t,t:s.t,due:s.due,owner:s.owner,done:s.done})));
-  const subOpen=subs.filter(s=>!s.done);
   return {
     all:tasks,
     delayed:tasks.filter(tkIsLate),
     deadlineSoon:tasks.filter(t=>{if(!t.end||t.st==='完了')return false;const e=tkParse(t.end);return e>=today&&e<=lim;}),
     notStartedSoon:tasks.filter(t=>t.start&&t.st==='未着手'&&today>=tkBizAdd(tkParse(t.start),-3)),
-    undated:tasks.filter(t=>!t.start||!t.end),
-    subDelayed:subOpen.filter(tkSubLate),
-    subOpen:subOpen
+    undated:tasks.filter(t=>!t.start||!t.end)
   };
 }
 const TK_DASH_CARDS=[
@@ -4052,23 +4065,60 @@ const TK_DASH_CARDS=[
   ['delayed','遅延','タスク','var(--red)','遅延タスク'],
   ['deadlineSoon','終了3営業日','タスク','var(--orange)','終了3営業日以内・未完了タスク'],
   ['notStartedSoon','開始3営業日','タスク','var(--blue)','開始3営業日前・未着手タスク'],
-  ['undated','Todo','タスク','#8e8e93','日程未設定タスク'],
-  ['subDelayed','遅延','小タスク','var(--red)','遅延した小タスク'],
-  ['subOpen','未完了','小タスク','var(--purple)','未完了の小タスク']
+  ['undated','日程未設定','Todo','#8e8e93','Todo（日程未設定）']
 ];
 function tkDashSel(k){_tk.dashSel=k;tkRender(true);}
+// 上位（施策→活動）から順に、配下のタスクをインデントして並べる。グループは開閉できる
+const TK_TYPE_COL={'基本方針':'#37474f','事業グループ':'#546e7a','事業':'#00695c','事業カテゴリ':'#00897b','施策':'#8e24aa','施策方針':'#6d4c41','活動':'#1e88e5'};
+function tkDashToggle(id){_tk.dashClosed=_tk.dashClosed||{};_tk.dashClosed[id]=!_tk.dashClosed[id];tkRender(true);}
+function tkDashTree(items,isSub){
+  const tasks=isSub?[...new Set(items.map(s=>s.task))]:items;
+  const taskSubs=new Map();
+  if(isSub)items.forEach(s=>{if(!taskSubs.has(s.task))taskSubs.set(s.task,[]);taskSubs.get(s.task).push(s);});
+  const root={ch:new Map(),items:[],count:0};
+  tasks.forEach(t=>{
+    const chain=[];let p=(_tk.pmap||{})[t.parent]||_tk.byId[t.parent];
+    for(let i=0;p&&i<12;i++){chain.unshift(p);p=(_tk.pmap||{})[p.parent]||_tk.byId[p.parent];}
+    let g=root;g.count++;
+    chain.forEach(n=>{if(!g.ch.has(n.id))g.ch.set(n.id,{node:n,ch:new Map(),items:[],count:0});g=g.ch.get(n.id);g.count++;});
+    g.items.push(t);
+  });
+  if(!tasks.length)return '';
+  _tk.dashClosed=_tk.dashClosed||{};
+  const cmp=(a,b)=>String(a.end||'9999').localeCompare(String(b.end||'9999'))||(+a.id)-(+b.id);
+  const row=(t,depth)=>{
+    const late=tkIsLate(t);
+    let h='<div class="tk-dl-row" data-id="'+t.id+'" style="padding-left:'+(12+depth*16)+'px"><span class="tk-dl-name">'+tkEsc(t.title)+' <a class="tk-lnk" href="'+TK_KINTONE_URL+t.id+'" target="_blank" rel="noopener">↗</a></span>'
+      +'<span class="tk-dl-who">'+tkAv(t.who)+'</span>'
+      +'<span class="tk-dl-st"><span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[t.st]||'#9e9e9e'))+'">'+(late?'遅延':tkEsc(t.st))+'</span></span>'
+      +'<span class="tk-dl-d">'+(t.start?tkFmt(tkParse(t.start)):'-')+'</span>'
+      +'<span class="tk-dl-d'+(late?' late':'')+'">'+(t.end?tkFmt(tkParse(t.end)):'-')+'</span>'
+      +'<span class="tk-dl-p"><i style="width:'+t.p+'%"></i><b>'+t.p+'%</b></span></div>';
+    (taskSubs.get(t)||[]).slice().sort((a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999'))).forEach(s=>{
+      h+='<div class="tk-dl-row sub" data-id="'+t.id+'" style="padding-left:'+(12+(depth+1)*16)+'px"><span class="tk-dl-name">└ '+tkEsc(s.t||'(無題)')+'</span><span class="tk-dl-who">'+tkAv(s.owner)+'</span><span class="tk-dl-st"></span><span class="tk-dl-d"></span><span class="tk-dl-d'+(tkSubLate(s)?' late':'')+'">'+(s.due?tkFmt(tkParse(s.due)):'期日なし')+'</span><span class="tk-dl-p"></span></div>';
+    });
+    return h;
+  };
+  const walk=(g,depth)=>{
+    let h='';
+    [...g.ch.values()].sort((a,b)=>(+a.node.id)-(+b.node.id)).forEach(c=>{
+      const closed=!!_tk.dashClosed[c.node.id];
+      const col=TK_TYPE_COL[c.node.type]||'#757575';
+      h+='<div class="tk-dl-grp" style="padding-left:'+(8+depth*16)+'px" onclick="tkDashToggle(\''+c.node.id+'\')"><span class="tk-tw">'+(closed?'▶':'▼')+'</span><span class="tk-dl-type" style="background:'+col+'">'+tkEsc(c.node.type)+'</span><span class="tk-dl-gname">'+tkEsc(c.node.title)+'</span><span class="tk-dl-cnt">'+c.count+'件</span></div>';
+      if(!closed){h+=walk(c,depth+1);h+=c.items.slice().sort(cmp).map(t=>row(t,depth+1)).join('');}
+    });
+    return h;
+  };
+  const head='<div class="tk-dl-head"><span class="tk-dl-name">タスク</span><span class="tk-dl-who">担当者</span><span class="tk-dl-st">状態</span><span class="tk-dl-d">開始</span><span class="tk-dl-d">期限</span><span class="tk-dl-p">進捗</span></div>';
+  return '<div class="tk-dl">'+head+walk(root,0)+root.items.slice().sort(cmp).map(t=>row(t,0)).join('')+'</div>';
+}
 function tkDashHtml(){
   const D=tkDashData();
   const card=c=>'<div class="tk-dt'+(_tk.dashSel===c[0]?' sel':'')+'" style="--acc:'+c[3]+'" onclick="tkDashSel(\''+c[0]+'\')"><div class="dl">'+c[2]+'</div><div class="dv" style="color:'+c[3]+'">'+D[c[0]].length+'</div><div class="ds">'+c[1]+'</div></div>';
-  const cards='<div class="tk-grp-title">タスク</div><div class="tk-tiles">'+TK_DASH_CARDS.filter(c=>c[2]==='タスク').map(card).join('')+'</div><div class="tk-grp-title">小タスク</div><div class="tk-tiles">'+TK_DASH_CARDS.filter(c=>c[2]==='小タスク').map(card).join('')+'</div>';
+  const cards='<div class="tk-tiles">'+TK_DASH_CARDS.map(card).join('')+'</div>';
   const sel=TK_DASH_CARDS.find(c=>c[0]===_tk.dashSel)||TK_DASH_CARDS[1];
   const items=D[sel[0]];
-  let list;
-  if(sel[2]==='小タスク'){
-    list=items.slice().sort((a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999'))).map(s=>'<div class="tk-li" data-id="'+s.task.id+'"><span class="nm">'+tkEsc(s.t||'(無題)')+'<small style="color:var(--text2)">　'+tkEsc(s.task.title)+'</small> <a class="tk-lnk" href="'+TK_KINTONE_URL+s.task.id+'" target="_blank" rel="noopener">↗</a></span><span>'+tkAv(s.owner)+'</span><span style="color:'+(tkSubLate(s)?'var(--red)':'var(--text2)')+'">'+(s.due?tkFmt(tkParse(s.due)):'期日なし')+'</span></div>').join('');
-  }else{
-    list=items.slice().sort((a,b)=>String(a.end||'9999').localeCompare(String(b.end||'9999'))).map(x=>'<div class="tk-li" data-id="'+x.id+'"><span class="nm">'+tkEsc(x.title)+'<small style="color:var(--text2)">　'+tkEsc(tkPath(x))+'</small> <a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener">↗</a></span><span>'+tkAv(x.who)+'</span><span class="tk-tag" style="background:'+tkBarColor(x)+'">'+(tkIsLate(x)?'遅延':tkEsc(x.st))+'</span><span style="color:'+(tkIsLate(x)?'var(--red)':'var(--text2)')+';min-width:44px;text-align:right">'+(x.end?tkFmt(tkParse(x.end)):'-')+'</span></div>').join('');
-  }
+  const list=tkDashTree(items,false);
   const all=D.all,total=all.length;
   const cnt=s=>all.filter(x=>x.st===s).length;
   const stBar='<div class="tk-stk">'+TK_STS.map(s=>cnt(s)?'<i style="width:'+(cnt(s)/total*100)+'%;background:'+TK_SCOL[s]+'">'+cnt(s)+'</i>':'').join('')+'</div><div class="tk-lg2">'+TK_STS.map(s=>'<span><i style="background:'+TK_SCOL[s]+'"></i>'+s+' '+cnt(s)+'</span>').join('')+'</div>';
@@ -4077,7 +4127,7 @@ function tkDashHtml(){
   const whoH=people.slice(0,15).map(r=>'<div class="tk-wr"><span class="wn">'+tkAv(r.p)+'</span><div class="wb"><i style="width:'+(r.done/mx*100)+'%;background:var(--green)"></i><i style="width:'+(Math.max(0,r.open-r.late)/mx*100)+'%;background:var(--primary)"></i><i style="width:'+(r.late/mx*100)+'%;background:var(--red)"></i></div><span class="wc">未完了 '+r.open+(r.late?' <b style="color:var(--red)">（遅延'+r.late+'）</b>':'')+'</span></div>').join('');
   const prj=_tk.roots.map(t=>{const l=tkLeaves(t).filter(n=>n.type==='タスク'&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));if(!l.length)return '';const p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);return '<div class="tk-wr"><span class="wn" style="width:200px">'+tkEsc(t.title)+'</span><div class="wb"><i style="width:'+p+'%;background:var(--primary)"></i></div><span class="wc">'+p+'%（'+l.length+'件）</span></div>';}).join('');
   return '<div id="tk-dash">'+cards
-    +'<div class="tk-dp" style="margin-bottom:12px"><h4>'+tkEsc(sel[4])+' <small>'+items.length+'件</small></h4><div style="max-height:320px;overflow:auto">'+(list||'<div class="ds">該当なし</div>')+'</div></div>'
+    +'<div class="tk-dp" style="margin-bottom:12px"><h4>'+tkEsc(sel[4])+' <small>'+items.length+'件</small></h4>'+(list||'<div class="ds">該当なし</div>')+'</div>'
     +'<div class="tk-dg"><div class="tk-dp"><h4>ステータス別 <small>タスク</small></h4>'+(total?stBar:'<div class="ds">なし</div>')+'</div>'
     +'<div class="tk-dp"><h4>施策別の進捗 <small>タスク</small></h4>'+(prj||'<div class="ds">なし</div>')+'</div>'
     +'<div class="tk-dp"><h4>担当者別の負荷 <small>緑=完了 紫=未完了 赤=遅延</small></h4>'+(whoH||'<div class="ds">なし</div>')+'</div></div></div>';
@@ -4200,7 +4250,6 @@ function tkfRender(){
     +(v('risk')?tkfField('課題・リスク','<textarea data-k="risk" rows="2">'+tkEsc(r.risk)+'</textarea>','wide'):'')
     +(v('nextAction')?tkfField('次アクション','<textarea data-k="nextAction" rows="2">'+tkEsc(r.nextAction)+'</textarea>','wide'):'')
     +'</div>'+kpi+rel
-    +(_tkf.subCount?'<p class="tkf-note">このタスクには小タスクが '+_tkf.subCount+' 件あります（HALOでは編集せず、そのまま残ります）。</p>':'')
     +'</div>'
     +'<div class="tkf-foot"><button class="tkf-save" onclick="tkfSave()">'+(_tkf.mode==='update'?'更新':'登録')+'</button>'
     +(_tkf.mode==='update'?'<button onclick="tkfCopy()">コピー</button><button class="tkf-del" onclick="tkfDelete()">削除</button><a href="'+TK_KINTONE_URL+r.id+'" target="_blank" rel="noopener">kintoneで開く ↗</a>':'')
@@ -4309,7 +4358,7 @@ document.addEventListener('click',e=>{
   const root=document.getElementById('tab-tasks');
   if(!root||!root.contains(e.target)||_tkf)return;
   if(e.target.closest('.tk-tw,.tk-lnk,a,button,select,input,label'))return;
-  const el=e.target.closest('.tk-left,.tk-card,.tk-li,.tk-gb');
+  const el=e.target.closest('.tk-left,.tk-card,.tk-li,.tk-gb,.tk-dl-row');
   if(!el)return;
   const host=el.closest('[data-id]');
   if(host&&host.dataset.id)tkfOpenEdit(host.dataset.id);
