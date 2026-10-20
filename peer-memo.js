@@ -91,6 +91,18 @@
     return { alg: 'RSA-OAEP-256+A256GCM', encryptedKey: b64(encKey), iv: b64(iv), cipherText: b64(ct) };
   }
 
+  // 暗号化する中身。メモ本文と「評価の向き」を一緒に暗号化する（選択結果は平文のフィールドに置かない）。
+  // 旧形式（本文だけの文字列）で保存された過去分は、そのまま本文として扱い、評価の向きは「未設定」にする
+  const SENTIMENTS = ['肯定', '否定', 'どちらでもない', '不明'];
+  function packMemo(body, sentiment) { return JSON.stringify({ v: 2, body, sentiment }); }
+  function unpackMemo(text) {
+    try {
+      const o = JSON.parse(text);
+      if (o && o.v === 2 && typeof o.body === 'string') return { body: o.body, sentiment: o.sentiment || '' };
+    } catch (e) { /* 旧形式 */ }
+    return { body: text, sentiment: '' };
+  }
+
   // 副社長の秘密鍵はここ（復号の瞬間）でだけ使い、保存しない
   async function decryptForVp(privateKeyJwk, pkg) {
     const priv = await crypto.subtle.importKey('jwk', privateKeyJwk, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt']);
@@ -193,6 +205,8 @@
           <input id="pm-date" type="date" value="${E(today)}" max="${E(today)}" style="${INP};margin-top:4px"></label>
         <label style="font-size:0.8em;font-weight:700">評価項目（任意）
           <input id="pm-item" type="text" maxlength="200" placeholder="例: 報告、連絡（わからなければ空欄でOK）" style="${INP};margin-top:4px"></label>
+        <div style="font-size:0.8em;font-weight:700">この観察の評価（必須）
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${SENTIMENTS.map((s) => `<label style="display:flex;align-items:center;gap:4px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer"><input type="radio" name="pm-sent" value="${E(s)}">${E(s)}</label>`).join('')}</div></div>
         <label style="font-size:0.8em;font-weight:700">評価内容（メモ）
           <textarea id="pm-body" rows="6" placeholder="感じたこと・見たことをそのまま書いてください" style="${INP};margin-top:4px;min-height:120px"></textarea></label>
         <div style="font-size:0.74em;color:var(--text2);padding:6px 8px;background:var(--bg);border-radius:8px;line-height:1.6">
@@ -211,19 +225,23 @@
     const body = document.getElementById('pm-body').value.trim();
     if (!target) { showToast('対象者を選択してください'); return; }
     if (!date) { showToast('記入日を入力してください'); return; }
+    const sentEl = document.querySelector('input[name="pm-sent"]:checked');
+    if (!sentEl) { showToast('評価（肯定・否定・どちらでもない・不明）を選択してください'); return; }
     if (!body) { showToast('評価内容（メモ）を入力してください'); return; }
     const btn = document.getElementById('pm-save');
     btn.disabled = true;
     try {
+      const plain = packMemo(body, sentEl.value);
       const ownerKey = await getOrCreateOwnerKey(true);
-      const vpEncrypted = await encryptForVp(body);
-      const ownerEncrypted = await encryptForOwner(ownerKey, body);
+      const vpEncrypted = await encryptForVp(plain);
+      const ownerEncrypted = await encryptForOwner(ownerKey, plain);
       const cipher = JSON.stringify({ vpEncrypted, ownerEncrypted });
       await pmApi('savePeerMemo', { memo: { target, date, item, cipher } }, '暗号化して保存中…');
       state.records = null;
       showToast('保存しました');
       document.getElementById('pm-body').value = '';
       document.getElementById('pm-item').value = '';
+      sentEl.checked = false;
     } catch (e) {
       showToast(e.message || '保存に失敗しました');
     } finally {
@@ -272,7 +290,8 @@
     try {
       const key = await getOrCreateOwnerKey(false);
       if (!key || !rec.owner) throw new Error('この端末にはこのメモを読む鍵がありません（別の端末・ブラウザで入力したメモは、そちらでのみ読めます）');
-      out.textContent = await decryptForOwner(key, rec.owner);
+      const m = unpackMemo(await decryptForOwner(key, rec.owner));
+      out.textContent = `【${m.sentiment || '評価 未設定'}】 ${m.body}`;
     } catch (e) {
       out.textContent = e.name === 'OperationError'
         ? '復号できませんでした（別の端末・ブラウザで入力したメモは、そちらでのみ読めます）'
@@ -374,8 +393,8 @@
   }
   function csvEsc(v) { const s = String(v == null ? '' : v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function downloadCsv(filename, rows) {
-    const lines = [['対象者', '記入日', '入力者', '評価項目', '内容'].join(',')]
-      .concat(rows.map((r) => [r.target, r.date, r.creatorName, r.item, r.content].map(csvEsc).join(',')));
+    const lines = [['対象者', '記入日', '入力者', '評価項目', '評価', '内容'].join(',')]
+      .concat(rows.map((r) => [r.target, r.date, r.creatorName, r.item, r.sentiment, r.content].map(csvEsc).join(',')));
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });   // ExcelでUTF-8として開けるようBOM付き
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -398,24 +417,26 @@
       const res = await pmApi('getPeerMemosForVp', { from: per.from, to: per.to, creatorKey }, '取得中…');
       const rows = [];
       for (const r of res.records || []) {
-        let content;
-        try { content = await decryptForVp(jwk, r.vp); }
-        catch (e) { content = '[復号失敗: ' + (e.message || e.name || '不明なエラー') + ']'; }
-        rows.push({ target: r.target, date: r.date, creatorName: r.creatorName, item: r.item, content });
+        let content, sentiment = '';
+        try {
+          const m = unpackMemo(await decryptForVp(jwk, r.vp));
+          content = m.body; sentiment = m.sentiment || '未設定';
+        } catch (e) { content = '[復号失敗: ' + (e.message || e.name || '不明なエラー') + ']'; }
+        rows.push({ target: r.target, date: r.date, creatorName: r.creatorName, item: r.item, sentiment, content });
       }
       // 全員分のときだけ、記入のなかった対象者も行にしておく（AIで全員分を漏れなく採点するため）
-      (res.noEntry || []).forEach((n) => rows.push({ target: n, date: '', creatorName: '', item: '', content: '(この期間の記入なし)' }));
+      (res.noEntry || []).forEach((n) => rows.push({ target: n, date: '', creatorName: '', item: '', sentiment: '', content: '(この期間の記入なし)' }));
       rows.sort((a, b) => a.target.localeCompare(b.target, 'ja'));
       window._pmVpRows = rows;   // 画面を閉じるまでのメモリ上だけ。保存しない
       state.vpLabel = `${per.label}_${creatorLabel}`;
-      const th = ['対象者', '記入日', '入力者', '評価項目', '内容'].map((h) => `<th style="position:sticky;top:0;background:var(--primary-light);padding:5px 6px;text-align:left;white-space:nowrap">${h}</th>`).join('');
+      const th = ['対象者', '記入日', '入力者', '評価項目', '評価', '内容'].map((h) => `<th style="position:sticky;top:0;background:var(--primary-light);padding:5px 6px;text-align:left;white-space:nowrap">${h}</th>`).join('');
       const td = 'padding:4px 6px;border-top:1px solid var(--border);';
       box.innerHTML = `
         <div style="padding:6px 10px;background:var(--primary-light);border-radius:8px;color:var(--primary-dark);font-weight:700;margin-bottom:8px">${E(per.label)} ／ ${E(creatorLabel)}: ${rows.length}件を復号しました</div>
         <button onclick="pmVpCsv()" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer;margin-bottom:8px">CSV出力</button>
         <div style="overflow:auto;max-height:50vh;border:1px solid var(--border);border-radius:8px"><table style="border-collapse:collapse;width:100%;font-size:0.8em">
           <thead><tr>${th}</tr></thead>
-          <tbody>${rows.map((r) => `<tr><td style="${td}white-space:nowrap">${E(r.target)}</td><td style="${td}white-space:nowrap;color:var(--text2)">${E(r.date)}</td><td style="${td}white-space:nowrap">${E(r.creatorName)}</td><td style="${td}">${E(r.item)}</td><td style="${td}white-space:pre-wrap;word-break:break-word">${E(r.content)}</td></tr>`).join('')}</tbody></table></div>`;
+          <tbody>${rows.map((r) => `<tr><td style="${td}white-space:nowrap">${E(r.target)}</td><td style="${td}white-space:nowrap;color:var(--text2)">${E(r.date)}</td><td style="${td}white-space:nowrap">${E(r.creatorName)}</td><td style="${td}">${E(r.item)}</td><td style="${td}white-space:nowrap;font-weight:700">${E(r.sentiment)}</td><td style="${td}white-space:pre-wrap;word-break:break-word">${E(r.content)}</td></tr>`).join('')}</tbody></table></div>`;
     } catch (e) { box.textContent = '復号に失敗しました: ' + (e.message || e.name || '不明なエラー'); }
   }
 
