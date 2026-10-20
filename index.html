@@ -6847,6 +6847,9 @@ function renderIssueCheck() {
         ${canViewTeam ? `<button onclick="openTeamFeedback()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.team.btn')}</button>` : ''}
         ${canExport ? `<button onclick="openFbUpload()" style="flex:1;padding:8px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.up.btn')}</button>` : ''}
       </div>
+      ${canViewTeam ? `<div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="openPeerMemo()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">🗒 他者評価メモ</button>
+      </div>` : ''}
     </div>`;
 }
 
@@ -9969,5 +9972,6 @@ async function initPushNotifications() {
   }
 })();
 </script>
+<script src="peer-memo.js"></script>
 </body>
 </html>
