@@ -6847,9 +6847,6 @@ function renderIssueCheck() {
         ${canViewTeam ? `<button onclick="openTeamFeedback()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.team.btn')}</button>` : ''}
         ${canExport ? `<button onclick="openFbUpload()" style="flex:1;padding:8px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.up.btn')}</button>` : ''}
       </div>
-      ${canViewTeam ? `<div style="display:flex;gap:8px;margin-top:8px">
-        <button onclick="openPeerMemo()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">🗒 他者評価メモ</button>
-      </div>` : ''}
     </div>`;
 }
 
@@ -7538,11 +7535,15 @@ function renderSafetyCheck() {
   const data = _safetyData;
   const isManager = currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般');
 
+  // 他者評価メモのボタン（peer-memo.js）。主任以上＋許可された個人にだけ文字列が返る。安否確認ボタンの左に並べる
+  const memoBtn = (typeof peerMemoButtonHtml === 'function') ? peerMemoButtonHtml() : '';
+
   if (!data || !data.active) {
-    if (isManager) {
+    if (isManager || memoBtn) {
       area.style.display = '';
-      area.innerHTML = `<div style="display:flex;justify-content:flex-end;margin-bottom:4px">
-        <button class="safety-send-btn" onclick="openSafetySendModal()">🚨 安否確認を発信</button>
+      area.innerHTML = `<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px">
+        ${memoBtn}
+        ${isManager ? `<button class="safety-send-btn" onclick="openSafetySendModal()">🚨 安否確認を発信</button>` : ''}
       </div>`;
     } else {
       area.style.display = 'none';
@@ -7558,7 +7559,8 @@ function renderSafetyCheck() {
   const typeIcon = a.disasterType === '地震' ? '🌏' : a.disasterType === '台風' ? '🌀' : '⚠️';
   const sentTime = a.sentAt ? new Date(a.sentAt).toLocaleString('ja-JP', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
 
-  let html = '';
+  // 安否確認の発信中も、他者評価メモのボタンは出したままにする
+  let html = memoBtn ? `<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px">${memoBtn}</div>` : '';
 
   if (!my) {
     html += `<div class="safety-banner">

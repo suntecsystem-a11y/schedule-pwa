@@ -299,6 +299,17 @@
     }
   }
 
+  // 他者評価メモを使える人: 主任以上（管理者含む）＋下記の個人。表示の出し分けだけで、実際の権限判定はGAS側（他者評価メモ.js の _pmCheckUser）
+  const EXTRA_EMP_IDS = ['1002'];   // 江波 純平さん（パートナー）
+  function canUsePeerMemo() {
+    if (typeof currentUser === 'undefined' || !currentUser) return false;
+    return !!(currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般') || EXTRA_EMP_IDS.includes(String(currentUser.id)));
+  }
+  // ホームの安否確認ボタンの左に並べるボタン（index.html の renderSafetyCheck から呼ぶ）
+  window.peerMemoButtonHtml = () => canUsePeerMemo()
+    ? '<button class="safety-send-btn" style="border-color:var(--primary);background:white;color:var(--primary)" onclick="openPeerMemo()">🗒 他者評価メモ</button>'
+    : '';
+
   function isAdminUser() { return typeof currentUser !== 'undefined' && !!(currentUser && currentUser.isAdmin); }
 
   // ---------- 期間（月 or 会計年度の四半期。会計年度は7月開始: Q1=7〜9月 Q2=10〜12月 Q3=1〜3月 Q4=4〜6月） ----------
