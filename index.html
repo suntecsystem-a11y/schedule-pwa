@@ -8552,7 +8552,7 @@ function openBentoSheet(editCtx){
     <label style="font-size:0.8em;color:var(--text2);font-weight:600">予約者（代理予約・総務のみ）</label>
     <select id="bento-reserver" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:0.9em;margin:6px 0 12px;background:#fff">
       <option value="">自分（${esc(currentUser.name)}）</option>
-      ${(typeof USERS!=='undefined'?USERS:[]).filter(u=>!u.isPartner && String(u.id)!==String(currentUser.id)).map(u=>`<option value="${esc(String(u.id))}">${esc(u.name)}（${esc(u.dept||'')}）</option>`).join('')}
+      ${(typeof USERS!=='undefined'?USERS:[]).filter(u=>!u.isPartner && String(u.id)!==String(currentUser.id) && String(u.dept||'').indexOf('大黒製造')<0).map(u=>`<option value="${esc(String(u.id))}">${esc(u.name)}（${esc(u.dept||'')}）</option>`).join('')}
     </select>` : ''}
     <div id="bento-menus" style="font-size:0.85em;color:var(--text2)">${isEdit?'読み込み中…':'必要日を選んで「メニューを見る」を押してください'}</div>
   `;
