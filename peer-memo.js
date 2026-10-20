@@ -91,6 +91,15 @@
     return { alg: 'RSA-OAEP-256+A256GCM', encryptedKey: b64(encKey), iv: b64(iv), cipherText: b64(ct) };
   }
 
+  // 副社長の秘密鍵はここ（復号の瞬間）でだけ使い、保存しない
+  async function decryptForVp(privateKeyJwk, pkg) {
+    const priv = await crypto.subtle.importKey('jwk', privateKeyJwk, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt']);
+    const rawAes = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, priv, unb64(pkg.encryptedKey));
+    const aes = await crypto.subtle.importKey('raw', rawAes, { name: 'AES-GCM' }, false, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(pkg.iv) }, aes, unb64(pkg.cipherText));
+    return new TextDecoder().decode(plain);
+  }
+
   // 副社長公開鍵の指紋（SHA-256の先頭8バイト）。副社長が手元の鍵と照合できるように入力画面へ表示する
   async function vpFingerprint() {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(VP_PUBLIC_KEY_JWK.n));
@@ -129,7 +138,7 @@
   const BTN = 'padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer';
   const INP = 'width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;font-family:inherit';
 
-  let state = { init: null, tab: 'input', month: '', records: null };
+  let state = { init: null, tab: 'input', month: '', records: null, pKind: 'month', pFy: 0, pQ: 1, vp: null, vpLabel: '' };
 
   function monthRange(ym) {
     const [y, m] = ym.split('-').map(Number);
@@ -158,8 +167,14 @@
         <h3 style="margin:0;font-size:1em;font-weight:700">🗒 他者評価メモ</h3>
         <button onclick="closeDrModal()" style="border:none;background:none;font-size:1.2em;cursor:pointer;color:var(--text2)">✕</button>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:10px">${tabBtn('input', '入力')}${tabBtn('status', '自分の入力状況')}</div>`;
-    openDrModal(head + (state.tab === 'input' ? await inputHtml() : statusHtml()));
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">${tabBtn('input', '入力')}${tabBtn('status', '自分の入力状況')}${tabBtn('cov', '月次記入状況')}${isAdminUser() ? tabBtn('vp', '副社長用') : ''}</div>`;
+    let inner;
+    if (state.tab === 'input') inner = await inputHtml();
+    else if (state.tab === 'status') inner = statusHtml();
+    else if (state.tab === 'cov') inner = covHtml();
+    else inner = vpHtml();
+    openDrModal(head + inner);
+    document.getElementById('dr-modal-body').style.maxWidth = (state.tab === 'cov' || state.tab === 'vp') ? 'min(1000px, 96vw)' : '560px';
     if (state.tab === 'status' && state.records === null) loadStatus();
   }
 
@@ -264,6 +279,156 @@
         : (e.message || '復号に失敗しました');
     }
   }
+
+  function isAdminUser() { return typeof currentUser !== 'undefined' && !!(currentUser && currentUser.isAdmin); }
+
+  // ---------- 期間（月 or 会計年度の四半期。会計年度は7月開始: Q1=7〜9月 Q2=10〜12月 Q3=1〜3月 Q4=4〜6月） ----------
+  function fiscalRange(fy, q) {
+    const p = (n) => String(n).padStart(2, '0');
+    const startM = 7 + (q - 1) * 3;                  // 7, 10, 13, 16（13以降は翌年）
+    const endM = startM + 3;
+    const ym = (n) => ({ y: fy + Math.floor((n - 1) / 12), m: ((n - 1) % 12) + 1 });
+    const s = ym(startM), e = ym(endM), last = ym(endM - 1);
+    return { from: `${s.y}-${p(s.m)}-01`, to: `${e.y}-${p(e.m)}-01`, label: `${fy}年度Q${q}（${s.m}〜${last.m}月）` };
+  }
+  function currentPeriod() {
+    if (state.pKind === 'quarter') return fiscalRange(Number(state.pFy), Number(state.pQ));
+    const r = monthRange(state.month);
+    const [y, m] = state.month.split('-');
+    return { from: r.from, to: r.to, label: `${y}年${Number(m)}月` };
+  }
+  function initFiscal() {
+    if (state.pFy) return;
+    const [y, m] = state.init.today.split('-').map(Number);
+    state.pFy = m >= 7 ? y : y - 1;
+    state.pQ = m >= 7 && m <= 9 ? 1 : m >= 10 ? 2 : m <= 3 ? 3 : 4;
+  }
+  function periodHtml() {
+    const fy0 = Number(state.pFy);
+    const years = [fy0 - 1, fy0, fy0 + 1].map((y) => `<option value="${y}"${y === fy0 ? ' selected' : ''}>${y}年度</option>`).join('');
+    const qs = [1, 2, 3, 4].map((q) => `<option value="${q}"${q === Number(state.pQ) ? ' selected' : ''}>Q${q}</option>`).join('');
+    return `
+      <select onchange="pmKind(this.value)" style="${INP};width:auto">
+        <option value="month"${state.pKind === 'month' ? ' selected' : ''}>月</option>
+        <option value="quarter"${state.pKind === 'quarter' ? ' selected' : ''}>四半期</option></select>
+      ${state.pKind === 'month'
+        ? `<input type="month" value="${E(state.month)}" onchange="pmPeriod('month',this.value)" style="${INP};width:auto">`
+        : `<select onchange="pmPeriod('fy',this.value)" style="${INP};width:auto">${years}</select>
+           <select onchange="pmPeriod('q',this.value)" style="${INP};width:auto">${qs}</select>`}`;
+  }
+
+  // ---------- 月次記入状況（主任以上。暗号文は触らない） ----------
+  function covHtml() {
+    initFiscal();
+    return `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${periodHtml()}
+        <button onclick="pmCovRun()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">表示</button>
+      </div>
+      <div id="pm-cov-body" style="font-size:0.85em;color:var(--text2)">期間を選んで「表示」を押してください。</div>`;
+  }
+  async function covRun() {
+    const box = document.getElementById('pm-cov-body');
+    box.textContent = '集計中…';
+    try {
+      const per = currentPeriod();
+      const r = await pmApi('getPeerMemoCoverage', { from: per.from, to: per.to }, '集計中…');
+      const byOrg = {};
+      r.uncovered.forEach((x) => { const k = x.org || '（組織未設定）'; (byOrg[k] = byOrg[k] || []).push(x.name); });
+      box.innerHTML = `
+        <div style="padding:6px 10px;background:var(--primary-light);border-radius:8px;color:var(--primary-dark);font-weight:700;margin-bottom:8px">
+          ${E(per.label)} ／ 対象者 ${r.eligibleCount}名 ／ 記入あり ${r.coveredCount}名 ／ 記入件数 ${r.entryCount}件</div>
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">まだ記入されていない対象者（${r.uncovered.length}名）</div>
+        ${r.uncovered.length ? Object.keys(byOrg).map((org) => `
+          <div style="margin-bottom:6px"><span style="font-size:0.8em;color:var(--text2)">${E(org)}</span>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">${byOrg[org].map((n) => `<span style="padding:3px 8px;border-radius:12px;background:#fff8e1;color:#e65100;font-size:0.85em">${E(n)}</span>`).join('')}</div></div>`).join('')
+          : '<div>全員分の記入があります。</div>'}`;
+    } catch (e) { box.textContent = e.message || '集計に失敗しました'; }
+  }
+
+  // ---------- 副社長用: 復号してCSV出力（管理者のみ。秘密鍵は貼り付け→この画面内だけで使い、保存しない） ----------
+  function vpHtml() {
+    initFiscal();
+    const opts = ((state.vp && state.vp.creators) || []).map((c) => `<option value="${E(c.key)}">${E(c.name)}</option>`).join('');
+    return `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        ${periodHtml()}
+        <button onclick="pmVpLoad()" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">入力者候補を更新</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <label style="font-size:0.8em;font-weight:700">入力者で絞り込み</label>
+        <select id="pm-vp-creator" style="${INP};width:auto"><option value="">全員分</option>${opts}</select>
+      </div>
+      <textarea id="pm-vp-key" rows="3" placeholder="副社長の秘密鍵JWKを貼り付け（この端末・サーバーには保存されません）" style="${INP};margin-bottom:8px"></textarea>
+      <button onclick="pmVpRun()" style="${BTN};width:100%">この期間を復号して表示</button>
+      <div id="pm-vp-body" style="margin-top:10px;font-size:0.85em"></div>`;
+  }
+  async function vpLoadCreators() {
+    try {
+      const per = currentPeriod();
+      const r = await pmApi('getPeerMemoCoverage', { from: per.from, to: per.to }, '読み込み中…');
+      state.vp = { creators: r.creators || [] };
+      const sel = document.getElementById('pm-vp-creator');
+      if (sel) sel.innerHTML = '<option value="">全員分</option>' + state.vp.creators.map((c) => `<option value="${E(c.key)}">${E(c.name)}</option>`).join('');
+    } catch (e) { showToast(e.message); }
+  }
+  function csvEsc(v) { const s = String(v == null ? '' : v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function downloadCsv(filename, rows) {
+    const lines = [['対象者', '記入日', '入力者', '評価項目', '内容'].join(',')]
+      .concat(rows.map((r) => [r.target, r.date, r.creatorName, r.item, r.content].map(csvEsc).join(',')));
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });   // ExcelでUTF-8として開けるようBOM付き
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  async function vpRun() {
+    const box = document.getElementById('pm-vp-body');
+    const keyText = document.getElementById('pm-vp-key').value.trim();
+    const sel = document.getElementById('pm-vp-creator');
+    const creatorKey = sel.value;
+    const creatorLabel = creatorKey ? sel.options[sel.selectedIndex].textContent : '全員分';
+    if (!keyText) { showToast('秘密鍵を貼り付けてください'); return; }
+    let jwk;
+    try { jwk = JSON.parse(keyText); } catch (e) { box.textContent = '秘密鍵の形式が正しくありません（JWKのJSONを貼り付けてください）'; return; }
+    box.textContent = '復号中…';
+    try {
+      const per = currentPeriod();
+      const res = await pmApi('getPeerMemosForVp', { from: per.from, to: per.to, creatorKey }, '取得中…');
+      const rows = [];
+      for (const r of res.records || []) {
+        let content;
+        try { content = await decryptForVp(jwk, r.vp); }
+        catch (e) { content = '[復号失敗: ' + (e.message || e.name || '不明なエラー') + ']'; }
+        rows.push({ target: r.target, date: r.date, creatorName: r.creatorName, item: r.item, content });
+      }
+      // 全員分のときだけ、記入のなかった対象者も行にしておく（AIで全員分を漏れなく採点するため）
+      (res.noEntry || []).forEach((n) => rows.push({ target: n, date: '', creatorName: '', item: '', content: '(この期間の記入なし)' }));
+      rows.sort((a, b) => a.target.localeCompare(b.target, 'ja'));
+      window._pmVpRows = rows;   // 画面を閉じるまでのメモリ上だけ。保存しない
+      state.vpLabel = `${per.label}_${creatorLabel}`;
+      const th = ['対象者', '記入日', '入力者', '評価項目', '内容'].map((h) => `<th style="position:sticky;top:0;background:var(--primary-light);padding:5px 6px;text-align:left;white-space:nowrap">${h}</th>`).join('');
+      const td = 'padding:4px 6px;border-top:1px solid var(--border);';
+      box.innerHTML = `
+        <div style="padding:6px 10px;background:var(--primary-light);border-radius:8px;color:var(--primary-dark);font-weight:700;margin-bottom:8px">${E(per.label)} ／ ${E(creatorLabel)}: ${rows.length}件を復号しました</div>
+        <button onclick="pmVpCsv()" style="padding:8px 14px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer;margin-bottom:8px">CSV出力</button>
+        <div style="overflow:auto;max-height:50vh;border:1px solid var(--border);border-radius:8px"><table style="border-collapse:collapse;width:100%;font-size:0.8em">
+          <thead><tr>${th}</tr></thead>
+          <tbody>${rows.map((r) => `<tr><td style="${td}white-space:nowrap">${E(r.target)}</td><td style="${td}white-space:nowrap;color:var(--text2)">${E(r.date)}</td><td style="${td}white-space:nowrap">${E(r.creatorName)}</td><td style="${td}">${E(r.item)}</td><td style="${td}white-space:pre-wrap;word-break:break-word">${E(r.content)}</td></tr>`).join('')}</tbody></table></div>`;
+    } catch (e) { box.textContent = '復号に失敗しました: ' + (e.message || e.name || '不明なエラー'); }
+  }
+
+  window.pmKind = (v) => { state.pKind = v; render(); };
+  window.pmPeriod = (which, v) => {
+    if (which === 'month') { if (/^\d{4}-\d{2}$/.test(v)) state.month = v; }
+    else if (which === 'fy') state.pFy = Number(v);
+    else if (which === 'q') state.pQ = Number(v);
+  };
+  window.pmCovRun = covRun;
+  window.pmVpLoad = vpLoadCreators;
+  window.pmVpRun = vpRun;
+  window.pmVpCsv = () => downloadCsv(`他者評価メモ_${(state.vpLabel || '').replace(/[\\/:*?"<>|]/g, '_')}.csv`, window._pmVpRows || []);
 
   window.openPeerMemo = openPeerMemo;
   window.pmTab = (id) => { state.tab = id; render(); };
