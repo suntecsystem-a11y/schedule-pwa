@@ -1708,10 +1708,20 @@ const KINTONE_DOMAIN = 'zcbwgd3ubjo5.cybozu.com';
 const KINTONE_CAR_APP_ID = '283'; // 社用車予約アプリのID
 // ============================================================
 
+// 会議室マスタ。id は kintone「会議室」プルダウンの値（変更しない）、name は画面の表示名。
+// from / until: その日付から／までの予約を受け付ける（本社→新棟の移転日 2026-11-03）
 const ROOMS = [
-  {id:'1階会議室', name:'1階会議室', floor:'1F', capacity:8},
-  {id:'2階会議室', name:'2階会議室', floor:'2F', capacity:4},
+  {id:'1階会議室', name:'本社1階会議室', floor:'本社1F', capacity:8, until:'2026-11-02'},
+  {id:'2階会議室', name:'本社2階会議室', floor:'本社2F', capacity:4, until:'2026-11-02'},
+  {id:'新棟2階', name:'新棟2階会議室', floor:'新棟2F', capacity:6, from:'2026-11-03'},
+  {id:'新棟3階北', name:'新棟3階北会議室', floor:'新棟3F北', capacity:4, from:'2026-11-03'},
+  {id:'新棟3階中央', name:'新棟3階中央会議室', floor:'新棟3F中央', capacity:4, from:'2026-11-03'},
 ];
+const roomName = id => (ROOMS.find(r=>r.id===id)||{}).name || id || '';
+const roomOpenOn = (r, ds) => (!r.from||ds>=r.from) && (!r.until||ds<=r.until);
+// ds の日に予約できる会議室。withEvents=true のときは、その日に予約が残っている会議室も含める（表示用）
+const roomsOn = (ds, withEvents) => ROOMS.filter(r => roomOpenOn(r, ds) ||
+  (withEvents && events.some(e=>e.type==='会議室'&&e.room===r.id&&eventIncludesDate(e,ds))));
 const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休み','在宅','来社','その他'];
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅', 'その他'];
@@ -4653,9 +4663,10 @@ function renderDashboard() {
 
   // 会議室稼働率（今日の全時間枠9-18時のうち使用中の割合）
   const roomHours = 9; // 9時間
-  const totalSlots = ROOMS.length * roomHours;
+  const dRooms = roomsOn(ds, true);
+  const totalSlots = dRooms.length * roomHours;
   let usedSlots = 0;
-  ROOMS.forEach(r => {
+  dRooms.forEach(r => {
     const roomEvs = events.filter(e => e.type === '会議室' && e.room === r.id && eventIncludesDate(e, ds));
     roomEvs.forEach(e => {
       const s = Math.max(timeToMins(e.start||'09:00'), 9*60);
@@ -4685,7 +4696,7 @@ function renderDashboard() {
     <div class="dash-card">
       <div class="dash-card-title">${t('dash.room')}</div>
       <div class="dash-card-value">${roomRate}<span style="font-size:0.55em">%</span></div>
-      <div class="dash-card-sub">${t('dash.room.sub',{count:ROOMS.length})}</div>
+      <div class="dash-card-sub">${t('dash.room.sub',{count:dRooms.length})}</div>
     </div>
     <div class="dash-card">
       <div class="dash-card-title">${t('dash.car')}</div>
@@ -5010,7 +5021,7 @@ function renderRoomAvailabilityNow(){
   const chips = document.getElementById('room-now-chips');
   if(!label||!chips) return;
   label.textContent = t('room.now',{time:hStr});
-  chips.innerHTML = ROOMS.map(room=>{
+  chips.innerHTML = roomsOn(ds).map(room=>{
     const busy = todayRoomEvs.some(e=>e.room===room.id&&timeToMins(e.start)<=hNow*60&&timeToMins(e.end)>hNow*60);
     return busy
       ? `<span class="room-avail-chip busy">${t('room.busy',{name:room.name})}</span>`
@@ -5033,9 +5044,10 @@ function renderRoomTimeline(){
   const nowPos=isToday?toPos(now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')):null;
   const hoursRow=`<div class="room-tl-hours">${Array.from({length:7},(_,i)=>`<span>${t('ev.timeline.hour',{h:TL_START+i*2})}</span>`).join('')}</div>`;
   let html='';
-  ['1F','2F'].forEach(floor=>{
+  const tlRooms=roomsOn(ds,true);
+  [...new Set(tlRooms.map(r=>r.floor))].forEach(floor=>{
     html+=`<div style="font-size:0.85em;font-weight:700;color:var(--text2);margin:16px 0 8px">${floor}</div>`;
-    ROOMS.filter(r=>r.floor===floor).forEach(room=>{
+    tlRooms.filter(r=>r.floor===floor).forEach(room=>{
       const rEvs=roomEvs.filter(e=>e.room===room.id).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
       const blocks=rEvs.map(e=>{
         const l=toPos(e.start), r2=toPos(e.end);
@@ -5121,7 +5133,7 @@ function renderTeam(){
     const ev=inMeeting
       ? activeEvs.find(e=>e.type==='会議室')
       : activeEvs.find(e=>e.type===status);
-    return{...u, status, subInfo: ev?.title||ev?.room||''};
+    return{...u, status, subInfo: ev?.title||roomName(ev?.room)||''};
   });
 
   // ステータスチップ（件数付き）
@@ -5408,7 +5420,7 @@ function renderHomeDayWidgets(){
   if(roomEl){
     if(roomLabel) roomLabel.textContent = t('home.room.avail')+`（${hStr}）`;
     const todayRoomEvs = events.filter(e => e.date===today && e.type==='会議室' && e.room);
-    roomEl.innerHTML = ROOMS.map(room => {
+    roomEl.innerHTML = roomsOn(today).map(room => {
       const busy = todayRoomEvs.some(e =>
         e.room===room.id && timeToMins(e.start)<=hNow*60 && timeToMins(e.end)>hNow*60
       );
@@ -6360,7 +6372,9 @@ function renderRoomPicker(){
   const date=document.getElementById('ev-date').value;
   const start=document.getElementById('ev-start').value;
   const end=document.getElementById('ev-end').value;
-  document.getElementById('room-picker').innerHTML=ROOMS.map(r=>{
+  const pickRooms=roomsOn(date);
+  if(selectedRoom&&!pickRooms.some(r=>r.id===selectedRoom)) selectedRoom=null;
+  document.getElementById('room-picker').innerHTML=pickRooms.map(r=>{
     const conflict=events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===r.id&&eventIncludesDate(e,date)&&start<e.end&&end>e.start);
     const sel=selectedRoom===r.id;
     return`<div class="room-card${conflict?' conflict':sel?' selected':''}" onclick="${conflict?'':'selectRoom(\''+r.id+'\',this)'}">
@@ -6386,7 +6400,7 @@ function renderRoomTimelineMini(date, selStart, selEnd){
   const hasNow=nowLeft!==null&&nowRight!==null&&selStart&&selEnd;
 
   el.innerHTML=`<div style="font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px">${t('ev.room.timeline.title')}</div>`+
-  ROOMS.map(r=>{
+  roomsOn(date).map(r=>{
     const revs=roomEvs.filter(e=>e.room===r.id);
     const blocks=revs.map(e=>{
       const l=toPos(e.start),r2=toPos(e.end);
@@ -6515,6 +6529,7 @@ async function doSaveEvent(){
     if(showTime&&start&&end&&end<=start&&startDate===endDate){showToast(t('ev.time.order'));return}
   }
   if(type==='会議室'&&!selectedRoom){showToast(t('ev.room.required'));return}
+  if(type==='会議室'&&!roomsOn(date).some(r=>r.id===selectedRoom)){showToast('この日付では、選んだ会議室を予約できません（11/3以降は新棟の会議室を選んでください）');return}
   if(type==='会議室'&&events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===selectedRoom&&eventIncludesDate(e,date)&&start<e.end&&end>e.start)){
     showToast(t('ev.conflict'));return;
   }
@@ -8259,7 +8274,7 @@ function renderMyPage() {
           <span style="width:8px;height:8px;border-radius:50%;background:${STATUS_COLOR[e.type]||'#9e9e9e'};flex-shrink:0"></span>
           <div style="flex:1;min-width:0">
             <div style="font-size:0.88em;font-weight:600">${typeIcon(e.type)} ${esc(e.title||e.type)}</div>
-            <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${e.start&&e.end?e.start+' - '+e.end:t('common.allday')}${e.room?' / '+esc(e.room):''}</div>
+            <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${e.start&&e.end?e.start+' - '+e.end:t('common.allday')}${e.room?' / '+esc(roomName(e.room)):''}</div>
           </div>
         </div>`).join('') :
         `<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">${t('my.no.events')}</div>`}
