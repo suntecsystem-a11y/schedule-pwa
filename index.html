@@ -4283,7 +4283,7 @@ const TKF_VIS={
   title:TKF_TYPES,tag:TKF_TYPES,status:TKF_TYPES,parent:TKF_TYPES,
   owner:['事業グループ','事業','事業カテゴリ','活動','施策方針','施策','タスク'],
   progress:['活動','施策方針','施策','タスク'],start:['活動','施策方針','施策','タスク'],end:['活動','施策方針','施策','タスク'],
-  risk:['活動','施策方針','施策','タスク'],nextAction:['活動','施策方針','施策','タスク'],
+  detail:['活動','施策方針','施策','タスク'],risk:['活動','施策方針','施策','タスク'],nextAction:['活動','施策方針','施策','タスク'],
   taskUrl:['タスク'],co:['タスク'],docLinks:['施策'],kgi:['基本方針'],departmentGoal:['事業'],kpi:['事業'],
   fiscalYear:TKF_BIZ,kpiCategory:TKF_BIZ,kpiItem:TKF_BIZ,kpiName:TKF_BIZ,kpiTarget:TKF_BIZ,kpiActual:TKF_BIZ,kpiUnit:TKF_BIZ,kpiStatus:TKF_BIZ,kpiMemo:TKF_BIZ,
   relatedActivity:TKF_BIZ,relatedStrategy:TKF_BIZ,
@@ -4295,7 +4295,7 @@ const TKF_KPI_ITEM=['売上','粗利','利益率','受注金額','商談数','�
 const TKF_KPI_STATUS=['順調','注意','遅延','未評価'];
 let _tkf=null;
 function tkfBlank(o){
-  return Object.assign({id:'',revision:'',type:'タスク',parent:'',title:'',start:'',end:'',owner:'',status:'未着手',progress:0,tag:'',taskUrl:'',risk:'',nextAction:'',
+  return Object.assign({id:'',revision:'',type:'タスク',parent:'',title:'',start:'',end:'',owner:'',status:'未着手',progress:0,tag:'',taskUrl:'',detail:'',risk:'',nextAction:'',
     kgi:'',departmentGoal:'',kpi:'',fiscalYear:'',kpiCategory:'',kpiItem:'',kpiName:'',kpiTarget:'',kpiActual:'',kpiUnit:'',kpiStatus:'未評価',kpiMemo:'',
     relatedActivity:'',relatedStrategy:'',relatedPolicies:'',relatedThemes:'',linkReason:'',mainBelongingMemo:'',co:[],docLinks:[]},o||{});
 }
@@ -4421,6 +4421,7 @@ function tkfRender(){
     +co
     +(v('taskUrl')?tkfField('資料URL',tkfInput('taskUrl',r,'url','placeholder="タスク全体の資料URL"'),'wide'):'')
     +docs
+    +(v('detail')?tkfField('詳細','<textarea data-k="detail" rows="5" placeholder="内容・背景・進め方など">'+tkEsc(r.detail)+'</textarea>','wide'):'')
     +(v('risk')?tkfField('課題・リスク','<textarea data-k="risk" rows="2">'+tkEsc(r.risk)+'</textarea>','wide'):'')
     +(v('nextAction')?tkfField('次アクション','<textarea data-k="nextAction" rows="2">'+tkEsc(r.nextAction)+'</textarea>','wide'):'')
     +'</div>'+kpi+rel
