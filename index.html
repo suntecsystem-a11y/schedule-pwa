@@ -625,7 +625,7 @@ input,select{font-family:inherit;outline:none}
 .inc-filter-chip.on.sev1{background:#e3f2fd;color:#1565c0;border-color:#90caf9}
 
 /* タスク管理タブ */
-#tab-tasks{--tk-leftw:540px;--tk-rowh:34px;--tk-line:#e6e8ee}
+#tab-tasks{--tk-leftw:590px;--tk-rowh:34px;--tk-line:#e6e8ee}
 .tk-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .tk-head h2{font-size:1.15em}
 .tk-head small{color:var(--text2);font-size:.78em}
@@ -715,7 +715,7 @@ input,select{font-family:inherit;outline:none}
 .tk-li .nm{flex:1}
 @media(max-width:700px){
   #tab-tasks{--tk-leftw:230px}
-  .tk-c.who,.tk-c.st,.tk-hrow .tk-c.who,.tk-hrow .tk-c.st{display:none}
+  .tk-c.who,.tk-c.st,.tk-c.pg,.tk-hrow .tk-c.who,.tk-hrow .tk-c.st,.tk-hrow .tk-c.pg{display:none}
   .tk-c.name{width:130px}
   #tk-view{height:calc(100vh - 330px)}
 }
@@ -4109,7 +4109,7 @@ function tkGanttHtml(){
     }
   }
   let h='<div id="tk-wrap"><div id="tk-content" style="width:calc(var(--tk-leftw) + '+W+'px)">';
-  h+='<div class="tk-hrow"><div class="tk-left"><div class="tk-c name">タスク</div><div class="tk-c who">担当者</div><div class="tk-c st">状態</div><div class="tk-c d">期限</div><div class="tk-c pg">進捗</div></div><div class="tk-tl" style="width:'+W+'px"><div class="tk-hd">'+mo+dy+'</div></div></div>';
+  h+='<div class="tk-hrow"><div class="tk-left"><div class="tk-c name">タスク</div><div class="tk-c who">担当者</div><div class="tk-c st">状態</div><div class="tk-c d">開始</div><div class="tk-c d">期限</div><div class="tk-c pg">進捗</div></div><div class="tk-tl" style="width:'+W+'px"><div class="tk-hd">'+mo+dy+'</div></div></div>';
   h+='<div id="tk-weekend" style="left:var(--tk-leftw);width:'+W+'px">'+we+'</div>';
   const tx=tkDiff(R.start,today);
   if(tx>=0&&tx<days)h+='<div id="tk-today" style="left:calc(var(--tk-leftw) + '+(tx*dayW+dayW/2-1)+'px)"><b>今日</b></div>';
@@ -4125,7 +4125,7 @@ function tkGanttHtml(){
       bar='<div class="tk-gb'+(x.ch.length?' sum':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+'</div>';
     }
     h+='<div class="tk-row l'+Math.min(depth,2)+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+tkEsc(x.title)+'</span><a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener" title="kintoneで開く">↗</a></div>'
-      +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
+      +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.sd)+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
       +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+'</div></div>';
   });
   return h+'</div></div>';
