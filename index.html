@@ -1711,12 +1711,13 @@ const KINTONE_CAR_APP_ID = '283'; // 社用車予約アプリのID
 // 会議室マスタ。id は kintone「会議室」プルダウンの値（変更しない）、name は画面の表示名。
 // from / until: その日付から／までの予約を受け付ける（本社→新棟の移転日 2026-11-03）
 const ROOMS = [
-  {id:'1階会議室', name:'本社1階会議室', floor:'1F', capacity:8, until:'2026-11-02'},
-  {id:'2階会議室', name:'本社2階会議室', floor:'2F', capacity:4, until:'2026-11-02'},
-  {id:'新棟2階', name:'新棟2階会議室', floor:'2F', capacity:6, from:'2026-11-03'},
-  {id:'新棟3階北', name:'新棟3階北会議室', floor:'3F', capacity:4, from:'2026-11-03'},
-  {id:'新棟3階中央', name:'新棟3階中央会議室', floor:'3F', capacity:4, from:'2026-11-03'},
+  {id:'1階会議室', name:'本社1階会議室', building:'本社', floor:'1F', capacity:8, until:'2026-11-02'},
+  {id:'2階会議室', name:'本社2階会議室', building:'本社', floor:'2F', capacity:4, until:'2026-11-02'},
+  {id:'新棟2階', name:'新棟2階会議室', building:'新棟', floor:'2F', capacity:6, from:'2026-11-03'},
+  {id:'新棟3階北', name:'新棟3階北会議室', building:'新棟', floor:'3F', capacity:4, from:'2026-11-03'},
+  {id:'新棟3階中央', name:'新棟3階中央会議室', building:'新棟', floor:'3F', capacity:4, from:'2026-11-03'},
 ];
+const roomPlace = r => r.building + ' ' + r.floor;  // 建屋＋フロア（例：新棟 3F）
 const roomName = id => (ROOMS.find(r=>r.id===id)||{}).name || id || '';
 const roomOpenOn = (r, ds) => (!r.from||ds>=r.from) && (!r.until||ds<=r.until);
 // ds の日に予約できる会議室。withEvents=true のときは、その日に予約が残っている会議室も含める（表示用）
@@ -5045,9 +5046,9 @@ function renderRoomTimeline(){
   const hoursRow=`<div class="room-tl-hours">${Array.from({length:7},(_,i)=>`<span>${t('ev.timeline.hour',{h:TL_START+i*2})}</span>`).join('')}</div>`;
   let html='';
   const tlRooms=roomsOn(ds,true);
-  [...new Set(tlRooms.map(r=>r.floor))].forEach(floor=>{
+  [...new Set(tlRooms.map(roomPlace))].forEach(floor=>{
     html+=`<div style="font-size:0.85em;font-weight:700;color:var(--text2);margin:16px 0 8px">${floor}</div>`;
-    tlRooms.filter(r=>r.floor===floor).forEach(room=>{
+    tlRooms.filter(r=>roomPlace(r)===floor).forEach(room=>{
       const rEvs=roomEvs.filter(e=>e.room===room.id).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
       const blocks=rEvs.map(e=>{
         const l=toPos(e.start), r2=toPos(e.end);
@@ -6378,7 +6379,7 @@ function renderRoomPicker(){
     const conflict=events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===r.id&&eventIncludesDate(e,date)&&start<e.end&&end>e.start);
     const sel=selectedRoom===r.id;
     return`<div class="room-card${conflict?' conflict':sel?' selected':''}" onclick="${conflict?'':'selectRoom(\''+r.id+'\',this)'}">
-      <div class="room-name">${r.name}</div><div class="room-floor">${r.floor}　${t('ev.room.capacity',{n:r.capacity})}</div>
+      <div class="room-name">${r.name}</div><div class="room-floor">${roomPlace(r)}　${t('ev.room.capacity',{n:r.capacity})}</div>
       <div class="room-status">${conflict?t('ev.room.conflict'):sel?t('ev.room.selected'):t('ev.room.available')}</div>
     </div>`;
   }).join('');
@@ -6411,7 +6412,7 @@ function renderRoomTimelineMini(date, selStart, selEnd){
     const isSel=selectedRoom===r.id;
     const nowBar=hasNow&&isSel?`<div class="room-tl-now" data-drag="move" style="left:${nowLeft}%;width:${nowRight-nowLeft}%"><div class="room-tl-handle left" data-drag="left"></div><div class="room-tl-handle right" data-drag="right"></div></div>`:'';
     return`<div class="room-tl-wrap">
-      <div class="room-tl-name" style="${isSel?'color:var(--primary);font-weight:800':''}">${isSel?'✓ ':''}${r.name}（${r.floor}）</div>
+      <div class="room-tl-name" style="${isSel?'color:var(--primary);font-weight:800':''}">${isSel?'✓ ':''}${r.name}</div>
       <div class="room-tl-bar" data-room="${r.id}">${blocks}${nowBar}</div>
       <div class="room-tl-hours">
         ${Array.from({length:7},(_,i)=>`<span>${t('ev.timeline.hour',{h:TL_START+i*2})}</span>`).join('')}
@@ -6637,7 +6638,7 @@ function openDetail(id){
     <table style="width:100%;font-size:0.85em;border-collapse:collapse">
       <tr><td style="color:var(--text2);padding:7px 0;width:70px">${t('detail.date')}</td><td><strong>${isMultiDay(e)?e.startDate+' 〜 '+e.endDate:e.date}</strong></td></tr>
       ${e.start?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.time')}</td><td><strong>${e.start} 〜 ${e.end}</strong></td></tr>`:''}
-      ${room?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.place')}</td><td><strong>${room.floor} ${room.name}</strong></td></tr>`:''}
+      ${room?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.place')}</td><td><strong>${room.name}</strong></td></tr>`:''}
       ${(e.people||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.people')}</td><td>${(e.people||[]).map(userName).join('、')}</td></tr>`:''}
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
