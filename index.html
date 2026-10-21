@@ -1711,11 +1711,11 @@ const KINTONE_CAR_APP_ID = '283'; // 社用車予約アプリのID
 // 会議室マスタ。id は kintone「会議室」プルダウンの値（変更しない）、name は画面の表示名。
 // from / until: その日付から／までの予約を受け付ける（本社→新棟の移転日 2026-11-03）
 const ROOMS = [
-  {id:'1階会議室', name:'本社1階会議室', floor:'本社1F', capacity:8, until:'2026-11-02'},
-  {id:'2階会議室', name:'本社2階会議室', floor:'本社2F', capacity:4, until:'2026-11-02'},
-  {id:'新棟2階', name:'新棟2階会議室', floor:'新棟2F', capacity:6, from:'2026-11-03'},
-  {id:'新棟3階北', name:'新棟3階北会議室', floor:'新棟3F北', capacity:4, from:'2026-11-03'},
-  {id:'新棟3階中央', name:'新棟3階中央会議室', floor:'新棟3F中央', capacity:4, from:'2026-11-03'},
+  {id:'1階会議室', name:'本社1階会議室', floor:'1F', capacity:8, until:'2026-11-02'},
+  {id:'2階会議室', name:'本社2階会議室', floor:'2F', capacity:4, until:'2026-11-02'},
+  {id:'新棟2階', name:'新棟2階会議室', floor:'2F', capacity:6, from:'2026-11-03'},
+  {id:'新棟3階北', name:'新棟3階北会議室', floor:'3F', capacity:4, from:'2026-11-03'},
+  {id:'新棟3階中央', name:'新棟3階中央会議室', floor:'3F', capacity:4, from:'2026-11-03'},
 ];
 const roomName = id => (ROOMS.find(r=>r.id===id)||{}).name || id || '';
 const roomOpenOn = (r, ds) => (!r.from||ds>=r.from) && (!r.until||ds<=r.until);
