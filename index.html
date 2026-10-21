@@ -3973,10 +3973,10 @@ function renderTasksTab(){
   if(!_tk.loaded&&!_tk.error){tkLoad();return;}
   tkRender();
 }
-async function tkLoad(scope,keep){
+async function tkLoad(scope,keep,fresh){
   if(scope)_tk.scope=scope;
   try{
-    const r=await api('getTasks',{scope:_tk.scope},'タスクを読み込み中...');
+    const r=await api('getTasks',{scope:_tk.scope,fresh:fresh?1:0},'タスクを読み込み中...');
     _tk.me=r.me;_tk.canAll=r.canAll;_tk.scope=r.scope;_tk.error='';_tk.parents=r.parents||[];_tk.pmap={};_tk.parents.forEach(p=>{_tk.pmap[p.id]=p;});
     tkBuild(r.nodes);_tk.loaded=true;_tk.fresh=!keep;
   }catch(e){_tk.error=(e&&e.message)||String(e);}
@@ -4070,7 +4070,7 @@ function tkRender(keepScroll){
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkSetAll(true)">すべて展開</button><button class="tk-btn" onclick="tkSetAll(false)">すべて折りたたむ</button>':'')
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
-    +'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button><button class="tk-btn" onclick="_tk.loaded=false;tkLoad()">🔄 更新</button></div>';
+    +'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button><button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
   let body='';
   if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
@@ -4317,6 +4317,37 @@ function tkfNewFromRow(id,dateStr){
   else if(n.type==='タスク'){type='タスク';parent=n.parent||'';}
   tkfOpenNew({type,parent,start:dateStr,end:dateStr});
 }
+// 保存・削除の結果を、サーバーから全件を取り直さずにその場で画面へ反映する（速くするため）
+function tkApplyLocal(op,n){
+  const SHOW=['施策','活動','タスク'];
+  let raw=_tk.nodes.map(x=>({id:x.id,type:x.type,title:x.title,parent:x.parent,who:x.who,co:x.co,st:x.st,start:x.start,end:x.end,p:x.p}));
+  _tk.parents=(_tk.parents||[]).filter(p=>String(p.id)!==String(n.id));
+  if(op==='save'){
+    _tk.parents.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent});
+    raw=raw.filter(x=>String(x.id)!==String(n.id));
+    if(SHOW.includes(n.type)){
+      const mine=_tk.scope==='all'||_normName(n.who)===_normName(_tk.me)||(n.co||[]).some(c=>_normName(c)===_normName(_tk.me));
+      if(mine){
+        raw.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent?String(n.parent):'',who:n.who,co:n.co,st:n.st,start:n.start,end:n.end,p:n.p});
+        // 親（施策・活動）が一覧にまだ無ければ、候補の情報から補う
+        const have=new Set(raw.map(x=>String(x.id)));
+        let pid=n.parent?String(n.parent):'';
+        for(let i=0;pid&&!have.has(pid)&&i<12;i++){
+          const pp=(_tk.pmap&&_tk.pmap[pid])||_tk.parents.find(p=>String(p.id)===pid);
+          if(!pp||!SHOW.includes(pp.type))break;
+          raw.push({id:String(pp.id),type:pp.type,title:pp.title,parent:pp.parent?String(pp.parent):'',who:'',co:[],st:'未着手',start:'',end:'',p:0});
+          have.add(pid);pid=pp.parent?String(pp.parent):'';
+        }
+      }
+    }
+  }else{
+    raw=raw.filter(x=>String(x.id)!==String(n.id));
+  }
+  _tk.pmap={};_tk.parents.forEach(p=>{_tk.pmap[p.id]=p;});
+  tkBuild(raw);
+  tkRender(true);
+}
+function _normName(s){return String(s||'').replace(/[\s\u3000]/g,'');}
 function tkfParentOptions(type,selfId){
   const allow=TKF_PARENT_TYPES[type]||[];
   return (_tk.parents||[]).filter(p=>allow.includes(p.type)&&String(p.id)!==String(selfId||'')).map(p=>({id:p.id,label:'['+p.type+'] '+p.title+' (#'+p.id+')'}));
@@ -4474,7 +4505,8 @@ async function tkfSave(){
     const res=await api('saveTask',{task},'保存中...');
     showToast(res.mode==='create'?'登録しました':'更新しました');
     tkfClose(true);
-    await tkLoad(null,true);
+    tkApplyLocal('save',{id:res.id,type:task.type,title:task.title.trim(),parent:task.parent||'',who:task.owner||'',co:task.co||[],
+      st:task.status,start:task.start||'',end:task.end||'',p:(task.type==='タスク'&&task.status==='完了')?100:(Number(task.progress)||0)});
   }catch(e){
     showToast('保存に失敗：'+((e&&e.message)||e));
     if(_tkf)_tkf.busy=false;
@@ -4483,11 +4515,12 @@ async function tkfSave(){
 async function tkfDelete(){
   if(!_tkf||_tkf.mode!=='update')return;
   if(!confirm('このレコードを削除しますか？（元に戻せません）'))return;
+  const delId=_tkf.rec.id;
   try{
-    await api('deleteTask',{id:_tkf.rec.id},'削除中...');
+    await api('deleteTask',{id:delId},'削除中...');
     showToast('削除しました');
     tkfClose(true);
-    await tkLoad(null,true);
+    tkApplyLocal('delete',{id:delId});
   }catch(e){showToast('削除に失敗：'+((e&&e.message)||e));}
 }
 document.addEventListener('keydown',e=>{
