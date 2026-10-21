@@ -643,6 +643,7 @@ input,select{font-family:inherit;outline:none}
 .tk-grp button:last-child{border-radius:0 6px 6px 0}
 .tk-grp button.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .tk-empty{padding:48px 16px;text-align:center;color:var(--text2)}
+#tab-tasks.content{max-width:none;padding:12px 16px}
 #tk-view{position:relative;height:calc(100vh - 250px);min-height:380px}
 #tk-wrap,#tk-kanban,#tk-dash{position:absolute;inset:0;overflow:auto}
 #tk-content{position:relative}
@@ -4079,7 +4080,8 @@ function tkRender(keepScroll){
   else if(_tk.view==='gantt')body=tkGanttHtml();
   else if(_tk.view==='kanban')body=tkKanbanHtml();
   else body=tkDashHtml();
-  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ（閲覧のみ）'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+bar+'<div id="tk-view">'+body+'</div></div>';
+  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+bar+'<div id="tk-view">'+body+'</div></div>';
+  tkFit();
   const nd=document.getElementById('tk-dash');if(nd&&keepScroll)nd.scrollTop=dst;
   const w=document.getElementById('tk-wrap');
   if(w){
@@ -4087,6 +4089,14 @@ function tkRender(keepScroll){
     else{w.scrollLeft=sl;w.scrollTop=st;}
   }
 }
+// 表示領域の高さを、画面の下端（スマホは下部ナビの上）まで使う
+function tkFit(){
+  const v=document.getElementById('tk-view');if(!v)return;
+  const bn=document.getElementById('bottom-nav');
+  const bh=bn&&bn.offsetParent!==null?bn.offsetHeight:0;
+  v.style.height=Math.max(380,window.innerHeight-v.getBoundingClientRect().top-bh-14)+'px';
+}
+window.addEventListener('resize',()=>{if(typeof _tk!=='undefined'&&_tk.loaded)tkFit();});
 function tkGanttHtml(){
   const rows=tkRows(_tk.roots,0,[]);
   if(!rows.length)return '<div class="tk-empty">条件に合うタスクがありません</div>';
