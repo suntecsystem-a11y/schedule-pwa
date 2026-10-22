@@ -4194,9 +4194,9 @@ function tkRender(keepScroll){
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkSetAll(true)">すべて展開</button><button class="tk-btn" onclick="tkSetAll(false)">すべて折りたたむ</button>':'')
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
-    +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="tkManual()">📖 マニュアル</button><button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
+    +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const isPol=_tk.view==='policy';
-  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
+  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'<button onclick="tkManual()">📖 マニュアル</button></div>';
   let body='';
   if(isPol)body=tkPolicyHtml();
   else if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
@@ -4295,7 +4295,7 @@ function tkPolicyBar(){
   return '<div class="tk-bar">'+seg('layout',[['tree','ツリー表示'],['table','表形式']])
     +(P.layout==='tree'?seg('orient',[['h','横表示'],['v','縦表示']])+'<button class="tk-btn" onclick="tkPolFoldAll(false)">すべて展開</button><button class="tk-btn" onclick="tkPolFoldAll(true)">すべて折りたたむ</button>':'')
     +(years.length?'<label>対象年度 <select onchange="tkPolSet(\'year\',this.value)"><option value="">全年度</option>'+years.map(y=>'<option'+(P.year===y?' selected':'')+'>'+tkEsc(y)+'</option>').join('')+'</select></label>':'')
-    +'<span class="tk-sp"></span><button class="tk-btn" onclick="tkManual()">📖 マニュアル</button><button class="tk-btn" onclick="tkLoadPolicy(true,true)">🔄 更新</button></div>';
+    +'<span class="tk-sp"></span><button class="tk-btn" onclick="tkLoadPolicy(true,true)">🔄 更新</button></div>';
 }
 function tkPolSet(k,v){_tk.pol[k]=v;tkRender();}
 function tkPolFoldAll(f){const P=_tk.pol;P.fold={};if(f)P.nodes.forEach(n=>{if(n.ch.length)P.fold[n.id]=true;});tkRender();}
