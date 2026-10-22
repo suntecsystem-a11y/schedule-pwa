@@ -861,6 +861,12 @@ body.tk-dragging{user-select:none;-webkit-user-select:none;cursor:ew-resize}
 .tkp-tbl td{border:1px solid var(--border);padding:6px 10px;vertical-align:middle}
 .tkp-em{color:var(--text2);text-align:center}
 .tkp-cell{display:inline-block;padding:3px 9px;border-radius:4px;color:#fff;font-weight:600;font-size:.95em}
+#tab-tasks .tk-gb.mv{cursor:grab}
+#tab-tasks .tk-gb.mv .rh{position:absolute;top:0;bottom:0;width:7px;cursor:ew-resize;z-index:3;background:transparent}
+#tab-tasks .tk-gb.mv .rh.l{left:0}#tab-tasks .tk-gb.mv .rh.r{right:0}
+#tab-tasks .tk-gb.mv:hover .rh{background:rgba(255,255,255,.35)}
+#tk-dtip{position:fixed;z-index:9999;background:#263238;color:#fff;font-size:12px;padding:4px 9px;border-radius:4px;pointer-events:none;white-space:nowrap}
+body.tk-dragging .tk-gb.mv{cursor:grabbing}
 </style>
 </head>
 <body>
@@ -4341,7 +4347,8 @@ function tkGanttHtml(){
     if(x.sd){
       const left=tkDiff(R.start,x.sd)*dayW,w=(tkDiff(x.sd,x.ed)+1)*dayW;
       const lbl=!x.ch.length&&w>60?'<span>'+x.p+'%</span>':'';
-      bar='<div class="tk-gb'+(x.ch.length?' sum':'')+(holdShown?' hold':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+'</div>';
+      const mv=!x.ch.length&&x.e;
+      bar='<div class="tk-gb'+(x.ch.length?' sum':'')+(holdShown?' hold':'')+(mv?' mv':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%'+(mv?'　（つかんで移動／両端で伸縮）':'')+'"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+(mv&&w>=24?'<i class="rh l"></i><i class="rh r"></i>':'')+'</div>';
     }
     h+='<div class="tk-row l'+Math.min(depth,2)+(holdShown?' hold':'')+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span>'+tkAddBtn(x)+'</div>'
       +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.sd)+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
@@ -4821,6 +4828,51 @@ document.addEventListener('click',e=>{
   const nd=e.target.closest('[data-pid]');
   if(nd){const n=_tk.pol.byId[nd.dataset.pid];if(n&&(n.e||n.type==='施策'||n.type==='活動'))tkfOpenEdit(n.id);}
 });
+// ガントのバーを、つかんで移動／両端を引いて伸縮（日単位。マウス・ペンのみ。動かした分だけ開始日・終了日を保存）
+let _tkBar=null,_tkBarSup=false;
+function tkBarTip(t,txt){
+  let el=document.getElementById('tk-dtip');
+  if(!el){el=document.createElement('div');el.id='tk-dtip';document.body.appendChild(el);}
+  el.textContent=txt;el.style.left=(t.clientX+14)+'px';el.style.top=(t.clientY+16)+'px';
+}
+function tkBarTipOff(){const el=document.getElementById('tk-dtip');if(el)el.remove();}
+document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'||e.button!==0||_tkf)return;
+  const bar=e.target.closest&&e.target.closest('.tk-gb.mv');
+  if(!bar||!_tk.range||_tk.view!=='gantt')return;
+  const x=_tk.byId[bar.dataset.id];if(!x||x.ch.length||!x.e||!x.sd)return;
+  const r=bar.getBoundingClientRect();
+  const mode=r.width>=24&&e.clientX-r.left<=7?'l':(r.width>=24&&r.right-e.clientX<=7?'r':'m');
+  const lo=tkDiff(_tk.range.start,x.sd),hi=tkDiff(_tk.range.start,x.ed);
+  _tkBar={bar,x,mode,x0:e.clientX,lo,hi,nlo:lo,nhi:hi,moved:false,left0:lo*_tk.dayW,w0:(hi-lo+1)*_tk.dayW};
+  e.preventDefault();
+},true);
+document.addEventListener('pointermove',e=>{
+  const d=_tkBar;if(!d)return;
+  if(!d.moved&&Math.abs(e.clientX-d.x0)<4)return;
+  if(!d.moved){d.moved=true;document.body.classList.add('tk-dragging');tkGhostOff();}
+  const dw=_tk.dayW,max=tkDiff(_tk.range.start,_tk.range.end);
+  let dd=Math.round((e.clientX-d.x0)/dw),nlo=d.lo,nhi=d.hi;
+  if(d.mode==='m'){dd=Math.max(-d.lo,Math.min(max-d.hi,dd));nlo=d.lo+dd;nhi=d.hi+dd;}
+  else if(d.mode==='l'){nlo=Math.max(0,Math.min(d.hi,d.lo+dd));}
+  else{nhi=Math.min(max,Math.max(d.lo,d.hi+dd));}
+  d.nlo=nlo;d.nhi=nhi;
+  d.bar.style.left=(nlo*dw)+'px';d.bar.style.width=((nhi-nlo+1)*dw)+'px';
+  tkBarTip(e,tkFmt(tkAddDays(_tk.range.start,nlo))+'〜'+tkFmt(tkAddDays(_tk.range.start,nhi))+'（'+(nhi-nlo+1)+'日）');
+});
+document.addEventListener('pointerup',async e=>{
+  const d=_tkBar;if(!d)return;
+  _tkBar=null;document.body.classList.remove('tk-dragging');tkBarTipOff();
+  if(!d.moved)return;
+  _tkBarSup=true;setTimeout(()=>{_tkBarSup=false;},0);
+  if(d.nlo===d.lo&&d.nhi===d.hi){tkRender(true);return;}
+  const s1=tkDs(tkAddDays(_tk.range.start,d.nlo)),e1=tkDs(tkAddDays(_tk.range.start,d.nhi)),x=d.x;
+  const backup={id:x.id,type:x.type,title:x.title,parent:x.parent,who:x.who,co:x.co,st:x.st,p:x.p,priv:x.priv,e:x.e,a:x.a};
+  tkApplyLocal('save',Object.assign({},backup,{start:s1,end:e1}));
+  try{await api('moveTask',{id:x.id,start:s1,end:e1});showToast('日付を '+tkFmt(tkParse(s1))+'〜'+tkFmt(tkParse(e1))+' に変更しました');}
+  catch(err){showToast('日付を変更できませんでした：'+((err&&err.message)||err));tkLoad(null,true,true);}
+});
+document.addEventListener('click',e=>{if(_tkBarSup){e.stopPropagation();e.preventDefault();}},true);
 // ガントの空き日付：マウスを乗せると「＋」の目印、クリックでその日付、ドラッグで期間を入れて新規（追加できる行だけ）
 let _tkDrag=null;
 function tkDs(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
