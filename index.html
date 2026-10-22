@@ -821,6 +821,8 @@ input,select{font-family:inherit;outline:none}
 .tk-row:hover .tk-add{opacity:1}
 .tk-add:hover{background:var(--primary);color:#fff}
 @media(hover:none){.tk-add{opacity:1}}
+.tk-ghost{position:absolute;top:4px;height:26px;border:1px dashed var(--primary);background:rgba(92,107,192,.14);color:var(--primary-dark);border-radius:4px;font-size:12px;font-weight:700;line-height:24px;text-align:center;z-index:1;pointer-events:none;white-space:nowrap;overflow:hidden}
+body.tk-dragging{user-select:none;-webkit-user-select:none;cursor:ew-resize}
 </style>
 </head>
 <body>
@@ -4363,7 +4365,7 @@ function tkAddBtn(x){
   const tip=x.type==='施策'?'この施策に活動を追加':(x.type==='活動'?'この活動にタスクを追加':'同じ活動にタスクを追加');
   return '<span class="tk-add" title="'+tip+'" onclick="event.stopPropagation();tkfNewFromRow(\''+x.id+'\',\'\')">＋</span>';
 }
-function tkfNewFromRow(id,dateStr){
+function tkfNewFromRow(id,dateStr,endStr){
   const n=_tk.byId[id];if(!n)return;
   let type='タスク',parent='';
   if(n.type==='施策'){type='活動';parent=n.id;}
@@ -4371,7 +4373,7 @@ function tkfNewFromRow(id,dateStr){
   else if(n.type==='タスク'){type='タスク';parent=n.parent||'';}
   const pn=_tk.byId[parent];
   if(!(_tk.caps&&_tk.caps.isAdmin)&&!(pn&&pn.a)){showToast('ここには追加する権限がありません');return;}
-  tkfOpenNew({type,parent,start:dateStr||'',end:dateStr||''});
+  tkfOpenNew({type,parent,start:dateStr||'',end:endStr||dateStr||''});
 }
 // 保存・削除の結果を、サーバーから全件を取り直さずにその場で画面へ反映する（速くするため）
 function tkApplyLocal(op,n){
@@ -4634,16 +4636,52 @@ document.addEventListener('click',e=>{
   const host=el.closest('[data-id]');
   if(host&&host.dataset.id)tkfOpenEdit(host.dataset.id);
 });
-document.addEventListener('dblclick',e=>{
+// ガントの空き日付：マウスを乗せると「＋」の目印、クリックでその日付、ドラッグで期間を入れて新規（追加できる行だけ）
+let _tkDrag=null;
+function tkDs(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function tkDayAt(tl,x){
+  const max=tkDiff(_tk.range.start,_tk.range.end);
+  return Math.max(0,Math.min(max,Math.floor((x-tl.getBoundingClientRect().left)/_tk.dayW)));
+}
+function tkGhost(tl,a,b){
+  let g=tl.querySelector('.tk-ghost');
+  if(!g){g=document.createElement('div');g.className='tk-ghost';tl.appendChild(g);}
+  const lo=Math.min(a,b),hi=Math.max(a,b);
+  const d1=tkAddDays(_tk.range.start,lo),d2=tkAddDays(_tk.range.start,hi);
+  g.style.left=(lo*_tk.dayW)+'px';g.style.width=((hi-lo+1)*_tk.dayW)+'px';
+  g.textContent=lo===hi?'＋':'＋ '+tkFmt(d1)+'〜'+tkFmt(d2);
+  g.title=lo===hi?tkFmt(d1)+' で追加':tkFmt(d1)+'〜'+tkFmt(d2)+' で追加';
+}
+function tkGhostOff(){document.querySelectorAll('.tk-ghost').forEach(g=>g.remove());}
+function tkRowAt(e){
   const root=document.getElementById('tab-tasks');
-  if(!root||!root.contains(e.target)||_tkf)return;
-  const tl=e.target.closest('.tk-tl.body');
-  if(!tl||e.target.closest('.tk-gb'))return;
-  const row=tl.closest('.tk-row');if(!row||!_tk.range)return;
-  const day=Math.floor((e.clientX-tl.getBoundingClientRect().left)/_tk.dayW);
-  const d=tkAddDays(_tk.range.start,day);
-  const ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  tkfNewFromRow(row.dataset.id,ds);
+  if(!root||!root.contains(e.target)||_tkf||!_tk.range)return null;
+  const tl=e.target.closest&&e.target.closest('.tk-tl.body');
+  if(!tl||e.target.closest('.tk-gb'))return null;
+  const row=tl.closest('.tk-row');const n=row&&_tk.byId[row.dataset.id];
+  if(!n||!tkCanAddFrom(n))return null;
+  return {tl,id:row.dataset.id};
+}
+document.addEventListener('pointermove',e=>{
+  if(e.pointerType!=='mouse')return;
+  if(_tkDrag){tkGhost(_tkDrag.tl,_tkDrag.a,tkDayAt(_tkDrag.tl,e.clientX));return;}
+  const r=tkRowAt(e);
+  tkGhostOff();
+  if(r){const d=tkDayAt(r.tl,e.clientX);tkGhost(r.tl,d,d);}
+});
+document.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='mouse'||e.button!==0)return;
+  const r=tkRowAt(e);if(!r)return;
+  _tkDrag={tl:r.tl,id:r.id,a:tkDayAt(r.tl,e.clientX)};
+  document.body.classList.add('tk-dragging');
+  e.preventDefault();
+});
+document.addEventListener('pointerup',e=>{
+  if(!_tkDrag)return;
+  const dg=_tkDrag;_tkDrag=null;document.body.classList.remove('tk-dragging');
+  tkGhostOff();
+  const b=tkDayAt(dg.tl,e.clientX),lo=Math.min(dg.a,b),hi=Math.max(dg.a,b);
+  tkfNewFromRow(dg.id,tkDs(tkAddDays(_tk.range.start,lo)),tkDs(tkAddDays(_tk.range.start,hi)));
 });
 function switchTab(tab, btn){
   if(tab==='tasks'&&!tkAllowed())return;
