@@ -59,6 +59,19 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .badge-承認済  { background: #e8f5e9; color: var(--success); }
 .badge-否認   { background: #ffebee; color: var(--danger); }
 .badge-取下げ  { background: #f5f5f5; color: var(--text-sub); }
+/* 届出アプリの7ステータス。本人にボールがある状態（書類待ち・差し戻し）は目立たせる */
+.badge-受付済   { background: #e3f2fd; color: #1565c0; }
+.badge-書類待ち { background: #fff3e0; color: #e65100; font-weight: 700; }
+.badge-差し戻し { background: #ffebee; color: var(--danger); font-weight: 700; }
+.badge-対応中   { background: #ede7f6; color: #5e35b1; }
+.badge-完了     { background: #e8f5e9; color: var(--success); }
+.badge-取り下げ { background: #f5f5f5; color: var(--text-sub); }
+/* 届出：期日の表示 */
+.td-due-soon { background:#fff3e0; border:1px solid #ffcc80; color:#e65100; padding:8px 10px; border-radius:8px; font-size:13px; margin-top:8px; }
+.td-due-over { background:#ffebee; border:1px solid #ef9a9a; color:#c62828; padding:8px 10px; border-radius:8px; font-size:13px; margin-top:8px; }
+.td-guide    { background:#f1f8e9; border-left:3px solid #8bc34a; padding:8px 10px; border-radius:4px; font-size:13px; white-space:pre-wrap; margin:8px 0; }
+.td-names    { display:flex; flex-direction:column; gap:6px; margin-top:6px; }
+.td-names label { display:flex; align-items:flex-start; gap:8px; cursor:pointer; font-weight:400; margin:0; }
 
 /* FAB */
 .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 16px rgba(26,115,232,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
@@ -186,6 +199,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <button class="tab-btn active" data-tab="mine"    onclick="switchTab('mine')">自分の申請</button>
     <button class="tab-btn" data-tab="pending" onclick="switchTab('pending')" id="tab-pending-btn" style="display:none">要承認<span id="pending-badge" style="display:none;background:var(--danger);color:#fff;font-size:11px;font-weight:700;border-radius:10px;padding:1px 6px;margin-left:4px;"></span></button>
     <button class="tab-btn" data-tab="all"     onclick="switchTab('all')"     id="tab-all-btn"     style="display:none">全申請</button>
+    <button class="tab-btn" data-tab="todoke"  onclick="switchTab('todoke')"  id="tab-todoke-btn"  style="display:none">届出対応</button>
   </nav>
 
   <div id="tab-mine" class="tab-content active">
@@ -197,11 +211,18 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
         <option value="transport">🚃 交通費精算</option>
         <option value="expense">💴 出張費精算</option>
         <option value="other">📝 その他</option>
+        <option value="todoke">📨 届出・相談</option>
       </select>
       <select id="mine-filter-status" onchange="applyMineFilter()">
         <option value="">すべてのステータス</option>
         <option value="申請中">申請中</option>
         <option value="承認済">承認済</option>
+        <option value="受付済">受付済</option>
+        <option value="書類待ち">書類待ち</option>
+        <option value="差し戻し">差し戻し</option>
+        <option value="対応中">対応中</option>
+        <option value="完了">完了</option>
+        <option value="取り下げ">取り下げ</option>
         <option value="否認">否認</option>
         <option value="取下げ">取下げ</option>
       </select>
@@ -226,6 +247,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
         <option value="transport">🚃 交通費精算</option>
         <option value="expense">💴 出張費精算</option>
         <option value="other">📝 その他</option>
+        <option value="todoke">📨 届出・相談</option>
       </select>
       <select id="filter-status" onchange="applyFilter()">
         <option value="">すべてのステータス</option>
@@ -250,6 +272,27 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
     <div id="list-all"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
   </div>
 
+  <!-- 届出対応タブ（総務＝HR_VIEWERS のみ表示） -->
+  <div id="tab-todoke" class="tab-content">
+    <div class="filter-bar">
+      <select id="td-filter-major" onchange="applyTodokeFilter()">
+        <option value="">すべての大分類</option>
+      </select>
+      <select id="td-filter-status" onchange="applyTodokeFilter()">
+        <option value="">対応中のものすべて</option>
+        <option value="申請中">申請中</option>
+        <option value="受付済">受付済</option>
+        <option value="書類待ち">書類待ち</option>
+        <option value="差し戻し">差し戻し</option>
+        <option value="対応中">対応中</option>
+      </select>
+      <input type="text" id="td-filter-name" oninput="applyTodokeFilter()" placeholder="名前で絞り込み">
+      <button class="btn-filter-clear" onclick="clearTodokeFilter()">クリア</button>
+    </div>
+    <div id="td-filter-count" style="font-size:13px;color:var(--text-sub);padding:4px 0 8px;"></div>
+    <div id="list-todoke"><div class="loading"><div class="spinner"></div><div>読み込み中...</div></div></div>
+  </div>
+
   <button class="fab" onclick="openNewModal()" title="新規申請">＋</button>
 </div>
 
@@ -267,6 +310,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
       <option value="transport">🚃 交通費精算</option>
       <option value="other">📝 その他申請</option>
       <option value="change">📝 従業員情報変更届</option>
+      <option value="todoke">📨 届出・相談</option>
       <option id="opt-onboarding" value="onboarding" hidden>🎉 新入社員 入社登録</option>
     </select>
     <div id="new-type-fields"></div>
@@ -526,10 +570,13 @@ function initMain() {
   // 全申請タブは HR_VIEWERS(88,100) / DEV_VIEWERS のみ。
   // 管理者フラグでは出さない（2026-10-16）。権限はGAS側に問い合わせる。
   document.getElementById('tab-all-btn').style.display = 'none';
+  document.getElementById('tab-todoke-btn').style.display = 'none';
   gas({ action: 'getApplyPerms', token: currentToken })
     .then(p => {
       applyPerms = p || {};
       document.getElementById('tab-all-btn').style.display = applyPerms.canViewAll ? '' : 'none';
+      // 届出対応タブは総務（HR_VIEWERS）だけ。個人情報を含むため管理者フラグでは出さない
+      document.getElementById('tab-todoke-btn').style.display = applyPerms.canViewAll ? '' : 'none';
     })
     .catch(() => { /* 取得できなければ非表示のまま */ });
   showScreen('main');
@@ -579,10 +626,14 @@ async function loadTab(name) {
   if (name === 'mine') document.getElementById('mine-summary').style.display = 'none';
   try {
     let records = [];
-    if (name === 'mine') {
-      const [applyAll, expenses] = await Promise.all([
+    if (name === 'todoke') {
+      await loadTodokeTab();
+      return;
+    } else if (name === 'mine') {
+      const [applyAll, expenses, todokes] = await Promise.all([
         gas({ action: 'getApplyAll', token: currentToken }),
         gas({ action: 'getExpenses', token: currentToken }).catch(() => []), // scope省略=自分の申請のみ
+        gas({ action: 'getTodokeList', token: currentToken }).catch(() => []),
       ]);
       if (seq !== _loadTabSeq) return;
       records = [
@@ -590,6 +641,12 @@ async function loadTab(name) {
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
+        // 届出はステータス名もフィールド名も違うので、カード描画が読む形に合わせる
+        ...(todokes || []).map(r => ({
+          ...r, _appType: 'todoke',
+          approvalStatus:  r.status,
+          applicationDate: (r.appliedAt || '').slice(0, 10),
+        })),
       ];
       const summaryEl = document.getElementById('mine-summary');
       const counts = { '申請中': 0, '承認済': 0, '否認': 0, '取下げ': 0 };
@@ -768,6 +825,8 @@ function updateBulkCount() {
 // 詳細表示
 // ===================================================
 async function openDetail(appType, id) {
+  // 届出はステータス体系が違う（承認/却下ではなく受付→対応→完了）ので専用の詳細へ
+  if (appType === 'todoke') return openTodokeDetail(id);
   document.getElementById('detail-body').innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
   document.getElementById('detail-footer').innerHTML = '';
   document.getElementById('detail-title').textContent = typeIcon(appType) + ' ' + typeLabel(appType) + ' 詳細';
@@ -1277,6 +1336,16 @@ function renderNewFields() {
       <label>理由・備考（任意）</label><textarea id="f-leave-note" placeholder="任意"></textarea>
       ${getApproverSectionHTML()}
     `;
+  } else if (type === 'todoke') {
+    // 種別・質問項目はKintoneのマスタから取るので、ここには何も書かない
+    el.innerHTML = `<div id="todoke-form"><div class="loading"><div class="spinner"></div><div>届出の種類を読み込み中...</div></div></div>`;
+    _todokeFiles = [];
+    loadTodokeMaster()
+      .then(() => renderTodokeForm())
+      .catch(e => {
+        document.getElementById('todoke-form').innerHTML =
+          `<div class="empty"><div class="empty-icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+      });
   } else if (type === 'expense') {
     el.innerHTML = `
       <label>申請日</label><input type="date" id="f-exp-appdate">
@@ -1595,6 +1664,12 @@ async function submitNew() {
   let items = [];
   let warning = '';
 
+  // 届出は確認モーダルまで専用処理（項目がマスタ駆動で可変のため）
+  if (type === 'todoke') {
+    try { await submitTodoke(); } catch (e) { showToast(e.message); }
+    return;
+  }
+
   try {
     if (type === 'leave') {
       const start = document.getElementById('f-leave-start').value;
@@ -1787,8 +1862,8 @@ function _sortKey(r) {
   if (d) return d + 'T00:00:00.000Z';
   return '';
 }
-function typeIcon(t)  { return { leave:'🌴', expense:'💴', transport:'🚃', other:'📝', change:'📝' }[t] || '📋'; }
-function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', transport:'交通費精算', other:'その他申請', change:'従業員情報変更届' }[t] || t; }
+function typeIcon(t)  { return { leave:'🌴', expense:'💴', transport:'🚃', other:'📝', change:'📝', todoke:'📨' }[t] || '📋'; }
+function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', transport:'交通費精算', other:'その他申請', change:'従業員情報変更届', todoke:'届出・相談' }[t] || t; }
 function contentFieldLabel(k) {
   return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', purpose:'利用目的', periodStart:'開始日', periodEnd:'終了日', destination:'行き先', totalAmount:'合計金額', details:'明細' }[k] || k;
 }
@@ -1808,6 +1883,395 @@ document.getElementById('inp-pin').addEventListener('keydown', e => { if (e.key 
 
 // 起動時
 if (loadSession()) initMain();
+
+// ===================================================
+// 届出アプリ（Phase 4b）
+// 種別と質問項目はKintoneのマスタから取るので、ここに申請名をベタ書きしない
+// ===================================================
+let _todokeMaster      = null;   // マスタのキャッシュ
+let _todokeFiles       = [];     // 添付 {key, name, mime, data(base64)}  key='' は共通添付
+let todokeRecordsCache = [];     // 届出対応タブの一覧キャッシュ
+
+async function loadTodokeMaster(force) {
+  if (_todokeMaster && !force) return _todokeMaster;
+  _todokeMaster = await gas({ action: 'getTodokeMaster', token: currentToken });
+  return _todokeMaster;
+}
+
+// ---------- 新規申請フォーム ----------
+function renderTodokeForm() {
+  const majors = [];
+  (_todokeMaster || []).forEach(m => { if (majors.indexOf(m.major) < 0) majors.push(m.major); });
+
+  document.getElementById('todoke-form').innerHTML = `
+    <label>大分類</label>
+    <select id="td-major" onchange="onTodokeMajorChange()">
+      <option value="">選択してください</option>
+      ${majors.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')}
+    </select>
+
+    <div id="td-names-wrap" style="display:none;">
+      <label>申請名（複数選べます）</label>
+      <div class="td-names" id="td-names"></div>
+    </div>
+
+    <div id="td-guide"></div>
+    <div id="td-dynamic"></div>
+
+    <div id="td-common" style="display:none;">
+      <label>何日までに必要か <span style="color:var(--danger);">※必須</span></label>
+      <input type="date" id="td-due" onchange="todokeDueCheck()">
+      <div id="td-due-msg"></div>
+
+      <label>補足（任意）</label>
+      <textarea id="td-supplement" placeholder="伝えておきたいことがあれば"></textarea>
+
+      <label>添付ファイル（任意）</label>
+      <input type="file" multiple data-tdkey="" onchange="onTodokeFileChange(event)">
+      <div id="td-file-list"></div>
+      <div style="font-size:12px;color:var(--text-sub);margin-top:8px;">
+        ※ マイナンバーが写っているものは添付しないでください
+      </div>
+    </div>`;
+}
+
+function onTodokeMajorChange() {
+  const major = document.getElementById('td-major').value;
+  const wrap  = document.getElementById('td-names-wrap');
+  const names = (_todokeMaster || []).filter(m => m.major === major);
+  _todokeFiles = [];
+
+  if (!major) {
+    wrap.style.display = 'none';
+    document.getElementById('td-guide').innerHTML   = '';
+    document.getElementById('td-dynamic').innerHTML = '';
+    document.getElementById('td-common').style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  document.getElementById('td-names').innerHTML = names.map(m => `
+    <label>
+      <input type="checkbox" class="td-name-cb" value="${esc(m.name)}" onchange="onTodokeNamesChange()">
+      <span>${esc(m.name)}</span>
+    </label>`).join('');
+  onTodokeNamesChange();
+}
+
+function _todokeSelectedNames() {
+  return Array.from(document.querySelectorAll('.td-name-cb:checked')).map(c => c.value);
+}
+
+// サーバ側 _mergeTodokeFields と同じ規則：同じ key は sort 順で先勝ち
+function _todokeMergeFields(names) {
+  const picked = (_todokeMaster || []).filter(m => names.indexOf(m.name) >= 0)
+                                      .sort((a, b) => a.sort - b.sort);
+  const seen = {}, merged = [];
+  picked.forEach(m => (m.fields || []).forEach(f => {
+    if (!f || !f.key || seen[f.key]) return;
+    seen[f.key] = true;
+    merged.push(f);
+  }));
+  return { picked, merged };
+}
+
+function onTodokeNamesChange() {
+  const names = _todokeSelectedNames();
+  const guideEl   = document.getElementById('td-guide');
+  const dynEl     = document.getElementById('td-dynamic');
+  const commonEl  = document.getElementById('td-common');
+
+  if (!names.length) {
+    guideEl.innerHTML = ''; dynEl.innerHTML = '';
+    commonEl.style.display = 'none';
+    return;
+  }
+  const { picked, merged } = _todokeMergeFields(names);
+
+  // 期日の目安（マスタの文言をそのまま出す）。複数選んだら全部並べる
+  guideEl.innerHTML = picked.filter(m => m.dueGuide).map(m =>
+    `<div class="td-guide">🕐 ${esc(m.name)}：${esc(m.dueGuide)}</div>`).join('');
+
+  dynEl.innerHTML = merged.map(f => _todokeFieldHTML(f)).join('');
+  commonEl.style.display = '';
+  renderTodokeFileList();
+}
+
+function _todokeFieldHTML(f) {
+  const req = f.required ? ' <span style="color:var(--danger);">※必須</span>' : '';
+  const lab = `<label>${esc(f.label || f.key)}${req}</label>`;
+  const k   = esc(f.key);
+  if (f.type === 'select') {
+    return lab + `<select data-tdkey="${k}">
+      <option value="">選択してください</option>
+      ${(f.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}
+    </select>`;
+  }
+  if (f.type === 'date')     return lab + `<input type="date" data-tdkey="${k}">`;
+  if (f.type === 'textarea') return lab + `<textarea data-tdkey="${k}"></textarea>`;
+  if (f.type === 'file') {
+    return lab + `<input type="file" multiple data-tdkey="${k}" onchange="onTodokeFileChange(event)">`;
+  }
+  return lab + `<input type="text" data-tdkey="${k}">`;
+}
+
+// 期日が申請日から7日以内なら警告（申請はブロックしない）
+function todokeDueCheck() {
+  const v  = document.getElementById('td-due').value;
+  const el = document.getElementById('td-due-msg');
+  if (!v) { el.innerHTML = ''; return ''; }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const due   = new Date(v + 'T00:00:00');
+  const days  = Math.round((due - today) / 86400000);
+  if (days < 0) {
+    el.innerHTML = '<div class="td-due-over">指定された日は過ぎています。日付をご確認ください。</div>';
+    return '指定された期日は過ぎています';
+  }
+  if (days < 7) {
+    el.innerHTML = '<div class="td-due-soon">受付から完了まで1週間程度かかります。間に合わない可能性があります。</div>';
+    return '受付から完了まで1週間程度かかります';
+  }
+  el.innerHTML = '';
+  return '';
+}
+
+// ---------- 添付 ----------
+function onTodokeFileChange(ev) {
+  const input = ev.target;
+  const key   = input.getAttribute('data-tdkey') || '';
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+
+  let remaining = files.length;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // data:xxx;base64,yyyy の yyyy だけ渡す
+      const base64 = String(reader.result).split(',')[1] || '';
+      _todokeFiles.push({ key, name: file.name, mime: file.type, data: base64 });
+      if (--remaining === 0) renderTodokeFileList();
+    };
+    reader.onerror = () => {
+      showToast(file.name + ' を読み込めませんでした');
+      if (--remaining === 0) renderTodokeFileList();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';   // 同じファイルを選び直せるようにクリア
+}
+
+function renderTodokeFileList() {
+  const el = document.getElementById('td-file-list');
+  if (!el) return;
+  if (!_todokeFiles.length) { el.innerHTML = ''; return; }
+  el.innerHTML = _todokeFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--bg);border-radius:6px;margin-top:6px;font-size:13px;">
+      <span style="flex:1;word-break:break-all;">📎 ${esc(f.name)}${f.key ? '（' + esc(f.key) + '）' : ''}</span>
+      <button type="button" onclick="removeTodokeFile(${i})" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+    </div>`).join('');
+}
+
+function removeTodokeFile(i) { _todokeFiles.splice(i, 1); renderTodokeFileList(); }
+
+// ---------- 入力の回収 ----------
+function _collectTodokeAnswers(merged) {
+  const answers = {};
+  const missing = [];
+  merged.forEach(f => {
+    let v;
+    if (f.type === 'file') {
+      v = _todokeFiles.filter(x => x.key === f.key).map(x => x.name);
+    } else {
+      const el = document.querySelector(`[data-tdkey="${f.key}"]`);
+      v = el ? String(el.value || '').trim() : '';
+    }
+    const empty = Array.isArray(v) ? v.length === 0 : !v;
+    if (f.required && empty) missing.push(f.label || f.key);
+    answers[f.key] = v;
+  });
+  if (missing.length) throw new Error('未入力の必須項目があります: ' + missing.join('、'));
+  return answers;
+}
+
+// ---------- 申請 ----------
+async function submitTodoke() {
+  const names = _todokeSelectedNames();
+  if (!names.length) throw new Error('申請名を選んでください');
+  const due = document.getElementById('td-due').value;
+  if (!due) throw new Error('「何日までに必要か」は必須です');
+
+  const { merged } = _todokeMergeFields(names);
+  const answers    = _collectTodokeAnswers(merged);
+  const supplement = document.getElementById('td-supplement').value.trim();
+
+  const items = [
+    { label: '大分類', value: document.getElementById('td-major').value },
+    { label: '申請名', value: names.join('、') },
+  ];
+  merged.forEach(f => {
+    const v = answers[f.key];
+    items.push({ label: f.label || f.key, value: Array.isArray(v) ? (v.join('、') || 'なし') : (v || 'なし') });
+  });
+  items.push({ label: '何日までに必要か', value: due });
+  items.push({ label: '補足', value: supplement || 'なし' });
+  if (_todokeFiles.length) items.push({ label: '添付', value: _todokeFiles.map(f => f.name).join('、') });
+
+  _openConfirmModal('届出・相談', items, todokeDueCheck(), async () => {
+    // 添付を先にアップロードして fileKey をもらう
+    const fileKeys = [];
+    for (const f of _todokeFiles) {
+      const res = await gas({ action: 'uploadTodokeFile', token: currentToken,
+                              file: { name: f.name, mime: f.mime, data: f.data } });
+      if (res && res.fileKey) fileKeys.push(res.fileKey);
+    }
+    await gas({ action: 'saveTodoke', token: currentToken, todoke: {
+      applyNames: names, answers, dueDate: due, supplement, fileKeys,
+    }});
+    closeModal('modal-confirm');
+    closeModal('modal-new');
+    _todokeFiles = [];
+    showToast('届出を提出しました');
+    refreshCurrentTab();
+  });
+}
+
+// ---------- 詳細 ----------
+async function openTodokeDetail(id) {
+  document.getElementById('detail-body').innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
+  document.getElementById('detail-footer').innerHTML = '';
+  document.getElementById('detail-title').textContent = '📨 届出・相談 詳細';
+  openModal('modal-detail');
+  try {
+    const r = await gas({ action: 'getTodokeById', token: currentToken, recordId: id });
+    if (!r) throw new Error('届出が見つかりません');
+    renderTodokeDetail(r);
+
+    const footer = document.getElementById('detail-footer');
+    footer.innerHTML = '';
+    (r.canEditStatus || []).forEach(next => {
+      const btn = document.createElement('button');
+      btn.className = next === '取り下げ' || next === '差し戻し' ? 'btn-danger'
+                    : next === '完了' ? 'btn-success' : 'btn-cancel';
+      btn.textContent = next === '申請中' ? '修正して再提出' : next + 'にする';
+      btn.onclick = () => doTodokeStatus(r.id, next);
+      footer.appendChild(btn);
+    });
+  } catch (e) {
+    document.getElementById('detail-body').innerHTML =
+      `<div class="empty"><div class="empty-icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+  }
+}
+
+function renderTodokeDetail(r) {
+  const row = (l, v) => `<div class="detail-row"><span class="detail-label">${esc(l)}</span><span class="detail-val">${esc(v)}</span></div>`;
+  let html = '';
+  html += `<div style="margin-bottom:10px;"><span class="badge badge-${esc(r.status)}">${esc(r.status)}</span></div>`;
+  html += row('申請者', r.applicantName || r.applicantId);
+  html += row('大分類', r.majorType);
+  html += row('申請名', (r.applyNames || []).join('、'));
+  html += row('何日までに必要か', r.dueDate);
+
+  // 申請時点の定義（schema_snapshot）で描く。マスタを後から変えても表示が壊れない
+  (r.schema || []).forEach(f => {
+    const v = (r.answers || {})[f.key];
+    html += row(f.label || f.key, Array.isArray(v) ? (v.join('、') || 'なし') : (v || 'なし'));
+  });
+
+  if (r.supplement) html += row('補足', r.supplement);
+  if ((r.files || []).length) html += row('添付', r.files.map(f => f.name).join('、'));
+  if (r.rejectReason) html += row('差し戻し理由', r.rejectReason);
+  html += row('申請日時', (r.appliedAt || '').replace('T', ' ').slice(0, 16));
+  if (r.acceptedAt)  html += row('受付日時', r.acceptedAt.replace('T', ' ').slice(0, 16));
+  if (r.completedAt) html += row('完了日時', r.completedAt.replace('T', ' ').slice(0, 16));
+  document.getElementById('detail-body').innerHTML = html;
+}
+
+async function doTodokeStatus(id, next) {
+  let reason = '';
+  if (next === '差し戻し') {
+    reason = prompt('差し戻しの理由を入力してください（必須）') || '';
+    if (!reason.trim()) { showToast('理由が必要です'); return; }
+  } else if (next === '取り下げ') {
+    if (!confirm('この届出を取り下げます。よろしいですか？')) return;
+  }
+  try {
+    await gas({ action: 'updateTodokeStatus', token: currentToken, recordId: id, status: next, reason });
+    closeModal('modal-detail');
+    showToast('「' + next + '」にしました');
+    refreshCurrentTab();
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+// ---------- 届出対応タブ（総務） ----------
+async function loadTodokeTab() {
+  const el = document.getElementById('list-todoke');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
+  try {
+    const recs = await gas({ action: 'getTodokeList', token: currentToken, scope: 'soumu' });
+    todokeRecordsCache = recs || [];
+    const sel = document.getElementById('td-filter-major');
+    const majors = [];
+    todokeRecordsCache.forEach(r => { if (r.majorType && majors.indexOf(r.majorType) < 0) majors.push(r.majorType); });
+    sel.innerHTML = '<option value="">すべての大分類</option>' +
+      majors.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    applyTodokeFilter();
+  } catch (e) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>${esc(e.message)}</p></div>`;
+  }
+}
+
+function applyTodokeFilter() {
+  const major  = document.getElementById('td-filter-major').value;
+  const status = document.getElementById('td-filter-status').value;
+  const name   = document.getElementById('td-filter-name').value.trim();
+  const list = todokeRecordsCache.filter(r => {
+    if (major  && r.majorType !== major)  return false;
+    if (status && r.status    !== status) return false;
+    if (name && (r.applicantName || '').indexOf(name) < 0) return false;
+    return true;
+  });
+  document.getElementById('td-filter-count').textContent =
+    `${list.length} 件 / 全 ${todokeRecordsCache.length} 件（期日が近い順）`;
+  renderTodokeList(document.getElementById('list-todoke'), list);
+}
+
+function clearTodokeFilter() {
+  document.getElementById('td-filter-major').value  = '';
+  document.getElementById('td-filter-status').value = '';
+  document.getElementById('td-filter-name').value   = '';
+  applyTodokeFilter();
+}
+
+function renderTodokeList(el, records) {
+  if (!records.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>対応中の届出はありません</p></div>';
+    return;
+  }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  el.innerHTML = records.map(r => {
+    let dueNote = '';
+    if (r.dueDate) {
+      const days = Math.round((new Date(r.dueDate + 'T00:00:00') - today) / 86400000);
+      dueNote = days < 0  ? `<span style="color:var(--danger);font-weight:700;">期日超過 ${-days}日</span>`
+              : days === 0 ? `<span style="color:var(--danger);font-weight:700;">本日が期日</span>`
+              : days <= 7  ? `<span style="color:#e65100;font-weight:700;">あと${days}日</span>`
+              : `あと${days}日`;
+    }
+    return `
+    <div class="card" onclick="openTodokeDetail('${esc(r.id)}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="card-title">📨 ${esc((r.applyNames || []).join('・'))}</div>
+          <div class="card-sub">${esc(r.applicantName || r.applicantId)} ・ ${esc(r.majorType)}</div>
+          <div class="card-sub">期日 ${esc(r.dueDate || '—')} ${dueNote}</div>
+        </div>
+        <span class="badge badge-${esc(r.status)}">${esc(r.status)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 </script>
 </body>
 </html>
