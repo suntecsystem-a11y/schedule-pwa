@@ -816,6 +816,9 @@ input,select{font-family:inherit;outline:none}
 .tk-fl .bar{position:relative;height:16px;background:#eceef3;border-radius:8px;overflow:hidden}
 .tk-fl .bar i{position:absolute;inset:0 auto 0 0;background:#9fa8da}
 .tk-fl .bar b{position:relative;font-size:.7em;font-weight:700;line-height:16px;display:block;text-align:center}
+.tkf-ro{background:#fff3e0;color:#8a5a00;border-radius:6px;padding:8px 10px;font-size:.82em;margin-bottom:12px}
+.tkf-chk{display:flex;gap:8px;align-items:flex-start;font-size:.85em!important;font-weight:400!important;color:var(--text)!important;cursor:pointer}
+.tkf-chk input{width:auto!important;margin-top:3px}
 </style>
 </head>
 <body>
@@ -3962,9 +3965,10 @@ function openIncidentDetail(id){
 const TK_SCOL={'未着手':'#9e9e9e','進行中':'#5c6bc0','確認待ち':'#fb8c00','完了':'#43a047','保留':'#78909c'};
 const TK_STS=['未着手','進行中','確認待ち','完了','保留'];
 const TK_KINTONE_URL='https://zcbwgd3ubjo5.cybozu.com/k/945/show#record=';
-const TK_ALLOWED_IDS=['81','90']; // 永野・畑村のみ（サーバー側 TASK_ALLOWED_EMP_IDS と同じ）
-function tkAllowed(){return !!(currentUser&&TK_ALLOWED_IDS.includes(String(currentUser.id)));}
-let _tk={loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};
+const TK_OPEN_ALL=false;            // true=全社員に開放（見える範囲・編集はサーバーの権限ルールで決まる）。サーバー側 TASK_OPEN_TO_ALL と同時に切り替える
+const TK_ALLOWED_IDS=['81','90'];   // 開放前のテスター（永野・畑村）。サーバー側 TASK_TESTER_EMP_IDS と同じ
+function tkAllowed(){return !!(currentUser&&(TK_OPEN_ALL||TK_ALLOWED_IDS.includes(String(currentUser.id))));}
+let _tk={caps:{},loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};
 function tkEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tkToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
 function tkParse(s){if(!s)return null;const p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
@@ -3988,7 +3992,7 @@ async function tkLoad(scope,keep,fresh){
   if(scope)_tk.scope=scope;
   try{
     const r=await api('getTasks',{scope:_tk.scope,fresh:fresh?1:0},'タスクを読み込み中...');
-    _tk.me=r.me;_tk.canAll=r.canAll;_tk.scope=r.scope;_tk.error='';_tk.parents=r.parents||[];_tk.pmap={};_tk.parents.forEach(p=>{_tk.pmap[p.id]=p;});
+    _tk.me=r.me;_tk.canAll=r.canAll;_tk.scope=r.scope;_tk.error='';_tk.parents=r.parents||[];_tk.caps=r.caps||{};_tk.pmap={};_tk.parents.forEach(p=>{_tk.pmap[p.id]=p;});
     tkBuild(r.nodes);_tk.loaded=true;_tk.fresh=!keep;
   }catch(e){_tk.error=(e&&e.message)||String(e);}
   tkRender(!!keep);
@@ -4073,7 +4077,7 @@ function tkRender(keepScroll){
   }
   if(!_tk.loaded){root.innerHTML='';return;}
   const people=tkPeople();
-  const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">全員</button></div>':'';
+  const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">すべて</button></div>':'';
   const bar='<div class="tk-bar">'+scopeBtns
     +'<label>担当者 <select onchange="tkSet(\'who\',this.value)"><option value="">全員</option>'+people.map(p=>'<option'+(p===_tk.who?' selected':'')+'>'+tkEsc(p)+'</option>').join('')+'</select></label>'
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
@@ -4081,7 +4085,7 @@ function tkRender(keepScroll){
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkSetAll(true)">すべて展開</button><button class="tk-btn" onclick="tkSetAll(false)">すべて折りたたむ</button>':'')
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
-    +'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button><button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
+    +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
   let body='';
   if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
@@ -4142,7 +4146,7 @@ function tkGanttHtml(){
       const lbl=!x.ch.length&&w>60?'<span>'+x.p+'%</span>':'';
       bar='<div class="tk-gb'+(x.ch.length?' sum':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+'</div>';
     }
-    h+='<div class="tk-row l'+Math.min(depth,2)+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+tkEsc(x.title)+'</span><a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener" title="kintoneで開く">↗</a></div>'
+    h+='<div class="tk-row l'+Math.min(depth,2)+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span><a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener" title="kintoneで開く">↗</a></div>'
       +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.sd)+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
       +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+'</div></div>';
   });
@@ -4295,7 +4299,7 @@ const TKF_VIS={
   owner:['事業グループ','事業','事業カテゴリ','活動','施策方針','施策','タスク'],
   progress:['活動','施策方針','施策','タスク'],start:['活動','施策方針','施策','タスク'],end:['活動','施策方針','施策','タスク'],
   detail:['活動','施策方針','施策','タスク'],risk:['活動','施策方針','施策','タスク'],nextAction:['活動','施策方針','施策','タスク'],
-  taskUrl:['タスク'],co:['タスク'],docLinks:['施策'],kgi:['基本方針'],departmentGoal:['事業'],kpi:['事業'],
+  taskUrl:['タスク'],co:['タスク'],docLinks:['施策'],rel:['施策','活動'],priv:['施策','活動','タスク'],kgi:['基本方針'],departmentGoal:['事業'],kpi:['事業'],
   fiscalYear:TKF_BIZ,kpiCategory:TKF_BIZ,kpiItem:TKF_BIZ,kpiName:TKF_BIZ,kpiTarget:TKF_BIZ,kpiActual:TKF_BIZ,kpiUnit:TKF_BIZ,kpiStatus:TKF_BIZ,kpiMemo:TKF_BIZ,
   relatedActivity:TKF_BIZ,relatedStrategy:TKF_BIZ,
   relatedPolicies:['活動','施策方針','施策'],relatedThemes:['活動','施策方針','施策'],linkReason:['活動','施策方針','施策'],mainBelongingMemo:['活動','施策方針','施策']
@@ -4308,14 +4312,17 @@ let _tkf=null;
 function tkfBlank(o){
   return Object.assign({id:'',revision:'',type:'タスク',parent:'',title:'',start:'',end:'',owner:'',status:'未着手',progress:0,tag:'',taskUrl:'',detail:'',risk:'',nextAction:'',
     kgi:'',departmentGoal:'',kpi:'',fiscalYear:'',kpiCategory:'',kpiItem:'',kpiName:'',kpiTarget:'',kpiActual:'',kpiUnit:'',kpiStatus:'未評価',kpiMemo:'',
-    relatedActivity:'',relatedStrategy:'',relatedPolicies:'',relatedThemes:'',linkReason:'',mainBelongingMemo:'',co:[],docLinks:[]},o||{});
+    relatedActivity:'',relatedStrategy:'',relatedPolicies:'',relatedThemes:'',linkReason:'',mainBelongingMemo:'',co:[],rel:[],priv:false,docLinks:[]},o||{});
 }
 function tkfVis(k,type){return (TKF_VIS[k]||[]).includes(type);}
-function tkfOpenNew(o){_tkf={mode:'new',rec:tkfBlank(Object.assign({owner:_tk.me||''},o||{})),dirty:false,busy:false};tkfRender();}
+function tkfOpenNew(o){
+  if(!(_tk.caps&&_tk.caps.canCreate)){showToast('新規作成する権限がありません');return;}
+ _tkf={mode:'new',rec:tkfBlank(Object.assign({owner:_tk.me||''},o||{})),dirty:false,busy:false};tkfRender();}
 async function tkfOpenEdit(id){
   try{
     const r=await api('getTaskRecord',{id:String(id)},'読み込み中...');
-    _tkf={mode:'update',rec:tkfBlank(r),dirty:false,busy:false,subCount:r.subCount||0};
+    const rec=tkfBlank(r);rec.parentOrig=rec.parent;
+    _tkf={mode:'update',rec,dirty:false,busy:false,subCount:r.subCount||0,readonly:!r.canEdit,canDelete:!!r.canDelete};
     tkfRender();
   }catch(e){showToast('読み込みに失敗：'+((e&&e.message)||e));}
 }
@@ -4326,12 +4333,14 @@ function tkfNewFromRow(id,dateStr){
   if(n.type==='施策'){type='活動';parent=n.id;}
   else if(n.type==='活動'){type='タスク';parent=n.id;}
   else if(n.type==='タスク'){type='タスク';parent=n.parent||'';}
+  const pn=_tk.byId[parent];
+  if(!(_tk.caps&&_tk.caps.isAdmin)&&!(pn&&pn.a)){showToast('ここには追加する権限がありません');return;}
   tkfOpenNew({type,parent,start:dateStr,end:dateStr});
 }
 // 保存・削除の結果を、サーバーから全件を取り直さずにその場で画面へ反映する（速くするため）
 function tkApplyLocal(op,n){
   const SHOW=['施策','活動','タスク'];
-  let raw=_tk.nodes.map(x=>({id:x.id,type:x.type,title:x.title,parent:x.parent,who:x.who,co:x.co,st:x.st,start:x.start,end:x.end,p:x.p}));
+  let raw=_tk.nodes.map(x=>({id:x.id,type:x.type,title:x.title,parent:x.parent,who:x.who,co:x.co,st:x.st,start:x.start,end:x.end,p:x.p,e:x.e,a:x.a,priv:x.priv}));
   _tk.parents=(_tk.parents||[]).filter(p=>String(p.id)!==String(n.id));
   if(op==='save'){
     _tk.parents.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent});
@@ -4339,14 +4348,14 @@ function tkApplyLocal(op,n){
     if(SHOW.includes(n.type)){
       const mine=_tk.scope==='all'||_normName(n.who)===_normName(_tk.me)||(n.co||[]).some(c=>_normName(c)===_normName(_tk.me));
       if(mine){
-        raw.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent?String(n.parent):'',who:n.who,co:n.co,st:n.st,start:n.start,end:n.end,p:n.p});
+        raw.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent?String(n.parent):'',who:n.who,co:n.co,st:n.st,start:n.start,end:n.end,p:n.p,e:n.e,a:n.a,priv:n.priv});
         // 親（施策・活動）が一覧にまだ無ければ、候補の情報から補う
         const have=new Set(raw.map(x=>String(x.id)));
         let pid=n.parent?String(n.parent):'';
         for(let i=0;pid&&!have.has(pid)&&i<12;i++){
           const pp=(_tk.pmap&&_tk.pmap[pid])||_tk.parents.find(p=>String(p.id)===pid);
           if(!pp||!SHOW.includes(pp.type))break;
-          raw.push({id:String(pp.id),type:pp.type,title:pp.title,parent:pp.parent?String(pp.parent):'',who:'',co:[],st:'未着手',start:'',end:'',p:0});
+          raw.push({id:String(pp.id),type:pp.type,title:pp.title,parent:pp.parent?String(pp.parent):'',who:'',co:[],st:'未着手',start:'',end:'',p:0,e:0,a:0,priv:false});
           have.add(pid);pid=pp.parent?String(pp.parent):'';
         }
       }
@@ -4364,7 +4373,7 @@ function tkfParentOptions(type,selfId){
   return (_tk.parents||[]).filter(p=>allow.includes(p.type)&&String(p.id)!==String(selfId||'')).map(p=>({id:p.id,label:'['+p.type+'] '+p.title+' (#'+p.id+')'}));
 }
 function tkfParentLabel(id){
-  const p=(_tk.parents||[]).find(x=>String(x.id)===String(id));
+  const p=(_tk.parents||[]).find(x=>String(x.id)===String(id))||_tk.byId[String(id)];
   return p?'['+p.type+'] '+p.title+' (#'+p.id+')':(id?'#'+id:'');
 }
 function tkfCollect(){
@@ -4376,11 +4385,13 @@ function tkfCollect(){
     if(el.type==='checkbox')return;
     r[k]=el.value;
   });
+  const pc=p.querySelector('input[data-k="priv"]');if(pc)r.priv=pc.checked;
   r.docLinks=[...p.querySelectorAll('.tkf-doc')].map(d=>({t:d.querySelector('.t').value.trim(),u:d.querySelector('.u').value.trim()}));
 }
 function tkfField(label,html,cls){return '<div class="tkf-f '+(cls||'')+'"><label>'+label+'</label>'+html+'</div>';}
 function tkfInput(k,r,type,extra){return '<input data-k="'+k+'" type="'+(type||'text')+'" value="'+tkEsc(r[k])+'" '+(extra||'')+'>';}
 function tkfSelect(k,r,list,blank){return '<select data-k="'+k+'">'+(blank?'<option value=""></option>':'')+list.map(o=>'<option'+(o===r[k]?' selected':'')+'>'+tkEsc(o)+'</option>').join('')+'</select>';}
+function tkfTypeList(t){const l=(_tk.caps&&_tk.caps.isAdmin)?TKF_TYPES.slice():['活動','タスク'];if(!l.includes(t))l.push(t);return l;}
 function tkfRender(){
   if(!_tkf)return;
   const r=_tkf.rec,t=r.type,v=k=>tkfVis(k,t);
@@ -4391,6 +4402,8 @@ function tkfRender(){
   const status=v('status')?'<div class="tkf-f wide"><label>状態</label><div class="tkf-pills">'+TKF_STATUS.map(s=>'<button type="button" class="'+(r.status===s?'on':'')+'" style="--c:'+(TK_SCOL[s]||'#9e9e9e')+'" onclick="tkfSet(\'status\',\''+s+'\')">'+s+'</button>').join('')+'</div></div>':'';
   const progress=v('progress')?tkfField('進捗率','<div class="tkf-prog"><input type="range" min="0" max="100" step="5" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value)"><input data-k="progress" type="number" min="0" max="100" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value,1)"><span>%</span></div>'+(t==='タスク'?'<small class="tkf-hint">完了にすると100%になります</small>':'')):'';
   const co=v('co')?tkfField('共同担当者（複数人で対応する場合）','<div class="tkf-chips">'+(r.co||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfCoDel('+i+')">×</b></span>').join('')+'<input id="tkf-co-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfCoAdd()}" onchange="tkfCoAdd()"></div>','wide'):'';
+  const relf=v('rel')?tkfField('メンバー（社内関係者）— 閲覧のみ','<div class="tkf-chips">'+(r.rel||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfRelDel('+i+')">×</b></span>').join('')+'<input id="tkf-rel-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfRelAdd()}" onchange="tkfRelAdd()"></div><small class="tkf-hint">登録した人と、その人の所属部署の上長が、この'+tkEsc(t)+'を閲覧できます</small>','wide'):'';
+  const privf=v('priv')?'<div class="tkf-f wide"><label class="tkf-chk"><input type="checkbox" data-k="priv"'+(r.priv?' checked':'')+'> 非公開にする（担当者・共同担当者・社内関係者以外には表示されません。管理者・上長にも見えません）</label></div>':'';
   const docs=v('docLinks')?tkfField('資料リンク','<div id="tkf-docs">'+(r.docLinks||[]).map(d=>'<div class="tkf-doc"><input class="t" placeholder="資料タイトル" value="'+tkEsc(d.t)+'"><input class="u" type="url" placeholder="https://..." value="'+tkEsc(d.u)+'"><b onclick="this.parentNode.remove();_tkf.dirty=true">×</b></div>').join('')+'</div><button type="button" class="tkf-add" onclick="tkfDocAdd()">＋ 追加</button>','wide'):'';
   const kpiOn=['fiscalYear','kpiCategory','kpiItem','kpiName','kpiTarget','kpiActual','kpiUnit','kpiStatus','kpiMemo','kgi','departmentGoal','kpi'].some(v);
   const kpi=kpiOn?'<details class="tkf-sec" '+(r.kpiName||r.kpiTarget||r.kgi||r.kpi?'open':'')+'><summary>方針・KPI</summary><div class="tkf-grid">'
@@ -4419,9 +4432,10 @@ function tkfRender(){
   const html='<div id="tkf-overlay" onclick="tkfClose()"></div><aside id="tkf-panel" role="dialog" aria-label="タスク入力">'
     +'<div class="tkf-head"><div class="tkf-mode">'+tkEsc(modeLabel)+'</div><button class="tkf-x" onclick="tkfClose()" title="閉じる (Esc)">×</button></div>'
     +'<div class="tkf-body">'
+    +(_tkf.readonly?'<div class="tkf-ro">閲覧のみです（このレコードを編集する権限がありません）</div>':'')
     +'<input class="tkf-title" data-k="title" placeholder="タイトルを入力" value="'+tkEsc(r.title)+'">'
     +'<div class="tkf-grid">'
-    +tkfField('種別','<select data-k="type" onchange="tkfTypeChange(this.value)">'+TKF_TYPES.map(o=>'<option'+(o===t?' selected':'')+'>'+o+'</option>').join('')+'</select>')
+    +tkfField('種別','<select data-k="type" onchange="tkfTypeChange(this.value)"'+((!(_tk.caps&&_tk.caps.isAdmin)&&_tkf.mode==='update')?' disabled':'')+'>'+tkfTypeList(t).map(o=>'<option'+(o===t?' selected':'')+'>'+o+'</option>').join('')+'</select>')
     +tkfField('親レコード',(TKF_PARENT_TYPES[t]?'<input data-k="parentLabel" list="tkf-parents" placeholder="親を選択（入力して絞り込み）" value="'+tkEsc(r.parentLabel!=null?r.parentLabel:tkfParentLabel(r.parent))+'">':'<input disabled placeholder="親なし">'))
     +status
     +(v('owner')?tkfField('担当者','<input data-k="owner" list="tkf-names" placeholder="従業員名簿の氏名" autocomplete="off" value="'+tkEsc(r.owner)+'">'):'')
@@ -4430,6 +4444,8 @@ function tkfRender(){
     +(v('end')?tkfField('終了日',tkfInput('end',r,'date')):'')
     +tkfField('タグ',tkfInput('tag',r,'text','placeholder="例：新棟, NAS, Teams"'),'wide')
     +co
+    +relf
+    +privf
     +(v('taskUrl')?tkfField('資料URL',tkfInput('taskUrl',r,'url','placeholder="タスク全体の資料URL"'),'wide'):'')
     +docs
     +(v('detail')?tkfField('詳細','<textarea data-k="detail" rows="5" placeholder="内容・背景・進め方など">'+tkEsc(r.detail)+'</textarea>','wide'):'')
@@ -4437,9 +4453,11 @@ function tkfRender(){
     +(v('nextAction')?tkfField('次アクション','<textarea data-k="nextAction" rows="2">'+tkEsc(r.nextAction)+'</textarea>','wide'):'')
     +'</div>'+kpi+rel
     +'</div>'
-    +'<div class="tkf-foot"><button class="tkf-save" onclick="tkfSave()">'+(_tkf.mode==='update'?'更新':'登録')+'</button>'
-    +(_tkf.mode==='update'?'<button onclick="tkfCopy()">コピー</button><button class="tkf-del" onclick="tkfDelete()">削除</button><a href="'+TK_KINTONE_URL+r.id+'" target="_blank" rel="noopener">kintoneで開く ↗</a>':'')
-    +'<span class="tkf-sp"></span><button onclick="tkfClose()">キャンセル</button></div>'
+    +(_tkf.readonly
+      ?'<div class="tkf-foot"><a href="'+TK_KINTONE_URL+r.id+'" target="_blank" rel="noopener">kintoneで開く ↗</a><span class="tkf-sp"></span><button onclick="tkfClose()">閉じる</button></div>'
+      :'<div class="tkf-foot"><button class="tkf-save" onclick="tkfSave()">'+(_tkf.mode==='update'?'更新':'登録')+'</button>'
+       +(_tkf.mode==='update'?(_tk.caps&&_tk.caps.canCreate?'<button onclick="tkfCopy()">コピー</button>':'')+(_tkf.canDelete?'<button class="tkf-del" onclick="tkfDelete()">削除</button>':'')+'<a href="'+TK_KINTONE_URL+r.id+'" target="_blank" rel="noopener">kintoneで開く ↗</a>':'')
+       +'<span class="tkf-sp"></span><button onclick="tkfClose()">キャンセル</button></div>')
     +'<datalist id="tkf-names">'+names.map(n=>'<option value="'+tkEsc(n)+'">').join('')+'</datalist>'
     +'<datalist id="tkf-parents">'+parents.map(p=>'<option value="'+tkEsc(p.label)+'">').join('')+'</datalist></aside>';
   let host=document.getElementById('tkf-host');
@@ -4450,6 +4468,10 @@ function tkfRender(){
   if(!wasOpen){panel.classList.add('in');document.getElementById('tkf-overlay').classList.add('in');}
   else{panel.classList.add('in','noanim');document.getElementById('tkf-overlay').classList.add('in','noanim');}
   panel.querySelector('.tkf-body').scrollTop=keepScroll;
+  if(_tkf.readonly){
+    panel.querySelectorAll('.tkf-body input,.tkf-body select,.tkf-body textarea,.tkf-body button').forEach(el=>{el.disabled=true;});
+    panel.querySelectorAll('.tkf-chip b,.tkf-add,.tkf-doc b').forEach(el=>{el.style.display='none';});
+  }
   panel.addEventListener('input',()=>{_tkf.dirty=true;});
   if(!wasOpen&&_tkf.mode!=='update')setTimeout(()=>{const ti=panel.querySelector('.tkf-title');if(ti)ti.focus();},250);
 }
@@ -4473,6 +4495,16 @@ function tkfCoAdd(){
   const e2=document.getElementById('tkf-co-in');if(e2)e2.focus();
 }
 function tkfCoDel(i){tkfCollect();_tkf.rec.co.splice(i,1);_tkf.dirty=true;tkfRender();}
+function tkfRelAdd(){
+  const el=document.getElementById('tkf-rel-in');if(!el)return;
+  const n=el.value.trim();if(!n)return;
+  tkfCollect();
+  if(!USERS.map(u=>u.name).includes(n)){showToast('従業員名簿の氏名から選んでください');el.value='';return;}
+  if(!_tkf.rec.rel.includes(n))_tkf.rec.rel.push(n);
+  _tkf.dirty=true;tkfRender();
+  const e2=document.getElementById('tkf-rel-in');if(e2)e2.focus();
+}
+function tkfRelDel(i){tkfCollect();_tkf.rec.rel.splice(i,1);_tkf.dirty=true;tkfRender();}
 function tkfDocAdd(){tkfCollect();_tkf.rec.docLinks.push({t:'',u:''});_tkf.dirty=true;tkfRender();}
 function tkfClose(force){
   if(!_tkf)return;
@@ -4499,11 +4531,16 @@ async function tkfSave(){
     if(!names.includes(r.owner)){showToast('担当者は従業員名簿の氏名から選んでください');return;}
   }
   let parentId='';
-  if(TKF_PARENT_TYPES[t]&&String(r.parentLabel||'').trim()){
-    const opt=tkfParentOptions(t,r.id).find(p=>p.label===r.parentLabel.trim());
-    if(!opt){showToast('親は候補から選んでください');return;}
-    parentId=opt.id;
-  }else if(TKF_PARENT_TYPES[t]&&r.parentLabel==null){parentId=r.parent||'';}
+  if(TKF_PARENT_TYPES[t]){
+    const lbl=String(r.parentLabel==null?tkfParentLabel(r.parent):r.parentLabel).trim();
+    if(!lbl){parentId='';}
+    else if(r.parentOrig&&lbl===tkfParentLabel(r.parentOrig)){parentId=String(r.parentOrig);}   // 親を変えていなければ、候補に無くてもそのまま
+    else{
+      const opt=tkfParentOptions(t,r.id).find(p=>p.label===lbl);
+      if(!opt){showToast('親は候補から選んでください');return;}
+      parentId=opt.id;
+    }
+  }
   if(tkfVis('start',t)){
     const off=[];
     if(r.start&&tkfIsOffDay(r.start))off.push('開始日 '+r.start);
@@ -4511,14 +4548,15 @@ async function tkfSave(){
     if(off.length&&!confirm(off.join('、')+' は土日です。この日程で保存しますか？'))return;
   }
   const task=Object.assign({},r,{parent:parentId,progress:Number(r.progress)||0});
-  delete task.parentLabel;
+  delete task.parentLabel;delete task.parentOrig;
   _tkf.busy=true;
   try{
     const res=await api('saveTask',{task},'保存中...');
     showToast(res.mode==='create'?'登録しました':'更新しました');
     tkfClose(true);
-    tkApplyLocal('save',{id:res.id,type:task.type,title:task.title.trim(),parent:task.parent||'',who:task.owner||'',co:task.co||[],
-      st:task.status,start:task.start||'',end:task.end||'',p:(task.type==='タスク'&&task.status==='完了')?100:(Number(task.progress)||0)});
+    if(task.type==='施策'||task.type==='活動')await tkLoad(null,true,true);
+    else tkApplyLocal('save',{id:res.id,type:task.type,title:task.title.trim(),parent:task.parent||'',who:task.owner||'',co:task.co||[],
+      st:task.status,start:task.start||'',end:task.end||'',p:(task.type==='タスク'&&task.status==='完了')?100:(Number(task.progress)||0),priv:!!task.priv,e:1,a:0});
   }catch(e){
     showToast('保存に失敗：'+((e&&e.message)||e));
     if(_tkf)_tkf.busy=false;
