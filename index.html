@@ -4158,7 +4158,7 @@ function tkRender(keepScroll){
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
     +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const isPol=_tk.view==='policy';
-  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['policy','方針ツリー'],['kanban','かんばん'],['dash','ダッシュボード']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
+  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
   let body='';
   if(isPol)body=tkPolicyHtml();
   else if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
