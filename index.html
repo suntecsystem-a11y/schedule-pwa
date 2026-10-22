@@ -899,6 +899,15 @@ body.tk-dragging .tk-gb.mv{cursor:grabbing}
 #tk-man .mn-chip{background:var(--primary-light);color:var(--primary-dark);border-radius:10px;padding:1px 8px}
 #tk-man .mn-chk{margin:10px 0;color:var(--text2)}#tk-man .mn-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 #tk-man .mn-tb{border-collapse:collapse;width:100%;font-size:.88em;margin:8px 0}#tk-man .mn-tb th,#tk-man .mn-tb td{border:1px solid var(--border);padding:6px 9px;text-align:left;vertical-align:top}#tk-man .mn-tb th{background:var(--bg)}
+.tk-q{padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:.85em;min-width:190px;background:var(--surface);color:var(--text)}
+.tk-ms{position:relative;display:inline-block}
+.tk-ms .tk-btn.on{background:var(--primary-light);color:var(--primary-dark);border-color:var(--primary)}
+.tk-ms-pop{position:absolute;top:calc(100% + 4px);left:0;z-index:30;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);min-width:190px}
+.tk-ms-top{display:flex;justify-content:space-between;padding:7px 12px;font-size:.78em;color:var(--text2);border-bottom:1px solid var(--border)}
+.tk-ms-top a{cursor:pointer;color:var(--primary)}
+.tk-ms-list{max-height:260px;overflow:auto;padding:4px 0}
+.tk-ms-list label{display:flex;align-items:center;gap:7px;padding:5px 12px;font-size:.85em;cursor:pointer;white-space:nowrap}
+.tk-ms-list label:hover{background:var(--primary-light)}
 </style>
 </head>
 <body>
@@ -4134,6 +4143,16 @@ function tkBuild(list){
   const lo=tkAddDays(today,-120),hi=tkAddDays(today,240);
   _tk.range={start:a<lo?lo:a,end:b>hi?hi:b};
 }
+// 絞り込み：担当者（複数。担当者または共同担当者のどれかに当てはまる）／タイトル・タグの検索（空白区切りはすべて含む。上位の施策・活動のタイトル/タグに合えば配下も出す）
+const tkNorm=t=>String(t||'').normalize('NFKC').toLowerCase();
+function tkWhoOK(x){const w=_tk.whos||[];return !w.length||w.includes(x.who)||(x.co||[]).some(c=>w.includes(c));}
+function tkQOK(x){
+  const terms=tkNorm(_tk.q).split(/\s+/).filter(Boolean);
+  if(!terms.length)return true;
+  let hay='';
+  for(let c=x,g=0;c&&g<20;c=_tk.byId[c.parent],g++)hay+=' '+tkNorm(c.title)+' '+tkNorm(c.tag);
+  return terms.every(t=>hay.includes(t));
+}
 function tkLeaves(x){return x.ch.length?x.ch.flatMap(tkLeaves):[x];}
 // 遅延：完了以外で、終了日を過ぎているもの（小タスクは運用終了のため見ない）
 function tkEffSt(x){return x.st==='完了'?'完了':(x.hold?'保留':x.st);}
@@ -4145,7 +4164,7 @@ function tkBarColor(x){return tkIsLate(x)?'var(--red)':(x.hold&&x.st!=='完了'?
 function tkVisible(x,keepDone){
   if(x.inDoneS&&!_tk.doneS)return false;     // 完了した施策（配下を含む）は、完了施策表示がオフなら出さない
   if(x.ch.length)return x.ch.some(c=>tkVisible(c,keepDone));
-  if(_tk.who&&x.who!==_tk.who&&!x.co.includes(_tk.who))return false;
+  if(!tkWhoOK(x)||!tkQOK(x))return false;
   if(_tk.st&&tkEffSt(x)!==_tk.st)return false;
   if(!keepDone&&!_tk.done&&x.st==='完了')return false;
   return true;
@@ -4164,6 +4183,29 @@ function tkPeople(){
   _tk.nodes.forEach(n=>{if(!n.ch.length){if(n.who)s.add(n.who);n.co.forEach(c=>s.add(c));}});
   return [...s].sort((a,b)=>a.localeCompare(b,'ja'));
 }
+function tkSearch(v){
+  _tk.q=v;clearTimeout(_tk.qT);
+  _tk.qT=setTimeout(()=>{tkRender(true);const el=document.getElementById('tk-q');if(el){el.focus();el.setSelectionRange(v.length,v.length);}},250);
+}
+function tkWhoPicker(people){
+  const w=(_tk.whos=(_tk.whos||[]).filter(n=>people.includes(n)));
+  const lbl=!w.length?'全員':(w.length===1?w[0]:w[0]+' 他'+(w.length-1)+'名');
+  let h='<span class="tk-ms"><button type="button" class="tk-btn'+(w.length?' on':'')+'" onclick="tkWhoToggle()">担当者：'+tkEsc(lbl)+' ▾</button>';
+  if(_tk.whoOpen){
+    h+='<div class="tk-ms-pop"><div class="tk-ms-top"><span>複数選べます</span><a onclick="tkWhoClear()">クリア</a></div><div class="tk-ms-list" id="tk-ms-list">'
+      +people.map(p=>'<label><input type="checkbox" '+(w.includes(p)?'checked ':'')+'onchange="tkWhoPick(this.dataset.n,this.checked)" data-n="'+tkEsc(p)+'"> '+tkEsc(p)+'</label>').join('')+'</div></div>';
+  }
+  return h+'</span>';
+}
+function tkWhoToggle(){_tk.whoOpen=!_tk.whoOpen;tkRender(true);}
+function tkWhoClear(){_tk.whos=[];tkRender(true);}
+function tkWhoPick(n,on){
+  const ls=document.getElementById('tk-ms-list');const st=ls?ls.scrollTop:0;
+  const set=new Set(_tk.whos||[]);if(on)set.add(n);else set.delete(n);_tk.whos=[...set];
+  tkRender(true);
+  const nl=document.getElementById('tk-ms-list');if(nl)nl.scrollTop=st;
+}
+document.addEventListener('click',e=>{if(_tk&&_tk.whoOpen&&!e.target.closest('.tk-ms')){_tk.whoOpen=false;if(document.getElementById('tab-tasks')&&_tk.loaded)tkRender(true);}});
 function tkSet(k,v){_tk[k]=v;if(k==='view'&&v==='gantt')_tk.fresh=true;if(k==='view'&&v==='policy'&&!(_tk.pol&&_tk.pol.loaded)){tkLoadPolicy();return;}tkRender();}
 function tkToggle(id){_tk.open[id]=!_tk.open[id];tkRender(true);}
 function tkSetAll(v){Object.keys(_tk.open).forEach(k=>_tk.open[k]=v);tkRender(true);}
@@ -4187,7 +4229,8 @@ function tkRender(keepScroll){
   const people=tkPeople();
   const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">すべて</button></div>':'';
   const bar='<div class="tk-bar">'+scopeBtns
-    +'<label>担当者 <select onchange="tkSet(\'who\',this.value)"><option value="">全員</option>'+people.map(p=>'<option'+(p===_tk.who?' selected':'')+'>'+tkEsc(p)+'</option>').join('')+'</select></label>'
+    +'<input type="search" id="tk-q" class="tk-q" placeholder="🔍 タイトル・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'
+    +tkWhoPicker(people)
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
     +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了タスク表示</label>'
     +'<label><input type="checkbox" '+(_tk.doneS?'checked':'')+' onchange="tkSet(\'doneS\',this.checked)"> 完了施策表示</label>'
@@ -4404,7 +4447,7 @@ function tkBizAdd(d,n){const r=new Date(d);const dir=n>0?1:-1;let k=Math.abs(n);
 // kintoneタスク管理ダッシュボードと同じ項目・判定（全タスク／遅延／終了3営業日／開始3営業日／Todo／小タスク遅延・未完了）
 function tkDashData(){
   const today=tkToday(),lim=tkBizAdd(today,3);
-  const tasks=_tk.nodes.filter(n=>n.type==='タスク'&&(_tk.doneS||!n.inDoneS)&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));
+  const tasks=_tk.nodes.filter(n=>n.type==='タスク'&&(_tk.doneS||!n.inDoneS)&&tkWhoOK(n)&&tkQOK(n));
   return {
     all:tasks,
     delayed:tasks.filter(tkIsLate),
@@ -4519,7 +4562,7 @@ function tkDashHtml(){
   const people=[...new Set(all.map(x=>x.who).filter(Boolean))].map(p=>{const m=all.filter(x=>x.who===p);return {p,open:m.filter(x=>tkEffSt(x)!=='完了'&&tkEffSt(x)!=='保留').length,late:m.filter(tkIsLate).length,done:m.filter(x=>x.st==='完了').length};}).sort((a,b)=>b.open-a.open);
   const mx=Math.max(1,...people.map(r=>r.open+r.done));
   const whoH=people.slice(0,15).map(r=>'<div class="tk-wr"><span class="wn">'+tkAv(r.p)+'</span><div class="wb"><i style="width:'+(r.done/mx*100)+'%;background:var(--green)"></i><i style="width:'+(Math.max(0,r.open-r.late)/mx*100)+'%;background:var(--primary)"></i><i style="width:'+(r.late/mx*100)+'%;background:var(--red)"></i></div><span class="wc">未完了 '+r.open+(r.late?' <b style="color:var(--red)">（遅延'+r.late+'）</b>':'')+'</span></div>').join('');
-  const prj=_tk.roots.map(t=>{if(t.inDoneS&&!_tk.doneS)return '';const l=tkLeaves(t).filter(n=>n.type==='タスク'&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));if(!l.length)return '';const p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);return '<div class="tk-wr"><span class="wn" style="width:200px">'+tkEsc(t.title)+'</span><div class="wb"><i style="width:'+p+'%;background:var(--primary)"></i></div><span class="wc">'+p+'%（'+l.length+'件）</span></div>';}).join('');
+  const prj=_tk.roots.map(t=>{if(t.inDoneS&&!_tk.doneS)return '';const l=tkLeaves(t).filter(n=>n.type==='タスク'&&tkWhoOK(n)&&tkQOK(n));if(!l.length)return '';const p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);return '<div class="tk-wr"><span class="wn" style="width:200px">'+tkEsc(t.title)+'</span><div class="wb"><i style="width:'+p+'%;background:var(--primary)"></i></div><span class="wc">'+p+'%（'+l.length+'件）</span></div>';}).join('');
   return '<div id="tk-dash">'+cards
     +'<div class="tk-dp" style="margin-bottom:12px"><h4>'+tkEsc(sel[4])+' <small>'+items.length+'件</small></h4>'+(list||'<div class="ds">該当なし</div>')+'</div>'
     +'<div class="tk-dg"><div class="tk-dp"><h4>ステータス別 <small>タスク</small></h4>'+(total?stBar:'<div class="ds">なし</div>')+'</div>'
@@ -4589,7 +4632,7 @@ function tkfNewFromRow(id,dateStr,endStr){
 // 保存・削除の結果を、サーバーから全件を取り直さずにその場で画面へ反映する（速くするため）
 function tkApplyLocal(op,n){
   const SHOW=['施策','活動','タスク'];
-  let raw=_tk.nodes.map(x=>({id:x.id,type:x.type,title:x.title,parent:x.parent,who:x.who,co:x.co,st:x.st,start:x.start,end:x.end,p:x.p,e:x.e,a:x.a,priv:x.priv}));
+  let raw=_tk.nodes.map(x=>({id:x.id,type:x.type,title:x.title,tag:x.tag||'',parent:x.parent,who:x.who,co:x.co,st:x.st,start:x.start,end:x.end,p:x.p,e:x.e,a:x.a,priv:x.priv}));
   _tk.parents=(_tk.parents||[]).filter(p=>String(p.id)!==String(n.id));
   if(op==='save'){
     _tk.parents.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent});
@@ -4597,7 +4640,7 @@ function tkApplyLocal(op,n){
     if(SHOW.includes(n.type)){
       const mine=_tk.scope==='all'||_normName(n.who)===_normName(_tk.me)||(n.co||[]).some(c=>_normName(c)===_normName(_tk.me));
       if(mine){
-        raw.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent?String(n.parent):'',who:n.who,co:n.co,st:n.st,start:n.start,end:n.end,p:n.p,e:n.e,a:n.a,priv:n.priv});
+        raw.push({id:String(n.id),type:n.type,title:n.title,tag:n.tag||'',parent:n.parent?String(n.parent):'',who:n.who,co:n.co,st:n.st,start:n.start,end:n.end,p:n.p,e:n.e,a:n.a,priv:n.priv});
         // 親（施策・活動）が一覧にまだ無ければ、候補の情報から補う
         const have=new Set(raw.map(x=>String(x.id)));
         let pid=n.parent?String(n.parent):'';
@@ -4816,7 +4859,7 @@ async function tkfSave(){
     if(task.type==='施策'||task.type==='活動')await tkLoad(null,true,true);
     if(task.type==='施策'&&task.status==='完了'&&!_tk.doneS)showToast('完了した施策は非表示になりました（「完了施策表示」で表示できます）');
     else tkApplyLocal('save',{id:res.id,type:task.type,title:task.title.trim(),parent:task.parent||'',who:task.owner||'',co:task.co||[],
-      st:task.status,start:task.start||'',end:task.end||'',p:(task.type==='タスク'&&task.status==='完了')?100:(Number(task.progress)||0),priv:!!task.priv,e:1,a:0});
+      st:task.status,start:task.start||'',end:task.end||'',p:(task.type==='タスク'&&task.status==='完了')?100:(Number(task.progress)||0),priv:!!task.priv,tag:String(task.tag||'').trim(),e:1,a:0});
   }catch(e){
     showToast('保存に失敗：'+((e&&e.message)||e));
     if(_tkf)_tkf.busy=false;
@@ -4871,9 +4914,9 @@ function tkManualHtml(){
   const sec=(id,title,body)=>'<section id="mn-'+id+'"><h3>'+title+'</h3>'+body+'</section>';
   // --- 画面1：タブとバー
   const f1='<div class="mn-fig"><div class="mn-tabs">'+['ガントチャート','かんばん','ダッシュボード','方針ツリー'].map((t,i)=>'<span class="'+(i===0?'on':'')+'">'+t+'</span>').join('')+'</div>'
-    +'<div class="mn-bar">'+no(1)+'<span class="mn-grp"><b class="on">自分のタスク</b><b>すべて</b></span>'+no(2)+pill('担当者 ▾')+pill('状態 ▾')+no(3)+'<span class="mn-ck">☐ 完了タスク表示</span><span class="mn-ck">☐ 完了施策表示</span>'+no(4)+pill('すべて展開')+pill('今日へ')+'<span class="mn-grp"><b>日</b><b class="on">週</b><b>月</b></span>'+no(5)+pill('＋ 新規',1)+no(6)+pill('📖 マニュアル')+pill('🔄 更新')+'</div></div>'
+    +'<div class="mn-bar">'+no(1)+'<span class="mn-grp"><b class="on">自分のタスク</b><b>すべて</b></span>'+no(2)+pill('🔍 タイトル・タグ検索')+pill('担当者 ▾')+pill('状態 ▾')+no(3)+'<span class="mn-ck">☐ 完了タスク表示</span><span class="mn-ck">☐ 完了施策表示</span>'+no(4)+pill('すべて展開')+pill('今日へ')+'<span class="mn-grp"><b>日</b><b class="on">週</b><b>月</b></span>'+no(5)+pill('＋ 新規',1)+no(6)+pill('📖 マニュアル')+pill('🔄 更新')+'</div></div>'
     +'<ol class="mn-ol"><li>'+no(1)+'<b>自分のタスク／すべて</b>：自分が担当者・共同担当者のものだけ見るか、見られる範囲すべてを見るか。</li>'
-    +'<li>'+no(2)+'<b>担当者・状態</b>：絞り込み。</li><li>'+no(3)+'<b>完了の表示</b>：完了したタスク、完了した施策（配下ごと）は初期では非表示。見たいときにチェック。</li>'
+    +'<li>'+no(2)+'<b>検索・担当者・状態</b>：タイトルとタグで検索（空白で区切るとすべてを含むものだけ。施策・活動のタイトル／タグに合えば配下も出ます）。担当者は複数選べます（担当者か共同担当者のどれかに当てはまるもの）。</li><li>'+no(3)+'<b>完了の表示</b>：完了したタスク、完了した施策（配下ごと）は初期では非表示。見たいときにチェック。</li>'
     +'<li>'+no(4)+'<b>展開・今日へ・日／週／月</b>：行の開閉、今日の位置へ移動、ガントの目盛り（日・週・月）の切り替え。</li>'
     +'<li>'+no(5)+'<b>＋ 新規</b>：新しい施策・活動・タスクを登録（権限がある人だけ表示）。</li><li>'+no(6)+'<b>更新</b>：最新の内容に取り直します。他の人の変更が見えないときに押します。</li></ol>';
   // --- 画面2：ガントの見方
@@ -4997,7 +5040,7 @@ document.addEventListener('pointerup',async e=>{
   _tkBarSup=true;setTimeout(()=>{_tkBarSup=false;},0);
   if(d.nlo===d.lo&&d.nhi===d.hi){tkRender(true);return;}
   const s1=tkDs(tkAddDays(_tk.range.start,d.nlo)),e1=tkDs(tkAddDays(_tk.range.start,d.nhi)),x=d.x;
-  const backup={id:x.id,type:x.type,title:x.title,parent:x.parent,who:x.who,co:x.co,st:x.st,p:x.p,priv:x.priv,e:x.e,a:x.a};
+  const backup={id:x.id,type:x.type,title:x.title,tag:x.tag||'',parent:x.parent,who:x.who,co:x.co,st:x.st,p:x.p,priv:x.priv,e:x.e,a:x.a};
   tkApplyLocal('save',Object.assign({},backup,{start:s1,end:e1}));
   try{await api('moveTask',{id:x.id,start:s1,end:e1});showToast('日付を '+tkFmt(tkParse(s1))+'〜'+tkFmt(tkParse(e1))+' に変更しました');}
   catch(err){showToast('日付を変更できませんでした：'+((err&&err.message)||err));tkLoad(null,true,true);}
