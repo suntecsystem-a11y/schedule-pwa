@@ -2041,8 +2041,16 @@ function onTodokeFileChange(ev) {
   const files = Array.from(input.files || []);
   if (!files.length) return;
 
-  let remaining = files.length;
-  files.forEach(file => {
+  const MAX = 10 * 1024 * 1024;   // 1ファイル10MB（サーバ側でも同じ上限で弾く）
+  const tooBig = files.filter(f => f.size > MAX);
+  if (tooBig.length) {
+    showToast(tooBig.map(f => f.name).join('、') + ' が大きすぎます（上限10MB）');
+  }
+  const ok = files.filter(f => f.size <= MAX);
+  if (!ok.length) { input.value = ''; return; }
+
+  let remaining = ok.length;
+  ok.forEach(file => {
     const reader = new FileReader();
     reader.onload = () => {
       // data:xxx;base64,yyyy の yyyy だけ渡す
@@ -2116,15 +2124,15 @@ async function submitTodoke() {
   if (_todokeFiles.length) items.push({ label: '添付', value: _todokeFiles.map(f => f.name).join('、') });
 
   _openConfirmModal('届出・相談', items, todokeDueCheck(), async () => {
-    // 添付を先にアップロードして fileKey をもらう
-    const fileKeys = [];
+    // 添付は先にSharePointへ上げて、URLだけKintoneにしまうのでここでURLを集める
+    const files = [];
     for (const f of _todokeFiles) {
       const res = await gas({ action: 'uploadTodokeFile', token: currentToken,
                               file: { name: f.name, mime: f.mime, data: f.data } });
-      if (res && res.fileKey) fileKeys.push(res.fileKey);
+      if (res && res.url) files.push({ name: res.name || f.name, url: res.url });
     }
     await gas({ action: 'saveTodoke', token: currentToken, todoke: {
-      applyNames: names, answers, dueDate: due, supplement, fileKeys,
+      applyNames: names, answers, dueDate: due, supplement, files,
     }});
     closeModal('modal-confirm');
     closeModal('modal-new');
@@ -2177,7 +2185,12 @@ function renderTodokeDetail(r) {
   });
 
   if (r.supplement) html += row('補足', r.supplement);
-  if ((r.files || []).length) html += row('添付', r.files.map(f => f.name).join('、'));
+  if ((r.files || []).length) {
+    // SharePointのURL。開くにはM365の権限が要るので、リンクが漏れても中身は守られる
+    html += `<div class="detail-row"><span class="detail-label">添付</span><span class="detail-val">`
+          + r.files.map(f => `<a href="${esc(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join('<br>')
+          + `</span></div>`;
+  }
   if (r.rejectReason) html += row('差し戻し理由', r.rejectReason);
   html += row('申請日時', (r.appliedAt || '').replace('T', ' ').slice(0, 16));
   if (r.acceptedAt)  html += row('受付日時', r.acceptedAt.replace('T', ' ').slice(0, 16));
