@@ -821,8 +821,16 @@ input,select{font-family:inherit;outline:none}
 .tk-row:hover .tk-add{opacity:1}
 .tk-add:hover{background:var(--primary);color:#fff}
 @media(hover:none){.tk-add{opacity:1}}
-.tk-ghost{position:absolute;top:4px;height:26px;border:1px dashed var(--primary);background:rgba(92,107,192,.14);color:var(--primary-dark);border-radius:4px;font-size:12px;font-weight:700;line-height:24px;text-align:center;z-index:1;pointer-events:none;white-space:nowrap;overflow:hidden}
+.tk-ghost{position:absolute;top:4px;height:26px;z-index:4!important;border:1px dashed var(--primary);background:rgba(92,107,192,.14);color:var(--primary-dark);border-radius:4px;font-size:12px;font-weight:700;line-height:24px;text-align:center;z-index:1;pointer-events:none;white-space:nowrap;overflow:hidden}
 body.tk-dragging{user-select:none;-webkit-user-select:none;cursor:ew-resize}
+.tk-row.hold{background:#fafbfc}
+.tk-row.hold .tk-nm,.tk-row.hold .tk-c.who,.tk-row.hold .tk-c.d,.tk-row.hold .tk-c.pg{color:#8b98a5}
+.tk-row.hold .tk-left{background:#fafbfc}
+.tk-gb.hold{background:repeating-linear-gradient(135deg,#90a4ae 0 7px,#b0bec5 7px 14px)!important;opacity:.85}
+.tk-gb.sum.hold{background:#78909c!important;opacity:.8}
+.tk-tag.hold{background:#78909c!important}
+.tk-tag.inh{background:#fff!important;color:#78909c;border:1px solid #90a4ae}
+.tk-fl-row.hold td:not(.tk-fl-grp){color:#8b98a5;background:#fafbfc}
 </style>
 </head>
 <body>
@@ -4037,6 +4045,9 @@ function tkBuild(list){
     x.cnt=l.length;
   };
   roots.forEach(agg);
+  // 保留：自分が保留、または上位（施策・活動）が保留なら「保留扱い」(hold)。配下それぞれの状態そのものは変えない（解除すれば元に戻る）
+  const markHold=(x,h)=>{x.hold=h||x.st==='保留';x.ch.forEach(c=>markHold(c,x.hold));};
+  roots.forEach(r=>markHold(r,false));
   list.forEach(n=>{if(!n.ch.length&&n.st==='完了')n.p=100;});
   const sortCh=x=>{x.ch.sort((a,b)=>(a.sd?+a.sd:1e15)-(b.sd?+b.sd:1e15)||(+a.id)-(+b.id));x.ch.forEach(sortCh);};
   roots.sort((a,b)=>(+a.id)-(+b.id));roots.forEach(sortCh);
@@ -4056,15 +4067,16 @@ function tkBuild(list){
 }
 function tkLeaves(x){return x.ch.length?x.ch.flatMap(tkLeaves):[x];}
 // 遅延：完了以外で、終了日を過ぎているもの（小タスクは運用終了のため見ない）
+function tkEffSt(x){return x.st==='完了'?'完了':(x.hold?'保留':x.st);}
 function tkIsLate(x){
-  if(x.ch.length||x.st==='完了'||!x.end)return false;
+  if(x.ch.length||x.st==='完了'||x.hold||!x.end)return false;
   return tkParse(x.end)<tkToday();
 }
-function tkBarColor(x){return tkIsLate(x)?'var(--red)':(TK_SCOL[x.st]||'#9e9e9e');}
+function tkBarColor(x){return tkIsLate(x)?'var(--red)':(x.hold&&x.st!=='完了'?'#90a4ae':(TK_SCOL[x.st]||'#9e9e9e'));}
 function tkVisible(x,keepDone){
   if(x.ch.length)return x.ch.some(c=>tkVisible(c,keepDone));
   if(_tk.who&&x.who!==_tk.who&&!x.co.includes(_tk.who))return false;
-  if(_tk.st&&x.st!==_tk.st)return false;
+  if(_tk.st&&tkEffSt(x)!==_tk.st)return false;
   if(!keepDone&&!_tk.done&&x.st==='完了')return false;
   return true;
 }
@@ -4163,15 +4175,17 @@ function tkGanttHtml(){
   rows.forEach(({x,depth})=>{
     const tw=x.ch.length?'<span class="tk-tw" onclick="tkToggle(\''+x.id+'\')">'+(_tk.open[x.id]?'▼':'▶')+'</span>':'<span class="tk-tw"></span>';
     const late=tkIsLate(x);
-    const stc=x.ch.length?'<span style="color:var(--text2);font-size:.85em">'+x.cnt+'件</span>':'<span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[x.st]||'#9e9e9e'))+'">'+(late?'超過':tkEsc(x.st))+'</span>';
+    const holdShown=x.hold&&x.st!=='完了';
+    const holdTag=holdShown?'<span class="tk-tag hold'+(x.st==='保留'?'':' inh')+'" title="'+(x.st==='保留'?'保留中':'上位が保留のため、保留として扱っています')+'">保留</span>':'';
+    const stc=holdShown?holdTag:(x.ch.length?'<span style="color:var(--text2);font-size:.85em">'+x.cnt+'件</span>':'<span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[x.st]||'#9e9e9e'))+'">'+(late?'超過':tkEsc(x.st))+'</span>');
     const whoTxt=x.ch.length?'':tkAv(x.who,true)+(x.co.length?'<span class="tk-co" title="共同：'+tkEsc(x.co.join('、'))+'">+'+x.co.length+'</span>':'');
     let bar='';
     if(x.sd){
       const left=tkDiff(R.start,x.sd)*dayW,w=(tkDiff(x.sd,x.ed)+1)*dayW;
       const lbl=!x.ch.length&&w>60?'<span>'+x.p+'%</span>':'';
-      bar='<div class="tk-gb'+(x.ch.length?' sum':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+'</div>';
+      bar='<div class="tk-gb'+(x.ch.length?' sum':'')+(holdShown?' hold':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+'</div>';
     }
-    h+='<div class="tk-row l'+Math.min(depth,2)+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span>'+tkAddBtn(x)+'</div>'
+    h+='<div class="tk-row l'+Math.min(depth,2)+(holdShown?' hold':'')+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span>'+tkAddBtn(x)+'</div>'
       +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.sd)+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
       +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+'</div></div>';
   });
@@ -4179,12 +4193,12 @@ function tkGanttHtml(){
 }
 function tkKanbanHtml(){
   const all=_tk.nodes.filter(n=>!n.ch.length&&tkVisible(n));
-  const cols=TK_STS.filter(s=>s!=='保留'||all.some(x=>x.st==='保留'));
+  const cols=TK_STS.filter(s=>s!=='保留'||all.some(x=>tkEffSt(x)==='保留'));
   return '<div id="tk-kanban">'+cols.map(s=>{
-    const items=all.filter(x=>x.st===s).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
+    const items=all.filter(x=>tkEffSt(x)===s).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
     return '<div class="tk-col"><h3><span>'+s+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
       const late=tkIsLate(x);
-      return '<div class="tk-card" data-id="'+x.id+'" style="border-left-color:'+tkBarColor(x)+'"><div class="p">'+tkEsc(tkPath(x))+'</div><div class="t">'+tkEsc(x.title)+'</div>'
+      return '<div class="tk-card" data-id="'+x.id+'" style="border-left-color:'+tkBarColor(x)+'"><div class="p">'+tkEsc(tkPath(x))+'</div><div class="t">'+tkEsc(x.title)+(x.hold&&x.st!=='保留'&&x.st!=='完了'?' <small style="color:var(--text2);font-weight:400">（上位が保留）</small>':'')+'</div>'
         +'<div class="tk-pbar"><i style="width:'+x.p+'%"></i></div><div class="f'+(late?' late':'')+'"><span>'+tkAv(x.who)+'</span><span>'+(late?'<b>期限超過</b> ':'')+(x.ed?'期限 '+tkFmt(x.ed):'期限なし')+'</span></div></div>';
     }).join('')+'</div>';
   }).join('')+'</div>';
@@ -4197,8 +4211,8 @@ function tkDashData(){
   return {
     all:tasks,
     delayed:tasks.filter(tkIsLate),
-    deadlineSoon:tasks.filter(t=>{if(!t.end||t.st==='完了')return false;const e=tkParse(t.end);return e>=today&&e<=lim;}),
-    notStartedSoon:tasks.filter(t=>t.start&&t.st==='未着手'&&today>=tkBizAdd(tkParse(t.start),-3)),
+    deadlineSoon:tasks.filter(t=>{if(!t.end||t.st==='完了'||t.hold)return false;const e=tkParse(t.end);return e>=today&&e<=lim;}),
+    notStartedSoon:tasks.filter(t=>t.start&&t.st==='未着手'&&!t.hold&&today>=tkBizAdd(tkParse(t.start),-3)),
     undated:tasks.filter(t=>!t.start||!t.end)
   };
 }
@@ -4285,10 +4299,10 @@ function tkDashFlat(items){
     const late=tkIsLate(t);
     const cs=spanS[i]?'<td class="tk-fl-grp tk-fl-gs" rowspan="'+spanS[i]+'" title="'+tkEsc(s?s.title:'')+'"><div>'+(s?tkEsc(s.title):'<em>施策なし</em>')+'<small>'+spanS[i]+'件</small></div></td>':'';
     const ca=spanA[i]?'<td class="tk-fl-grp tk-fl-ga" rowspan="'+spanA[i]+'" title="'+tkEsc(a?a.title:'')+'"><div>'+(a?tkEsc(a.title):'<em>活動なし</em>')+'<small>'+spanA[i]+'件</small></div></td>':'';
-    return '<tr class="tk-fl-row" data-id="'+t.id+'">'+cs+ca
+    return '<tr class="tk-fl-row'+(t.hold&&t.st!=='完了'?' hold':'')+'" data-id="'+t.id+'">'+cs+ca
       +'<td class="tk-fl-n" title="'+tkEsc(t.title)+'">'+tkEsc(t.title)+'</td>'
       +'<td class="tk-fl-w">'+tkAv(t.who)+'</td>'
-      +'<td class="tk-fl-st"><span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[t.st]||'#9e9e9e'))+'">'+(late?'遅延':tkEsc(t.st))+'</span></td>'
+      +'<td class="tk-fl-st"><span class="tk-tag'+(t.hold&&t.st!=='完了'&&t.st!=='保留'?' hold inh':'')+'" style="background:'+(late?'var(--red)':(TK_SCOL[tkEffSt(t)]||'#9e9e9e'))+'">'+(late?'遅延':tkEsc(tkEffSt(t)))+'</span></td>'
       +'<td class="tk-fl-d">'+(t.start?tkFmt(tkParse(t.start)):'-')+'</td>'
       +'<td class="tk-fl-d'+(late?' late':'')+'">'+(t.end?tkFmt(tkParse(t.end)):'-')+'</td>'
       +'<td class="tk-fl-p"><div class="bar"><i style="width:'+t.p+'%"></i><b>'+t.p+'%</b></div></td></tr>';
@@ -4303,9 +4317,9 @@ function tkDashHtml(){
   const items=D[sel[0]];
   const list=tkDashFlat(items);
   const all=D.all,total=all.length;
-  const cnt=s=>all.filter(x=>x.st===s).length;
+  const cnt=s=>all.filter(x=>tkEffSt(x)===s).length;
   const stBar='<div class="tk-stk">'+TK_STS.map(s=>cnt(s)?'<i style="width:'+(cnt(s)/total*100)+'%;background:'+TK_SCOL[s]+'">'+cnt(s)+'</i>':'').join('')+'</div><div class="tk-lg2">'+TK_STS.map(s=>'<span><i style="background:'+TK_SCOL[s]+'"></i>'+s+' '+cnt(s)+'</span>').join('')+'</div>';
-  const people=[...new Set(all.map(x=>x.who).filter(Boolean))].map(p=>{const m=all.filter(x=>x.who===p);return {p,open:m.filter(x=>x.st!=='完了'&&x.st!=='保留').length,late:m.filter(tkIsLate).length,done:m.filter(x=>x.st==='完了').length};}).sort((a,b)=>b.open-a.open);
+  const people=[...new Set(all.map(x=>x.who).filter(Boolean))].map(p=>{const m=all.filter(x=>x.who===p);return {p,open:m.filter(x=>tkEffSt(x)!=='完了'&&tkEffSt(x)!=='保留').length,late:m.filter(tkIsLate).length,done:m.filter(x=>x.st==='完了').length};}).sort((a,b)=>b.open-a.open);
   const mx=Math.max(1,...people.map(r=>r.open+r.done));
   const whoH=people.slice(0,15).map(r=>'<div class="tk-wr"><span class="wn">'+tkAv(r.p)+'</span><div class="wb"><i style="width:'+(r.done/mx*100)+'%;background:var(--green)"></i><i style="width:'+(Math.max(0,r.open-r.late)/mx*100)+'%;background:var(--primary)"></i><i style="width:'+(r.late/mx*100)+'%;background:var(--red)"></i></div><span class="wc">未完了 '+r.open+(r.late?' <b style="color:var(--red)">（遅延'+r.late+'）</b>':'')+'</span></div>').join('');
   const prj=_tk.roots.map(t=>{const l=tkLeaves(t).filter(n=>n.type==='タスク'&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));if(!l.length)return '';const p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);return '<div class="tk-wr"><span class="wn" style="width:200px">'+tkEsc(t.title)+'</span><div class="wb"><i style="width:'+p+'%;background:var(--primary)"></i></div><span class="wc">'+p+'%（'+l.length+'件）</span></div>';}).join('');
@@ -4445,7 +4459,7 @@ function tkfRender(){
   const addChildBtn=(_tkf.mode==='update'&&nodeHere&&(nodeHere.type==='施策'||nodeHere.type==='活動')&&tkCanAddFrom(nodeHere))
     ?'<button onclick="tkfAddChildFromForm()">＋ '+(nodeHere.type==='施策'?'活動':'タスク')+'を追加</button>':'';
   const modeLabel={new:'新規作成',update:'#'+r.id+' を編集',copy:'コピーして新規作成'}[_tkf.mode];
-  const status=v('status')?'<div class="tkf-f wide"><label>状態</label><div class="tkf-pills">'+TKF_STATUS.map(s=>'<button type="button" class="'+(r.status===s?'on':'')+'" style="--c:'+(TK_SCOL[s]||'#9e9e9e')+'" onclick="tkfSet(\'status\',\''+s+'\')">'+s+'</button>').join('')+'</div></div>':'';
+  const status=v('status')?'<div class="tkf-f wide"><label>状態</label><div class="tkf-pills">'+TKF_STATUS.map(s=>'<button type="button" class="'+(r.status===s?'on':'')+'" style="--c:'+(TK_SCOL[s]||'#9e9e9e')+'" onclick="tkfSet(\'status\',\''+s+'\')">'+s+'</button>').join('')+'</div>'+((r.status==='保留'&&(t==='施策'||t==='活動'))?'<small class="tkf-hint">保留にすると、配下の活動・タスクも「保留」として扱われ、超過・遅延の集計に入りません。配下それぞれの状態は変わらず、保留を解除すれば元に戻ります。</small>':'')+'</div>':'';
   const progress=v('progress')?tkfField('進捗率','<div class="tkf-prog"><input type="range" min="0" max="100" step="5" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value)"><input data-k="progress" type="number" min="0" max="100" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value,1)"><span>%</span></div>'+(t==='タスク'?'<small class="tkf-hint">完了にすると100%になります</small>':'')):'';
   const co=v('co')?tkfField('共同担当者（複数人で対応する場合）','<div class="tkf-chips">'+(r.co||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfCoDel('+i+')">×</b></span>').join('')+'<input id="tkf-co-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfCoAdd()}" onchange="tkfCoAdd()"></div>','wide'):'';
   const relf=v('rel')?tkfField('メンバー（社員・パートナー）— 閲覧のみ','<div class="tkf-chips">'+(r.rel||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfRelDel('+i+')">×</b></span>').join('')+'<input id="tkf-rel-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfRelAdd()}" onchange="tkfRelAdd()"></div><small class="tkf-hint">登録した人（外部のパートナーを含む）と、社員の所属部署の上長が、この'+tkEsc(t)+'を閲覧できます</small>','wide'):'';
