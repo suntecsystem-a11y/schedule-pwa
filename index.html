@@ -867,6 +867,38 @@ body.tk-dragging{user-select:none;-webkit-user-select:none;cursor:ew-resize}
 #tab-tasks .tk-gb.mv:hover .rh{background:rgba(255,255,255,.35)}
 #tk-dtip{position:fixed;z-index:9999;background:#263238;color:#fff;font-size:12px;padding:4px 9px;border-radius:4px;pointer-events:none;white-space:nowrap}
 body.tk-dragging .tk-gb.mv{cursor:grabbing}
+#tk-man{position:fixed;inset:0;background:rgba(20,24,40,.45);z-index:1300;display:flex;align-items:center;justify-content:center;padding:16px}
+#tk-man .mn-box{background:var(--surface);color:var(--text);width:min(900px,100%);height:min(88vh,100%);border-radius:12px;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.35);overflow:hidden}
+#tk-man .mn-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--border);font-size:1.05em}
+#tk-man .mn-hd button{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;cursor:pointer;color:var(--text2)}
+#tk-man .mn-bd{flex:1;overflow:auto;padding:6px 22px 30px;line-height:1.75;font-size:.9em;outline:none}
+#tk-man .mn-toc{position:sticky;top:0;background:var(--surface);padding:10px 0;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);z-index:2}
+#tk-man .mn-toc a{cursor:pointer;font-size:.85em;padding:3px 10px;border-radius:14px;background:var(--primary-light);color:var(--primary-dark)}
+#tk-man section{padding-top:18px}
+#tk-man h3{font-size:1.08em;margin:0 0 8px;padding-left:10px;border-left:4px solid var(--primary)}
+#tk-man p{margin:0 0 10px}
+#tk-man ul,#tk-man ol{margin:8px 0 10px 1.3em;padding:0}#tk-man li{margin:3px 0}
+#tk-man .mn-ol{list-style:none;margin-left:0}
+#tk-man .mn-note{background:#fff8e1;border-left:4px solid var(--orange);padding:8px 12px;border-radius:4px;margin:10px 0;color:#5d4037}
+#tk-man .mn-fig{border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg);margin:10px 0}
+#tk-man .mn-svg{width:100%;height:auto;display:block;margin:10px 0}
+#tk-man .mn-svg .bg{fill:var(--bg);stroke:var(--border)}#tk-man .mn-svg .tx{fill:var(--text)}#tk-man .mn-svg .ln{stroke:var(--border)}
+#tk-man .mn-no{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--primary);color:#fff;font-size:11px;font-weight:700;margin:0 4px}
+#tk-man .mn-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:8px}#tk-man .mn-tabs span{padding:6px 14px;font-size:.85em;color:var(--text2);border-bottom:3px solid transparent}#tk-man .mn-tabs span.on{color:var(--primary);border-color:var(--primary);font-weight:700}
+#tk-man .mn-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.8em}
+#tk-man .mn-pill{border:1px solid var(--border);border-radius:6px;padding:3px 9px;background:var(--surface);font-size:.95em;white-space:nowrap}#tk-man .mn-pill.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+#tk-man .mn-grp{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}#tk-man .mn-grp b{padding:3px 9px;font-weight:400;background:var(--surface)}#tk-man .mn-grp b.on{background:var(--primary);color:#fff}
+#tk-man .mn-ck{white-space:nowrap}
+#tk-man .mn-leg{display:flex;flex-wrap:wrap;gap:12px;font-size:.82em;margin:6px 0 10px}#tk-man .mn-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+#tk-man .mn-form{max-width:520px;font-size:.82em;background:var(--surface)}
+#tk-man .mn-form label{display:block;color:var(--text2);font-size:.85em;margin:8px 0 3px}
+#tk-man .mn-fh{font-weight:700;color:var(--text2)}#tk-man .mn-ft{font-size:1.25em;font-weight:700;margin:8px 0 2px}
+#tk-man .mn-fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#tk-man .mn-in{border:1px solid var(--border);border-radius:6px;padding:6px 9px;background:var(--bg)}
+#tk-man .mn-pills{display:flex;gap:6px;flex-wrap:wrap}#tk-man .mn-pills span{border:1px solid var(--border);border-radius:14px;padding:2px 11px}
+#tk-man .mn-chip{background:var(--primary-light);color:var(--primary-dark);border-radius:10px;padding:1px 8px}
+#tk-man .mn-chk{margin:10px 0;color:var(--text2)}#tk-man .mn-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+#tk-man .mn-tb{border-collapse:collapse;width:100%;font-size:.88em;margin:8px 0}#tk-man .mn-tb th,#tk-man .mn-tb td{border:1px solid var(--border);padding:6px 9px;text-align:left;vertical-align:top}#tk-man .mn-tb th{background:var(--bg)}
 </style>
 </head>
 <body>
@@ -4162,7 +4194,7 @@ function tkRender(keepScroll){
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkSetAll(true)">すべて展開</button><button class="tk-btn" onclick="tkSetAll(false)">すべて折りたたむ</button>':'')
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
-    +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
+    +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="tkManual()">📖 マニュアル</button><button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const isPol=_tk.view==='policy';
   const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
   let body='';
@@ -4263,7 +4295,7 @@ function tkPolicyBar(){
   return '<div class="tk-bar">'+seg('layout',[['tree','ツリー表示'],['table','表形式']])
     +(P.layout==='tree'?seg('orient',[['h','横表示'],['v','縦表示']])+'<button class="tk-btn" onclick="tkPolFoldAll(false)">すべて展開</button><button class="tk-btn" onclick="tkPolFoldAll(true)">すべて折りたたむ</button>':'')
     +(years.length?'<label>対象年度 <select onchange="tkPolSet(\'year\',this.value)"><option value="">全年度</option>'+years.map(y=>'<option'+(P.year===y?' selected':'')+'>'+tkEsc(y)+'</option>').join('')+'</select></label>':'')
-    +'<span class="tk-sp"></span><button class="tk-btn" onclick="tkLoadPolicy(true,true)">🔄 更新</button></div>';
+    +'<span class="tk-sp"></span><button class="tk-btn" onclick="tkManual()">📖 マニュアル</button><button class="tk-btn" onclick="tkLoadPolicy(true,true)">🔄 更新</button></div>';
 }
 function tkPolSet(k,v){_tk.pol[k]=v;tkRender();}
 function tkPolFoldAll(f){const P=_tk.pol;P.fold={};if(f)P.nodes.forEach(n=>{if(n.ch.length)P.fold[n.id]=true;});tkRender();}
@@ -4828,6 +4860,104 @@ document.addEventListener('click',e=>{
   const nd=e.target.closest('[data-pid]');
   if(nd){const n=_tk.pol.byId[nd.dataset.pid];if(n&&(n.e||n.type==='施策'||n.type==='活動'))tkfOpenEdit(n.id);}
 });
+// ============================================================
+// マニュアル（画面つきの操作説明）
+// ============================================================
+function tkManualHtml(){
+  const C={'未着手':'#9e9e9e','進行中':'#5c6bc0','確認待ち':'#fb8c00','完了':'#43a047','保留':'#78909c'};
+  const no=n=>'<span class="mn-no">'+n+'</span>';
+  const pill=(t,on)=>'<span class="mn-pill'+(on?' on':'')+'">'+t+'</span>';
+  const note=t=>'<div class="mn-note">'+t+'</div>';
+  const sec=(id,title,body)=>'<section id="mn-'+id+'"><h3>'+title+'</h3>'+body+'</section>';
+  // --- 画面1：タブとバー
+  const f1='<div class="mn-fig"><div class="mn-tabs">'+['ガントチャート','かんばん','ダッシュボード','方針ツリー'].map((t,i)=>'<span class="'+(i===0?'on':'')+'">'+t+'</span>').join('')+'</div>'
+    +'<div class="mn-bar">'+no(1)+'<span class="mn-grp"><b class="on">自分のタスク</b><b>すべて</b></span>'+no(2)+pill('担当者 ▾')+pill('状態 ▾')+no(3)+'<span class="mn-ck">☐ 完了タスク表示</span><span class="mn-ck">☐ 完了施策表示</span>'+no(4)+pill('すべて展開')+pill('今日へ')+'<span class="mn-grp"><b>日</b><b class="on">週</b><b>月</b></span>'+no(5)+pill('＋ 新規',1)+no(6)+pill('📖 マニュアル')+pill('🔄 更新')+'</div></div>'
+    +'<ol class="mn-ol"><li>'+no(1)+'<b>自分のタスク／すべて</b>：自分が担当者・共同担当者のものだけ見るか、見られる範囲すべてを見るか。</li>'
+    +'<li>'+no(2)+'<b>担当者・状態</b>：絞り込み。</li><li>'+no(3)+'<b>完了の表示</b>：完了したタスク、完了した施策（配下ごと）は初期では非表示。見たいときにチェック。</li>'
+    +'<li>'+no(4)+'<b>展開・今日へ・日／週／月</b>：行の開閉、今日の位置へ移動、ガントの目盛り（日・週・月）の切り替え。</li>'
+    +'<li>'+no(5)+'<b>＋ 新規</b>：新しい施策・活動・タスクを登録（権限がある人だけ表示）。</li><li>'+no(6)+'<b>更新</b>：最新の内容に取り直します。他の人の変更が見えないときに押します。</li></ol>';
+  // --- 画面2：ガントの見方
+  const bar=(x,y,w,c,t,ex)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="16" rx="4" fill="'+c+'" '+(ex||'')+'/>'+(t?'<text x="'+(x+6)+'" y="'+(y+12)+'" fill="#fff" font-size="10">'+t+'</text>':'');
+  const rows=[['▼ 施策A',1],['　活動A-1',0],['　　タスク（進行中）',0],['　　タスク（完了）',0],['　　タスク（超過）',0]];
+  const f2='<svg class="mn-svg" viewBox="0 0 560 190"><rect class="bg" x="0" y="0" width="560" height="190" rx="8"/>'
+    +'<g font-size="10" class="tx"><text x="190" y="16">10月</text><text x="400" y="16">11月</text></g><line class="ln" x1="170" y1="24" x2="560" y2="24"/>'
+    +rows.map((r,i)=>'<text class="tx" x="10" y="'+(46+i*32)+'" font-size="11" '+(r[1]?'font-weight="700"':'')+'>'+r[0]+'</text><line class="ln" x1="0" y1="'+(56+i*32)+'" x2="560" y2="'+(56+i*32)+'"/>').join('')
+    +'<polygon points="190,36 470,36 470,46 464,43 196,43 190,46" fill="#3949ab"/>'
+    +'<polygon points="190,68 410,68 410,76 404,73 196,73 190,76" fill="#3949ab"/>'+bar(190,94,150,C['進行中'],'')+'<rect x="190" y="94" width="60" height="16" rx="4" fill="rgba(0,0,0,.28)"/>'+bar(250,126,140,C['完了'],'100%')+bar(210,158,120,'#e53935','超過')
+    +'<line x1="330" y1="24" x2="330" y2="190" stroke="#e53935" stroke-dasharray="3 3"/><text x="334" y="36" font-size="9" fill="#e53935">今日</text></svg>';
+  const leg='<div class="mn-leg">'+Object.keys(C).map(k=>'<span><i style="background:'+C[k]+'"></i>'+k+'</span>').join('')+'<span><i style="background:#e53935"></i>超過（終了日を過ぎて未完了）</span></div>';
+  // --- 画面3：バーの移動・伸縮
+  const f3='<svg class="mn-svg" viewBox="0 0 560 210"><rect class="bg" x="0" y="0" width="560" height="210" rx="8"/><g font-size="11" class="tx" font-weight="700"><text x="12" y="22">① つかんで移動</text><text x="12" y="92">② 右端を引いて伸ばす・縮める</text><text x="12" y="162">③ 左端を引いて伸ばす・縮める</text></g>'
+    // 移動
+    +'<rect x="120" y="32" width="150" height="18" rx="4" fill="none" stroke="#5c6bc0" stroke-dasharray="4 3"/>'+bar(200,32,150,C['進行中'],'')+'<path d="M135 41 H190" stroke="#5c6bc0" stroke-width="1.6" fill="none"/><path d="M198 41 l-8 -5 v10z" fill="#5c6bc0"/>'
+    +'<rect x="360" y="30" width="170" height="22" rx="4" fill="#263238"/><text x="368" y="45" font-size="10" fill="#fff">9/17〜9/30（14日）</text>'
+    // 右
+    +bar(120,102,150,C['進行中'],'')+'<rect x="270" y="102" width="70" height="16" fill="none" stroke="#5c6bc0" stroke-dasharray="4 3" rx="4"/><path d="M262 110 H346" stroke="#5c6bc0" stroke-width="1.6"/><path d="M346 110 l-6 -4 v8z" fill="#5c6bc0"/><rect x="262" y="100" width="8" height="20" rx="2" fill="#3949ab"/>'
+    +'<text class="tx" x="360" y="114" font-size="10">右端の約7pxをつかむ</text>'
+    // 左
+    +bar(200,172,150,C['進行中'],'')+'<rect x="130" y="172" width="70" height="16" fill="none" stroke="#5c6bc0" stroke-dasharray="4 3" rx="4"/><path d="M204 180 H126" stroke="#5c6bc0" stroke-width="1.6"/><path d="M126 180 l6 -4 v8z" fill="#5c6bc0"/><rect x="200" y="170" width="8" height="20" rx="2" fill="#3949ab"/>'
+    +'<text class="tx" x="360" y="184" font-size="10">左端の約7pxをつかむ</text></svg>';
+  // --- 画面4：空き日付で新規
+  const f4='<svg class="mn-svg" viewBox="0 0 560 120"><rect class="bg" x="0" y="0" width="560" height="120" rx="8"/><text class="tx" x="10" y="22" font-size="11">▼ 施策A　（活動を追加できる行）</text><line class="ln" x1="0" y1="34" x2="560" y2="34"/>'
+    +'<polygon points="40,50 200,50 200,58 194,56 46,56 40,58" fill="#3949ab"/>'
+    +'<rect x="260" y="40" width="30" height="26" rx="4" fill="rgba(92,107,192,.14)" stroke="#5c6bc0" stroke-dasharray="3 3"/><text x="266" y="58" font-size="12" fill="#3949ab" font-weight="700">＋</text>'
+    +'<text class="tx" x="10" y="90" font-size="11">日付の空き（バーのない所）にマウスを乗せると「＋」。</text><text class="tx" x="10" y="108" font-size="11">クリック＝その日付で新規／ドラッグ＝期間を入れて新規。</text>'
+    +'<rect x="380" y="40" width="130" height="26" rx="4" fill="rgba(92,107,192,.14)" stroke="#5c6bc0" stroke-dasharray="3 3"/><text x="386" y="58" font-size="11" fill="#3949ab" font-weight="700">＋ 10/3〜10/8</text></svg>';
+  // --- 画面5：入力フォーム
+  const f5='<div class="mn-fig mn-form"><div class="mn-fh">#238 を編集</div><div class="mn-ft">タイトル（例：ネットワーク図の色分け）</div>'
+    +'<div class="mn-fr"><div><label>種別</label><div class="mn-in">活動 ▾</div></div><div><label>親レコード</label><div class="mn-in">施策A（入力して絞り込み）</div></div></div>'
+    +'<label>状態</label><div class="mn-pills">'+['未着手','進行中','確認待ち','保留','完了'].map((t,i)=>'<span style="'+(i===1?'background:'+C[t]+';color:#fff':'')+'">'+t+'</span>').join('')+'</div>'
+    +'<div class="mn-fr"><div><label>担当者</label><div class="mn-in">永野 龍也</div></div><div><label>進捗率</label><div class="mn-in">━━●━━━ 40%</div></div></div>'
+    +'<div class="mn-fr"><div><label>開始日</label><div class="mn-in">2026/10/22</div></div><div><label>終了日</label><div class="mn-in">2026/10/28</div></div></div>'
+    +'<label>メンバー（社員・パートナー）— 閲覧のみ</label><div class="mn-in">氏名を選んで Enter　<span class="mn-chip">小浦 ✕</span></div>'
+    +'<div class="mn-chk">☑ 非公開にする（担当者・共同担当者・メンバー以外には表示されません）</div>'
+    +'<div class="mn-btns">'+pill('更新',1)+pill('＋ タスクを追加')+pill('コピー')+pill('削除')+pill('キャンセル')+'</div></div>';
+  // --- 画面6：方針ツリー
+  const nd=(x,y,c,t)=>'<rect x="'+x+'" y="'+y+'" width="92" height="26" rx="5" fill="'+c+'"/><text x="'+(x+46)+'" y="'+(y+17)+'" text-anchor="middle" font-size="10" fill="#fff">'+t+'</text>';
+  const f6='<svg class="mn-svg" viewBox="0 0 560 190"><rect class="bg" x="0" y="0" width="560" height="190" rx="8"/><g fill="none" stroke="#b0bec5" stroke-width="1.5"><path d="M102 95 C120 95 120 60 138 60"/><path d="M102 95 C120 95 120 130 138 130"/><path d="M230 60 C248 60 248 40 266 40"/><path d="M230 60 C248 60 248 80 266 80"/><path d="M358 40 C376 40 376 25 394 25"/><path d="M358 40 C376 40 376 55 394 55"/><path d="M230 130 C248 130 248 130 266 130"/></g>'
+    +nd(10,82,'#1f4e79','基本方針')+nd(138,47,'#3f73bf','事業グループ')+nd(138,117,'#7c5fb8','事業')+nd(266,27,'#4f9a3a','事業カテゴリ')+nd(266,67,'#4f9a3a','事業カテゴリ')+nd(394,12,'#008c8c','施策')+nd(394,42,'#008c8c','施策')+nd(266,117,'#4f9a3a','事業カテゴリ')
+    +'<rect x="384" y="78" width="16" height="16" rx="3" fill="#fff" stroke="#008c8c"/><text x="388" y="90" font-size="12" fill="#008c8c">＋</text><text class="tx" x="406" y="90" font-size="10">▶「＋／－」で開閉</text></svg>';
+  const f7='<div class="mn-leg"><span><i style="background:#1f4e79"></i>基本方針</span><span><i style="background:#3f73bf"></i>事業グループ</span><span><i style="background:#7c5fb8"></i>事業</span><span><i style="background:#4f9a3a"></i>事業カテゴリ</span><span><i style="background:#008c8c"></i>施策</span><span><i style="background:#64748b"></i>施策方針</span><span><i style="background:#d97706"></i>活動</span></div>';
+  // --- 本文
+  const toc=[['screen','画面の見方'],['gantt','ガントの見方'],['move','バーの移動・伸縮'],['create','新規登録'],['form','入力フォーム'],['tree','方針ツリー'],['kd','かんばん・ダッシュボード'],['rules','保留・完了・超過'],['perm','見える範囲と権限'],['faq','困ったとき']];
+  let h='<nav class="mn-toc">'+toc.map(t=>'<a onclick="tkManualGo(\''+t[0]+'\')">'+t[1]+'</a>').join('')+'</nav>';
+  h+=sec('screen','1. 画面の見方','<p>「タスク」タブには4つの表示があり、上のタブで切り替えます。どの表示も、kintoneの「タスク管理」アプリの同じデータを見ています。</p>'+f1);
+  h+=sec('gantt','2. ガントチャートの見方','<p>左が一覧（施策・活動・タスク）、右が期間のバーです。バーの濃い部分が進捗率です。行の左側やバーをクリックすると、内容を開けます。</p>'+f2+leg
+    +'<ul><li><b>▼／▶</b>：行の開閉。施策・活動の行は、配下の日付と進捗をまとめて表示します（バーは「▼」形）。</li><li><b>今日へ</b>：赤い点線が今日です。</li><li><b>日／週／月</b>：目盛りの幅。長い期間を見るときは「月」。</li></ul>');
+  h+=sec('move','3. バーをつかんで日付を変える','<p>配下のないタスク（や活動・施策）で、<b>自分が編集できるもの</b>は、バーを直接動かして日付を変えられます。離した瞬間に保存されます。</p>'+f3
+    +'<ul><li>日数は1日単位で動きます。動かしている間、マウスの横に新しい期間が表示されます。</li><li>動かさずにクリックしたときは、これまでどおり内容が開きます。</li><li>配下のある行（▼形のバー）は、配下の日付で決まるので動かせません。</li><li>権限のないバーはつかめません（マウスカーソルが変わりません）。</li><li>パソコン（マウス）専用です。スマホ・タブレットでは、内容を開いて日付を入力してください。</li></ul>'
+    +note('操作を間違えたら、同じようにバーを動かして戻すか、内容を開いて日付を直してください。'));
+  h+=sec('create','4. 新規登録のしかた','<p>3つの方法があります。</p><ol><li><b>＋ 新規</b>（右上）：種別・親から選んで登録。</li><li><b>行の「＋」</b>：施策の行なら活動、活動の行ならタスクを、その配下に追加（親が自動で入ります）。</li><li><b>日付の空きをクリック／ドラッグ</b>：その行の配下に、日付（期間）が入った状態で追加。</li></ol>'+f4
+    +note('一般の社員が登録できるのは<b>活動とタスク</b>だけです。施策より上（基本方針〜施策方針）や施策の登録は管理者（永野・畑村）が行います。構造を守るための決まりです。'));
+  h+=sec('form','5. 入力フォーム','<p>右からスライドして開きます。更新後は自動で一覧に反映されます（Ctrl＋Sでも保存）。</p>'+f5
+    +'<ul><li><b>状態</b>：未着手／進行中／確認待ち／保留／完了。タスクを完了にすると進捗は100%になります。</li><li><b>担当者・メンバー</b>：従業員名簿（社内の人と外部パートナー）の氏名から選びます。メンバーは「見られる人」を増やす設定で、編集権限は付きません。</li><li><b>非公開</b>：チェックすると、そのレコードと配下は担当者・共同担当者・メンバーだけに表示されます（管理者・役員・上長にも見えません）。</li><li><b>＋ タスクを追加／コピー</b>：配下の追加、内容を引き継いだ新規作成。</li><li><b>削除</b>：権限のある人だけに表示。現在、HALOからの削除は設定上できないことがあります（その場合はkintoneで削除）。配下があるレコードは削除できません。</li><li>土日を日付に入れて保存すると確認が出ます。</li></ul>');
+  h+=sec('tree','6. 方針ツリー','<p>会社の方針から日々の活動までのつながり（基本方針→事業グループ→事業→事業カテゴリ→施策→施策方針→活動）を一望できます。</p>'+f6+f7
+    +'<ul><li><b>ツリー表示／表形式</b>：表形式では、KPI・目標・実績・達成率も1行ずつ見られます。</li><li><b>横表示／縦表示</b>：ツリーの向き。</li><li><b>＋／－</b>：枝の開閉。最初は施策までを表示、「すべて展開」で活動まで開きます。</li><li><b>対象年度</b>：KPIの年度で絞り込み。</li><li>施策・活動のノードをクリックすると内容を開けます（上位の階層は管理者のみ編集可）。</li><li>管理者・役員はすべて表示。一般の社員は、自分が見られる施策・活動と、その上の階層の名称だけが表示されます（上位のKPIは見えません）。</li></ul>');
+  h+=sec('kd','7. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：状態（未着手／進行中／確認待ち／完了。保留があるときは保留も）の列にカードが並びます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
+  h+=sec('rules','8. 保留・完了・超過の扱い','<ul><li><b>保留</b>：施策や活動を保留にすると、その配下の活動・タスクも「保留」として扱われます（個々の状態は変わりません。保留を解除すれば元に戻ります）。保留は、超過・遅延・「終了3営業日」などの集計に含まれません。バーは灰色の斜線で表示されます。</li><li><b>完了した施策</b>：「完了施策表示」にチェックしない限り、配下ごと非表示になります。</li><li><b>完了したタスク</b>：「完了タスク表示」にチェックしたときだけ表示します。</li><li><b>超過</b>：終了日を過ぎて、完了していないタスクは、赤で「超過」と表示されます。</li></ul>');
+  h+=sec('perm','9. 見える範囲と編集できる範囲','<table class="mn-tb"><thead><tr><th></th><th>見える</th><th>編集・追加</th></tr></thead><tbody>'
+    +'<tr><td>管理者（永野・畑村）</td><td>すべて</td><td>すべて</td></tr>'
+    +'<tr><td>役員</td><td>すべて（非公開を除く）</td><td>自分の担当分</td></tr>'
+    +'<tr><td>施策のリーダー（担当者）</td><td>その施策と配下</td><td>施策の内容・配下の活動とタスク（追加・編集）</td></tr>'
+    +'<tr><td>活動の担当者</td><td>その施策と配下</td><td>その活動の内容、配下のタスクの追加・編集</td></tr>'
+    +'<tr><td>タスクの担当者・共同担当者</td><td>その施策と配下</td><td>自分のタスク</td></tr>'
+    +'<tr><td>施策のメンバー（社内関係者）</td><td>その施策と配下</td><td>なし（見るだけ）</td></tr>'
+    +'<tr><td>上長（主任以上）</td><td>部下が関わる施策</td><td>なし（担当分のみ）</td></tr></tbody></table>'
+    +'<ul><li><b>非公開</b>のレコードは、担当者・共同担当者・メンバーだけが見られます。</li><li>権限のない操作は、サーバー側でも止められます（画面で隠れているだけではありません）。</li><li>外部のパートナーは、パートナー名簿の「HALOタスク権限」が「利用」または「管理者」のときだけ使えます。</li></ul>');
+  h+=sec('faq','10. 困ったとき','<ul><li><b>他の人が変えた内容が見えない</b> → 「🔄 更新」。</li><li><b>「他の人が先に更新しました」と出た</b> → いったん閉じて、開き直してから入力し直してください。</li><li><b>追加したのに一覧にない</b> → 「自分のタスク」になっていると、他の人の担当は出ません。「すべて」に切り替え、完了にした場合は「完了タスク表示」も確認。</li><li><b>「＋ 新規」が出ない・バーが動かせない</b> → 権限がありません。施策のリーダーまたは管理者に依頼してください。</li><li>使い方の質問・不具合は、システム部門（永野）まで。</li></ul>');
+  return h;
+}
+function tkManual(){
+  if(document.getElementById('tk-man'))return;
+  const o=document.createElement('div');o.id='tk-man';
+  o.innerHTML='<div class="mn-box"><div class="mn-hd"><b>📖 タスク管理マニュアル</b><button onclick="tkManualClose()">✕ 閉じる</button></div><div class="mn-bd" id="mn-bd" tabindex="-1">'+tkManualHtml()+'</div></div>';
+  o.addEventListener('click',e=>{if(e.target===o)tkManualClose();});
+  document.body.appendChild(o);
+  document.getElementById('mn-bd').focus();
+}
+function tkManualClose(){const o=document.getElementById('tk-man');if(o)o.remove();}
+function tkManualGo(id){const el=document.getElementById('mn-'+id);const bd=document.getElementById('mn-bd');if(el&&bd)bd.scrollTo({top:el.offsetTop-bd.offsetTop-8,behavior:'smooth'});}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('tk-man'))tkManualClose();});
 // ガントのバーを、つかんで移動／両端を引いて伸縮（日単位。マウス・ペンのみ。動かした分だけ開始日・終了日を保存）
 let _tkBar=null,_tkBarSup=false;
 function tkBarTip(t,txt){
