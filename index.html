@@ -3969,8 +3969,10 @@ const TK_SCOL={'未着手':'#9e9e9e','進行中':'#5c6bc0','確認待ち':'#fb8c
 const TK_STS=['未着手','進行中','確認待ち','完了','保留'];
 const TK_KINTONE_URL='https://zcbwgd3ubjo5.cybozu.com/k/945/show#record=';
 const TK_OPEN_ALL=false;            // true=全社員に開放（見える範囲・編集はサーバーの権限ルールで決まる）。サーバー側 TASK_OPEN_TO_ALL と同時に切り替える
-const TK_ALLOWED_IDS=['81','90'];   // 開放前のテスター（永野・畑村）。サーバー側 TASK_TESTER_EMP_IDS と同じ
-function tkAllowed(){return !!(currentUser&&(TK_OPEN_ALL||TK_ALLOWED_IDS.includes(String(currentUser.id))));}
+// 開放対象（社員番号）：長町・小浦・システム部門(福富・永野・畑村・出海)・江波・小林。サーバー側 TASK_RELEASE_EMP_IDS と同じ。役員は役職で自動的に対象
+const TK_ALLOWED_IDS=['93','88','45','81','90','91','1002','18'];
+function tkIsExec(u){return !!u&&(String(u.dept||'')==='役員'||['役員','社長','副社長','専務','常務','取締役','監査役'].some(k=>String(u.role||'').indexOf(k)>=0));}
+function tkAllowed(){return !!(currentUser&&(TK_OPEN_ALL||TK_ALLOWED_IDS.includes(String(currentUser.id))||tkIsExec(currentUser)));}
 let _tk={caps:{},loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};
 function tkEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tkToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
