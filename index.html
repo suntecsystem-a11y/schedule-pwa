@@ -4001,7 +4001,7 @@ async function tkFetchAccess(){
   }catch(e){_tkAccess=false;}
   _applyNavLabels();renderBottomNav();
 }
-let _tk={caps:{},loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};
+let _tk={caps:{},loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,doneS:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};
 function tkEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tkToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
 function tkParse(s){if(!s)return null;const p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
@@ -4046,8 +4046,9 @@ function tkBuild(list){
   };
   roots.forEach(agg);
   // 保留：自分が保留、または上位（施策・活動）が保留なら「保留扱い」(hold)。配下それぞれの状態そのものは変えない（解除すれば元に戻る）
-  const markHold=(x,h)=>{x.hold=h||x.st==='保留';x.ch.forEach(c=>markHold(c,x.hold));};
-  roots.forEach(r=>markHold(r,false));
+  // 完了した施策：自分が完了の施策、またはその配下 → inDoneS（「完了施策表示」をオンにしない限り、画面に出さない）
+  const markHold=(x,h,d)=>{x.hold=h||x.st==='保留';x.inDoneS=d||(x.type==='施策'&&x.st==='完了');x.ch.forEach(c=>markHold(c,x.hold,x.inDoneS));};
+  roots.forEach(r=>markHold(r,false,false));
   list.forEach(n=>{if(!n.ch.length&&n.st==='完了')n.p=100;});
   const sortCh=x=>{x.ch.sort((a,b)=>(a.sd?+a.sd:1e15)-(b.sd?+b.sd:1e15)||(+a.id)-(+b.id));x.ch.forEach(sortCh);};
   roots.sort((a,b)=>(+a.id)-(+b.id));roots.forEach(sortCh);
@@ -4074,6 +4075,7 @@ function tkIsLate(x){
 }
 function tkBarColor(x){return tkIsLate(x)?'var(--red)':(x.hold&&x.st!=='完了'?'#90a4ae':(TK_SCOL[x.st]||'#9e9e9e'));}
 function tkVisible(x,keepDone){
+  if(x.inDoneS&&!_tk.doneS)return false;     // 完了した施策（配下を含む）は、完了施策表示がオフなら出さない
   if(x.ch.length)return x.ch.some(c=>tkVisible(c,keepDone));
   if(_tk.who&&x.who!==_tk.who&&!x.co.includes(_tk.who))return false;
   if(_tk.st&&tkEffSt(x)!==_tk.st)return false;
@@ -4118,7 +4120,8 @@ function tkRender(keepScroll){
   const bar='<div class="tk-bar">'+scopeBtns
     +'<label>担当者 <select onchange="tkSet(\'who\',this.value)"><option value="">全員</option>'+people.map(p=>'<option'+(p===_tk.who?' selected':'')+'>'+tkEsc(p)+'</option>').join('')+'</select></label>'
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
-    +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了を表示</label>'
+    +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了タスク表示</label>'
+    +'<label><input type="checkbox" '+(_tk.doneS?'checked':'')+' onchange="tkSet(\'doneS\',this.checked)"> 完了施策表示</label>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkSetAll(true)">すべて展開</button><button class="tk-btn" onclick="tkSetAll(false)">すべて折りたたむ</button>':'')
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
@@ -4207,7 +4210,7 @@ function tkBizAdd(d,n){const r=new Date(d);const dir=n>0?1:-1;let k=Math.abs(n);
 // kintoneタスク管理ダッシュボードと同じ項目・判定（全タスク／遅延／終了3営業日／開始3営業日／Todo／小タスク遅延・未完了）
 function tkDashData(){
   const today=tkToday(),lim=tkBizAdd(today,3);
-  const tasks=_tk.nodes.filter(n=>n.type==='タスク'&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));
+  const tasks=_tk.nodes.filter(n=>n.type==='タスク'&&(_tk.doneS||!n.inDoneS)&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));
   return {
     all:tasks,
     delayed:tasks.filter(tkIsLate),
@@ -4322,7 +4325,7 @@ function tkDashHtml(){
   const people=[...new Set(all.map(x=>x.who).filter(Boolean))].map(p=>{const m=all.filter(x=>x.who===p);return {p,open:m.filter(x=>tkEffSt(x)!=='完了'&&tkEffSt(x)!=='保留').length,late:m.filter(tkIsLate).length,done:m.filter(x=>x.st==='完了').length};}).sort((a,b)=>b.open-a.open);
   const mx=Math.max(1,...people.map(r=>r.open+r.done));
   const whoH=people.slice(0,15).map(r=>'<div class="tk-wr"><span class="wn">'+tkAv(r.p)+'</span><div class="wb"><i style="width:'+(r.done/mx*100)+'%;background:var(--green)"></i><i style="width:'+(Math.max(0,r.open-r.late)/mx*100)+'%;background:var(--primary)"></i><i style="width:'+(r.late/mx*100)+'%;background:var(--red)"></i></div><span class="wc">未完了 '+r.open+(r.late?' <b style="color:var(--red)">（遅延'+r.late+'）</b>':'')+'</span></div>').join('');
-  const prj=_tk.roots.map(t=>{const l=tkLeaves(t).filter(n=>n.type==='タスク'&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));if(!l.length)return '';const p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);return '<div class="tk-wr"><span class="wn" style="width:200px">'+tkEsc(t.title)+'</span><div class="wb"><i style="width:'+p+'%;background:var(--primary)"></i></div><span class="wc">'+p+'%（'+l.length+'件）</span></div>';}).join('');
+  const prj=_tk.roots.map(t=>{if(t.inDoneS&&!_tk.doneS)return '';const l=tkLeaves(t).filter(n=>n.type==='タスク'&&(!_tk.who||n.who===_tk.who||n.co.includes(_tk.who)));if(!l.length)return '';const p=Math.round(l.reduce((a,b)=>a+(b.st==='完了'?100:b.p),0)/l.length);return '<div class="tk-wr"><span class="wn" style="width:200px">'+tkEsc(t.title)+'</span><div class="wb"><i style="width:'+p+'%;background:var(--primary)"></i></div><span class="wc">'+p+'%（'+l.length+'件）</span></div>';}).join('');
   return '<div id="tk-dash">'+cards
     +'<div class="tk-dp" style="margin-bottom:12px"><h4>'+tkEsc(sel[4])+' <small>'+items.length+'件</small></h4>'+(list||'<div class="ds">該当なし</div>')+'</div>'
     +'<div class="tk-dg"><div class="tk-dp"><h4>ステータス別 <small>タスク</small></h4>'+(total?stBar:'<div class="ds">なし</div>')+'</div>'
@@ -4615,6 +4618,7 @@ async function tkfSave(){
     showToast(res.mode==='create'?'登録しました':'更新しました');
     tkfClose(true);
     if(task.type==='施策'||task.type==='活動')await tkLoad(null,true,true);
+    if(task.type==='施策'&&task.status==='完了'&&!_tk.doneS)showToast('完了した施策は非表示になりました（「完了施策表示」で表示できます）');
     else tkApplyLocal('save',{id:res.id,type:task.type,title:task.title.trim(),parent:task.parent||'',who:task.owner||'',co:task.co||[],
       st:task.status,start:task.start||'',end:task.end||'',p:(task.type==='タスク'&&task.status==='完了')?100:(Number(task.progress)||0),priv:!!task.priv,e:1,a:0});
   }catch(e){
