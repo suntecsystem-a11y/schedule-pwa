@@ -819,6 +819,10 @@ input,select{font-family:inherit;outline:none}
 .tkf-ro{background:#fff3e0;color:#8a5a00;border-radius:6px;padding:8px 10px;font-size:.82em;margin-bottom:12px}
 .tkf-chk{display:flex;gap:8px;align-items:flex-start;font-size:.85em!important;font-weight:400!important;color:var(--text)!important;cursor:pointer}
 .tkf-chk input{width:auto!important;margin-top:3px}
+.tk-add{flex:none;margin-left:6px;width:20px;height:20px;border-radius:50%;background:var(--primary-light);color:var(--primary-dark);font-weight:700;font-size:14px;line-height:19px;text-align:center;cursor:pointer;opacity:0;transition:opacity .12s}
+.tk-row:hover .tk-add{opacity:1}
+.tk-add:hover{background:var(--primary);color:#fff}
+@media(hover:none){.tk-add{opacity:1}}
 </style>
 </head>
 <body>
@@ -4168,7 +4172,7 @@ function tkGanttHtml(){
       const lbl=!x.ch.length&&w>60?'<span>'+x.p+'%</span>':'';
       bar='<div class="tk-gb'+(x.ch.length?' sum':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+'</div>';
     }
-    h+='<div class="tk-row l'+Math.min(depth,2)+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span><a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener" title="kintoneで開く">↗</a></div>'
+    h+='<div class="tk-row l'+Math.min(depth,2)+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span><a class="tk-lnk" href="'+TK_KINTONE_URL+x.id+'" target="_blank" rel="noopener" title="kintoneで開く">↗</a>'+tkAddBtn(x)+'</div>'
       +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.sd)+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
       +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+'</div></div>';
   });
@@ -4349,6 +4353,19 @@ async function tkfOpenEdit(id){
   }catch(e){showToast('読み込みに失敗：'+((e&&e.message)||e));}
 }
 // ガントの日付セルのダブルクリック：その行と同じ階層に、クリックした日付で新規（施策の行なら活動、活動の行ならタスク）
+// 行の「＋」：その行に紐づけて新規（施策の行→活動、活動の行→タスク、タスクの行→同じ活動にタスク）
+function tkCanAddFrom(x){
+  if(!x)return false;
+  if(_tk.caps&&_tk.caps.isAdmin)return true;
+  if(x.type==='施策'||x.type==='活動')return !!x.a;
+  if(x.type==='タスク'){const p=_tk.byId[x.parent];return !!(p&&p.a);}
+  return false;
+}
+function tkAddBtn(x){
+  if(!tkCanAddFrom(x))return '';
+  const tip=x.type==='施策'?'この施策に活動を追加':(x.type==='活動'?'この活動にタスクを追加':'同じ活動にタスクを追加');
+  return '<span class="tk-add" title="'+tip+'" onclick="event.stopPropagation();tkfNewFromRow(\''+x.id+'\',\'\')">＋</span>';
+}
 function tkfNewFromRow(id,dateStr){
   const n=_tk.byId[id];if(!n)return;
   let type='タスク',parent='';
@@ -4357,7 +4374,7 @@ function tkfNewFromRow(id,dateStr){
   else if(n.type==='タスク'){type='タスク';parent=n.parent||'';}
   const pn=_tk.byId[parent];
   if(!(_tk.caps&&_tk.caps.isAdmin)&&!(pn&&pn.a)){showToast('ここには追加する権限がありません');return;}
-  tkfOpenNew({type,parent,start:dateStr,end:dateStr});
+  tkfOpenNew({type,parent,start:dateStr||'',end:dateStr||''});
 }
 // 保存・削除の結果を、サーバーから全件を取り直さずにその場で画面へ反映する（速くするため）
 function tkApplyLocal(op,n){
@@ -4414,12 +4431,20 @@ function tkfField(label,html,cls){return '<div class="tkf-f '+(cls||'')+'"><labe
 function tkfInput(k,r,type,extra){return '<input data-k="'+k+'" type="'+(type||'text')+'" value="'+tkEsc(r[k])+'" '+(extra||'')+'>';}
 function tkfSelect(k,r,list,blank){return '<select data-k="'+k+'">'+(blank?'<option value=""></option>':'')+list.map(o=>'<option'+(o===r[k]?' selected':'')+'>'+tkEsc(o)+'</option>').join('')+'</select>';}
 function tkfTypeList(t){const l=(_tk.caps&&_tk.caps.isAdmin)?TKF_TYPES.slice():['活動','タスク'];if(!l.includes(t))l.push(t);return l;}
+function tkfAddChildFromForm(){
+  const id=_tkf&&_tkf.rec.id;if(!id)return;
+  tkfClose();                       // 入力中なら確認が出る。キャンセルしたら何もしない
+  if(_tkf===null)tkfNewFromRow(id,'');
+}
 function tkfRender(){
   if(!_tkf)return;
   const r=_tkf.rec,t=r.type,v=k=>tkfVis(k,t);
   const old=document.getElementById('tkf-panel');const keepScroll=old?old.querySelector('.tkf-body').scrollTop:0;
   const names=(typeof USERS!=='undefined'?USERS:[]).map(u=>u.name).filter(Boolean).sort((a,b)=>a.localeCompare(b,'ja'));
   const parents=tkfParentOptions(t,r.id);
+  const nodeHere=_tk.byId[r.id];
+  const addChildBtn=(_tkf.mode==='update'&&nodeHere&&(nodeHere.type==='施策'||nodeHere.type==='活動')&&tkCanAddFrom(nodeHere))
+    ?'<button onclick="tkfAddChildFromForm()">＋ '+(nodeHere.type==='施策'?'活動':'タスク')+'を追加</button>':'';
   const modeLabel={new:'新規作成',update:'#'+r.id+' を編集',copy:'コピーして新規作成'}[_tkf.mode];
   const status=v('status')?'<div class="tkf-f wide"><label>状態</label><div class="tkf-pills">'+TKF_STATUS.map(s=>'<button type="button" class="'+(r.status===s?'on':'')+'" style="--c:'+(TK_SCOL[s]||'#9e9e9e')+'" onclick="tkfSet(\'status\',\''+s+'\')">'+s+'</button>').join('')+'</div></div>':'';
   const progress=v('progress')?tkfField('進捗率','<div class="tkf-prog"><input type="range" min="0" max="100" step="5" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value)"><input data-k="progress" type="number" min="0" max="100" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value,1)"><span>%</span></div>'+(t==='タスク'?'<small class="tkf-hint">完了にすると100%になります</small>':'')):'';
@@ -4478,7 +4503,7 @@ function tkfRender(){
     +(_tkf.readonly
       ?'<div class="tkf-foot"><a href="'+TK_KINTONE_URL+r.id+'" target="_blank" rel="noopener">kintoneで開く ↗</a><span class="tkf-sp"></span><button onclick="tkfClose()">閉じる</button></div>'
       :'<div class="tkf-foot"><button class="tkf-save" onclick="tkfSave()">'+(_tkf.mode==='update'?'更新':'登録')+'</button>'
-       +(_tkf.mode==='update'?(_tk.caps&&_tk.caps.canCreate?'<button onclick="tkfCopy()">コピー</button>':'')+(_tkf.canDelete?'<button class="tkf-del" onclick="tkfDelete()">削除</button>':'')+'<a href="'+TK_KINTONE_URL+r.id+'" target="_blank" rel="noopener">kintoneで開く ↗</a>':'')
+       +(_tkf.mode==='update'?addChildBtn+(_tk.caps&&_tk.caps.canCreate?'<button onclick="tkfCopy()">コピー</button>':'')+(_tkf.canDelete?'<button class="tkf-del" onclick="tkfDelete()">削除</button>':'')+'<a href="'+TK_KINTONE_URL+r.id+'" target="_blank" rel="noopener">kintoneで開く ↗</a>':'')
        +'<span class="tkf-sp"></span><button onclick="tkfClose()">キャンセル</button></div>')
     +'<datalist id="tkf-names">'+names.map(n=>'<option value="'+tkEsc(n)+'">').join('')+'</datalist>'
     +'<datalist id="tkf-parents">'+parents.map(p=>'<option value="'+tkEsc(p.label)+'">').join('')+'</datalist></aside>';
@@ -4605,7 +4630,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('click',e=>{
   const root=document.getElementById('tab-tasks');
   if(!root||!root.contains(e.target)||_tkf)return;
-  if(e.target.closest('.tk-tw,.tk-lnk,a,button,select,input,label'))return;
+  if(e.target.closest('.tk-tw,.tk-lnk,.tk-add,a,button,select,input,label'))return;
   if(e.target.closest('td.tk-fl-grp,th'))return;
   const el=e.target.closest('.tk-left,.tk-card,.tk-li,.tk-gb,.tk-dl-row,.tk-fl-row');
   if(!el)return;
