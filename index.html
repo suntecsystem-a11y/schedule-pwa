@@ -4304,7 +4304,7 @@ const TKF_VIS={
   owner:['事業グループ','事業','事業カテゴリ','活動','施策方針','施策','タスク'],
   progress:['活動','施策方針','施策','タスク'],start:['活動','施策方針','施策','タスク'],end:['活動','施策方針','施策','タスク'],
   detail:['活動','施策方針','施策','タスク'],risk:['活動','施策方針','施策','タスク'],nextAction:['活動','施策方針','施策','タスク'],
-  taskUrl:['タスク'],co:['タスク'],docLinks:['施策'],rel:['施策','活動'],priv:['施策','活動','タスク'],kgi:['基本方針'],departmentGoal:['事業'],kpi:['事業'],
+  taskUrl:['タスク'],co:['タスク'],docLinks:['施策'],rel:['施策','活動'],relExt:['施策','活動'],priv:['施策','活動','タスク'],kgi:['基本方針'],departmentGoal:['事業'],kpi:['事業'],
   fiscalYear:TKF_BIZ,kpiCategory:TKF_BIZ,kpiItem:TKF_BIZ,kpiName:TKF_BIZ,kpiTarget:TKF_BIZ,kpiActual:TKF_BIZ,kpiUnit:TKF_BIZ,kpiStatus:TKF_BIZ,kpiMemo:TKF_BIZ,
   relatedActivity:TKF_BIZ,relatedStrategy:TKF_BIZ,
   relatedPolicies:['活動','施策方針','施策'],relatedThemes:['活動','施策方針','施策'],linkReason:['活動','施策方針','施策'],mainBelongingMemo:['活動','施策方針','施策']
@@ -4317,7 +4317,7 @@ let _tkf=null;
 function tkfBlank(o){
   return Object.assign({id:'',revision:'',type:'タスク',parent:'',title:'',start:'',end:'',owner:'',status:'未着手',progress:0,tag:'',taskUrl:'',detail:'',risk:'',nextAction:'',
     kgi:'',departmentGoal:'',kpi:'',fiscalYear:'',kpiCategory:'',kpiItem:'',kpiName:'',kpiTarget:'',kpiActual:'',kpiUnit:'',kpiStatus:'未評価',kpiMemo:'',
-    relatedActivity:'',relatedStrategy:'',relatedPolicies:'',relatedThemes:'',linkReason:'',mainBelongingMemo:'',co:[],rel:[],priv:false,docLinks:[]},o||{});
+    relatedActivity:'',relatedStrategy:'',relatedPolicies:'',relatedThemes:'',linkReason:'',mainBelongingMemo:'',co:[],rel:[],relExt:'',priv:false,docLinks:[]},o||{});
 }
 function tkfVis(k,type){return (TKF_VIS[k]||[]).includes(type);}
 function tkfOpenNew(o){
@@ -4408,6 +4408,7 @@ function tkfRender(){
   const progress=v('progress')?tkfField('進捗率','<div class="tkf-prog"><input type="range" min="0" max="100" step="5" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value)"><input data-k="progress" type="number" min="0" max="100" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value,1)"><span>%</span></div>'+(t==='タスク'?'<small class="tkf-hint">完了にすると100%になります</small>':'')):'';
   const co=v('co')?tkfField('共同担当者（複数人で対応する場合）','<div class="tkf-chips">'+(r.co||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfCoDel('+i+')">×</b></span>').join('')+'<input id="tkf-co-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfCoAdd()}" onchange="tkfCoAdd()"></div>','wide'):'';
   const relf=v('rel')?tkfField('メンバー（社内関係者）— 閲覧のみ','<div class="tkf-chips">'+(r.rel||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfRelDel('+i+')">×</b></span>').join('')+'<input id="tkf-rel-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfRelAdd()}" onchange="tkfRelAdd()"></div><small class="tkf-hint">登録した人と、その人の所属部署の上長が、この'+tkEsc(t)+'を閲覧できます</small>','wide'):'';
+  const relExtf=v('relExt')?tkfField('社外関係者（外部の方）— 閲覧のみ','<input data-k="relExt" type="text" placeholder="例：江波 純平（複数の場合は「、」で区切る）" autocomplete="off" value="'+tkEsc(r.relExt)+'"><small class="tkf-hint">名簿にいない外部の方の氏名を、そのまま入力します（名簿との照合はされません。表記を正確に）</small>','wide'):'';
   const privf=v('priv')?'<div class="tkf-f wide"><label class="tkf-chk"><input type="checkbox" data-k="priv"'+(r.priv?' checked':'')+'> 非公開にする（担当者・共同担当者・社内関係者以外には表示されません。管理者・上長にも見えません）</label></div>':'';
   const docs=v('docLinks')?tkfField('資料リンク','<div id="tkf-docs">'+(r.docLinks||[]).map(d=>'<div class="tkf-doc"><input class="t" placeholder="資料タイトル" value="'+tkEsc(d.t)+'"><input class="u" type="url" placeholder="https://..." value="'+tkEsc(d.u)+'"><b onclick="this.parentNode.remove();_tkf.dirty=true">×</b></div>').join('')+'</div><button type="button" class="tkf-add" onclick="tkfDocAdd()">＋ 追加</button>','wide'):'';
   const kpiOn=['fiscalYear','kpiCategory','kpiItem','kpiName','kpiTarget','kpiActual','kpiUnit','kpiStatus','kpiMemo','kgi','departmentGoal','kpi'].some(v);
@@ -4450,6 +4451,7 @@ function tkfRender(){
     +tkfField('タグ',tkfInput('tag',r,'text','placeholder="例：新棟, NAS, Teams"'),'wide')
     +co
     +relf
+    +relExtf
     +privf
     +(v('taskUrl')?tkfField('資料URL',tkfInput('taskUrl',r,'url','placeholder="タスク全体の資料URL"'),'wide'):'')
     +docs
