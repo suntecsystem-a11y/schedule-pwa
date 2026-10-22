@@ -831,6 +831,36 @@ body.tk-dragging{user-select:none;-webkit-user-select:none;cursor:ew-resize}
 .tk-tag.hold{background:#78909c!important}
 .tk-tag.inh{background:#fff!important;color:#78909c;border:1px solid #90a4ae}
 .tk-fl-row.hold td:not(.tk-fl-grp){color:#8b98a5;background:#fafbfc}
+#tab-tasks .tkp-scroll{height:100%;overflow:auto;padding:22px 20px;background:var(--card)}
+.tkp-mm{display:flex;flex-direction:column;gap:14px;min-width:max-content;position:relative}
+.tkp-svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:0}
+.tkp-br{display:flex;align-items:center;position:relative;z-index:1}
+.tkp-nw{flex:0 0 auto;display:flex;align-items:center}
+.tkp-ch{display:flex;flex-direction:column;gap:10px;margin-left:46px}
+.tkp-nd{width:176px;min-height:44px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 10px;border-radius:6px;color:#fff;font-size:.82em;font-weight:700;line-height:1.35;text-align:center;background:#64748b}
+.tkp-nd.clk,.tkp-cell.clk{cursor:pointer}
+.tkp-nd.clk:hover{filter:brightness(1.08);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.tkp-tt{flex:1;min-width:0;word-break:break-all}
+.tkp-tg{flex:0 0 18px;width:18px;height:18px;line-height:16px;text-align:center;font-size:12px;border:1px solid rgba(255,255,255,.7);border-radius:3px;background:rgba(255,255,255,.18);cursor:pointer}
+.c-policy{background:#1f4e79!important}.c-bg{background:#3f73bf!important}.c-biz{background:#7c5fb8!important}.c-cat{background:#4f9a3a!important}.c-str{background:#008c8c!important}.c-plan{background:#64748b!important}.c-act{background:#d97706!important}
+.tkv{display:flex;gap:36px;align-items:flex-start;min-width:max-content}
+.tkv-br{display:flex;flex-direction:column;align-items:center;position:relative}
+.tkv-ch{display:flex;position:relative;padding-top:22px;margin-top:0}
+.tkv-ch::before{content:"";position:absolute;top:0;left:50%;height:22px;border-left:1.5px solid #b0bec5}
+.tkv-ch>.tkv-br{padding:22px 8px 0;position:relative}
+.tkv-ch>.tkv-br::before,.tkv-ch>.tkv-br::after{content:"";position:absolute;top:0;width:50%;height:22px;border-top:1.5px solid #b0bec5}
+.tkv-ch>.tkv-br::before{right:50%}
+.tkv-ch>.tkv-br::after{left:50%;border-left:1.5px solid #b0bec5}
+.tkv-ch>.tkv-br:first-child::before,.tkv-ch>.tkv-br:last-child::after{border-top-color:transparent}
+.tkv-ch>.tkv-br:last-child::before{border-right:1.5px solid #b0bec5}
+.tkv-ch>.tkv-br:only-child{padding-top:0}
+.tkv-ch>.tkv-br:only-child::before,.tkv-ch>.tkv-br:only-child::after{display:none}
+.tkp-tbl{height:100%;overflow:auto;background:var(--card)}
+.tkp-tbl table{border-collapse:collapse;font-size:.82em;min-width:100%}
+.tkp-tbl th{position:sticky;top:0;background:#f4f6f8;border:1px solid var(--border);padding:7px 10px;text-align:left;white-space:nowrap;z-index:1}
+.tkp-tbl td{border:1px solid var(--border);padding:6px 10px;vertical-align:middle}
+.tkp-em{color:var(--text2);text-align:center}
+.tkp-cell{display:inline-block;padding:3px 9px;border-radius:4px;color:#fff;font-weight:600;font-size:.95em}
 </style>
 </head>
 <body>
@@ -4096,7 +4126,7 @@ function tkPeople(){
   _tk.nodes.forEach(n=>{if(!n.ch.length){if(n.who)s.add(n.who);n.co.forEach(c=>s.add(c));}});
   return [...s].sort((a,b)=>a.localeCompare(b,'ja'));
 }
-function tkSet(k,v){_tk[k]=v;if(k==='view'&&v==='gantt')_tk.fresh=true;tkRender();}
+function tkSet(k,v){_tk[k]=v;if(k==='view'&&v==='gantt')_tk.fresh=true;if(k==='view'&&v==='policy'&&!(_tk.pol&&_tk.pol.loaded)){tkLoadPolicy();return;}tkRender();}
 function tkToggle(id){_tk.open[id]=!_tk.open[id];tkRender(true);}
 function tkSetAll(v){Object.keys(_tk.open).forEach(k=>_tk.open[k]=v);tkRender(true);}
 function tkZoom(n){_tk.dayW=n;_tk.fresh=true;tkRender();}
@@ -4108,6 +4138,7 @@ function tkScrollToday(){
 function tkRender(keepScroll){
   const root=document.getElementById('tab-tasks');if(!root)return;
   const old=document.getElementById('tk-wrap');
+  const psc=document.getElementById('tkp-scroll');const psl=psc?psc.scrollLeft:0,pst=psc?psc.scrollTop:0;
   const oldD=document.getElementById('tk-dash');const dst=oldD?oldD.scrollTop:0;
   const sl=old?old.scrollLeft:0,st=old?old.scrollTop:0;
   if(_tk.error){
@@ -4126,14 +4157,17 @@ function tkRender(keepScroll){
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
     +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
-  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
+  const isPol=_tk.view==='policy';
+  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['policy','方針ツリー'],['kanban','かんばん'],['dash','ダッシュボード']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'</div>';
   let body='';
-  if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
+  if(isPol)body=tkPolicyHtml();
+  else if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
   else if(_tk.view==='gantt')body=tkGanttHtml();
   else if(_tk.view==='kanban')body=tkKanbanHtml();
   else body=tkDashHtml();
-  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+bar+'<div id="tk-view">'+body+'</div></div>';
+  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():bar)+'<div id="tk-view">'+body+'</div></div>';
   tkFit();
+  if(isPol)tkPolicyAfter(keepScroll,psl,pst);
   const nd=document.getElementById('tk-dash');if(nd&&keepScroll)nd.scrollTop=dst;
   const w=document.getElementById('tk-wrap');
   if(w){
@@ -4142,6 +4176,127 @@ function tkRender(keepScroll){
   }
 }
 // 表示領域の高さを、画面の下端（スマホは下部ナビの上）まで使う
+// ============================================================
+// 方針ツリー（基本方針→事業グループ→事業→事業カテゴリ→施策→施策方針→活動）。kintoneの方針ツリーと同じ内容（ツリー横／縦・表形式・KPI）
+// ============================================================
+const TKP_COLS=['基本方針','事業グループ','事業','事業カテゴリ','施策','施策方針','活動'];
+const TKP_CLS={'基本方針':'policy','事業グループ':'bg','事業':'biz','重点テーマ':'biz','事業カテゴリ':'cat','施策':'str','施策方針':'plan','活動':'act'};
+const TKP_CHILD={'基本方針':['事業グループ','事業','重点テーマ'],'事業グループ':['事業'],'事業':['事業カテゴリ'],'重点テーマ':['事業カテゴリ'],'事業カテゴリ':['施策'],'施策':['施策方針','活動'],'施策方針':['活動']};
+function tkpDepth(t){return t==='重点テーマ'?2:Math.max(0,TKP_COLS.indexOf(t));}
+async function tkLoadPolicy(fresh,keep){
+  try{
+    const r=await api('getPolicyTree',{fresh:fresh?1:0},'方針ツリーを読み込み中...');
+    const prev=_tk.pol||{};
+    const nodes=r.nodes||[],byId={};
+    nodes.forEach(n=>{n.ch=[];byId[n.id]=n;});
+    nodes.forEach(n=>{const p=byId[n.parent];if(p&&p!==n&&(TKP_CHILD[p.type]||[]).includes(n.type))p.ch.push(n);else n.root=true;});
+    const key=n=>[n.order>0?0:1,n.order||0,n.start||n.end||'9999-12-31',n.end||'9999-12-31',+n.id];
+    const cmp=(a,b)=>{const x=key(a),y=key(b);for(let i=0;i<x.length;i++){if(x[i]<y[i])return-1;if(x[i]>y[i])return 1;}return 0;};
+    nodes.forEach(n=>n.ch.sort(cmp));
+    const roots=nodes.filter(n=>n.root).sort(cmp);
+    _tk.pol={nodes,byId,roots,full:!!r.full,loaded:true,layout:prev.layout||'tree',orient:prev.orient||'h',year:prev.year||'',fold:prev.fold||(()=>{const f={};nodes.forEach(n=>{if(n.type==='施策'&&n.ch.length)f[n.id]=true;});return f;})()};
+    _tk.error='';
+  }catch(e){_tk.error=(e&&e.message)||String(e);}
+  tkRender(!!keep);
+}
+function tkpYearOf(n){
+  const by=_tk.pol.byId;
+  for(let c=n,g=0;c&&g<20;c=by[c.parent],g++){if(c.k&&c.k.year)return String(c.k.year);}
+  return '';
+}
+function tkpShown(n){return !_tk.pol.year||!tkpYearOf(n)||tkpYearOf(n)===_tk.pol.year;}
+function tkpKids(n){return n.ch.filter(tkpShown);}
+function tkpTip(n){return n.type+(n.who?'　担当：'+n.who:'')+(n.st&&(n.type==='施策'||n.type==='活動')?'　状態：'+n.st:'');}
+function tkpNode(n,kids,folded){
+  const tg=kids.length?'<span class="tkp-tg" data-pfold="'+n.id+'">'+(folded?'＋':'－')+'</span>':'';
+  return '<div class="tkp-nd c-'+(TKP_CLS[n.type]||'act')+((n.e||n.type==='施策'||n.type==='活動')?' clk':'')+'" data-pid="'+n.id+'" title="'+tkEsc(tkpTip(n))+'">'+tg+'<span class="tkp-tt">'+tkEsc(n.title)+'</span></div>';
+}
+function tkpBranchH(n,seen){
+  if(seen.has(n.id))return '';
+  const s2=new Set(seen);s2.add(n.id);
+  const kids=tkpKids(n),folded=!!_tk.pol.fold[n.id];
+  return '<div class="tkp-br"><div class="tkp-nw">'+tkpNode(n,kids,folded)+'</div>'
+    +(kids.length&&!folded?'<div class="tkp-ch">'+kids.map(c=>'<div class="tkp-c">'+tkpBranchH(c,s2)+'</div>').join('')+'</div>':'')+'</div>';
+}
+function tkpBranchV(n,seen){
+  if(seen.has(n.id))return '';
+  const s2=new Set(seen);s2.add(n.id);
+  const kids=tkpKids(n),folded=!!_tk.pol.fold[n.id];
+  return '<div class="tkv-br">'+tkpNode(n,kids,folded)
+    +(kids.length&&!folded?'<div class="tkv-ch">'+kids.map(c=>tkpBranchV(c,s2)).join('')+'</div>':'')+'</div>';
+}
+function tkpKpiRate(k){const t=Number(k.target)||0,a=Number(k.actual)||0;return t?(Math.round(a/t*1000)/10)+'%':'-';}
+function tkpTable(){
+  const rows=[];
+  const walk=(n,path,seen)=>{
+    if(seen.has(n.id))return;
+    const p=path.slice();const d=Math.min(TKP_COLS.length-1,tkpDepth(n.type));p[d]=n;for(let i=d+1;i<p.length;i++)p[i]=null;
+    const kids=tkpKids(n);
+    const s2=new Set(seen);s2.add(n.id);
+    if(!kids.length){rows.push(p);return;}
+    kids.forEach(c=>walk(c,p,s2));
+  };
+  _tk.pol.roots.filter(tkpShown).forEach(r=>walk(r,new Array(TKP_COLS.length).fill(null),new Set()));
+  if(!rows.length)return '';
+  const head=TKP_COLS.map(c=>'<th>'+c+'</th>').join('')+'<th>KPI</th><th>目標</th><th>実績</th><th>達成率</th><th>状態</th>';
+  const body=rows.map(p=>{
+    const rev=p.slice().reverse();
+    const deep=rev.find(Boolean);
+    const ks=rev.find(x=>x&&x.k)||null;
+    const cells=p.map(n=>n?'<td><span class="tkp-cell c-'+(TKP_CLS[n.type]||'act')+((n.e||n.type==='施策'||n.type==='活動')?' clk':'')+'" data-pid="'+n.id+'">'+tkEsc(n.title)+'</span></td>':'<td class="tkp-em">-</td>').join('');
+    const k=ks&&ks.k;
+    return '<tr>'+cells+'<td>'+(k?'<small>'+tkEsc(k.year||'')+'</small> '+tkEsc([k.cat,k.item].filter(Boolean).join(' / ')||'KPI'):'<span class="tkp-em">-</span>')+'</td>'
+      +'<td>'+(k&&k.target!==''?tkEsc(k.target+' '+(k.unit||'')):'-')+'</td><td>'+(k&&k.actual!==''?tkEsc(k.actual+' '+(k.unit||'')):'-')+'</td><td>'+(k?tkpKpiRate(k):'-')+'</td><td>'+tkEsc((k&&k.status)||(deep&&(deep.type==='施策'||deep.type==='活動')?deep.st:'')||'-')+'</td></tr>';
+  }).join('');
+  return '<div class="tkp-tbl"><table><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+function tkPolicyBar(){
+  const P=_tk.pol;if(!P)return '<div class="tk-bar"></div>';
+  const years=[...new Set(P.nodes.map(n=>n.k&&n.k.year).filter(Boolean).map(String))].sort();
+  const seg=(k,list)=>'<div class="tk-grp">'+list.map(o=>'<button class="'+(P[k]===o[0]?'on':'')+'" onclick="tkPolSet(\''+k+'\',\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>';
+  return '<div class="tk-bar">'+seg('layout',[['tree','ツリー表示'],['table','表形式']])
+    +(P.layout==='tree'?seg('orient',[['h','横表示'],['v','縦表示']])+'<button class="tk-btn" onclick="tkPolFoldAll(false)">すべて展開</button><button class="tk-btn" onclick="tkPolFoldAll(true)">すべて折りたたむ</button>':'')
+    +(years.length?'<label>対象年度 <select onchange="tkPolSet(\'year\',this.value)"><option value="">全年度</option>'+years.map(y=>'<option'+(P.year===y?' selected':'')+'>'+tkEsc(y)+'</option>').join('')+'</select></label>':'')
+    +'<span class="tk-sp"></span><button class="tk-btn" onclick="tkLoadPolicy(true,true)">🔄 更新</button></div>';
+}
+function tkPolSet(k,v){_tk.pol[k]=v;tkRender();}
+function tkPolFoldAll(f){const P=_tk.pol;P.fold={};if(f)P.nodes.forEach(n=>{if(n.ch.length)P.fold[n.id]=true;});tkRender();}
+function tkPolicyHtml(){
+  const P=_tk.pol;
+  if(!P||!P.loaded)return '<div class="tk-empty">読み込み中...</div>';
+  const roots=P.roots.filter(tkpShown);
+  if(!roots.length)return '<div class="tk-empty">方針ツリーに表示できるデータがありません'+(P.full?'':'<br><small>自分が関わる施策・活動の上位階層が表示されます</small>')+'</div>';
+  if(P.layout==='table')return tkpTable()||'<div class="tk-empty">表形式で表示できるデータがありません</div>';
+  if(P.orient==='v')return '<div class="tkp-scroll" id="tkp-scroll"><div class="tkv">'+roots.map(r=>tkpBranchV(r,new Set())).join('')+'</div></div>';
+  return '<div class="tkp-scroll" id="tkp-scroll"><div class="tkp-mm" id="tkp-mm">'+roots.map(r=>tkpBranchH(r,new Set())).join('')+'</div></div>';
+}
+// 横表示：親から子へ線を引く（描画後に位置を測る）
+function tkPolicyAfter(keep,psl,pst){
+  const sc0=document.getElementById('tkp-scroll');
+  if(sc0){if(keep){sc0.scrollLeft=psl;sc0.scrollTop=pst;}else{const f=sc0.querySelector('.tkp-nd,.tkv-br>.tkp-nd');if(f){const sb=sc0.getBoundingClientRect(),fb=f.getBoundingClientRect();sc0.scrollTop=Math.max(0,fb.top-sb.top+sc0.scrollTop-sc0.clientHeight/2+22);}}}
+  const mm=document.getElementById('tkp-mm');if(!mm)return;
+  requestAnimationFrame(()=>{
+    const m=document.getElementById('tkp-mm');if(!m)return;
+    const base=m.getBoundingClientRect();
+    const W=m.scrollWidth,H=m.scrollHeight;
+    let d='';
+    m.querySelectorAll('.tkp-br').forEach(br=>{
+      const pn=br.querySelector(':scope>.tkp-nw>.tkp-nd');const ch=br.querySelector(':scope>.tkp-ch');
+      if(!pn||!ch)return;
+      const a=pn.getBoundingClientRect();const x1=a.right-base.left,y1=a.top+a.height/2-base.top;
+      ch.querySelectorAll(':scope>.tkp-c>.tkp-br>.tkp-nw>.tkp-nd').forEach(cn=>{
+        const b=cn.getBoundingClientRect();const x2=b.left-base.left,y2=b.top+b.height/2-base.top,mx=x1+(x2-x1)/2;
+        d+='M'+x1+' '+y1+'C'+mx+' '+y1+' '+mx+' '+y2+' '+x2+' '+y2;
+      });
+    });
+    const old=m.querySelector('.tkp-svg');if(old)old.remove();
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('class','tkp-svg');svg.setAttribute('width',W);svg.setAttribute('height',H);
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.setAttribute('fill','none');p.setAttribute('stroke','#b0bec5');p.setAttribute('stroke-width','1.5');
+    svg.appendChild(p);m.prepend(svg);
+  });
+}
+
 function tkFit(){
   const v=document.getElementById('tk-view');if(!v)return;
   const bn=document.getElementById('bottom-nav');
@@ -4617,6 +4772,8 @@ async function tkfSave(){
     const res=await api('saveTask',{task},'保存中...');
     showToast(res.mode==='create'?'登録しました':'更新しました');
     tkfClose(true);
+    if(_tk.pol)_tk.pol.stale=true;
+    if(_tk.view==='policy'){await tkLoadPolicy(true,true);return;}
     if(task.type==='施策'||task.type==='活動')await tkLoad(null,true,true);
     if(task.type==='施策'&&task.status==='完了'&&!_tk.doneS)showToast('完了した施策は非表示になりました（「完了施策表示」で表示できます）');
     else tkApplyLocal('save',{id:res.id,type:task.type,title:task.title.trim(),parent:task.parent||'',who:task.owner||'',co:task.co||[],
@@ -4634,6 +4791,8 @@ async function tkfDelete(){
     await api('deleteTask',{id:delId},'削除中...');
     showToast('削除しました');
     tkfClose(true);
+    if(_tk.pol)_tk.pol.stale=true;
+    if(_tk.view==='policy'){tkLoadPolicy(true,true);return;}
     tkApplyLocal('delete',{id:delId});
   }catch(e){showToast('削除に失敗：'+((e&&e.message)||e));}
 }
@@ -4653,6 +4812,14 @@ document.addEventListener('click',e=>{
   if(!el)return;
   const host=el.closest('[data-id]');
   if(host&&host.dataset.id)tkfOpenEdit(host.dataset.id);
+});
+document.addEventListener('click',e=>{
+  const root=document.getElementById('tab-tasks');
+  if(!root||!root.contains(e.target)||_tkf||_tk.view!=='policy'||!_tk.pol)return;
+  const f=e.target.closest('[data-pfold]');
+  if(f){const id=f.dataset.pfold;_tk.pol.fold[id]=!_tk.pol.fold[id];tkRender(true);return;}
+  const nd=e.target.closest('[data-pid]');
+  if(nd){const n=_tk.pol.byId[nd.dataset.pid];if(n&&(n.e||n.type==='施策'||n.type==='活動'))tkfOpenEdit(n.id);}
 });
 // ガントの空き日付：マウスを乗せると「＋」の目印、クリックでその日付、ドラッグで期間を入れて新規（追加できる行だけ）
 let _tkDrag=null;
