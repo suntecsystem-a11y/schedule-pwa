@@ -4519,7 +4519,7 @@ function tkfRender(){
     +(_tkf.readonly
       ?'<div class="tkf-foot"><span class="tkf-sp"></span><button onclick="tkfClose()">閉じる</button></div>'
       :'<div class="tkf-foot"><button class="tkf-save" onclick="tkfSave()">'+(_tkf.mode==='update'?'更新':'登録')+'</button>'
-       +(_tkf.mode==='update'?addChildBtn+(_tk.caps&&_tk.caps.canCreate?'<button onclick="tkfCopy()">コピー</button>':'')+(_tkf.canDelete?'<button class="tkf-del" onclick="tkfDelete()">削除</button>':'')+'':'')
+       +(_tkf.mode==='update'?addChildBtn+(_tk.caps&&_tk.caps.canCreate&&(_tk.caps.isAdmin||_tkf.rec.type==='活動'||_tkf.rec.type==='タスク')?'<button onclick="tkfCopy()">コピー</button>':'')+(_tkf.canDelete?'<button class="tkf-del" onclick="tkfDelete()">削除</button>':'')+'':'')
        +'<span class="tkf-sp"></span><button onclick="tkfClose()">キャンセル</button></div>')
     +'<datalist id="tkf-names">'+names.map(n=>'<option value="'+tkEsc(n)+'">').join('')+'</datalist>'
     +'<datalist id="tkf-parents">'+parents.map(p=>'<option value="'+tkEsc(p.label)+'">').join('')+'</datalist></aside>';
