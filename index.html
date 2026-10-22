@@ -3589,6 +3589,7 @@ function showApp(opts){
   document.getElementById('elearning-tab-btn').style.display = canSeeElearning ? 'block' : 'none';
   document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
   _applyNavLabels();
+  if(typeof tkFetchAccess==='function')tkFetchAccess();
   buildFilterUI();
   const _retTab=sessionStorage.getItem('sch_return_tab');
   const _fromIncident=document.referrer&&document.referrer.includes('incident-report');
@@ -3969,10 +3970,26 @@ const TK_SCOL={'未着手':'#9e9e9e','進行中':'#5c6bc0','確認待ち':'#fb8c
 const TK_STS=['未着手','進行中','確認待ち','完了','保留'];
 const TK_KINTONE_URL='https://zcbwgd3ubjo5.cybozu.com/k/945/show#record=';
 const TK_OPEN_ALL=false;            // true=全社員に開放（見える範囲・編集はサーバーの権限ルールで決まる）。サーバー側 TASK_OPEN_TO_ALL と同時に切り替える
-// 開放対象（社員番号）：長町・小浦・システム部門(福富・永野・畑村・出海)・江波・小林。サーバー側 TASK_RELEASE_EMP_IDS と同じ。役員は役職で自動的に対象
-const TK_ALLOWED_IDS=['93','88','45','81','90','91','1002','18'];
+// 開放対象（社員番号）：長町・小浦・システム部門(福富・永野・畑村・出海)・小林。サーバー側 TASK_RELEASE_EMP_IDS と同じ。役員は役職で自動的に対象。外部のパートナーは、パートナー名簿の「HALOタスク権限」をサーバーに確認する
+const TK_ALLOWED_IDS=['93','88','45','81','90','91','18'];
 function tkIsExec(u){return !!u&&(String(u.dept||'')==='役員'||['役員','社長','副社長','専務','常務','取締役','監査役'].some(k=>String(u.role||'').indexOf(k)>=0));}
-function tkAllowed(){return !!(currentUser&&(TK_OPEN_ALL||TK_ALLOWED_IDS.includes(String(currentUser.id))||tkIsExec(currentUser)));}
+let _tkAccess=null;   // 外部のパートナーの利用可否（サーバーで確認した結果）
+function tkAllowed(){
+  if(!currentUser)return false;
+  if(currentUser.isPartner)return _tkAccess===true;
+  return !!(TK_OPEN_ALL||TK_ALLOWED_IDS.includes(String(currentUser.id))||tkIsExec(currentUser));
+}
+// 外部のパートナーだけ、ログイン後にサーバーへ確認（画面を止めないよう、読み込み表示は出さない）
+async function tkFetchAccess(){
+  if(!currentUser||!currentUser.isPartner)return;
+  try{
+    const sess=loadSession();
+    const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'getTaskAccess',token:sess&&sess.token}),redirect:'follow'});
+    const r=await res.json();
+    _tkAccess=!!(r.ok&&r.data&&r.data.allowed);
+  }catch(e){_tkAccess=false;}
+  _applyNavLabels();renderBottomNav();
+}
 let _tk={caps:{},loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};
 function tkEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tkToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
@@ -4304,7 +4321,7 @@ const TKF_VIS={
   owner:['事業グループ','事業','事業カテゴリ','活動','施策方針','施策','タスク'],
   progress:['活動','施策方針','施策','タスク'],start:['活動','施策方針','施策','タスク'],end:['活動','施策方針','施策','タスク'],
   detail:['活動','施策方針','施策','タスク'],risk:['活動','施策方針','施策','タスク'],nextAction:['活動','施策方針','施策','タスク'],
-  taskUrl:['タスク'],co:['タスク'],docLinks:['施策'],rel:['施策','活動'],relExt:['施策','活動'],priv:['施策','活動','タスク'],kgi:['基本方針'],departmentGoal:['事業'],kpi:['事業'],
+  taskUrl:['タスク'],co:['タスク'],docLinks:['施策'],rel:['施策','活動'],priv:['施策','活動','タスク'],kgi:['基本方針'],departmentGoal:['事業'],kpi:['事業'],
   fiscalYear:TKF_BIZ,kpiCategory:TKF_BIZ,kpiItem:TKF_BIZ,kpiName:TKF_BIZ,kpiTarget:TKF_BIZ,kpiActual:TKF_BIZ,kpiUnit:TKF_BIZ,kpiStatus:TKF_BIZ,kpiMemo:TKF_BIZ,
   relatedActivity:TKF_BIZ,relatedStrategy:TKF_BIZ,
   relatedPolicies:['活動','施策方針','施策'],relatedThemes:['活動','施策方針','施策'],linkReason:['活動','施策方針','施策'],mainBelongingMemo:['活動','施策方針','施策']
@@ -4317,7 +4334,7 @@ let _tkf=null;
 function tkfBlank(o){
   return Object.assign({id:'',revision:'',type:'タスク',parent:'',title:'',start:'',end:'',owner:'',status:'未着手',progress:0,tag:'',taskUrl:'',detail:'',risk:'',nextAction:'',
     kgi:'',departmentGoal:'',kpi:'',fiscalYear:'',kpiCategory:'',kpiItem:'',kpiName:'',kpiTarget:'',kpiActual:'',kpiUnit:'',kpiStatus:'未評価',kpiMemo:'',
-    relatedActivity:'',relatedStrategy:'',relatedPolicies:'',relatedThemes:'',linkReason:'',mainBelongingMemo:'',co:[],rel:[],relExt:'',priv:false,docLinks:[]},o||{});
+    relatedActivity:'',relatedStrategy:'',relatedPolicies:'',relatedThemes:'',linkReason:'',mainBelongingMemo:'',co:[],rel:[],priv:false,docLinks:[]},o||{});
 }
 function tkfVis(k,type){return (TKF_VIS[k]||[]).includes(type);}
 function tkfOpenNew(o){
@@ -4407,8 +4424,7 @@ function tkfRender(){
   const status=v('status')?'<div class="tkf-f wide"><label>状態</label><div class="tkf-pills">'+TKF_STATUS.map(s=>'<button type="button" class="'+(r.status===s?'on':'')+'" style="--c:'+(TK_SCOL[s]||'#9e9e9e')+'" onclick="tkfSet(\'status\',\''+s+'\')">'+s+'</button>').join('')+'</div></div>':'';
   const progress=v('progress')?tkfField('進捗率','<div class="tkf-prog"><input type="range" min="0" max="100" step="5" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value)"><input data-k="progress" type="number" min="0" max="100" value="'+(+r.progress||0)+'" oninput="tkfProg(this.value,1)"><span>%</span></div>'+(t==='タスク'?'<small class="tkf-hint">完了にすると100%になります</small>':'')):'';
   const co=v('co')?tkfField('共同担当者（複数人で対応する場合）','<div class="tkf-chips">'+(r.co||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfCoDel('+i+')">×</b></span>').join('')+'<input id="tkf-co-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfCoAdd()}" onchange="tkfCoAdd()"></div>','wide'):'';
-  const relf=v('rel')?tkfField('メンバー（社内関係者）— 閲覧のみ','<div class="tkf-chips">'+(r.rel||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfRelDel('+i+')">×</b></span>').join('')+'<input id="tkf-rel-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfRelAdd()}" onchange="tkfRelAdd()"></div><small class="tkf-hint">登録した人と、その人の所属部署の上長が、この'+tkEsc(t)+'を閲覧できます</small>','wide'):'';
-  const relExtf=v('relExt')?tkfField('社外関係者（外部の方）— 閲覧のみ','<input data-k="relExt" type="text" placeholder="例：江波 純平（複数の場合は「、」で区切る）" autocomplete="off" value="'+tkEsc(r.relExt)+'"><small class="tkf-hint">名簿にいない外部の方の氏名を、そのまま入力します（名簿との照合はされません。表記を正確に）</small>','wide'):'';
+  const relf=v('rel')?tkfField('メンバー（社員・パートナー）— 閲覧のみ','<div class="tkf-chips">'+(r.rel||[]).map((n,i)=>'<span class="tkf-chip">'+tkEsc(n)+'<b onclick="tkfRelDel('+i+')">×</b></span>').join('')+'<input id="tkf-rel-in" list="tkf-names" placeholder="氏名を選んで Enter" onkeydown="if(event.key===\'Enter\'){event.preventDefault();tkfRelAdd()}" onchange="tkfRelAdd()"></div><small class="tkf-hint">登録した人（外部のパートナーを含む）と、社員の所属部署の上長が、この'+tkEsc(t)+'を閲覧できます</small>','wide'):'';
   const privf=v('priv')?'<div class="tkf-f wide"><label class="tkf-chk"><input type="checkbox" data-k="priv"'+(r.priv?' checked':'')+'> 非公開にする（担当者・共同担当者・社内関係者以外には表示されません。管理者・上長にも見えません）</label></div>':'';
   const docs=v('docLinks')?tkfField('資料リンク','<div id="tkf-docs">'+(r.docLinks||[]).map(d=>'<div class="tkf-doc"><input class="t" placeholder="資料タイトル" value="'+tkEsc(d.t)+'"><input class="u" type="url" placeholder="https://..." value="'+tkEsc(d.u)+'"><b onclick="this.parentNode.remove();_tkf.dirty=true">×</b></div>').join('')+'</div><button type="button" class="tkf-add" onclick="tkfDocAdd()">＋ 追加</button>','wide'):'';
   const kpiOn=['fiscalYear','kpiCategory','kpiItem','kpiName','kpiTarget','kpiActual','kpiUnit','kpiStatus','kpiMemo','kgi','departmentGoal','kpi'].some(v);
@@ -4451,7 +4467,6 @@ function tkfRender(){
     +tkfField('タグ',tkfInput('tag',r,'text','placeholder="例：新棟, NAS, Teams"'),'wide')
     +co
     +relf
-    +relExtf
     +privf
     +(v('taskUrl')?tkfField('資料URL',tkfInput('taskUrl',r,'url','placeholder="タスク全体の資料URL"'),'wide'):'')
     +docs
