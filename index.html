@@ -2024,6 +2024,7 @@ ja:{
 'my.result':'🔔 承認結果通知（{n}件）',
 'my.approved.msg':'申請が承認されました','my.rejected.msg':'申請が却下されました',
 'my.approver.label':'承認者：','my.reject.reason':'却下理由：','my.dismiss':'確認して閉じる',
+'my.todoke.title':'📨 届出のお知らせ（{n}件）','my.todoke.label':'届出・相談','my.todoke.request':'新しい届出が届きました','my.todoke.status':'届出の状況が更新されました','my.todoke.message':'届出にメッセージが届きました',
 'my.notices':'🔔 お知らせ（{n}件）','my.read.all':'すべて既読',
 'my.car.confirmed':'車予約が確認されました','my.car.depart':'出発','my.car.return':'帰社予定',
 'my.empId':'社員番号:','my.events.of':'{date}の予定','my.no.events':'予定はありません',
@@ -2388,6 +2389,7 @@ vi:{
 'my.result':'🔔 Kết quả phê duyệt ({n} mục)',
 'my.approved.msg':'Đơn đã được phê duyệt','my.rejected.msg':'Đơn đã bị từ chối',
 'my.approver.label':'Người duyệt：','my.reject.reason':'Lý do từ chối：','my.dismiss':'Xác nhận',
+'my.todoke.title':'📨 Thông báo hồ sơ ({n} mục)','my.todoke.label':'Hồ sơ・Tư vấn','my.todoke.request':'Có hồ sơ mới','my.todoke.status':'Trạng thái hồ sơ đã được cập nhật','my.todoke.message':'Có tin nhắn mới về hồ sơ',
 'my.notices':'🔔 Thông báo ({n} mục)','my.read.all':'Đọc tất cả',
 'my.car.confirmed':'Đặt xe đã xác nhận','my.car.depart':'Khởi hành','my.car.return':'Dự kiến về',
 'my.empId':'Mã NV:','my.events.of':'Lịch ngày {date}','my.no.events':'Không có lịch',
@@ -2744,6 +2746,7 @@ ne:{
 'my.result':'🔔 स्वीकृति परिणाम ({n} वटा)',
 'my.approved.msg':'निवेदन स्वीकृत भयो','my.rejected.msg':'निवेदन अस्वीकृत भयो',
 'my.approver.label':'स्वीकृतकर्ता：','my.reject.reason':'अस्वीकारको कारण：','my.dismiss':'पुष्टि',
+'my.todoke.title':'📨 निवेदन सूचना ({n} वटा)','my.todoke.label':'निवेदन・परामर्श','my.todoke.request':'नयाँ निवेदन आयो','my.todoke.status':'निवेदनको स्थिति अद्यावधिक भयो','my.todoke.message':'निवेदनमा सन्देश आयो',
 'my.notices':'🔔 सूचना ({n} वटा)','my.read.all':'सबै पढ्नुहोस्',
 'my.car.confirmed':'गाडी बुकिङ पुष्टि भयो','my.car.depart':'प्रस्थान','my.car.return':'फिर्ती समय',
 'my.empId':'कर्मचारी नं:','my.events.of':'{date} को तालिका','my.no.events':'तालिका छैन',
@@ -8148,8 +8151,11 @@ function renderMyPage() {
   // 返却期限超過の端末貸出
   const overdueRentals = getOverdueRentals();
 
+  // 届出のお知らせ（申請アプリの届出から）。同じ届出の通知は最新1件にまとめる
+  const todokeNotifs = _groupTodokeNotifs(getApprovalPendingNotifs());
+
   // バッジ更新
-  updateNotifBadge(approvalNotifs.length + pendingApprovals.length + applyRequests.length + overdueRentals.length);
+  updateNotifBadge(approvalNotifs.length + pendingApprovals.length + applyRequests.length + overdueRentals.length + todokeNotifs.length);
 
   document.getElementById('mypage-content').innerHTML = `
     <!-- 返却期限超過の通知 -->
@@ -8173,6 +8179,31 @@ function renderMyPage() {
         }).join('')}
         <div style="margin-top:10px;color:#c62828;font-weight:700">${t('my.rental.overdue.guide')}</div>
       </div>
+    </div>` : ''}
+
+    <!-- 届出のお知らせ -->
+    ${todokeNotifs.length ? `
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #1565c0">
+      <div style="font-size:0.72em;color:#1565c0;font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.todoke.title',{n:todokeNotifs.length})}</div>
+      ${todokeNotifs.map(n => {
+        const head = n.todokeKind === 'todoke_request' ? t('my.todoke.request')
+                   : n.todokeKind === 'todoke_message' ? t('my.todoke.message')
+                   : t('my.todoke.status');
+        return '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'
+          + '<div style="display:flex;align-items:center;gap:8px">'
+          +   '<div style="flex:1">'
+          +     '<div style="font-size:0.88em;font-weight:700">📨 ' + esc(head) + '</div>'
+          +     '<div style="font-size:0.75em;color:var(--text2);margin-top:2px">'
+          +       esc(t('my.todoke.label')) + (n.message ? '　' + esc(n.message) : '')
+          +     '</div>'
+          +   '</div>'
+          +   '<button class="btn-primary" style="padding:6px 12px;font-size:0.78em;margin-top:0;width:auto" '
+          +     'onclick="openTodokeFromMyPage(\'' + esc(n.recordId) + '\')">' + t('my.check') + '</button>'
+          + '</div>'
+          + '<button class="notif-dismiss" style="border-color:#90caf9;color:#1565c0" '
+          +   'onclick="dismissTodokeNotifLocal(\'' + esc(n.recordId) + '\')">' + t('my.dismiss') + '</button>'
+          + '</div>';
+      }).join('')}
     </div>` : ''}
 
     <!-- 申請の承認依頼 -->
@@ -8900,7 +8931,9 @@ async function checkApprovalNotifs() {
     const filtered = notifs.filter(n => !dismissed.has(String(n.eventId)));
     localStorage.setItem(pendingKey, JSON.stringify(filtered));
     const carCount = getPendingNotifs().length;
-    const approvalCount = filtered.filter(n => n.type === 'approved' || n.type === 'rejected' || n.type === 'request').length;
+    // 届出は同じ届出の通知を1件にまとめて数える（マイページの表示と件数を揃える）
+    const approvalCount = filtered.filter(n => n.type === 'approved' || n.type === 'rejected' || n.type === 'request').length
+                        + _groupTodokeNotifs(filtered).length;
     const pendingApprovalCount = getPendingApprovals().length;
     updateNotifBadge(carCount + approvalCount + pendingApprovalCount + getOverdueRentals().length);
   } catch(e) {
@@ -8924,6 +8957,36 @@ function dismissApprovalNotifLocal(eventId) {
   if (GAS_URL) {
     api('dismissApprovalNotif', { eventId }, ' ').catch(()=>{});
   }
+}
+
+// ===== 届出のお知らせ（申請アプリの届出から・2026-10-22）=====
+// GASは1イベントごとに別の eventId（todoke_<届出ID>_<時刻>）で保存してくる。
+// マイページでは同じ届出は最新1件にまとめて出す。
+function _groupTodokeNotifs(notifs) {
+  const latest = {};
+  (notifs || []).filter(n => n.type === 'todoke' && n.recordId).forEach(n => {
+    const cur = latest[n.recordId];
+    if (!cur || String(n.at || '') > String(cur.at || '')) latest[n.recordId] = n;
+  });
+  return Object.keys(latest).map(k => latest[k])
+               .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')));
+}
+
+// 「確認して閉じる」：その届出に紐づくお知らせをまとめて既読にする
+function dismissTodokeNotifLocal(recordId) {
+  const all = getApprovalPendingNotifs();
+  const targets = all.filter(n => n.type === 'todoke' && String(n.recordId) === String(recordId));
+  targets.forEach(n => _addDismissedNotifId(n.eventId));
+  const pendingKey = 'sch_approval_notif_' + (currentUser?.id || '');
+  localStorage.setItem(pendingKey, JSON.stringify(all.filter(n => targets.indexOf(n) < 0)));
+  renderMyPage();
+  if (GAS_URL) targets.forEach(n => api('dismissApprovalNotif', { eventId: n.eventId }, ' ').catch(()=>{}));
+}
+
+// 「確認する」：既読にしてから申請アプリの該当届出を開く
+function openTodokeFromMyPage(recordId) {
+  dismissTodokeNotifLocal(recordId);
+  location.href = './apply-pwa/?todoke=' + encodeURIComponent(recordId);
 }
 
 function getPendingNotifs() {
