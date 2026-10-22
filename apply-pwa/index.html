@@ -66,6 +66,8 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .badge-対応中   { background: #ede7f6; color: #5e35b1; }
 .badge-完了     { background: #e8f5e9; color: var(--success); }
 .badge-取り下げ { background: #f5f5f5; color: var(--text-sub); }
+/* 処理中のボタン（連打防止が効いていることが見た目でわかるように） */
+button:disabled { opacity: .55; cursor: progress; }
 /* 届出：期日の表示 */
 .td-due-soon { background:#fff3e0; border:1px solid #ffcc80; color:#e65100; padding:8px 10px; border-radius:8px; font-size:13px; margin-top:8px; }
 .td-due-over { background:#ffebee; border:1px solid #ef9a9a; color:#c62828; padding:8px 10px; border-radius:8px; font-size:13px; margin-top:8px; }
@@ -854,11 +856,11 @@ async function openDetail(appType, id) {
         const rejectBtn = document.createElement('button');
         rejectBtn.className = 'btn-danger';
         rejectBtn.textContent = '却下';
-        rejectBtn.onclick = () => doReject(appType, r.id);
+        rejectBtn.onclick = () => doReject(appType, r.id, rejectBtn);
         const approveBtn = document.createElement('button');
         approveBtn.className = 'btn-success';
         approveBtn.textContent = '承認';
-        approveBtn.onclick = () => doApprove(appType, r.id);
+        approveBtn.onclick = () => doApprove(appType, r.id, approveBtn);
         footer.appendChild(rejectBtn);
         footer.appendChild(approveBtn);
       }
@@ -873,7 +875,7 @@ async function openDetail(appType, id) {
         const withdrawBtn = document.createElement('button');
         withdrawBtn.className = 'btn-cancel';
         withdrawBtn.textContent = '取下げ';
-        withdrawBtn.onclick = () => doWithdraw(appType, r.id);
+        withdrawBtn.onclick = () => doWithdraw(appType, r.id, withdrawBtn);
         footer.appendChild(withdrawBtn);
       }
     }
@@ -1004,16 +1006,42 @@ function renderExpenseDetail(r) {
 // ===================================================
 // 承認・却下・取下げ
 // ===================================================
-async function doApprove(appType, id) {
+// 詳細モーダルのボタン共通の連打防止。
+// 押したボタンを「○○中...」にして、フッターのボタンを全部無効化する。
+// 成功時はモーダルを閉じるので戻さない。失敗して開いたままなら押し直せるように戻す。
+let _detailBusy = false;
+async function _runDetailAction(btn, busyLabel, fn) {
+  if (_detailBusy) return;
+  _detailBusy = true;
+  const footer   = document.getElementById('detail-footer');
+  const siblings = footer ? Array.from(footer.querySelectorAll('button')) : [];
+  const prevText = btn ? btn.textContent : '';
+  siblings.forEach(b => { b.disabled = true; });
+  if (btn) btn.textContent = busyLabel || '処理中...';
+  try {
+    await fn();
+  } finally {
+    _detailBusy = false;
+    if (document.getElementById('modal-detail').classList.contains('open')) {
+      siblings.forEach(b => { b.disabled = false; });
+      if (btn) btn.textContent = prevText;
+    }
+  }
+}
+
+async function doApprove(appType, id, btn) {
+  // 確認ダイアログは無効化する前に出す（キャンセルされたらそのまま戻る）
   const comment = prompt('承認コメント（任意）', '');
   if (comment === null) return;
-  try {
-    if (appType === 'expense') await gas({ action: 'approveExpense', token: currentToken, expenseId: id });
-    else await gas({ action: 'approveApply', token: currentToken, appType, recordId: id, comment: comment.trim() });
-    closeModal('modal-detail');
-    showToast('承認しました');
-    loadTab('pending');
-  } catch (e) { showToast('失敗: ' + e.message); }
+  await _runDetailAction(btn, '承認中...', async () => {
+    try {
+      if (appType === 'expense') await gas({ action: 'approveExpense', token: currentToken, expenseId: id });
+      else await gas({ action: 'approveApply', token: currentToken, appType, recordId: id, comment: comment.trim() });
+      closeModal('modal-detail');
+      showToast('承認しました');
+      loadTab('pending');
+    } catch (e) { showToast('失敗: ' + e.message); }
+  });
 }
 
 async function printExpensePDF(r) {
@@ -1109,31 +1137,35 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
-async function doReject(appType, id) {
+async function doReject(appType, id, btn) {
   const reason = prompt('却下理由を入力してください');
   if (reason === null) return;
   if (!reason.trim()) { showToast('却下理由を入力してください'); return; }
-  try {
-    if (appType === 'expense') await gas({ action: 'rejectExpense', token: currentToken, expenseId: id, reason });
-    else await gas({ action: 'rejectApply', token: currentToken, appType, recordId: id, reason });
-    closeModal('modal-detail');
-    showToast('却下しました');
-    loadTab('pending');
-  } catch (e) { showToast('失敗: ' + e.message); }
+  await _runDetailAction(btn, '却下中...', async () => {
+    try {
+      if (appType === 'expense') await gas({ action: 'rejectExpense', token: currentToken, expenseId: id, reason });
+      else await gas({ action: 'rejectApply', token: currentToken, appType, recordId: id, reason });
+      closeModal('modal-detail');
+      showToast('却下しました');
+      loadTab('pending');
+    } catch (e) { showToast('失敗: ' + e.message); }
+  });
 }
 
-async function doWithdraw(appType, id) {
+async function doWithdraw(appType, id, btn) {
   if (!confirm('この申請を取り下げますか？\n取り下げ後も履歴として残ります。')) return;
-  try {
-    if (appType === 'expense') {
-      await gas({ action: 'withdrawExpense', token: currentToken, expenseId: id });
-    } else {
-      await gas({ action: 'withdrawApply', token: currentToken, appType, recordId: id });
-    }
-    closeModal('modal-detail');
-    showToast('取り下げました');
-    loadTab('mine');
-  } catch (e) { showToast('失敗: ' + e.message); }
+  await _runDetailAction(btn, '取下げ中...', async () => {
+    try {
+      if (appType === 'expense') {
+        await gas({ action: 'withdrawExpense', token: currentToken, expenseId: id });
+      } else {
+        await gas({ action: 'withdrawApply', token: currentToken, appType, recordId: id });
+      }
+      closeModal('modal-detail');
+      showToast('取り下げました');
+      loadTab('mine');
+    } catch (e) { showToast('失敗: ' + e.message); }
+  });
 }
 
 async function reApply(appType, r) {
@@ -2160,7 +2192,7 @@ async function openTodokeDetail(id) {
       btn.className = next === '取り下げ' || next === '差し戻し' ? 'btn-danger'
                     : next === '完了' ? 'btn-success' : 'btn-cancel';
       btn.textContent = next === '申請中' ? '修正して再提出' : next + 'にする';
-      btn.onclick = () => doTodokeStatus(r.id, next);
+      btn.onclick = () => doTodokeStatus(r.id, next, btn);
       footer.appendChild(btn);
     });
   } catch (e) {
@@ -2198,7 +2230,13 @@ function renderTodokeDetail(r) {
   document.getElementById('detail-body').innerHTML = html;
 }
 
-async function doTodokeStatus(id, next) {
+// 連打防止。押した瞬間にボタンを「処理中...」にして、詳細のボタンを全部無効化する
+let _todokeBusy = false;
+
+async function doTodokeStatus(id, next, btn) {
+  if (_todokeBusy) return;
+
+  // 確認ダイアログは busy にする前に出す（キャンセルされたらそのまま戻る）
   let reason = '';
   if (next === '差し戻し') {
     reason = prompt('差し戻しの理由を入力してください（必須）') || '';
@@ -2206,6 +2244,14 @@ async function doTodokeStatus(id, next) {
   } else if (next === '取り下げ') {
     if (!confirm('この届出を取り下げます。よろしいですか？')) return;
   }
+
+  _todokeBusy = true;
+  const footer   = document.getElementById('detail-footer');
+  const siblings = footer ? Array.from(footer.querySelectorAll('button')) : [];
+  const prevText = btn ? btn.textContent : '';
+  siblings.forEach(b => { b.disabled = true; });
+  if (btn) btn.textContent = '処理中...';
+
   try {
     await gas({ action: 'updateTodokeStatus', token: currentToken, recordId: id, status: next, reason });
     closeModal('modal-detail');
@@ -2213,6 +2259,11 @@ async function doTodokeStatus(id, next) {
     refreshCurrentTab();
   } catch (e) {
     showToast(e.message);
+    // 失敗したら押し直せるように戻す（成功時はモーダルを閉じるので戻さない）
+    siblings.forEach(b => { b.disabled = false; });
+    if (btn) btn.textContent = prevText;
+  } finally {
+    _todokeBusy = false;
   }
 }
 
