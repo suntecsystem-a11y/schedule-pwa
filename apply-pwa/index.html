@@ -277,8 +277,11 @@ button:disabled { opacity: .55; cursor: progress; }
   <!-- 届出対応タブ（総務＝HR_VIEWERS のみ表示） -->
   <div id="tab-todoke" class="tab-content">
     <div class="filter-bar">
-      <select id="td-filter-major" onchange="applyTodokeFilter()">
+      <select id="td-filter-major" onchange="onTodokeMajorFilterChange()">
         <option value="">すべての大分類</option>
+      </select>
+      <select id="td-filter-apply" onchange="applyTodokeFilter()">
+        <option value="">すべての申請名</option>
       </select>
       <select id="td-filter-status" onchange="applyTodokeFilter()">
         <option value="">対応中のものすべて</option>
@@ -289,6 +292,23 @@ button:disabled { opacity: .55; cursor: progress; }
         <option value="対応中">対応中</option>
       </select>
       <input type="text" id="td-filter-name" oninput="applyTodokeFilter()" placeholder="名前で絞り込み">
+      <select id="td-filter-due" onchange="onTodokeDueFilterChange()">
+        <option value="">すべての期日</option>
+        <option value="over">期日超過</option>
+        <option value="week">7日以内（超過を含む）</option>
+        <option value="range">期間を指定</option>
+      </select>
+      <div id="td-filter-range" style="display:none;align-items:center;gap:4px;flex-wrap:nowrap;">
+        <input type="date" id="td-filter-from" onchange="applyTodokeFilter()">
+        <span style="font-size:12px;color:var(--text-sub);">〜</span>
+        <input type="date" id="td-filter-to" onchange="applyTodokeFilter()">
+      </div>
+      <select id="td-sort" onchange="applyTodokeFilter()">
+        <option value="due-asc">期日が近い順</option>
+        <option value="due-desc">期日が遠い順</option>
+        <option value="applied-desc">申請日が新しい順</option>
+        <option value="applied-asc">申請日が古い順</option>
+      </select>
       <button class="btn-filter-clear" onclick="clearTodokeFilter()">クリア</button>
     </div>
     <div id="td-filter-count" style="font-size:13px;color:var(--text-sub);padding:4px 0 8px;"></div>
@@ -2128,19 +2148,27 @@ function renderTodokeFileList() {
 function removeTodokeFile(i) { _todokeFiles.splice(i, 1); renderTodokeFileList(); }
 
 // ---------- 入力の回収 ----------
-function _collectTodokeAnswers(merged) {
+// root：探す範囲（省略時は画面全体）。書き直しフォームでは詳細モーダルの中だけを見る。
+//   新規申請モーダルにも同じ data-tdkey の入力欄が残っていることがあるため。
+// files：添付の入れ物（省略時は新規申請用の _todokeFiles）
+// existing：file型で、前に出した添付があるときの名前（書き直し時の必須判定に使う）
+function _collectTodokeAnswers(merged, root, files, existing) {
+  const scope = root || document;
+  const bag   = files || _todokeFiles;
+  const prev  = existing || {};
   const answers = {};
   const missing = [];
   merged.forEach(f => {
-    let v;
+    let v, filled;
     if (f.type === 'file') {
-      v = _todokeFiles.filter(x => x.key === f.key).map(x => x.name);
+      v = bag.filter(x => x.key === f.key).map(x => x.name);
+      filled = v.length > 0 || (Array.isArray(prev[f.key]) && prev[f.key].length > 0);
     } else {
-      const el = document.querySelector(`[data-tdkey="${f.key}"]`);
+      const el = scope.querySelector(`[data-tdkey="${f.key}"]`);
       v = el ? String(el.value || '').trim() : '';
+      filled = !!v;
     }
-    const empty = Array.isArray(v) ? v.length === 0 : !v;
-    if (f.required && empty) missing.push(f.label || f.key);
+    if (f.required && !filled) missing.push(f.label || f.key);
     answers[f.key] = v;
   });
   if (missing.length) throw new Error('未入力の必須項目があります: ' + missing.join('、'));
@@ -2207,11 +2235,20 @@ async function openTodokeDetail(id) {
 
     const footer = document.getElementById('detail-footer');
     footer.innerHTML = '';
+    // 差し戻し中の本人には「書き直して再提出」（ステータスを戻すだけでなく内容を直してもらう）
+    if (r.canResubmit) {
+      const btn = document.createElement('button');
+      btn.className = 'btn-submit';
+      btn.textContent = '内容を書き直して再提出';
+      btn.onclick = () => openTodokeResubmit(r);
+      footer.appendChild(btn);
+    }
     (r.canEditStatus || []).forEach(next => {
       const btn = document.createElement('button');
       btn.className = next === '取り下げ' || next === '差し戻し' ? 'btn-danger'
                     : next === '完了' ? 'btn-success' : 'btn-cancel';
-      btn.textContent = next === '申請中' ? '修正して再提出' : next + 'にする';
+      // 総務が差し戻しを取り消して申請中に戻すとき
+      btn.textContent = next === '申請中' ? '申請中に戻す' : next + 'にする';
       btn.onclick = () => doTodokeStatus(r.id, next, btn);
       footer.appendChild(btn);
     });
@@ -2308,36 +2345,105 @@ async function loadTodokeTab() {
   try {
     const recs = await gas({ action: 'getTodokeList', token: currentToken, scope: 'soumu' });
     todokeRecordsCache = recs || [];
-    const sel = document.getElementById('td-filter-major');
+    // 選択肢は今出ている届出から作る（選択中の値は再読込後も保つ）
+    const selMajor = document.getElementById('td-filter-major');
+    const keep = selMajor.value;
     const majors = [];
     todokeRecordsCache.forEach(r => { if (r.majorType && majors.indexOf(r.majorType) < 0) majors.push(r.majorType); });
-    sel.innerHTML = '<option value="">すべての大分類</option>' +
+    selMajor.innerHTML = '<option value="">すべての大分類</option>' +
       majors.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+    if (majors.indexOf(keep) >= 0) selMajor.value = keep;
+    _fillTodokeApplyNameOptions();
     applyTodokeFilter();
   } catch (e) {
     el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>${esc(e.message)}</p></div>`;
   }
 }
 
+// 申請名の選択肢。大分類を選んでいれば、その大分類の申請名だけにする
+function _fillTodokeApplyNameOptions() {
+  const major = document.getElementById('td-filter-major').value;
+  const sel   = document.getElementById('td-filter-apply');
+  const keep  = sel.value;
+  const names = [];
+  todokeRecordsCache
+    .filter(r => !major || r.majorType === major)
+    .forEach(r => (r.applyNames || []).forEach(n => { if (names.indexOf(n) < 0) names.push(n); }));
+  sel.innerHTML = '<option value="">すべての申請名</option>' +
+    names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  if (names.indexOf(keep) >= 0) sel.value = keep;
+}
+
+function onTodokeMajorFilterChange() {
+  _fillTodokeApplyNameOptions();
+  applyTodokeFilter();
+}
+
+function onTodokeDueFilterChange() {
+  const isRange = document.getElementById('td-filter-due').value === 'range';
+  document.getElementById('td-filter-range').style.display = isRange ? 'flex' : 'none';
+  applyTodokeFilter();
+}
+
+const TODOKE_SORT_LABEL = {
+  'due-asc': '期日が近い順', 'due-desc': '期日が遠い順',
+  'applied-desc': '申請日が新しい順', 'applied-asc': '申請日が古い順',
+};
+
 function applyTodokeFilter() {
-  const major  = document.getElementById('td-filter-major').value;
-  const status = document.getElementById('td-filter-status').value;
-  const name   = document.getElementById('td-filter-name').value.trim();
+  const major   = document.getElementById('td-filter-major').value;
+  const apply   = document.getElementById('td-filter-apply').value;
+  const status  = document.getElementById('td-filter-status').value;
+  const name    = document.getElementById('td-filter-name').value.trim();
+  const dueMode = document.getElementById('td-filter-due').value;
+  const from    = document.getElementById('td-filter-from').value;
+  const to      = document.getElementById('td-filter-to').value;
+  const sort    = document.getElementById('td-sort').value || 'due-asc';
+
+  // 期日の比較は「YYYY-MM-DD」の文字列で行う（時差の影響を受けないように）
+  const d0 = new Date(); const pad = n => String(n).padStart(2, '0');
+  const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  const today = ymd(d0);
+  const in7   = ymd(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 7));
+
   const list = todokeRecordsCache.filter(r => {
-    if (major  && r.majorType !== major)  return false;
-    if (status && r.status    !== status) return false;
+    if (major  && r.majorType !== major) return false;
+    if (apply  && (r.applyNames || []).indexOf(apply) < 0) return false;
+    if (status && r.status !== status) return false;
     if (name && (r.applicantName || '').indexOf(name) < 0) return false;
+    const due = r.dueDate || '';
+    if (dueMode === 'over'  && !(due && due < today)) return false;
+    if (dueMode === 'week'  && !(due && due <= in7))  return false;
+    if (dueMode === 'range') {
+      if (from && !(due && due >= from)) return false;
+      if (to   && !(due && due <= to))   return false;
+    }
     return true;
   });
+
+  // 期日が空のものは、どの並べ替えでも最後に回す
+  const key = r => sort.indexOf('due') === 0 ? (r.dueDate || '') : (r.appliedAt || '');
+  const desc = sort.slice(-4) === 'desc';
+  list.sort((a, b) => {
+    const ka = key(a), kb = key(b);
+    if (!ka && !kb) return 0;
+    if (!ka) return 1;
+    if (!kb) return -1;
+    return desc ? kb.localeCompare(ka) : ka.localeCompare(kb);
+  });
+
   document.getElementById('td-filter-count').textContent =
-    `${list.length} 件 / 全 ${todokeRecordsCache.length} 件（期日が近い順）`;
+    `${list.length} 件 / 全 ${todokeRecordsCache.length} 件（${TODOKE_SORT_LABEL[sort] || ''}）`;
   renderTodokeList(document.getElementById('list-todoke'), list);
 }
 
 function clearTodokeFilter() {
-  document.getElementById('td-filter-major').value  = '';
-  document.getElementById('td-filter-status').value = '';
-  document.getElementById('td-filter-name').value   = '';
+  ['td-filter-major', 'td-filter-status', 'td-filter-name', 'td-filter-due', 'td-filter-from', 'td-filter-to']
+    .forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('td-sort').value = 'due-asc';
+  document.getElementById('td-filter-range').style.display = 'none';
+  _fillTodokeApplyNameOptions();
+  document.getElementById('td-filter-apply').value = '';
   applyTodokeFilter();
 }
 
@@ -2507,6 +2613,178 @@ async function reloadTodokeThread(id) {
     box.scrollTop = box.scrollHeight;
   } catch (e) {
     box.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:13px;">${esc(e.message)}</div>`;
+  }
+}
+
+
+// ===================================================
+// 差し戻し後の書き直し・再提出（2026-10-23）
+// Excel：差し戻し＝「本人に書き直してもらう」。申請時と同じ項目（schema_snapshot）で直す。
+// 申請名（種別）は変えられない（種別の書き換えは総務の操作）。
+// ===================================================
+let _todokeEditFiles = [];   // 書き直しで追加する添付 {key, name, mime, data}
+
+function openTodokeResubmit(r) {
+  _todokeEditFiles = [];
+  document.getElementById('detail-title').textContent = '📨 届出の書き直し';
+  const schema = r.schema || [];
+  const ans    = r.answers || {};
+
+  let html = '';
+  if (r.rejectReason) {
+    html += `<div class="td-due-over" style="margin-top:0;white-space:pre-wrap;">差し戻し理由：${esc(r.rejectReason)}</div>`;
+  }
+  html += `<div style="font-size:13px;color:var(--text-sub);margin:8px 0;">
+    申請名：${esc((r.applyNames || []).join('、'))}<br>
+    ※ 申請名は変えられません。違う場合は取り下げて出し直すか、やり取りで総務にご相談ください。
+  </div>`;
+  html += '<div id="td-edit-form">';
+  schema.forEach(f => {
+    html += _todokeFieldHTML(f);
+    if (f.type === 'file') {
+      const prev = Array.isArray(ans[f.key]) ? ans[f.key] : [];
+      if (prev.length) {
+        html += `<div style="font-size:12px;color:var(--text-sub);margin-top:4px;">提出済み：${esc(prev.join('、'))}（追加するときだけ選んでください）</div>`;
+      }
+    }
+  });
+  html += `
+    <label>何日までに必要か <span style="color:var(--danger);">※必須</span></label>
+    <input type="date" id="td-edit-due" value="${esc(r.dueDate || '')}" onchange="_todokeEditDueCheck()">
+    <div id="td-edit-due-msg"></div>
+    <label>補足（任意）</label>
+    <textarea id="td-edit-supplement">${esc(r.supplement || '')}</textarea>
+    <label>添付ファイルを追加（任意）</label>
+    <input type="file" multiple data-tdkey="">
+    <div id="td-edit-file-list"></div>
+    <div style="font-size:12px;color:var(--text-sub);margin-top:8px;">※ マイナンバーが写っているものは添付しないでください</div>
+  </div>`;
+  document.getElementById('detail-body').innerHTML = html;
+
+  // 前の回答を入れておく（file型はブラウザの仕様で入れられないので除く）
+  const form = document.getElementById('td-edit-form');
+  schema.forEach(f => {
+    if (f.type === 'file') return;
+    const el = form.querySelector(`[data-tdkey="${f.key}"]`);
+    if (el && ans[f.key] != null) el.value = Array.isArray(ans[f.key]) ? ans[f.key].join('、') : ans[f.key];
+  });
+  // ファイル欄は書き直し用の入れ物に入れる（新規申請用の _todokeFiles と混ざらないように）
+  form.querySelectorAll('input[type="file"]').forEach(el => { el.onchange = onTodokeEditFileChange; });
+  _todokeEditDueCheck();
+
+  const footer = document.getElementById('detail-footer');
+  footer.innerHTML = '';
+  const back = document.createElement('button');
+  back.className = 'btn-cancel';
+  back.textContent = 'やめる';
+  back.onclick = () => openTodokeDetail(r.id);
+  const send = document.createElement('button');
+  send.className = 'btn-submit';
+  send.textContent = '再提出する';
+  send.onclick = () => submitTodokeResubmit(r, send);
+  footer.appendChild(back);
+  footer.appendChild(send);
+  document.getElementById('detail-body').scrollTop = 0;
+}
+
+// 新規申請の todokeDueCheck と同じ基準（7日以内で注意・過去日で警告、ブロックはしない）
+function _todokeEditDueCheck() {
+  const el  = document.getElementById('td-edit-due');
+  const msg = document.getElementById('td-edit-due-msg');
+  if (!el || !msg) return '';
+  const v = el.value;
+  if (!v) { msg.innerHTML = ''; return ''; }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const days  = Math.round((new Date(v + 'T00:00:00') - today) / 86400000);
+  if (days < 0) {
+    msg.innerHTML = '<div class="td-due-over">指定された日は過ぎています。日付をご確認ください。</div>';
+    return '指定された期日は過ぎています';
+  }
+  if (days < 7) {
+    msg.innerHTML = '<div class="td-due-soon">受付から完了まで1週間程度かかります。間に合わない可能性があります。</div>';
+    return '受付から完了まで1週間程度かかります';
+  }
+  msg.innerHTML = '';
+  return '';
+}
+
+function onTodokeEditFileChange(ev) {
+  const input = ev.target;
+  const key   = input.getAttribute('data-tdkey') || '';
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const MAX = 10 * 1024 * 1024;
+  const tooBig = files.filter(f => f.size > MAX);
+  if (tooBig.length) showToast(tooBig.map(f => f.name).join('、') + ' が大きすぎます（上限10MB）');
+  const ok = files.filter(f => f.size <= MAX);
+  if (!ok.length) { input.value = ''; return; }
+
+  let remaining = ok.length;
+  ok.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      _todokeEditFiles.push({ key, name: file.name, mime: file.type,
+                              data: String(reader.result).split(',')[1] || '' });
+      if (--remaining === 0) renderTodokeEditFileList();
+    };
+    reader.onerror = () => {
+      showToast(file.name + ' を読み込めませんでした');
+      if (--remaining === 0) renderTodokeEditFileList();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderTodokeEditFileList() {
+  const el = document.getElementById('td-edit-file-list');
+  if (!el) return;
+  el.innerHTML = _todokeEditFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);
+                border-radius:6px;margin-top:6px;font-size:13px;">
+      <span style="flex:1;word-break:break-all;">📎 ${esc(f.name)}</span>
+      <button type="button" onclick="removeTodokeEditFile(${i})"
+              style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+    </div>`).join('');
+}
+
+function removeTodokeEditFile(i) { _todokeEditFiles.splice(i, 1); renderTodokeEditFileList(); }
+
+async function submitTodokeResubmit(r, btn) {
+  if (btn.disabled) return;
+  const form = document.getElementById('td-edit-form');
+  const due  = document.getElementById('td-edit-due').value;
+  let answers;
+  try {
+    if (!due) throw new Error('「何日までに必要か」は必須です');
+    // 前に出した添付も必須判定に数える（追加しなければ前のままでよい）
+    answers = _collectTodokeAnswers(r.schema || [], form, _todokeEditFiles, r.answers || {});
+  } catch (e) { showToast(e.message); return; }
+  const supplement = document.getElementById('td-edit-supplement').value.trim();
+  const warn = _todokeEditDueCheck();
+  if (warn && !confirm(warn + '\nこのまま再提出しますか？')) return;
+
+  const footer   = document.getElementById('detail-footer');
+  const siblings = Array.from(footer.querySelectorAll('button'));
+  siblings.forEach(b => { b.disabled = true; });
+  btn.textContent = '送信中...';
+  try {
+    const files = [];
+    for (const f of _todokeEditFiles) {
+      const res = await gas({ action: 'uploadTodokeFile', token: currentToken,
+                              file: { name: f.name, mime: f.mime, data: f.data } });
+      if (res && res.url) files.push({ name: res.name || f.name, url: res.url });
+    }
+    await gas({ action: 'resubmitTodoke', token: currentToken, recordId: r.id,
+                todoke: { answers, dueDate: due, supplement, files } });
+    _todokeEditFiles = [];
+    showToast('書き直して再提出しました');
+    refreshCurrentTab();
+    openTodokeDetail(r.id);   // 直した内容と、やり取りに残った変更履歴を見せる
+  } catch (e) {
+    showToast(e.message);
+    siblings.forEach(b => { b.disabled = false; });
+    btn.textContent = '再提出する';
   }
 }
 
