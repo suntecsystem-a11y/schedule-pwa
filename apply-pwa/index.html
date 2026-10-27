@@ -884,7 +884,9 @@ async function openDetail(appType, id) {
       renderApplyDetail(appType, r);
     }
 
-    const canApprove = _canApproveApply(r);
+    // 承認できるかはサーバーの判定（r.canApprove）に従う。古いGASで返ってこないときだけ従来の役職判定。
+    // （2026-10-27 テストで、総務に出張費の承認ボタンが出ない・申請した本人に出る食い違いが見つかった）
+    const canApprove = (typeof r.canApprove === 'boolean') ? r.canApprove : _canApproveApply(r);
     const isOwn = r.applicantId === currentUser.id;
     const footer = document.getElementById('detail-footer');
     footer.innerHTML = '';
@@ -2202,21 +2204,25 @@ async function submitTodoke() {
   if (_todokeFiles.length) items.push({ label: '添付', value: _todokeFiles.map(f => f.name).join('、') });
 
   _openConfirmModal('届出・相談', items, todokeDueCheck(), async () => {
-    // 添付は先にSharePointへ上げて、URLだけKintoneにしまうのでここでURLを集める
-    const files = [];
-    for (const f of _todokeFiles) {
-      const res = await gas({ action: 'uploadTodokeFile', token: currentToken,
-                              file: { name: f.name, mime: f.mime, data: f.data } });
-      if (res && res.url) files.push({ name: res.name || f.name, url: res.url });
-    }
-    await gas({ action: 'saveTodoke', token: currentToken, todoke: {
-      applyNames: names, answers, dueDate: due, supplement, files,
-    }});
-    closeModal('modal-confirm');
-    closeModal('modal-new');
-    _todokeFiles = [];
-    showToast('届出を提出しました');
-    refreshCurrentTab();
+    // 失敗したら必ず画面に出す（_openConfirmModal はエラーを表示しないため。
+    // 2026-10-27 テストで、保存失敗時に何も表示されないことが分かった）
+    try {
+      // 添付は先にSharePointへ上げて、URLだけKintoneにしまうのでここでURLを集める
+      const files = [];
+      for (const f of _todokeFiles) {
+        const res = await gas({ action: 'uploadTodokeFile', token: currentToken,
+                                file: { name: f.name, mime: f.mime, data: f.data } });
+        if (res && res.url) files.push({ name: res.name || f.name, url: res.url });
+      }
+      await gas({ action: 'saveTodoke', token: currentToken, todoke: {
+        applyNames: names, answers, dueDate: due, supplement, files,
+      }});
+      closeModal('modal-confirm');
+      closeModal('modal-new');
+      _todokeFiles = [];
+      showToast('届出を提出しました');
+      refreshCurrentTab();
+    } catch (e) { showToast(e.message); }
   });
 }
 
