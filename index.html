@@ -438,6 +438,7 @@ input,select{font-family:inherit;outline:none}
 .room-card .room-floor{font-size:0.72em;color:var(--text2)}
 .room-card .room-status{font-size:0.68em;margin-top:4px;font-weight:600}
 .conflict-warn{background:#fff5f5;border:1px solid var(--red);border-radius:8px;padding:10px 12px;font-size:0.82em;color:var(--red);margin-bottom:12px;display:none}
+.conflict-warn.allday-warn{background:#fff3e0;border-color:var(--orange);color:var(--orange)}
 .btn-primary{width:100%;padding:13px;background:var(--primary);color:white;border-radius:10px;font-size:1em;font-weight:700;margin-top:8px;transition:opacity .15s}
 .btn-primary:hover{opacity:.85}
 .btn-outline{width:100%;padding:13px;background:white;color:var(--primary);border:2px solid var(--primary);border-radius:10px;font-size:0.9em;font-weight:700;margin-top:8px;transition:background .15s}
@@ -1392,9 +1393,9 @@ body.tk-dragging .tk-gb.mv{cursor:grabbing}
             <div class="ev-date-block"><span id="date-start-label">出発日</span><span class="ev-date-sep" style="visibility:hidden">〜</span><span id="date-end-label">帰社日</span></div>
           </div>
           <div class="ev-date-block">
-            <input type="date" id="ev-start-date">
+            <input type="date" id="ev-start-date" oninput="renderPeopleSchedule();checkParticipantConflicts()">
             <span class="ev-date-sep">〜</span>
-            <input type="date" id="ev-end-date">
+            <input type="date" id="ev-end-date" oninput="renderPeopleSchedule();checkParticipantConflicts()">
           </div>
         </div>
       </div>
@@ -1462,6 +1463,7 @@ body.tk-dragging .tk-gb.mv{cursor:grabbing}
       <!-- 参加者かぶり警告 -->
       <div id="people-conflict-wrap" style="padding:0 16px">
         <div class="conflict-warn" id="people-conflict-warn" style="display:none"></div>
+        <div class="conflict-warn allday-warn" id="people-allday-warn" style="display:none"></div>
       </div>
       <!-- 参加者の当日予定 -->
       <div id="people-schedule-row" style="display:none">
@@ -2085,7 +2087,7 @@ ja:{
 'ev.saved':'予定を追加しました','ev.updated':'予定を更新しました','ev.deleted':'予定を削除しました',
 'ev.repeat.result':'{n}件登録しました','ev.repeat.skip':'（{n}件は会議室重複のためスキップ）',
 'ev.rental.none':'（レンタルなし）','ev.rental.search':'端末名で検索...','ev.people.all':'全員','ev.people.none':'未選択',
-'ev.people.conflict':'⚠️ 予定が重なっています','ev.people.nodate':'日付を先に選んでください',
+'ev.people.conflict':'⚠️ 予定が重なっています','ev.people.allday':'⚠️ 終日・複数日の予定があります','ev.people.you':'あなた','ev.people.nodate':'日付を先に選んでください',
 'ev.timeline.hour':'{h}時','ev.people.schedule.title':'📊 参加者の当日スケジュール',
 'ev.people.select':'参加者を選んでください',
 'ev.room.capacity':'定員{n}名','ev.room.conflict':'⚠️ 予約あり',
@@ -2452,7 +2454,7 @@ vi:{
 'ev.saved':'Đã thêm lịch','ev.updated':'Đã cập nhật lịch','ev.deleted':'Đã xóa lịch',
 'ev.repeat.result':'Đã tạo {n} mục','ev.repeat.skip':'({n} mục bị trùng phòng đã bỏ qua)',
 'ev.rental.none':'(Không thuê)','ev.rental.search':'Tìm theo tên thiết bị...','ev.people.all':'Tất cả','ev.people.none':'Chưa chọn',
-'ev.people.conflict':'⚠️ Trùng lịch','ev.people.nodate':'Vui lòng chọn ngày trước',
+'ev.people.conflict':'⚠️ Trùng lịch','ev.people.allday':'⚠️ Có lịch cả ngày / nhiều ngày','ev.people.you':'Bạn','ev.people.nodate':'Vui lòng chọn ngày trước',
 'ev.timeline.hour':'{h}h','ev.people.schedule.title':'📊 Lịch trong ngày của thành viên',
 'ev.people.select':'Vui lòng chọn thành viên',
 'ev.room.capacity':'Sức chứa {n}','ev.room.conflict':'⚠️ Đã đặt',
@@ -2809,7 +2811,7 @@ ne:{
 'ev.saved':'तालिका थपियो','ev.updated':'तालिका अपडेट भयो','ev.deleted':'तालिका मेटियो',
 'ev.repeat.result':'{n} वटा सिर्जना भयो','ev.repeat.skip':'({n} वटा कोठा दोहोरिएको कारण छोडियो)',
 'ev.rental.none':'(भाडामा छैन)','ev.rental.search':'उपकरण खोज्नुहोस्...','ev.people.all':'सबै','ev.people.none':'छानिएको छैन',
-'ev.people.conflict':'⚠️ तालिका दोहोरिएको छ','ev.people.nodate':'पहिले मिति छान्नुहोस्',
+'ev.people.conflict':'⚠️ तालिका दोहोरिएको छ','ev.people.allday':'⚠️ दिनभरि / धेरै दिनको तालिका छ','ev.people.you':'तपाईं','ev.people.nodate':'पहिले मिति छान्नुहोस्',
 'ev.timeline.hour':'{h}बजे','ev.people.schedule.title':'📊 सहभागीको आजको तालिका',
 'ev.people.select':'सहभागी छान्नुहोस्',
 'ev.room.capacity':'क्षमता {n} जना','ev.room.conflict':'⚠️ बुक भइसकेको',
@@ -6598,8 +6600,9 @@ function onTypeChange(){
   const showTeams=['会議室','打ち合わせ','来社'].includes(typ);
   document.getElementById('teams-link-row').style.display=showTeams?'flex':'none';
   if(!showTeams){document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();}
+  renderPeopleSchedule();checkParticipantConflicts();
 }
-function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); }
+function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); renderPeopleSchedule(); checkParticipantConflicts(); }
 function updateTeamsToggle(){
   const c=document.getElementById('ev-teams-link').checked;
   const knob=document.getElementById('teams-knob');
@@ -6805,38 +6808,84 @@ function autoOpenPeopleSchedule(){
   document.getElementById('people-schedule-panel').style.display='block';
   document.getElementById('people-sched-toggle').style.transform='rotate(180deg)';
 }
-function checkParticipantConflicts(){
-  const warn = document.getElementById('people-conflict-warn');
-  if (!warn) return;
-  const date = document.getElementById('ev-date')?.value || document.getElementById('ev-start-date')?.value || '';
-  const start = document.getElementById('ev-start')?.value || '';
-  const end   = document.getElementById('ev-end')?.value || '';
-  if (!date || !start || !end || selectedPeople.size === 0) { warn.style.display='none'; return; }
-  const startM = timeToMins(start);
-  const endM   = timeToMins(end);
-  const conflicts = [];
-  selectedPeople.forEach(uid => {
-    if (uid === currentUser.id) return;
-    const user = USERS.find(u => u.id === uid);
-    if (!user) return;
-    const clash = events.filter(e =>
-      e.id !== editingId &&
-      eventIncludesDate(e, date) &&
-      ((e.people||[]).includes(uid) || e.userId === uid) &&
-      e.start && e.end &&
-      timeToMins(e.start) < endM && timeToMins(e.end) > startM
-    );
-    if (clash.length) {
-      const labels = clash.map(e => `${e.start}〜${e.end} ${esc(e.title||e.type)}`).join('、');
-      conflicts.push(`${user.name}：${labels}`);
-    }
-  });
-  if (conflicts.length) {
-    warn.innerHTML = t('ev.people.conflict')+'<br>' + conflicts.map(c=>`<span style="display:block;margin-top:3px;font-size:0.9em">・${c}</span>`).join('');
-    warn.style.display = 'block';
+// 予定フォームが今どの日付・時刻を指しているかを取り出す
+// （単日／期間指定／終日モード／その他=端末貸出 のいずれにも対応する）
+function _evFormRange(){
+  const rangeShown  = document.getElementById('date-range-row')?.style.display  !== 'none';
+  const singleShown = document.getElementById('date-single-row')?.style.display !== 'none';
+  let sd = '', ed = '';
+  if (rangeShown) {
+    sd = document.getElementById('ev-start-date')?.value || '';
+    ed = document.getElementById('ev-end-date')?.value || sd;
+  } else if (singleShown) {
+    sd = document.getElementById('ev-date')?.value || '';
+    ed = sd;
   } else {
-    warn.style.display = 'none';
+    // その他（端末貸出）は日付欄が隠れるので貸出期間を使う
+    sd = document.getElementById('ev-rental-start')?.value || '';
+    ed = document.getElementById('ev-rental-end')?.value || sd;
   }
+  if (!sd) return null;
+  if (ed < sd) ed = sd;
+  // 時間行が隠れている（終日・休暇など）ときは時刻なしとして扱う
+  const timeShown = document.getElementById('time-row')?.style.display !== 'none';
+  const st = timeShown ? (document.getElementById('ev-start')?.value || '') : '';
+  const en = timeShown ? (document.getElementById('ev-end')?.value   || '') : '';
+  return { startDate: sd, endDate: ed, start: st, end: en };
+}
+function _evRange(e){ const s=e.startDate||e.date||''; return { s, e: e.endDate||s } }
+function _datesOverlap(aS,aE,bS,bE){ return !!(aS&&bS) && aS<=bE && aE>=bS }
+function _mmdd(ds){ return ds ? `${+ds.slice(5,7)}/${+ds.slice(8,10)}` : '' }
+function _evDateLabel(e){
+  const r=_evRange(e);
+  return (r.e && r.e!==r.s) ? `${_mmdd(r.s)}〜${_mmdd(r.e)}` : _mmdd(r.s);
+}
+// 参加者（自分を含む）の予定かぶりをチェックする
+// ・在席ボードと同じく「参加者のみ」で判定する（_isUserInEvent）
+// ・双方が単日＋時刻ありのときだけ時間で判定し、それ以外は日付の重なり＝終日ブロック扱い
+function checkParticipantConflicts(){
+  const warn  = document.getElementById('people-conflict-warn');
+  const awarn = document.getElementById('people-allday-warn');
+  if (!warn || !awarn) return;
+  const hide = () => { warn.style.display='none'; awarn.style.display='none'; };
+  const r = _evFormRange();
+  if (!r || !currentUser || selectedPeople.size === 0) { hide(); return; }
+
+  const newSingle = r.startDate === r.endDate;
+  const hasTime   = !!(r.start && r.end);
+  const startM = hasTime ? timeToMins(r.start) : 0;
+  const endM   = hasTime ? timeToMins(r.end)   : 0;
+  if (hasTime && newSingle && endM <= startM) { hide(); return; }
+
+  const timeHits = [], dayHits = [];
+  selectedPeople.forEach(uid => {
+    const name = (uid === currentUser.id) ? t('ev.people.you') : (USERS.find(u => u.id === uid)?.name || '');
+    if (!name) return;
+    const tHit = [], dHit = [];
+    events.forEach(e => {
+      if (e.id === editingId) return;
+      if (!_isUserInEvent(e, uid)) return;
+      const er = _evRange(e);
+      if (!_datesOverlap(r.startDate, r.endDate, er.s, er.e)) return;
+      // 双方が単日かつ時刻ありのときだけ時間で重なりを見る
+      if (hasTime && newSingle && e.start && e.end && er.s === er.e) {
+        if (timeToMins(e.start) < endM && timeToMins(e.end) > startM) {
+          tHit.push(`${e.start}〜${e.end} ${esc(e.title||e.type)}`);
+        }
+        return;
+      }
+      // どちらかが終日・複数日＝日付が重なった時点でブロック扱い
+      dHit.push(`${_evDateLabel(e)} ${esc(e.title||e.type)}`);
+    });
+    if (tHit.length) timeHits.push(`${name}：${tHit.join('、')}`);
+    if (dHit.length) dayHits.push(`${name}：${dHit.join('、')}`);
+  });
+
+  const lines = arr => arr.map(c=>`<span style="display:block;margin-top:3px;font-size:0.9em">・${c}</span>`).join('');
+  if (timeHits.length) { warn.innerHTML  = t('ev.people.conflict')+'<br>'+lines(timeHits); warn.style.display='block'; }
+  else { warn.style.display='none'; }
+  if (dayHits.length)  { awarn.innerHTML = t('ev.people.allday')  +'<br>'+lines(dayHits);  awarn.style.display='block'; }
+  else { awarn.style.display='none'; }
 }
 function updatePeopleSummary(){
   const sel=[...selectedPeople].map(id=>USERS.find(u=>u.id===id)?.name).filter(Boolean);
@@ -6874,8 +6923,8 @@ function renderPeopleSchedule(){
   const html=[...selectedPeople].map(uid=>{
     const user=USERS.find(u=>u.id===uid);
     if(!user) return '';
-    const allEvs=events.filter(e=>e.id!==editingId&&eventIncludesDate(e,date)&&((e.people||[]).includes(uid)||e.userId===uid)&&e.start&&e.end);
-    const alldayEvs=events.filter(e=>eventIncludesDate(e,date)&&((e.people||[]).includes(uid)||e.userId===uid)&&!e.start&&!e.end);
+    const allEvs=events.filter(e=>e.id!==editingId&&eventIncludesDate(e,date)&&_isUserInEvent(e,uid)&&e.start&&e.end);
+    const alldayEvs=events.filter(e=>e.id!==editingId&&eventIncludesDate(e,date)&&_isUserInEvent(e,uid)&&!(e.start&&e.end));
     const blocks=allEvs.map(e=>{
       const l=toPos(e.start),r=toPos(e.end);
       if(l===null||r===null) return '';
