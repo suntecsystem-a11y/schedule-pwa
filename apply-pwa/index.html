@@ -290,6 +290,9 @@ button:disabled { opacity: .55; cursor: progress; }
         <option value="書類待ち">書類待ち</option>
         <option value="差し戻し">差し戻し</option>
         <option value="対応中">対応中</option>
+        <option value="完了">完了（見返し）</option>
+        <option value="取り下げ">取り下げ（見返し）</option>
+        <option value="__all">すべて（完了・取り下げを含む）</option>
       </select>
       <input type="text" id="td-filter-name" oninput="applyTodokeFilter()" placeholder="名前で絞り込み">
       <select id="td-filter-due" onchange="onTodokeDueFilterChange()">
@@ -2245,10 +2248,13 @@ async function openTodokeDetail(id) {
     }
     (r.canEditStatus || []).forEach(next => {
       const btn = document.createElement('button');
+      // 書類待ち→対応中 は「総務が書類を受け取った」操作（Excel まとめ 5.）
+      const isReceive = r.status === '書類待ち' && next === '対応中';
       btn.className = next === '取り下げ' || next === '差し戻し' ? 'btn-danger'
-                    : next === '完了' ? 'btn-success' : 'btn-cancel';
+                    : (next === '完了' || isReceive) ? 'btn-success' : 'btn-cancel';
       // 総務が差し戻しを取り消して申請中に戻すとき
-      btn.textContent = next === '申請中' ? '申請中に戻す' : next + 'にする';
+      btn.textContent = isReceive ? '書類を受け取った（対応中へ）'
+                      : next === '申請中' ? '申請中に戻す' : next + 'にする';
       btn.onclick = () => doTodokeStatus(r.id, next, btn);
       footer.appendChild(btn);
     });
@@ -2284,6 +2290,9 @@ function renderTodokeDetail(r, thread) {
   html += row('申請日時', _tdTime(r.appliedAt));
   if (r.acceptedAt)  html += row('受付日時', _tdTime(r.acceptedAt));
   if (r.completedAt) html += row('完了日時', _tdTime(r.completedAt));
+
+  // --- 書類の提出（書類待ちのときだけ、本人に出す） ---
+  if (r.canSubmitDocs) html += _todokeDocsPanelHTML(r, thread);
 
   // --- やり取り（ステータス変更も同じ時系列に並ぶ） ---
   const closed = ['完了', '取り下げ'].indexOf(r.status) >= 0;
@@ -2339,11 +2348,15 @@ async function doTodokeStatus(id, next, btn) {
 }
 
 // ---------- 届出対応タブ（総務） ----------
+// 'soumu'＝対応中だけ（既定・軽い）／'soumu_all'＝完了・取り下げも含む（見返すときだけ）
+let _todokeListScope = 'soumu';
+const TODOKE_CLOSED = ['完了', '取り下げ'];
+
 async function loadTodokeTab() {
   const el = document.getElementById('list-todoke');
   el.innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
   try {
-    const recs = await gas({ action: 'getTodokeList', token: currentToken, scope: 'soumu' });
+    const recs = await gas({ action: 'getTodokeList', token: currentToken, scope: _todokeListScope });
     todokeRecordsCache = recs || [];
     // 選択肢は今出ている届出から作る（選択中の値は再読込後も保つ）
     const selMajor = document.getElementById('td-filter-major');
@@ -2400,6 +2413,14 @@ function applyTodokeFilter() {
   const to      = document.getElementById('td-filter-to').value;
   const sort    = document.getElementById('td-sort').value || 'due-asc';
 
+  // 完了・取り下げを見返すときは、過去分を含めて取り直す（一度取れば以後はそのまま使う）
+  const wantClosed = TODOKE_CLOSED.indexOf(status) >= 0 || status === '__all';
+  if (wantClosed && _todokeListScope !== 'soumu_all') {
+    _todokeListScope = 'soumu_all';
+    loadTodokeTab();   // 読み込み後にもう一度ここが呼ばれる
+    return;
+  }
+
   // 期日の比較は「YYYY-MM-DD」の文字列で行う（時差の影響を受けないように）
   const d0 = new Date(); const pad = n => String(n).padStart(2, '0');
   const ymd = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
@@ -2409,11 +2430,14 @@ function applyTodokeFilter() {
   const list = todokeRecordsCache.filter(r => {
     if (major  && r.majorType !== major) return false;
     if (apply  && (r.applyNames || []).indexOf(apply) < 0) return false;
-    if (status && r.status !== status) return false;
+    const closed = TODOKE_CLOSED.indexOf(r.status) >= 0;
+    if (!status && closed) return false;                                  // 既定は対応中のものだけ
+    if (status && status !== '__all' && r.status !== status) return false;
     if (name && (r.applicantName || '').indexOf(name) < 0) return false;
     const due = r.dueDate || '';
-    if (dueMode === 'over'  && !(due && due < today)) return false;
-    if (dueMode === 'week'  && !(due && due <= in7))  return false;
+    // 期日超過・7日以内は「まだ終わっていないもの」の話なので、完了・取り下げは除く
+    if (dueMode === 'over'  && (closed || !(due && due < today))) return false;
+    if (dueMode === 'week'  && (closed || !(due && due <= in7)))  return false;
     if (dueMode === 'range') {
       if (from && !(due && due >= from)) return false;
       if (to   && !(due && due <= to))   return false;
@@ -2432,8 +2456,12 @@ function applyTodokeFilter() {
     return desc ? kb.localeCompare(ka) : ka.localeCompare(kb);
   });
 
+  const activeTotal = todokeRecordsCache.filter(r => TODOKE_CLOSED.indexOf(r.status) < 0).length;
+  const totalLabel  = _todokeListScope === 'soumu_all'
+    ? `対応中 ${activeTotal} 件・完了／取り下げ ${todokeRecordsCache.length - activeTotal} 件`
+    : `全 ${todokeRecordsCache.length} 件`;
   document.getElementById('td-filter-count').textContent =
-    `${list.length} 件 / 全 ${todokeRecordsCache.length} 件（${TODOKE_SORT_LABEL[sort] || ''}）`;
+    `${list.length} 件 / ${totalLabel}（${TODOKE_SORT_LABEL[sort] || ''}）`;
   renderTodokeList(document.getElementById('list-todoke'), list);
 }
 
@@ -2449,13 +2477,16 @@ function clearTodokeFilter() {
 
 function renderTodokeList(el, records) {
   if (!records.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>対応中の届出はありません</p></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><p>条件に合う届出はありません</p></div>';
     return;
   }
   const today = new Date(); today.setHours(0, 0, 0, 0);
   el.innerHTML = records.map(r => {
     let dueNote = '';
-    if (r.dueDate) {
+    const closed = TODOKE_CLOSED.indexOf(r.status) >= 0;
+    if (closed) {
+      dueNote = r.completedAt ? `<span style="color:var(--text-sub);">完了 ${esc(_tdTime(r.completedAt).slice(0, 10))}</span>` : '';
+    } else if (r.dueDate) {
       const days = Math.round((new Date(r.dueDate + 'T00:00:00') - today) / 86400000);
       dueNote = days < 0  ? `<span style="color:var(--danger);font-weight:700;">期日超過 ${-days}日</span>`
               : days === 0 ? `<span style="color:var(--danger);font-weight:700;">本日が期日</span>`
@@ -2785,6 +2816,138 @@ async function submitTodokeResubmit(r, btn) {
     showToast(e.message);
     siblings.forEach(b => { b.disabled = false; });
     btn.textContent = '再提出する';
+  }
+}
+
+
+// ===================================================
+// 書類の提出方法（2026-10-27）
+// Excel まとめ 4.「社員がHALOで書類を出す（自宅からでも）か手渡しするか選択する」
+// 書類待ちのときだけ本人に出す。ステータスは変えない（受け取りは総務が「書類待ち→対応中」）。
+// ===================================================
+let _todokeDocFiles = [];   // HALOで提出する書類 {name, mime, data}
+
+const TODOKE_DOC_MARKS = ['📎 書類をHALOで提出しました', '🤝 書類は手渡しで提出します'];
+
+// 直近で「書類待ち」になってから、本人が提出方法を連絡済みか（やり取りから判定）
+function _todokeDocsAlreadySent(r, thread) {
+  let since = -1;
+  (thread || []).forEach((t, i) => {
+    if (t.kind === 'status_change' && String(t.body || '').indexOf('→ 書類待ち') >= 0) since = i;
+  });
+  return (thread || []).some((t, i) => i > since && t.kind === 'message'
+    && String(t.postedBy) === String(r.applicantId)
+    && TODOKE_DOC_MARKS.some(m => String(t.body || '').indexOf(m) === 0));
+}
+
+function _todokeDocsPanelHTML(r, thread) {
+  _todokeDocFiles = [];
+  const sent = _todokeDocsAlreadySent(r, thread);
+  const head = sent
+    ? `<div style="font-weight:700;font-size:14px;color:#2e7d32;">✅ 提出の連絡は済んでいます</div>
+       <div style="font-size:12px;color:var(--text-sub);margin:4px 0 8px;">総務の受け取りを待っています。追加で出すものがあれば、もう一度連絡できます。</div>`
+    : `<div style="font-weight:700;font-size:14px;color:#e65100;">📄 書類の提出をお願いします</div>
+       <div style="font-size:12px;color:var(--text-sub);margin:4px 0 8px;">出し方を選んでください。何を出すかは下の「やり取り」で総務から連絡があります。</div>`;
+  return `
+  <div id="td-docs" style="margin-top:14px;padding:12px;border-radius:10px;
+       border:2px solid ${sent ? '#a5d6a7' : '#ffcc80'};background:${sent ? '#f1f8e9' : '#fff8e1'};">
+    ${head}
+    <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:4px 0;cursor:pointer;">
+      <input type="radio" name="td-doc-method" value="halo" onchange="onTodokeDocMethodChange()"> HALOで提出する（ファイルを添付）
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin:4px 0;cursor:pointer;">
+      <input type="radio" name="td-doc-method" value="hand" onchange="onTodokeDocMethodChange()"> 手渡しする
+    </label>
+    <div id="td-doc-file-wrap" style="display:none;">
+      <input type="file" multiple onchange="onTodokeDocFileChange(event)" style="margin-top:6px;">
+      <div id="td-doc-file-list"></div>
+    </div>
+    <textarea id="td-doc-note" placeholder="メモ（任意）　例：○日に総務へ持っていきます" style="min-height:56px;margin-top:6px;"></textarea>
+    <button class="btn-submit" style="margin-top:8px;width:100%;"
+            onclick="submitTodokeDocsUI('${esc(r.id)}', this)">提出を連絡する</button>
+    <div style="font-size:12px;color:var(--text-sub);margin-top:6px;">※ マイナンバーが写っているものは添付しないでください</div>
+  </div>`;
+}
+
+function _todokeDocMethod() {
+  const el = document.querySelector('input[name="td-doc-method"]:checked');
+  return el ? el.value : '';
+}
+
+function onTodokeDocMethodChange() {
+  const wrap = document.getElementById('td-doc-file-wrap');
+  if (wrap) wrap.style.display = _todokeDocMethod() === 'halo' ? '' : 'none';
+}
+
+function onTodokeDocFileChange(ev) {
+  const input = ev.target;
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+  const MAX = 10 * 1024 * 1024;
+  const tooBig = files.filter(f => f.size > MAX);
+  if (tooBig.length) showToast(tooBig.map(f => f.name).join('、') + ' が大きすぎます（上限10MB）');
+  const ok = files.filter(f => f.size <= MAX);
+  if (!ok.length) { input.value = ''; return; }
+
+  let remaining = ok.length;
+  ok.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      _todokeDocFiles.push({ name: file.name, mime: file.type, data: String(reader.result).split(',')[1] || '' });
+      if (--remaining === 0) renderTodokeDocFileList();
+    };
+    reader.onerror = () => {
+      showToast(file.name + ' を読み込めませんでした');
+      if (--remaining === 0) renderTodokeDocFileList();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderTodokeDocFileList() {
+  const el = document.getElementById('td-doc-file-list');
+  if (!el) return;
+  el.innerHTML = _todokeDocFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;
+                border-radius:6px;margin-top:6px;font-size:13px;">
+      <span style="flex:1;word-break:break-all;">📎 ${esc(f.name)}</span>
+      <button type="button" onclick="removeTodokeDocFile(${i})"
+              style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+    </div>`).join('');
+}
+
+function removeTodokeDocFile(i) { _todokeDocFiles.splice(i, 1); renderTodokeDocFileList(); }
+
+async function submitTodokeDocsUI(id, btn) {
+  if (btn.disabled) return;
+  const method = _todokeDocMethod();
+  if (!method) { showToast('HALOで提出するか、手渡しするかを選んでください'); return; }
+  if (method === 'halo' && !_todokeDocFiles.length) { showToast('提出するファイルを添付してください'); return; }
+  const note = (document.getElementById('td-doc-note').value || '').trim();
+
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = '送信中...';
+  try {
+    const files = [];
+    if (method === 'halo') {
+      for (const f of _todokeDocFiles) {
+        const res = await gas({ action: 'uploadTodokeFile', token: currentToken,
+                                file: { name: f.name, mime: f.mime, data: f.data } });
+        if (res && res.url) files.push({ name: res.name || f.name, url: res.url });
+      }
+    }
+    await gas({ action: 'submitTodokeDocs', token: currentToken, recordId: id,
+                todoke: { method, note, files } });
+    _todokeDocFiles = [];
+    showToast(method === 'halo' ? '書類を提出しました' : '手渡しで出すことを連絡しました');
+    refreshCurrentTab();
+    openTodokeDetail(id);   // 連絡済みの表示と、やり取りへの記録を見せる
+  } catch (e) {
+    showToast(e.message);
+    btn.disabled = false;
+    btn.textContent = prev;
   }
 }
 
