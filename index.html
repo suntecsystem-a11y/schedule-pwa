@@ -8127,17 +8127,18 @@ function renderSafetyCheck() {
   const area = document.getElementById('safety-check-area');
   if (!area) return;
   const data = _safetyData;
-  const isManager = currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般');
+  // 発信・終了・再通知・詳細閲覧はすべて役職者（「一般」以外）のみ。管理者フラグだけでは不可
+  const canSend = !!(currentUser.role && currentUser.role !== '一般');
 
   // 他者評価メモのボタン（peer-memo.js）。主任以上＋許可された個人にだけ文字列が返る。安否確認ボタンの左に並べる
   const memoBtn = (typeof peerMemoButtonHtml === 'function') ? peerMemoButtonHtml() : '';
 
   if (!data || !data.active) {
-    if (isManager || memoBtn) {
+    if (canSend || memoBtn) {
       area.style.display = '';
       area.innerHTML = `<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:4px">
         ${memoBtn}
-        ${isManager ? `<button class="safety-send-btn" onclick="openSafetySendModal()">🚨 安否確認を発信</button>` : ''}
+        ${canSend ? `<button class="safety-send-btn" onclick="openSafetySendModal()">🚨 安否確認を発信</button>` : ''}
       </div>`;
     } else {
       area.style.display = 'none';
@@ -8186,7 +8187,7 @@ function renderSafetyCheck() {
     <div class="safety-stat"><div class="safety-stat-num" style="color:#e65100">${s.unanswered}</div><div class="safety-stat-label">未回答</div></div>
   </div>`;
 
-  if (isManager) {
+  if (canSend) {
     if (data.unanswered && data.unanswered.length > 0) {
       html += `<div class="safety-detail-section">
         <div class="safety-detail-title">
