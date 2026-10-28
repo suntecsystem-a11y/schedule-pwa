@@ -1891,6 +1891,12 @@ ja:{
 'fb.my.none':'公開されたフィードバックはまだありません',
 'fb.note':'書いた内容は冬季賞与の加減点には使いません。気になる点があれば気軽に声をかけてください。',
 'fb.team.title':'📋 週次フィードバックの確認・公開',
+'fb.tab.my':'自分の分',
+'fb.tab.team':'部下の分',
+'fb.tab.all':'全員の分',
+'fb.export':'📥 Excel',
+'fb.export.all':'📥 全週',
+'fb.export.sum':'サマリー',
 'fb.team.none':'この週のフィードバックはありません',
 'fb.team.count':'{n}件（下書き {d}件）',
 'fb.stat.days':'記入日数',
@@ -7487,7 +7493,7 @@ function renderIssueCheck() {
       </div>
       <div style="display:flex;gap:8px;margin-top:8px">
         <button onclick="openMyFeedback()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.my.btn')}</button>
-        ${canViewTeam ? `<button onclick="openTeamFeedback()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.team.btn')}</button>` : ''}
+        ${canExport ? `<button onclick="openFbReview()" style="flex:1;padding:8px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.team.btn')}</button>` : ''}
         ${canExport ? `<button onclick="openFbUpload()" style="flex:1;padding:8px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">${t('fb.up.btn')}</button>` : ''}
       </div>
     </div>`;
@@ -7510,9 +7516,16 @@ function openDrModal(html) {
 }
 function closeDrModal() {
   document.getElementById('dr-modal').style.display = 'none';
-  document.getElementById('dr-modal-body').style.maxWidth = '560px';  // 週次フィードバックで広げた幅を元に戻す
+  const b = document.getElementById('dr-modal-body');
+  b.style.maxWidth = '560px';  // 週次フィードバックで広げた幅を元に戻す
+  b.style.width = '92%'; b.style.maxHeight = '88vh'; b.style.fontSize = '';   // bigDrModal で大きくした分も元に戻す
 }
 function widenDrModal() { document.getElementById('dr-modal-body').style.maxWidth = 'min(1000px, 96vw)'; }
+// 週次フィードバック・確認公開のポップアップ：画面いっぱいに近い大きさ＋文字を大きく（2026-10-28）
+function bigDrModal() {
+  const b = document.getElementById('dr-modal-body');
+  b.style.maxWidth = 'min(1400px, 98vw)'; b.style.width = '98%'; b.style.maxHeight = '94vh'; b.style.fontSize = '1.25em';
+}
 
 async function openTeamIssueChecks(date) {
   let res;
@@ -7852,23 +7865,38 @@ function _fbTable(title, colKeys, rows, open) {
     </details>`;
 }
 
+// 「週次フィードバック」の見出し：主任・所長は「部下の分」、役員は「全員の分」を足す（一般は自分の分だけ）。
+//   部下・全員の分は、公開済みだけが返る（確認前の下書きは永野・日野だけ。GAS getTeamFeedback）
+function _fbCanSeeTeam() { const r = currentUser?.role; return !!(r && r !== '一般'); }
+function _fbTabs(active) {
+  if (!_fbCanSeeTeam()) return '';
+  const r = currentUser.role;
+  const teamLabel = (r === '主任' || r === '所長') ? t('fb.tab.team') : t('fb.tab.all');
+  const b = (key, label, fn) => `<button onclick="${fn}" style="padding:6px 14px;border-radius:16px;border:1.5px solid var(--primary);background:${active === key ? 'var(--primary)' : 'white'};color:${active === key ? 'white' : 'var(--primary)'};font-weight:700;font-size:0.85em;cursor:pointer">${esc(label)}</button>`;
+  return `<div style="display:flex;gap:8px;margin:6px 0 8px">${b('my', t('fb.tab.my'), 'openMyFeedback()')}${b('team', teamLabel, 'openTeamFeedbackView()')}</div>`;
+}
+
 async function openMyFeedback() {
   let res;
   try { res = await api('getMyFeedback', {}, t('common.loading')); }
   catch(e) { showToast(e.message); return; }
   const list = (res.records || []).map(r => _fbCard(r)).join('');
-  widenDrModal();
+  bigDrModal();
   openDrModal(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
       <h3 style="margin:0;font-size:1em;font-weight:700">${t('fb.my.title')}</h3>
       <button onclick="closeDrModal()" style="border:none;background:none;font-size:1.2em;cursor:pointer;color:var(--text2)">✕</button>
     </div>
+    ${_fbTabs('my')}
     <div style="font-size:0.75em;color:var(--text2);padding:6px 8px;background:var(--bg);border-radius:8px">${t('fb.note')}</div>
     ${list || `<div style="padding:20px 0;text-align:center;color:var(--text2);font-size:0.9em">${t('fb.my.none')}</div>`}`);
 }
 
 let _fbTeam = null;
 let _fbIdx = 0;   // 主任画面で表示中のメンバー（records のインデックス）
+let _fbViewOnly = false;   // true＝「週次フィードバック」の部下の分（閲覧のみ）。false＝確認・公開（永野・日野）
+function openFbReview() { _fbViewOnly = false; return openTeamFeedback(); }
+function openTeamFeedbackView() { _fbViewOnly = true; return openTeamFeedback(); }
 async function openTeamFeedback(weekStart, keepId) {
   let res;
   try { res = await api('getTeamFeedback', { weekStart }, t('common.loading')); }
@@ -7901,28 +7929,31 @@ function renderTeamFeedback() {
   const navBtn = 'padding:6px 12px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.9em;cursor:pointer';
   // 名前タブ（未公開は橙の●、公開済みは緑の✓）
   const tabs = records.map((x, i) => `<button onclick="fbGo(${i})" style="padding:5px 10px;border-radius:16px;border:1.5px solid ${i === _fbIdx ? 'var(--primary)' : 'var(--border)'};background:${i === _fbIdx ? 'var(--primary)' : 'white'};color:${i === _fbIdx ? 'white' : 'var(--text)'};font-weight:700;font-size:0.8em;cursor:pointer;white-space:nowrap"><span style="color:${i === _fbIdx ? 'white' : (x.published ? '#2e7d32' : '#e65100')}">${x.published ? '✓' : '●'}</span> ${esc(x.name)}</button>`).join('');
+  const viewOnly = _fbViewOnly;
   const card = r ? _fbCard(r, {
     showName: true,
     badge: r.published
       ? `<span style="padding:2px 10px;border-radius:10px;background:#e8f5e9;color:#2e7d32;font-weight:700;font-size:0.75em">${t('fb.published')}</span>`
       : `<span style="padding:2px 10px;border-radius:10px;background:#fff3e0;color:#e65100;font-weight:700;font-size:0.75em">${t('fb.draft')}</span>`,
-    commentHtml: `
+    commentHtml: viewOnly ? undefined : `
       <div style="margin-top:8px">
         <div style="font-size:0.78em;font-weight:700;color:var(--primary-dark);margin-bottom:2px">${t('fb.chief')}</div>
         <textarea id="fb-cm-${esc(r.id)}" rows="2" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.88em;background:var(--bg);font-family:inherit" placeholder="${t('fb.chief.ph')}">${esc(r.chiefComment)}</textarea>
         ${r.published ? '' : `<div style="text-align:right;margin-top:6px"><button onclick="publishFb(['${esc(r.id)}'])" style="padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.publish')}</button></div>`}
       </div>`,
   }) : '';
-  widenDrModal();
+  bigDrModal();
   openDrModal(`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <h3 style="margin:0;font-size:1em;font-weight:700">${t('fb.team.title')}</h3>
+      <h3 style="margin:0;font-size:1em;font-weight:700">${viewOnly ? t('fb.my.title') : t('fb.team.title')}</h3>
       <button onclick="closeDrModal()" style="border:none;background:none;font-size:1.2em;cursor:pointer;color:var(--text2)">✕</button>
     </div>
+    ${viewOnly ? _fbTabs('team') : ''}
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <select onchange="fbChangeWeek(this.value)" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em">${opts}</select>
       <span style="font-size:0.8em;color:var(--text2)">${esc(t('fb.team.count', { n: records.length, d: drafts.length }))}</span>
-      ${drafts.length ? `<button onclick="publishFb(${esc(JSON.stringify(drafts.map(x => x.id)))})" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.publish.all')}</button>` : ''}
+      ${viewOnly ? '' : `<button onclick="fbExport(false)" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.export')}</button><button onclick="fbExport(true)" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.export.all')}</button>`}
+      ${drafts.length && !viewOnly ? `<button onclick="publishFb(${esc(JSON.stringify(drafts.map(x => x.id)))})" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.publish.all')}</button>` : ''}
     </div>
     ${records.length ? `
     <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
@@ -7932,6 +7963,49 @@ function renderTeamFeedback() {
     </div>
     <div style="text-align:center;font-size:0.75em;color:var(--text2);margin-top:4px">${_fbIdx + 1} / ${records.length}</div>
     ${card}` : `<div style="padding:20px 0;text-align:center;color:var(--text2);font-size:0.9em">${t('fb.team.none')}</div>`}`);
+}
+
+// 永野・日野：週次FBをExcelに書き出す（日野さんが、ご自身の分析と比べるため。下書きを含む）。
+//   サマリー＋個人ごとのシート（件数／課題一覧／日次記録／週次フィードバック）。allWeeks=true で全週
+async function fbExport(allWeeks) {
+  let res;
+  try { res = await api('exportFeedback', { weekStart: allWeeks ? '' : (_fbTeam?.weekStart || '') }, t('common.loading')); }
+  catch(e) { showToast(e.message); return; }
+  try { await _loadSheetJs(); } catch(e) { showToast(e.message); return; }
+  const recs = res.records || [];
+  if (!recs.length) { showToast(t('fb.team.none')); return; }
+  const wb = XLSX.utils.book_new();
+  const stateLabel = r => r.published ? t('fb.published') : t('fb.draft');
+  const sum = [['氏名', '部門', '対象週', '公開状況', t('fb.stat.days'), t('fb.stat.issues'), t('fb.stat.done'), t('fb.stat.ongoing'), t('fb.stat.recur')]];
+  recs.forEach(r => sum.push([r.name, r.dept, r.weekLabel || r.weekStart, stateLabel(r), r.days, r.issues, r.done, r.ongoing, r.recur]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sum), t('fb.export.sum'));
+  const used = new Set([t('fb.export.sum')]);
+  const issueCols = ['fb.col.no', 'fb.col.content', 'fb.col.target', 'fb.col.start', 'fb.col.closed', 'fb.col.state', 'fb.col.recur', 'fb.col.note'].map(k => t(k));
+  const dailyCols = ['fb.col.date', 'fb.col.kind', 'fb.col.no', 'fb.col.content', 'fb.col.result', 'fb.col.work', 'fb.col.week', 'fb.col.memo'].map(k => t(k));
+  recs.forEach(r => {
+    const base = (String(r.name).split(/[\s\u3000]/)[0] || 'sheet') + (allWeeks ? '_' + String(r.weekStart).slice(5) : '');
+    let nm = base.replace(/[:\\/?*\[\]]/g, '').slice(0, 28) || 'sheet', i = 2;
+    while (used.has(nm)) nm = base.slice(0, 26) + '_' + i++;
+    used.add(nm);
+    const rows = [
+      ['KaizenStep 個人記録　' + r.name],
+      ['部門: ' + (r.dept || '') + '　／　対象週: ' + (r.weekLabel || r.weekStart) + '　／　' + stateLabel(r)],
+      [],
+      [t('fb.stat.days'), t('fb.stat.issues'), t('fb.stat.done'), t('fb.stat.ongoing'), t('fb.stat.recur')],
+      [r.days, r.issues, r.done, r.ongoing, r.recur],
+      [],
+      ['■ ' + t('fb.issues')], issueCols, ...(r.issueTable || []),
+      [],
+      ['■ ' + t('fb.daily')], dailyCols, ...(r.dailyTable || []),
+      [],
+      ['■ 週次フィードバック'],
+      [t('fb.good'), '', t('fb.next')],
+      [r.good, '', r.next],
+      [t('fb.chief'), r.chiefComment || ''],
+    ];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), nm);
+  });
+  XLSX.writeFile(wb, 'KaizenStep_週次FB_' + (res.weekStart || '全週') + '.xlsx');
 }
 
 async function publishFb(ids) {
