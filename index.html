@@ -909,6 +909,14 @@ body.tk-dragging .tk-gb.mv{cursor:grabbing}
 .tk-ms-list{max-height:260px;overflow:auto;padding:4px 0}
 .tk-ms-list label{display:flex;align-items:center;gap:7px;padding:5px 12px;font-size:.85em;cursor:pointer;white-space:nowrap}
 .tk-ms-list label:hover{background:var(--primary-light)}
+.tk-c.name{position:relative}
+.tk-gr{position:absolute;left:3px;top:50%;transform:translateY(-50%);color:#b0bec5;font-size:12px;letter-spacing:-3px;cursor:grab;opacity:0;padding:4px 2px;user-select:none;line-height:1}
+.tk-row:hover .tk-gr{opacity:1}.tk-gr:hover{color:var(--primary)}
+body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
+.tk-row.mv-in .tk-left,.tk-row.mv-in .tk-tl{background:#e8eaf6!important;box-shadow:inset 0 0 0 2px var(--primary)}
+.tk-row.mv-before{box-shadow:inset 0 3px 0 var(--primary)}
+.tk-row.mv-after{box-shadow:inset 0 -3px 0 var(--primary)}
+#tk-mvlbl{position:fixed;z-index:9999;background:#263238;color:#fff;font-size:12px;padding:5px 10px;border-radius:5px;pointer-events:none;max-width:420px;white-space:normal;line-height:1.5}
 </style>
 </head>
 <body>
@@ -4135,8 +4143,9 @@ function tkBuild(list){
   const markHold=(x,h,d)=>{x.hold=h||x.st==='保留';x.inDoneS=d||(x.type==='施策'&&x.st==='完了');x.ch.forEach(c=>markHold(c,x.hold,x.inDoneS));};
   roots.forEach(r=>markHold(r,false,false));
   list.forEach(n=>{if(!n.ch.length&&n.st==='完了')n.p=100;});
-  const sortCh=x=>{x.ch.sort((a,b)=>(a.sd?+a.sd:1e15)-(b.sd?+b.sd:1e15)||(+a.id)-(+b.id));x.ch.forEach(sortCh);};
-  roots.sort((a,b)=>(+a.id)-(+b.id));roots.forEach(sortCh);
+  const oKey=n=>(n.ord>0?0:1);
+  const sortCh=x=>{x.ch.sort((a,b)=>oKey(a)-oKey(b)||(a.ord||0)-(b.ord||0)||(a.sd?+a.sd:1e15)-(b.sd?+b.sd:1e15)||(+a.id)-(+b.id));x.ch.forEach(sortCh);};
+  roots.sort((a,b)=>oKey(a)-oKey(b)||(a.ord||0)-(b.ord||0)||(+a.id)-(+b.id));roots.forEach(sortCh);
   const prevOpen=_tk.open;_tk.open={};
   list.forEach(n=>{if(n.ch.length)_tk.open[n.id]=prevOpen[n.id]!==undefined?prevOpen[n.id]:(_tk.scope==='mine'||roots.includes(n));});
   _tk.nodes=list;_tk.byId=byId;_tk.roots=roots;
@@ -4433,7 +4442,7 @@ function tkGanttHtml(){
       const mv=!x.ch.length&&x.e;
       bar='<div class="tk-gb'+(x.ch.length?' sum':'')+(holdShown?' hold':'')+(mv?' mv':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%'+(mv?'　（つかんで移動／両端で伸縮）':'')+'"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+(mv&&w>=24?'<i class="rh l"></i><i class="rh r"></i>':'')+'</div>';
     }
-    h+='<div class="tk-row l'+Math.min(depth,2)+(holdShown?' hold':'')+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(8+depth*18)+'px">'+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span>'+tkAddBtn(x)+'</div>'
+    h+='<div class="tk-row l'+Math.min(depth,2)+(holdShown?' hold':'')+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(20+depth*18)+'px">'+(x.e?'<span class="tk-gr" data-gid="'+x.id+'" title="つかんで移動：別の活動・施策の上に落とすと所属を変更／同じ階層の上下に落とすと並べ替え">⋮⋮</span>':'')+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span>'+tkAddBtn(x)+'</div>'
       +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.sd)+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
       +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+'</div></div>';
   });
@@ -4640,7 +4649,7 @@ function tkfNewFromRow(id,dateStr,endStr){
 // 保存・削除の結果を、サーバーから全件を取り直さずにその場で画面へ反映する（速くするため）
 function tkApplyLocal(op,n){
   const SHOW=['施策','活動','タスク'];
-  let raw=_tk.nodes.map(x=>({id:x.id,type:x.type,title:x.title,tag:x.tag||'',parent:x.parent,who:x.who,co:x.co,st:x.st,start:x.start,end:x.end,p:x.p,e:x.e,a:x.a,priv:x.priv}));
+  let raw=_tk.nodes.map(x=>({id:x.id,type:x.type,title:x.title,tag:x.tag||'',ord:x.ord||0,parent:x.parent,who:x.who,co:x.co,st:x.st,start:x.start,end:x.end,p:x.p,e:x.e,a:x.a,priv:x.priv}));
   _tk.parents=(_tk.parents||[]).filter(p=>String(p.id)!==String(n.id));
   if(op==='save'){
     _tk.parents.push({id:String(n.id),type:n.type,title:n.title,parent:n.parent});
@@ -4648,7 +4657,7 @@ function tkApplyLocal(op,n){
     if(SHOW.includes(n.type)){
       const mine=_tk.scope==='all'||_normName(n.who)===_normName(_tk.me)||(n.co||[]).some(c=>_normName(c)===_normName(_tk.me));
       if(mine){
-        raw.push({id:String(n.id),type:n.type,title:n.title,tag:n.tag||'',parent:n.parent?String(n.parent):'',who:n.who,co:n.co,st:n.st,start:n.start,end:n.end,p:n.p,e:n.e,a:n.a,priv:n.priv});
+        raw.push({id:String(n.id),type:n.type,title:n.title,tag:n.tag||'',ord:n.ord||0,parent:n.parent?String(n.parent):'',who:n.who,co:n.co,st:n.st,start:n.start,end:n.end,p:n.p,e:n.e,a:n.a,priv:n.priv});
         // 親（施策・活動）が一覧にまだ無ければ、候補の情報から補う
         const have=new Set(raw.map(x=>String(x.id)));
         let pid=n.parent?String(n.parent):'';
@@ -4970,7 +4979,7 @@ function tkManualHtml(){
     +'<rect x="384" y="78" width="16" height="16" rx="3" fill="#fff" stroke="#008c8c"/><text x="388" y="90" font-size="12" fill="#008c8c">＋</text><text class="tx" x="406" y="90" font-size="10">▶「＋／－」で開閉</text></svg>';
   const f7='<div class="mn-leg"><span><i style="background:#1f4e79"></i>基本方針</span><span><i style="background:#3f73bf"></i>事業グループ</span><span><i style="background:#7c5fb8"></i>事業</span><span><i style="background:#4f9a3a"></i>事業カテゴリ</span><span><i style="background:#008c8c"></i>施策</span><span><i style="background:#64748b"></i>施策方針</span><span><i style="background:#d97706"></i>活動</span></div>';
   // --- 本文
-  const toc=[['screen','画面の見方'],['gantt','ガントの見方'],['move','バーの移動・伸縮'],['create','新規登録'],['form','入力フォーム'],['tree','方針ツリー'],['kd','かんばん・ダッシュボード'],['rules','保留・完了・超過'],['perm','見える範囲と権限'],['faq','困ったとき']];
+  const toc=[['screen','画面の見方'],['gantt','ガントの見方'],['move','バーの移動・伸縮'],['move2','所属・並べ替え'],['create','新規登録'],['form','入力フォーム'],['tree','方針ツリー'],['kd','かんばん・ダッシュボード'],['rules','保留・完了・超過'],['perm','見える範囲と権限'],['faq','困ったとき']];
   let h='<nav class="mn-toc">'+toc.map(t=>'<a onclick="tkManualGo(\''+t[0]+'\')">'+t[1]+'</a>').join('')+'</nav>';
   h+=sec('screen','1. 画面の見方','<p>「タスク」タブには4つの表示があり、上のタブで切り替えます。どの表示も、kintoneの「タスク管理」アプリの同じデータを見ています。</p>'+f1);
   h+=sec('gantt','2. ガントチャートの見方','<p>左が一覧（施策・活動・タスク）、右が期間のバーです。バーの濃い部分が進捗率です。行の左側やバーをクリックすると、内容を開けます。</p>'+f2+leg
@@ -4978,15 +4987,15 @@ function tkManualHtml(){
   h+=sec('move','3. バーをつかんで日付を変える','<p>配下のないタスク（や活動・施策）で、<b>自分が編集できるもの</b>は、バーを直接動かして日付を変えられます。離した瞬間に保存されます。</p>'+f3
     +'<ul><li>日数は1日単位で動きます。動かしている間、マウスの横に新しい期間が表示されます。</li><li>動かさずにクリックしたときは、これまでどおり内容が開きます。</li><li>配下のある行（▼形のバー）は、配下の日付で決まるので動かせません。</li><li>権限のないバーはつかめません（マウスカーソルが変わりません）。</li><li>パソコン（マウス）専用です。スマホ・タブレットでは、内容を開いて日付を入力してください。</li></ul>'
     +note('操作を間違えたら、同じようにバーを動かして戻すか、内容を開いて日付を直してください。'));
-  h+=sec('create','4. 新規登録のしかた','<p>3つの方法があります。</p><ol><li><b>＋ 新規</b>（右上）：種別・親から選んで登録。</li><li><b>行の「＋」</b>：施策の行なら活動、活動の行ならタスクを、その配下に追加（親が自動で入ります）。</li><li><b>日付の空きをクリック／ドラッグ</b>：その行の配下に、日付（期間）が入った状態で追加。</li></ol>'+f4
+  h+=sec('move2','4. 行をつかんで、所属の変更・並べ替え','<p>行の左端にマウスを乗せると出る「⋮⋮」をつかんで、ドラッグします。<b>自分が編集できる行</b>で使えます（マウス・ペン専用）。</p><ul><li><b>所属を変える</b>：タスクを別の「活動」の行の上に落とす、活動を別の「施策」の行の上に落とす。落とした先の配下になります（枠が青く光ったところで離します）。別の活動の「タスクの上・下」に落とすと、その活動の配下の、その位置に入ります。</li><li><b>順番を変える</b>：同じ親の行の上半分に落とすと前に、下半分に落とすと後ろに入ります（青い線が出ます）。</li><li>落とせない所は、マウスの横に「ここには落とせません」と出ます。Escキーで取り消せます。</li><li>移動先の配下に追加できる人（施策のリーダー・活動の担当者・管理者）だけ移せます。並べ替えは、その親の配下に追加できる人だけです。</li><li>並び順はkintoneの「表示順」に保存され、みんなの画面に反映されます。順番を指定していないものは、従来どおり開始日の順です。</li></ul>')+sec('create','5. 新規登録のしかた','<p>3つの方法があります。</p><ol><li><b>＋ 新規</b>（右上）：種別・親から選んで登録。</li><li><b>行の「＋」</b>：施策の行なら活動、活動の行ならタスクを、その配下に追加（親が自動で入ります）。</li><li><b>日付の空きをクリック／ドラッグ</b>：その行の配下に、日付（期間）が入った状態で追加。</li></ol>'+f4
     +note('一般の社員が登録できるのは<b>活動とタスク</b>だけです。施策より上（基本方針〜施策方針）や施策の登録は管理者（永野・畑村）が行います。構造を守るための決まりです。'));
-  h+=sec('form','5. 入力フォーム','<p>右からスライドして開きます。更新後は自動で一覧に反映されます（Ctrl＋Sでも保存）。</p>'+f5
+  h+=sec('form','6. 入力フォーム','<p>右からスライドして開きます。更新後は自動で一覧に反映されます（Ctrl＋Sでも保存）。</p>'+f5
     +'<ul><li><b>状態</b>：未着手／進行中／確認待ち／保留／完了。タスクを完了にすると進捗は100%になります。</li><li><b>担当者・メンバー</b>：従業員名簿（社内の人と外部パートナー）の氏名から選びます。メンバーは「見られる人」を増やす設定で、編集権限は付きません。</li><li><b>非公開</b>：チェックすると、そのレコードと配下は担当者・共同担当者・メンバーだけに表示されます（管理者・役員・上長にも見えません）。</li><li><b>＋ タスクを追加／コピー</b>：配下の追加、内容を引き継いだ新規作成。</li><li><b>削除</b>：権限のある人にだけ表示されます。実際には消さず、一覧・ガント・方針ツリーなどから見えなくなります（必要になったら、システム部門がkintoneで元に戻せます）。配下があるレコードは削除できません。</li><li>土日を日付に入れて保存すると確認が出ます。</li></ul>');
-  h+=sec('tree','6. 方針ツリー','<p>会社の方針から日々の活動までのつながり（基本方針→事業グループ→事業→事業カテゴリ→施策→施策方針→活動）を一望できます。</p>'+f6+f7
+  h+=sec('tree','7. 方針ツリー','<p>会社の方針から日々の活動までのつながり（基本方針→事業グループ→事業→事業カテゴリ→施策→施策方針→活動）を一望できます。</p>'+f6+f7
     +'<ul><li><b>ツリー表示／表形式</b>：表形式では、KPI・目標・実績・達成率も1行ずつ見られます。</li><li><b>横表示／縦表示</b>：ツリーの向き。</li><li><b>＋／－</b>：枝の開閉。最初は施策までを表示、「すべて展開」で活動まで開きます。</li><li><b>対象年度</b>：KPIの年度で絞り込み。</li><li>施策・活動のノードをクリックすると内容を開けます（上位の階層は管理者のみ編集可）。</li><li>管理者・役員は、上位の階層とKPIをすべて表示します。施策・活動は、役員は全体、管理者はほかの人と同じ条件で見える範囲だけです。一般の社員は、自分が見られる施策・活動と、その上の階層の名称だけが表示されます（上位のKPIは見えません）。</li></ul>');
-  h+=sec('kd','7. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：状態（未着手／進行中／確認待ち／完了。保留があるときは保留も）の列にカードが並びます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、「完了タスク表示」にチェックを入れたときだけ、一覧にも件数にも含めます（初期は含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
-  h+=sec('rules','8. 保留・完了・超過の扱い','<ul><li><b>保留</b>：施策や活動を保留にすると、その配下の活動・タスクも「保留」として扱われます（個々の状態は変わりません。保留を解除すれば元に戻ります）。保留は、超過・遅延・「終了3営業日」などの集計に含まれません。バーは灰色の斜線で表示されます。</li><li><b>完了した施策</b>：「完了施策表示」にチェックしない限り、配下ごと非表示になります。</li><li><b>完了したタスク</b>：「完了タスク表示」にチェックしたときだけ表示します。</li><li><b>超過</b>：終了日を過ぎて、完了していないタスクは、赤で「超過」と表示されます。</li></ul>');
-  h+=sec('perm','9. 見える範囲と編集できる範囲','<table class="mn-tb"><thead><tr><th></th><th>見える</th><th>編集・追加</th></tr></thead><tbody>'
+  h+=sec('kd','8. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：状態（未着手／進行中／確認待ち／完了。保留があるときは保留も）の列にカードが並びます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、「完了タスク表示」にチェックを入れたときだけ、一覧にも件数にも含めます（初期は含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
+  h+=sec('rules','9. 保留・完了・超過の扱い','<ul><li><b>保留</b>：施策や活動を保留にすると、その配下の活動・タスクも「保留」として扱われます（個々の状態は変わりません。保留を解除すれば元に戻ります）。保留は、超過・遅延・「終了3営業日」などの集計に含まれません。バーは灰色の斜線で表示されます。</li><li><b>完了した施策</b>：「完了施策表示」にチェックしない限り、配下ごと非表示になります。</li><li><b>完了したタスク</b>：「完了タスク表示」にチェックしたときだけ表示します。</li><li><b>超過</b>：終了日を過ぎて、完了していないタスクは、赤で「超過」と表示されます。</li></ul>');
+  h+=sec('perm','10. 見える範囲と編集できる範囲','<table class="mn-tb"><thead><tr><th></th><th>見える</th><th>編集・追加</th></tr></thead><tbody>'
     +'<tr><td>管理者（永野・畑村）</td><td>施策・活動・タスクは、ほかの人と同じ条件（担当・メンバー・上長）で見える範囲だけ。上位の階層（基本方針〜施策方針）とKPIは常に見える</td><td>見える範囲はすべて編集可。施策以上の登録・構造の変更ができる</td></tr>'
     +'<tr><td>役員</td><td>すべて（非公開を除く）</td><td>自分の担当分</td></tr>'
     +'<tr><td>施策のリーダー（担当者）</td><td>その施策と配下</td><td>施策の内容・配下の活動とタスク（追加・編集）</td></tr>'
@@ -4995,7 +5004,7 @@ function tkManualHtml(){
     +'<tr><td>施策のメンバー（社内関係者）</td><td>その施策と配下</td><td>なし（見るだけ）</td></tr>'
     +'<tr><td>上長（主任以上）</td><td>部下が関わる施策</td><td>なし（担当分のみ）</td></tr></tbody></table>'
     +'<ul><li><b>非公開</b>のレコードは、担当者・共同担当者・メンバーだけが見られます。</li><li>権限のない操作は、サーバー側でも止められます（画面で隠れているだけではありません）。</li><li>外部のパートナーは、パートナー名簿の「HALOタスク権限」が「利用」または「管理者」のときだけ使えます。</li></ul>');
-  h+=sec('faq','10. 困ったとき','<ul><li><b>他の人が変えた内容が見えない</b> → 「🔄 更新」。</li><li><b>「他の人が先に更新しました」と出た</b> → いったん閉じて、開き直してから入力し直してください。</li><li><b>追加したのに一覧にない</b> → 「自分のタスク」になっていると、他の人の担当は出ません。「すべて」に切り替え、完了にした場合は「完了タスク表示」も確認。</li><li><b>「＋ 新規」が出ない・バーが動かせない</b> → 権限がありません。施策のリーダーまたは管理者に依頼してください。</li><li>使い方の質問・不具合は、システム部門（永野）まで。</li></ul>');
+  h+=sec('faq','11. 困ったとき','<ul><li><b>他の人が変えた内容が見えない</b> → 「🔄 更新」。</li><li><b>「他の人が先に更新しました」と出た</b> → いったん閉じて、開き直してから入力し直してください。</li><li><b>追加したのに一覧にない</b> → 「自分のタスク」になっていると、他の人の担当は出ません。「すべて」に切り替え、完了にした場合は「完了タスク表示」も確認。</li><li><b>「＋ 新規」が出ない・バーが動かせない</b> → 権限がありません。施策のリーダーまたは管理者に依頼してください。</li><li>使い方の質問・不具合は、システム部門（永野）まで。</li></ul>');
   return h;
 }
 function tkManual(){
@@ -5048,12 +5057,88 @@ document.addEventListener('pointerup',async e=>{
   _tkBarSup=true;setTimeout(()=>{_tkBarSup=false;},0);
   if(d.nlo===d.lo&&d.nhi===d.hi){tkRender(true);return;}
   const s1=tkDs(tkAddDays(_tk.range.start,d.nlo)),e1=tkDs(tkAddDays(_tk.range.start,d.nhi)),x=d.x;
-  const backup={id:x.id,type:x.type,title:x.title,tag:x.tag||'',parent:x.parent,who:x.who,co:x.co,st:x.st,p:x.p,priv:x.priv,e:x.e,a:x.a};
+  const backup={id:x.id,type:x.type,title:x.title,tag:x.tag||'',ord:x.ord||0,parent:x.parent,who:x.who,co:x.co,st:x.st,p:x.p,priv:x.priv,e:x.e,a:x.a};
   tkApplyLocal('save',Object.assign({},backup,{start:s1,end:e1}));
   try{await api('moveTask',{id:x.id,start:s1,end:e1});showToast('日付を '+tkFmt(tkParse(s1))+'〜'+tkFmt(tkParse(e1))+' に変更しました');}
   catch(err){showToast('日付を変更できませんでした：'+((err&&err.message)||err));tkLoad(null,true,true);}
 });
 document.addEventListener('click',e=>{if(_tkBarSup){e.stopPropagation();e.preventDefault();}},true);
+// 行の取っ手（⋮⋮）をつかんで、①別の親（施策→活動、活動→タスク）の行に落とす＝所属の変更、②同じ階層の行の上下に落とす＝並べ替え（マウス・ペンのみ）
+const TKM_PARENT={'タスク':['活動'],'活動':['施策','施策方針'],'施策':['事業カテゴリ']};
+let _tkMv=null;
+function tkSibs(pid){const p=_tk.byId[pid];return p?p.ch:_tk.roots.filter(r=>String(r.parent)===String(pid));}
+function tkMvTarget(e){
+  const d=_tkMv;
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const row=el&&el.closest?el.closest('#tk-content .tk-row'):null;
+  if(!row||!row.dataset.id)return null;
+  const t=_tk.byId[row.dataset.id],x=d.x;
+  if(!t||t===x)return null;
+  const r=row.getBoundingClientRect(),top=(e.clientY-r.top)/r.height<.5;
+  if(t.type===x.type&&String(t.parent)===String(x.parent))return {mode:top?'before':'after',t,row};                       // 同じ親の兄弟：並べ替え
+  if((TKM_PARENT[x.type]||[]).includes(t.type)&&t.id!==x.parent&&t.a)return {mode:'in',t,row,np:t};                      // 親になれる行：配下へ
+  const np=t.type===x.type?_tk.byId[t.parent]:null;
+  if(np&&np.id!==x.parent&&(TKM_PARENT[x.type]||[]).includes(np.type)&&np.a)return {mode:top?'before':'after',t,row,np};  // 別の親の同種の上下：その親へ移して、その位置に
+  return null;
+}
+function tkMvMark(res){
+  document.querySelectorAll('.tk-row.mv-in,.tk-row.mv-before,.tk-row.mv-after').forEach(r=>r.classList.remove('mv-in','mv-before','mv-after'));
+  if(res)res.row.classList.add('mv-'+res.mode);
+}
+function tkMvLabel(e,txt){
+  let el=document.getElementById('tk-mvlbl');
+  if(!el){el=document.createElement('div');el.id='tk-mvlbl';document.body.appendChild(el);}
+  el.textContent=txt;el.style.left=(e.clientX+14)+'px';el.style.top=(e.clientY+14)+'px';
+}
+function tkMvEnd(){
+  _tkMv=null;document.body.classList.remove('tk-mving');tkMvMark(null);
+  const el=document.getElementById('tk-mvlbl');if(el)el.remove();
+}
+document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'||e.button!==0||_tkf||_tk.view!=='gantt')return;
+  const g=e.target.closest&&e.target.closest('.tk-gr');if(!g)return;
+  const x=_tk.byId[g.dataset.gid];if(!x||!x.e)return;
+  _tkMv={x,x0:e.clientX,y0:e.clientY,moved:false,res:null};
+  e.preventDefault();
+},true);
+document.addEventListener('pointermove',e=>{
+  const d=_tkMv;if(!d)return;
+  if(!d.moved&&Math.abs(e.clientY-d.y0)+Math.abs(e.clientX-d.x0)<5)return;
+  if(!d.moved){d.moved=true;document.body.classList.add('tk-mving');tkGhostOff();}
+  const w=document.getElementById('tk-wrap');
+  if(w){const b=w.getBoundingClientRect();if(e.clientY<b.top+60)w.scrollTop-=14;else if(e.clientY>b.bottom-36)w.scrollTop+=14;}
+  const res=tkMvTarget(e);d.res=res;tkMvMark(res);
+  const x=d.x;
+  tkMvLabel(e,'「'+x.title+'」'+(res?(res.mode==='in'?' → 「'+res.t.title+'」の配下へ':(res.np?' → 「'+res.np.title+'」の配下へ移動し、':' ')+(res.mode==='before'?'「'+res.t.title+'」の前へ':'「'+res.t.title+'」の後ろへ')):'　（ここには落とせません）'));
+});
+document.addEventListener('pointerup',async e=>{
+  const d=_tkMv;if(!d)return;
+  const res=d.res,moved=d.moved;
+  tkMvEnd();
+  if(!moved)return;
+  _tkBarSup=true;setTimeout(()=>{_tkBarSup=false;},0);
+  if(!res)return;
+  const x=d.x;
+  const np=res.mode==='in'?res.t:(res.np||_tk.byId[x.parent]||null);
+  const pid=np?np.id:String(x.parent);
+  let arr=tkSibs(pid).filter(n=>n.id!==x.id);
+  if(res.mode==='in')arr.push(x);
+  else{const i=arr.findIndex(n=>n.id===res.t.id);arr.splice(res.mode==='before'?i:i+1,0,x);}
+  const ids=arr.map(n=>n.id);
+  if(String(x.parent)===pid&&tkSibs(pid).map(n=>n.id).join()===ids.join())return;   // 変化なし
+  // 先に画面へ反映し、保存に失敗したら取り直す
+  const ordMap={};ids.forEach((i,k)=>{ordMap[i]=(k+1)*10;});
+  const raw=_tk.nodes.map(n=>Object.assign({},n,{ch:undefined,sd:undefined,ed:undefined,hold:undefined,inDoneS:undefined,cnt:undefined,
+    parent:n.id===x.id?pid:n.parent,ord:ordMap[n.id]!=null?ordMap[n.id]:(n.ord||0)}));
+  _tk.parents=(_tk.parents||[]).map(p=>String(p.id)===x.id?Object.assign({},p,{parent:pid}):p);
+  if(np)_tk.open[np.id]=true;
+  tkBuild(raw);tkRender(true);
+  try{
+    await api('moveNode',{id:x.id,parent:pid,order:ids});
+    showToast(res.mode==='in'||res.np?'「'+x.title+'」を「'+(np?np.title:'')+'」の配下に移しました':'並び順を変更しました');
+  }catch(err){showToast('移動できませんでした：'+((err&&err.message)||err));tkLoad(null,true,true);}
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&_tkMv)tkMvEnd();});
 // ガントの空き日付：マウスを乗せると「＋」の目印、クリックでその日付、ドラッグで期間を入れて新規（追加できる行だけ）
 let _tkDrag=null;
 function tkDs(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
