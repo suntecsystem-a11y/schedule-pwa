@@ -4144,7 +4144,11 @@ function tkBuild(list){
   roots.forEach(r=>markHold(r,false,false));
   list.forEach(n=>{if(!n.ch.length&&n.st==='完了')n.p=100;});
   const oKey=n=>(n.ord>0?0:1);
-  const sortCh=x=>{x.ch.sort((a,b)=>oKey(a)-oKey(b)||(a.ord||0)-(b.ord||0)||(a.sd?+a.sd:1e15)-(b.sd?+b.sd:1e15)||(+a.id)-(+b.id));x.ch.forEach(sortCh);};
+  const sortCh=x=>{x.ch.sort((a,b)=>{
+    const dd=(a.sd?+a.sd:1e15)-(b.sd?+b.sd:1e15);
+    if(a.type==='タスク'&&b.type==='タスク')return dd||((a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15))||(+a.id)-(+b.id);   // タスクは開始日の昇順で自動
+    return oKey(a)-oKey(b)||(a.ord||0)-(b.ord||0)||dd||(+a.id)-(+b.id);
+  });x.ch.forEach(sortCh);};
   roots.sort((a,b)=>oKey(a)-oKey(b)||(a.ord||0)-(b.ord||0)||(+a.id)-(+b.id));roots.forEach(sortCh);
   const prevOpen=_tk.open;_tk.open={};
   list.forEach(n=>{if(n.ch.length)_tk.open[n.id]=prevOpen[n.id]!==undefined?prevOpen[n.id]:(_tk.scope==='mine'||roots.includes(n));});
@@ -4987,7 +4991,7 @@ function tkManualHtml(){
   h+=sec('move','3. バーをつかんで日付を変える','<p>配下のないタスク（や活動・施策）で、<b>自分が編集できるもの</b>は、バーを直接動かして日付を変えられます。離した瞬間に保存されます。</p>'+f3
     +'<ul><li>日数は1日単位で動きます。動かしている間、マウスの横に新しい期間が表示されます。</li><li>動かさずにクリックしたときは、これまでどおり内容が開きます。</li><li>配下のある行（▼形のバー）は、配下の日付で決まるので動かせません。</li><li>権限のないバーはつかめません（マウスカーソルが変わりません）。</li><li>パソコン（マウス）専用です。スマホ・タブレットでは、内容を開いて日付を入力してください。</li></ul>'
     +note('操作を間違えたら、同じようにバーを動かして戻すか、内容を開いて日付を直してください。'));
-  h+=sec('move2','4. 行をつかんで、所属の変更・並べ替え','<p>行の左端にマウスを乗せると出る「⋮⋮」をつかんで、ドラッグします。<b>自分が編集できる行</b>で使えます（マウス・ペン専用）。</p><ul><li><b>所属を変える</b>：タスクを別の「活動」の行の上に落とす、活動を別の「施策」の行の上に落とす。落とした先の配下になります（枠が青く光ったところで離します）。別の活動の「タスクの上・下」に落とすと、その活動の配下の、その位置に入ります。</li><li><b>順番を変える</b>：同じ親の行の上半分に落とすと前に、下半分に落とすと後ろに入ります（青い線が出ます）。</li><li>落とせない所は、マウスの横に「ここには落とせません」と出ます。Escキーで取り消せます。</li><li>移動先の配下に追加できる人（施策のリーダー・活動の担当者・管理者）だけ移せます。並べ替えは、その親の配下に追加できる人だけです。</li><li>並び順はkintoneの「表示順」に保存され、みんなの画面に反映されます。順番を指定していないものは、従来どおり開始日の順です。</li></ul>')+sec('create','5. 新規登録のしかた','<p>3つの方法があります。</p><ol><li><b>＋ 新規</b>（右上）：種別・親から選んで登録。</li><li><b>行の「＋」</b>：施策の行なら活動、活動の行ならタスクを、その配下に追加（親が自動で入ります）。</li><li><b>日付の空きをクリック／ドラッグ</b>：その行の配下に、日付（期間）が入った状態で追加。</li></ol>'+f4
+  h+=sec('move2','4. 行をつかんで、所属の変更・並べ替え','<p>行の左端にマウスを乗せると出る「⋮⋮」をつかんで、ドラッグします。<b>自分が編集できる行</b>で使えます（マウス・ペン専用）。</p><ul><li><b>所属を変える</b>：タスクを別の「活動」の行の上に落とす、活動を別の「施策」の行の上に落とす。落とした先の配下になります（枠が青く光ったところで離します）。別の活動の「タスクの上・下」に落とすと、その活動の配下の、その位置に入ります。</li><li><b>順番を変える</b>（活動・施策）：同じ親の行の上半分に落とすと前に、下半分に落とすと後ろに入ります（青い線が出ます）。<b>タスクは開始日の昇順で自動的に並びます</b>（開始日が未入力のものは最後）。タスクを別の活動に移したときも、位置は開始日で決まります。</li><li>落とせない所は、マウスの横に「ここには落とせません」と出ます。Escキーで取り消せます。</li><li>移動先の配下に追加できる人（施策のリーダー・活動の担当者・管理者）だけ移せます。並べ替えは、その親の配下に追加できる人だけです。</li><li>並び順はkintoneの「表示順」に保存され、みんなの画面に反映されます。活動・施策で順番を指定していないものは、開始日の順です。</li></ul>')+sec('create','5. 新規登録のしかた','<p>3つの方法があります。</p><ol><li><b>＋ 新規</b>（右上）：種別・親から選んで登録。</li><li><b>行の「＋」</b>：施策の行なら活動、活動の行ならタスクを、その配下に追加（親が自動で入ります）。</li><li><b>日付の空きをクリック／ドラッグ</b>：その行の配下に、日付（期間）が入った状態で追加。</li></ol>'+f4
     +note('一般の社員が登録できるのは<b>活動とタスク</b>だけです。施策より上（基本方針〜施策方針）や施策の登録は管理者（永野・畑村）が行います。構造を守るための決まりです。'));
   h+=sec('form','6. 入力フォーム','<p>右からスライドして開きます。更新後は自動で一覧に反映されます（Ctrl＋Sでも保存）。</p>'+f5
     +'<ul><li><b>状態</b>：未着手／進行中／確認待ち／保留／完了。タスクを完了にすると進捗は100%になります。</li><li><b>担当者・メンバー</b>：従業員名簿（社内の人と外部パートナー）の氏名から選びます。メンバーは「見られる人」を増やす設定で、編集権限は付きません。</li><li><b>非公開</b>：チェックすると、そのレコードと配下は担当者・共同担当者・メンバーだけに表示されます（管理者・役員・上長にも見えません）。</li><li><b>＋ タスクを追加／コピー</b>：配下の追加、内容を引き継いだ新規作成。</li><li><b>削除</b>：権限のある人にだけ表示されます。実際には消さず、一覧・ガント・方針ツリーなどから見えなくなります（必要になったら、システム部門がkintoneで元に戻せます）。配下があるレコードは削除できません。</li><li>土日を日付に入れて保存すると確認が出ます。</li></ul>');
@@ -5075,10 +5079,13 @@ function tkMvTarget(e){
   const t=_tk.byId[row.dataset.id],x=d.x;
   if(!t||t===x)return null;
   const r=row.getBoundingClientRect(),top=(e.clientY-r.top)/r.height<.5;
-  if(t.type===x.type&&String(t.parent)===String(x.parent))return {mode:top?'before':'after',t,row};                       // 同じ親の兄弟：並べ替え
+  if(t.type===x.type&&String(t.parent)===String(x.parent))return x.type==='タスク'?null:{mode:top?'before':'after',t,row};   // 同じ親の兄弟：並べ替え（タスクは開始日で自動なので不可）
   if((TKM_PARENT[x.type]||[]).includes(t.type)&&t.id!==x.parent&&t.a)return {mode:'in',t,row,np:t};                      // 親になれる行：配下へ
   const np=t.type===x.type?_tk.byId[t.parent]:null;
-  if(np&&np.id!==x.parent&&(TKM_PARENT[x.type]||[]).includes(np.type)&&np.a)return {mode:top?'before':'after',t,row,np};  // 別の親の同種の上下：その親へ移して、その位置に
+  if(np&&np.id!==x.parent&&(TKM_PARENT[x.type]||[]).includes(np.type)&&np.a){
+    if(x.type==='タスク')return {mode:'in',t:np,row:document.querySelector('.tk-row[data-id="'+np.id+'"]')||row,np};   // タスクは、その親の配下へ（位置は開始日で決まる）
+    return {mode:top?'before':'after',t,row,np};                                                                          // 別の親の同種の上下：その親へ移して、その位置に
+  }
   return null;
 }
 function tkMvMark(res){
@@ -5124,10 +5131,10 @@ document.addEventListener('pointerup',async e=>{
   let arr=tkSibs(pid).filter(n=>n.id!==x.id);
   if(res.mode==='in')arr.push(x);
   else{const i=arr.findIndex(n=>n.id===res.t.id);arr.splice(res.mode==='before'?i:i+1,0,x);}
-  const ids=arr.map(n=>n.id);
-  if(String(x.parent)===pid&&tkSibs(pid).map(n=>n.id).join()===ids.join())return;   // 変化なし
+  const ids=x.type==='タスク'?[]:arr.map(n=>n.id);
+  if(String(x.parent)===pid&&(x.type==='タスク'||tkSibs(pid).map(n=>n.id).join()===ids.join()))return;   // 変化なし
   // 先に画面へ反映し、保存に失敗したら取り直す
-  const ordMap={};ids.forEach((i,k)=>{ordMap[i]=(k+1)*10;});
+  const ordMap={};ids.forEach((i,k)=>{ordMap[i]=(k+1)*10;});   // タスクは空（開始日で自動）
   const raw=_tk.nodes.map(n=>Object.assign({},n,{ch:undefined,sd:undefined,ed:undefined,hold:undefined,inDoneS:undefined,cnt:undefined,
     parent:n.id===x.id?pid:n.parent,ord:ordMap[n.id]!=null?ordMap[n.id]:(n.ord||0)}));
   _tk.parents=(_tk.parents||[]).map(p=>String(p.id)===x.id?Object.assign({},p,{parent:pid}):p);
