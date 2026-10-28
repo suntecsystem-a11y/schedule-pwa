@@ -370,6 +370,8 @@ function resetWizardData() {
       ],
     },
     other: { content: '' },
+    // 添付ファイルそのものは下書きに入れない（容量が大きく localStorage に入らないため）。_docFiles で持つ
+    documents: { later: false },
   };
 }
 
@@ -387,6 +389,7 @@ const STEPS = [
   { id: 'commute', title: '通勤情報の変更' },
   { id: 'bank', title: '給与振込口座の変更' },
   { id: 'other', title: 'その他の変更' },
+  { id: 'documents', title: '書類の添付' },
   { id: 'confirm', title: '入力内容の確認' },
   { id: 'complete', title: '申請完了' },
 ];
@@ -402,6 +405,9 @@ function isStepActive(step) {
     case 'commute': return wizardData.categories.includes('commute');
     case 'bank': return wizardData.categories.includes('bank');
     case 'other': return wizardData.categories.includes('other');
+    // 必要書類がある変更か、書類を付けたいことがある口座・その他のときだけ出す
+    case 'documents': return computeRequiredDocs().length > 0
+                          || wizardData.categories.includes('bank') || wizardData.categories.includes('other');
     default: return false;
   }
 }
@@ -439,6 +445,7 @@ function initWizard() {
         ] };
       }
       if (!wizardData.other) wizardData.other = { content: '' };
+      if (!wizardData.documents) wizardData.documents = { later: false };
       currentStepIdx = draft.currentStepIdx;
       fetchEmployeeDetail().then(() => renderCurrentStep());
       return;
@@ -558,6 +565,7 @@ function renderStep(stepId, el) {
     case 'commute': return renderCommute(el);
     case 'bank': return renderBank(el);
     case 'other': return renderOther(el);
+    case 'documents': return renderDocuments(el);
     case 'confirm': return renderConfirm(el);
     case 'complete': return renderComplete(el);
   }
@@ -573,8 +581,10 @@ function renderWelcome(el) {
       <div class="welcome-desc">
         従業員情報の変更届を申請します。<br><br>
         氏名・住所・電話番号・緊急連絡先・通勤情報・給与振込口座の変更ができます。<br>
-        変更前の情報は自動で表示されます。変更後の情報を入力してください。<br><br>
-        申請後、総務部による確認・承認が行われます。
+        変更前の情報は自動で表示されます。変更後の情報を入力してください。<br>
+        住民票などの書類が必要な変更は、写真やPDFを添付できます。<br><br>
+        総務が承認すると、従業員名簿に自動で反映されます（変更日が先の項目は変更日の朝）。<br>
+        申請後の取り下げはできません。間違いがあったら総務に連絡してください。
       </div>
     </div>`;
 }
@@ -975,6 +985,87 @@ function renderOther(el) {
     </div>`;
 }
 
+// ----- 書類の添付 -----
+// 変更内容から必要書類を決める。
+// 元：従業員情報変更届_システム分岐表.xlsx の「提出・添付書類」シート。総務の運用が変わったらここを直す。
+// 給与振込口座は「原則として添付書類なし（入力内容を正とする）」のため必須にはしない（任意で添付可）。
+function computeRequiredDocs() {
+  const docs = [];
+  const cats = wizardData.categories || [];
+  if (cats.includes('basic')) {
+    const items = wizardData.basic.items || [];
+    if (items.includes('name'))    docs.push('氏名の変更が確認できる書類（住民票・戸籍抄本・運転免許証など。外国籍の方は在留カードの表裏）');
+    if (items.includes('address')) docs.push('住所の変更が確認できる書類（住民票・運転免許証など。外国籍の方は在留カードの表裏）');
+  }
+  if (cats.includes('commute')) {
+    docs.push('通勤経路が分かる地図または経路検索の画面');
+    const m = wizardData.commute.method.after || wizardData.commute.method.before || '';
+    if (m === '電車')   docs.push('定期代・運賃が分かる画面');
+    if (m === '自転車') docs.push('自転車保険の証券など、保険の内容が分かるもの');
+    if (m === 'バイク' || m === '自動車') docs.push('運転免許証・誓約書・私有車使用届出書・自賠責保険と任意保険の証券');
+  }
+  return docs;
+}
+
+let _docFiles = [];   // { name, mime, data(base64) } 送信するまで端末の中だけに持つ
+const DOC_MAX_BYTES = 10 * 1024 * 1024;
+
+function renderDocuments(el) {
+  const req = computeRequiredDocs();
+  const later = !!(wizardData.documents && wizardData.documents.later);
+  el.innerHTML = `
+    <div class="step-title">書類の添付</div>
+    <div class="step-desc">${req.length
+      ? '次の書類の写真またはPDFを添付してください。今手元にない場合は「後日提出する」を選んでください。'
+      : '必要な書類はありません。添付したいものがあれば付けてください。'}</div>
+    ${req.length ? `<div class="info-box" style="margin-bottom:14px;">${req.map(d => '・' + esc(d)).join('<br>')}</div>` : ''}
+    <div class="field-section">
+      <label class="btn btn-prev" style="display:inline-block;cursor:pointer;padding:10px 16px;">
+        📎 ファイルを選ぶ<input type="file" multiple accept="image/*,application/pdf" style="display:none;" onchange="pickDocFiles(this)">
+      </label>
+      <div style="font-size:12px;color:var(--text-sub);margin-top:6px;">1ファイル10MBまで。マイナンバーが写っている場合は隠してから撮影してください。</div>
+      <div id="doc-file-list"></div>
+      ${req.length ? `
+      <label style="display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="f-doc-later" ${later ? 'checked' : ''} style="width:20px;height:20px;">
+        後日提出する（あとから申請アプリで追加するか、総務に手渡しします）
+      </label>` : ''}
+    </div>`;
+  renderDocFileList();
+}
+
+function pickDocFiles(input) {
+  const files = Array.from(input.files || []);
+  const tooBig = files.filter(f => f.size > DOC_MAX_BYTES);
+  if (tooBig.length) showToast(tooBig.map(f => f.name).join('、') + ' が大きすぎます（上限10MB）');
+  const ok = files.filter(f => f.size <= DOC_MAX_BYTES);
+  input.value = '';
+  let remaining = ok.length;
+  ok.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      _docFiles.push({ name: file.name, mime: file.type, data: String(reader.result).split(',')[1] || '' });
+      if (--remaining === 0) renderDocFileList();
+    };
+    reader.onerror = () => {
+      showToast(file.name + ' を読み込めませんでした');
+      if (--remaining === 0) renderDocFileList();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderDocFileList() {
+  const el = document.getElementById('doc-file-list');
+  if (!el) return;
+  el.innerHTML = _docFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:8px;margin-top:8px;font-size:13px;">
+      <span style="flex:1;word-break:break-all;">📎 ${esc(f.name)}</span>
+      <button type="button" onclick="_docFiles.splice(${i},1);renderDocFileList()"
+              style="border:none;background:none;color:#c62828;cursor:pointer;font-size:18px;">✕</button>
+    </div>`).join('');
+}
+
 // ----- 確認画面 -----
 function renderConfirm(el) {
   let html = '<div class="step-title">入力内容の確認</div><div class="step-desc">変更内容を確認してください。修正する場合は「戻る」で該当ステップに戻れます。</div>';
@@ -1063,6 +1154,13 @@ function renderConfirm(el) {
     }
   }
 
+  if (isStepActive({ id: 'documents' })) {
+    const later = !!(wizardData.documents && wizardData.documents.later);
+    const rows = _docFiles.map(f => confirmRow('添付', '', f.name));
+    if (!_docFiles.length) rows.push(confirmRow('添付', '', later ? '後日提出する' : 'なし'));
+    html += confirmSection('書類', rows);
+  }
+
   el.innerHTML = html;
 }
 
@@ -1089,7 +1187,7 @@ function renderComplete(el) {
     <div class="complete-box">
       <div class="complete-icon">✅</div>
       <div class="complete-title">申請を受け付けました</div>
-      <div class="complete-sub">総務部による確認・承認をお待ちください。<br>承認・却下時に通知でお知らせします。</div>
+      <div class="complete-sub">総務の確認・承認をお待ちください。<br>承認・却下の結果はHALOのお知らせ（とプッシュ通知）で届きます。<br>状況は申請アプリの「自分の申請」で見られます。</div>
       <div class="complete-info">
         <div><span class="ci-label">申請者</span><span>${currentUser.name}</span></div>
         <div><span class="ci-label">申請日時</span><span>${dateStr}</span></div>
@@ -1181,6 +1279,11 @@ function collectStepData(stepId) {
       if (el) wizardData.other.content = el.value.trim();
       break;
     }
+    case 'documents': {
+      const el = document.getElementById('f-doc-later');
+      wizardData.documents = { later: !!(el && el.checked) };
+      break;
+    }
   }
 }
 
@@ -1246,6 +1349,12 @@ function collectAndValidate(stepId) {
       if (!wizardData.other.content) { showToast('変更内容を入力してください'); return false; }
       return true;
     }
+    case 'documents': {
+      if (computeRequiredDocs().length && !_docFiles.length && !wizardData.documents.later) {
+        showToast('書類を添付するか、「後日提出する」を選んでください'); return false;
+      }
+      return true;
+    }
     default: return true;
   }
 }
@@ -1259,8 +1368,21 @@ async function submitChangeRequest() {
   if (btn) { btn.disabled = true; btn.textContent = '送信中...'; }
 
   const changes = buildChangesJSON();
+  const docsActive = isStepActive({ id: 'documents' });
 
   try {
+    // 書類は先にSharePointへ上げ、URLだけを変更届に保存する（届出と同じ方式）
+    const files = [];
+    if (docsActive) {
+      for (let i = 0; i < _docFiles.length; i++) {
+        const f = _docFiles[i];
+        if (btn) btn.textContent = `書類を送信中 (${i + 1}/${_docFiles.length})...`;
+        const res = await gas({ action: 'uploadChangeFile', token: currentToken,
+                                file: { name: f.name, mime: f.mime, data: f.data } });
+        if (res && res.url) files.push({ name: res.name || f.name, url: res.url });
+      }
+      if (btn) btn.textContent = '送信中...';
+    }
     await gas({
       action: 'saveChangeRequest',
       token: currentToken,
@@ -1268,8 +1390,11 @@ async function submitChangeRequest() {
         applicantName: currentUser.name,
         categories: wizardData.categories,
         changes: JSON.stringify(changes),
+        requiredDocs: docsActive ? computeRequiredDocs() : [],
+        documents: { files, later: docsActive && !files.length && !!wizardData.documents.later },
       },
     });
+    _docFiles = [];
     clearDraft();
     currentStepIdx = getActiveSteps().findIndex(s => s.id === 'complete');
     renderCurrentStep();

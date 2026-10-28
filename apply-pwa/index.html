@@ -213,6 +213,7 @@ button:disabled { opacity: .55; cursor: progress; }
         <option value="transport">🚃 交通費精算</option>
         <option value="expense">💴 出張費精算</option>
         <option value="other">📝 その他</option>
+        <option value="change">🪪 従業員情報変更届</option>
         <option value="todoke">📨 届出・相談</option>
       </select>
       <select id="mine-filter-status" onchange="applyMineFilter()">
@@ -249,6 +250,7 @@ button:disabled { opacity: .55; cursor: progress; }
         <option value="transport">🚃 交通費精算</option>
         <option value="expense">💴 出張費精算</option>
         <option value="other">📝 その他</option>
+        <option value="change">🪪 従業員情報変更届</option>
         <option value="todoke">📨 届出・相談</option>
       </select>
       <select id="filter-status" onchange="applyFilter()">
@@ -335,7 +337,7 @@ button:disabled { opacity: .55; cursor: progress; }
       <option value="expense">💴 出張費精算</option>
       <option value="transport">🚃 交通費精算</option>
       <option value="other">📝 その他申請</option>
-      <option value="change">📝 従業員情報変更届</option>
+      <option value="change">🪪 従業員情報変更届</option>
       <option value="todoke">📨 届出・相談</option>
       <option id="opt-onboarding" value="onboarding" hidden>🎉 新入社員 入社登録</option>
     </select>
@@ -671,10 +673,11 @@ async function loadTab(name) {
       await loadTodokeTab();
       return;
     } else if (name === 'mine') {
-      const [applyAll, expenses, todokes] = await Promise.all([
+      const [applyAll, expenses, todokes, changes] = await Promise.all([
         gas({ action: 'getApplyAll', token: currentToken }),
         gas({ action: 'getExpenses', token: currentToken }).catch(() => []), // scope省略=自分の申請のみ
         gas({ action: 'getTodokeList', token: currentToken }).catch(() => []),
+        gas({ action: 'getChangeRequests', token: currentToken }).catch(() => []), // scope省略=自分の変更届のみ
       ]);
       if (seq !== _loadTabSeq) return;
       records = [
@@ -682,6 +685,7 @@ async function loadTab(name) {
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...(changes || []).map(_changeToListRecord),
         // 届出はステータス名もフィールド名も違うので、カード描画が読む形に合わせる
         ...(todokes || []).map(r => ({
           ...r, _appType: 'todoke',
@@ -708,10 +712,12 @@ async function loadTab(name) {
       applyMineFilter();
       return;
     } else if (name === 'pending') {
-      const [applyAll, expenses] = await Promise.all([
+      const [applyAll, expenses, changes] = await Promise.all([
         gas({ action: 'getApplyForApprovalAll', token: currentToken }),
         // 管理者フラグではなく scope='pending' でGAS側が「自分が承認者の申請中」だけを返す（2026-10-16）
         gas({ action: 'getExpenses', token: currentToken, scope: 'pending' }).catch(() => []),
+        // 変更届は総務（HR_VIEWERS）だけが取れる。それ以外はGASがエラーを返すので空にする
+        gas({ action: 'getChangeRequests', token: currentToken, scope: 'pending' }).catch(() => []),
       ]);
       if (seq !== _loadTabSeq) return;
       records = [
@@ -719,12 +725,15 @@ async function loadTab(name) {
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
+        // 自分が出した変更届は自分で承認できないので出さない
+        ...(changes || []).filter(r => r.status === '申請中' && r.applicantId !== currentUser.id).map(_changeToListRecord),
       ];
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
     } else if (name === 'all') {
-      const [applyAll, expenses] = await Promise.all([
+      const [applyAll, expenses, changes] = await Promise.all([
         gas({ action: 'getApplyAll', token: currentToken, scope: 'all' }),
         gas({ action: 'getExpenses', token: currentToken, scope: 'all' }).catch(() => []),
+        gas({ action: 'getChangeRequests', token: currentToken, scope: 'all' }).catch(() => []),
       ]);
       if (seq !== _loadTabSeq) return;
       records = [
@@ -732,6 +741,7 @@ async function loadTab(name) {
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).map(r => ({ ...r, _appType: 'expense' })),
+        ...(changes || []).map(_changeToListRecord),
       ];
       records.sort((a, b) => { const ka = _sortKey(a), kb = _sortKey(b); return kb > ka ? 1 : kb < ka ? -1 : 0; });
       allRecordsCache = records;
@@ -839,6 +849,7 @@ function renderList(el, records, opts) {
           <div class="card-title">${typeIcon(r._appType)} ${typeLabel(r._appType)}</div>
           <div class="card-sub">${esc(r.applicantName || r.applicantId)} ・ ${esc(r.applicationDate || r.appliedAt || '')}</div>
           ${r._appType === 'expense' ? `<div class="card-sub">行先: ${esc(r.destination || '')}　計 ${Number(r.totalAmount || 0).toLocaleString()} 円</div>` : ''}
+          ${r._appType === 'change' ? `<div class="card-sub">${esc((r.categories || []).join('・'))}${r.reflectStatus ? '　名簿：' + esc(r.reflectStatus) : ''}</div>` : ''}
           ${r._appType !== 'expense' && r.content ? (() => { try { const c = JSON.parse(r.content); if (r._appType === 'transport') { return `<div class="card-sub">${esc(c.destination || '')} ${esc(c.periodStart||'')}〜${esc(c.periodEnd||'')} 計 ${Number(c.totalAmount||0).toLocaleString()} 円</div>`; } const timeInfo = c.allDay === false && c.startTime ? ` ${esc(c.startTime)}〜${esc(c.endTime)}` : c.allDay !== undefined ? ' 終日' : ''; return `<div class="card-sub">${esc(c.title || '')}${c.start ? esc(c.start) + '〜' + esc(c.end) + timeInfo : ''}</div>`; } catch { return ''; } })() : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
@@ -847,7 +858,8 @@ function renderList(el, records, opts) {
         </div>
       </div>
     </div>`;
-    if (showCheckbox && r.approvalStatus === '申請中' && r._appType !== 'expense') {
+    // 出張費・変更届は一括承認の対象外（変更届は名簿を書き換えるので1件ずつ中身を見て承認する）
+    if (showCheckbox && r.approvalStatus === '申請中' && r._appType !== 'expense' && r._appType !== 'change') {
       return `<div class="pending-item"><div class="pending-card">
         <input type="checkbox" class="bulk-cb" data-apptype="${esc(r._appType)}" data-id="${esc(r.id)}" onchange="updateBulkCount()">
         ${cardHtml}
@@ -868,6 +880,8 @@ function updateBulkCount() {
 async function openDetail(appType, id) {
   // 届出はステータス体系が違う（承認/却下ではなく受付→対応→完了）ので専用の詳細へ
   if (appType === 'todoke') return openTodokeDetail(id);
+  // 変更届は名簿への反映・書類があるので専用の詳細へ
+  if (appType === 'change') return openChangeDetail(id);
   document.getElementById('detail-body').innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
   document.getElementById('detail-footer').innerHTML = '';
   document.getElementById('detail-title').textContent = typeIcon(appType) + ' ' + typeLabel(appType) + ' 詳細';
@@ -1042,6 +1056,268 @@ function renderExpenseDetail(r) {
     ${r.receipts.map(rc => `<div style="margin-top:6px;"><a href="${esc(rc.url)}" target="_blank" style="color:var(--primary)">📎 領収書を見る</a> <span style="font-size:12px;color:var(--text-sub)">${esc(rc.takenAt)}</span></div>`).join('')}` : ''}
     ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${esc(r.rejectionReason)}</div></div>` : ''}
   `;
+}
+
+// ===================================================
+// 従業員情報変更届（2026-10-28）
+// 一覧は中身を持たないので、開いたときに getChangeRequestById で取る。
+// 総務が承認すると従業員名簿が書き換わる（変更日が先の項目は変更日の朝）。
+// 取り下げはできない（総務の承認と同時に押されると名簿の反映と食い違うため）。
+// ===================================================
+function _changeToListRecord(r) {
+  return {
+    ...r, _appType: 'change',
+    // 変更届アプリは「却下」、ほかの申請は「否認」。一覧の件数・色・絞り込みは「否認」にそろえる
+    approvalStatus:  r.status === '却下' ? '否認' : r.status,
+    applicationDate: (r.appliedAt || '').slice(0, 10),
+  };
+}
+
+function _changeToday() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function _changeMd(s) {
+  const m = String(s || '').match(/^\d{4}-(\d{2})-(\d{2})/);
+  return m ? Number(m[1]) + '/' + Number(m[2]) : String(s || '');
+}
+function _currentTabName() {
+  const b = document.querySelector('.tab-btn.active');
+  return (b && b.dataset.tab) || 'mine';
+}
+
+let _changeAddFiles = [];
+let _changeDetail = null;
+
+async function openChangeDetail(id) {
+  document.getElementById('detail-body').innerHTML = '<div class="loading"><div class="spinner"></div><div>読み込み中...</div></div>';
+  document.getElementById('detail-footer').innerHTML = '';
+  document.getElementById('detail-title').textContent = typeIcon('change') + ' ' + typeLabel('change') + ' 詳細';
+  openModal('modal-detail');
+  try {
+    const r = await gas({ action: 'getChangeRequestById', token: currentToken, recordId: id });
+    _changeDetail = r;
+    _changeAddFiles = [];
+    renderChangeDetail(r);
+
+    const footer = document.getElementById('detail-footer');
+    footer.innerHTML = '';
+    if (r.canApprove) {
+      const rejectBtn = document.createElement('button');
+      rejectBtn.className = 'btn-danger';
+      rejectBtn.textContent = '却下';
+      rejectBtn.onclick = () => doRejectChange(r, rejectBtn);
+      const approveBtn = document.createElement('button');
+      approveBtn.className = 'btn-success';
+      approveBtn.textContent = '承認して名簿に反映';
+      approveBtn.onclick = () => doApproveChange(r, approveBtn);
+      footer.appendChild(rejectBtn);
+      footer.appendChild(approveBtn);
+    }
+    if (r.canRetryReflect) {
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'btn-submit';
+      retryBtn.textContent = '名簿への反映をやり直す';
+      retryBtn.onclick = () => doRetryChangeReflect(r, retryBtn);
+      footer.appendChild(retryBtn);
+    }
+  } catch (e) {
+    document.getElementById('detail-body').innerHTML = `<div class="empty"><p>読み込み失敗: ${esc(e.message)}</p></div>`;
+  }
+}
+
+// 単位（氏名・住所・通勤…）ごとの名簿への反映状況
+function _changeUnitState(r, u) {
+  if (r.status !== '承認済') return '';
+  if (u.reflected) return '<span style="color:var(--success);font-weight:700;">✅ 名簿に反映済み</span>';
+  if (r.reflectStatus === '反映エラー') return '<span style="color:var(--danger);font-weight:700;">⚠ 未反映（エラー）</span>';
+  if (u.date && u.date > _changeToday()) return `<span style="color:#e65100;font-weight:700;">⏳ ${esc(_changeMd(u.date))} に反映予定</span>`;
+  return '<span style="color:#e65100;font-weight:700;">⏳ 反映待ち</span>';
+}
+
+function renderChangeDetail(r) {
+  const status = r.status === '却下' ? '否認' : r.status;
+  const reflectColor = { '反映済': 'var(--success)', '反映待ち': '#e65100', '反映エラー': 'var(--danger)' }[r.reflectStatus] || 'var(--text-sub)';
+
+  const unitsHtml = (r.units || []).map(u => `
+    <div style="margin-top:14px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="font-weight:700;font-size:14px;">${esc(u.label)}</div>
+        <div style="font-size:12px;">
+          ${u.date ? `<span style="color:var(--text-sub);margin-right:8px;">変更日 ${esc(_changeMd(u.date))}</span>` : ''}
+          ${_changeUnitState(r, u)}
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="detail-table">
+          <thead><tr><th>項目</th><th>変更前</th><th>変更後</th></tr></thead>
+          <tbody>${u.items.map(it => `
+            <tr><td>${esc(it.label)}</td><td style="color:var(--text-sub);">${esc(it.before || '(未登録)')}</td><td><strong>${esc(it.after)}</strong></td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`).join('');
+
+  const docs  = r.documents || { files: [], later: false };
+  const files = docs.files || [];
+  const docsHtml = (r.requiredDocs.length || files.length || r.canAddDocs) ? `
+    <div style="margin-top:16px;font-size:13px;font-weight:700;">書類</div>
+    ${r.requiredDocs.length ? `
+      <div style="margin-top:6px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:13px;">
+        <div style="color:var(--text-sub);font-size:12px;margin-bottom:4px;">必要な書類</div>
+        ${r.requiredDocs.map(d => `<div>・${esc(d)}</div>`).join('')}
+      </div>` : ''}
+    ${files.length
+      ? files.map(f => `<div style="margin-top:6px;font-size:13px;"><a href="${esc(f.url)}" target="_blank" rel="noopener" style="color:var(--primary);word-break:break-all;">📎 ${esc(f.name)}</a> <span style="font-size:11px;color:var(--text-sub);">${esc(f.at || '')}</span></div>`).join('')
+      : `<div style="margin-top:6px;font-size:13px;color:${docs.later ? '#e65100' : 'var(--text-sub)'};">${docs.later ? '後日提出の予定（まだ添付されていません）' : '添付なし'}</div>`}
+    ${r.canAddDocs ? `
+      <div style="margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;">
+        <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">書類をあとから追加できます（1ファイル10MBまで）。マイナンバーが写っている場合は隠してください。</div>
+        <label class="btn-cancel" style="display:inline-block;cursor:pointer;padding:6px 12px;font-size:13px;">
+          📎 ファイルを選ぶ<input type="file" multiple accept="image/*,application/pdf" style="display:none;" onchange="pickChangeAddFiles(this)">
+        </label>
+        <div id="chg-add-file-list"></div>
+        <button type="button" id="chg-add-btn" class="btn-submit" style="margin-top:8px;display:none;" onclick="submitChangeAddFiles(this)">この書類を追加する</button>
+      </div>` : ''}` : '';
+
+  document.getElementById('detail-body').innerHTML = `
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span class="badge badge-${esc(status)}">${esc(r.status)}</span>
+      ${r.reflectStatus ? `<span style="font-size:12px;font-weight:700;color:${reflectColor};">名簿：${esc(r.reflectStatus)}</span>` : ''}
+    </div>
+    <div class="detail-row"><span class="detail-label">申請者</span><span class="detail-val">${esc(r.applicantName)}</span></div>
+    <div class="detail-row"><span class="detail-label">申請日</span><span class="detail-val">${esc((r.appliedAt || '').slice(0, 10))}</span></div>
+    <div class="detail-row"><span class="detail-label">カテゴリ</span><span class="detail-val">${esc((r.categories || []).join('・'))}</span></div>
+    ${r.approverName ? `<div class="detail-row"><span class="detail-label">${r.status === '却下' ? '却下した人' : '承認者'}</span><span class="detail-val">${esc(r.approverName)}</span></div>` : ''}
+    ${r.status === '申請中' ? `<div style="margin-top:10px;font-size:12px;color:var(--text-sub);">総務が承認すると、従業員名簿に自動で反映されます（変更日が先の項目は変更日の朝）。取り下げはできません。間違いがあったら総務に連絡してください。</div>` : ''}
+    ${r.commuteChanged ? `<div style="margin-top:10px;font-size:12px;color:#e65100;">※ 住所の変更に伴い、通勤経路・方法も変わる予定です</div>` : ''}
+    ${unitsHtml}
+    ${r.otherContent ? `
+      <div style="margin-top:14px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+        <div style="font-weight:700;font-size:14px;">その他</div>
+        <div style="margin-top:6px;font-size:13px;white-space:pre-wrap;">${esc(r.otherContent)}</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--text-sub);">この内容は名簿に自動では入りません（総務が対応します）</div>
+      </div>` : ''}
+    ${docsHtml}
+    ${r.notes ? `<div class="detail-row" style="margin-top:12px;"><span class="detail-label">承認コメント</span><span class="detail-val">${esc(r.notes)}</span></div>` : ''}
+    ${r.status === '却下' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${esc(r.rejectionReason)}</div></div>` : ''}
+    ${r.reflectLog ? `
+      <details style="margin-top:14px;font-size:12px;" ${r.reflectStatus === '反映エラー' ? 'open' : ''}>
+        <summary style="cursor:pointer;color:var(--text-sub);">名簿への反映の記録</summary>
+        <div style="margin-top:6px;white-space:pre-wrap;color:var(--text-sub);">${esc(r.reflectLog.replace(/^\[[a-z0-9]+\]\s*/gm, ''))}</div>
+      </details>` : ''}
+  `;
+}
+
+async function doApproveChange(r, btn) {
+  const today = _changeToday();
+  const later = (r.units || []).filter(u => u.date && u.date > today);
+  let msg = 'この変更届を承認しますか？\n承認すると従業員名簿が書き換わります。';
+  if (later.length) {
+    msg += '\n\n変更日が先の項目は、変更日の朝に反映します：\n'
+         + later.map(u => '・' + u.label + '（' + _changeMd(u.date) + '）').join('\n');
+  }
+  if (r.otherContent) msg += '\n\n「その他」の内容は名簿に自動では入りません。';
+  const files = (r.documents && r.documents.files) || [];
+  if (r.requiredDocs.length && !files.length) msg += '\n\n※ 必要な書類がまだ添付されていません。';
+  // 確認ダイアログは無効化する前に出す（キャンセルされたらそのまま戻る）
+  const comment = prompt(msg + '\n\n承認コメント（任意）', '');
+  if (comment === null) return;
+  await _runDetailAction(btn, '承認中...', async () => {
+    try {
+      const res = await gas({ action: 'approveChangeRequest', token: currentToken, recordId: r.id, comment: comment.trim() });
+      const rf = (res && res.reflect) || {};
+      closeModal('modal-detail');
+      if (rf.error) showToast('承認しました。名簿への反映に失敗しました。詳細を開いて確認してください');
+      else if (rf.waiting && rf.waiting.length) showToast('承認しました。変更日の朝に名簿へ反映します');
+      else showToast('承認して名簿に反映しました');
+      loadTab(_currentTabName());
+      loadPendingBadge();
+    } catch (e) { showToast('失敗: ' + e.message); }
+  });
+}
+
+async function doRejectChange(r, btn) {
+  const reason = prompt('却下理由を入力してください（申請者に通知されます）');
+  if (reason === null) return;
+  if (!reason.trim()) { showToast('却下理由を入力してください'); return; }
+  await _runDetailAction(btn, '却下中...', async () => {
+    try {
+      await gas({ action: 'rejectChangeRequest', token: currentToken, recordId: r.id, reason: reason.trim() });
+      closeModal('modal-detail');
+      showToast('却下しました');
+      loadTab(_currentTabName());
+      loadPendingBadge();
+    } catch (e) { showToast('失敗: ' + e.message); }
+  });
+}
+
+async function doRetryChangeReflect(r, btn) {
+  if (!confirm('名簿への反映をやり直しますか？\n先に、記録に出ているエラーの原因（名簿の項目・選択肢など）を直してください。')) return;
+  await _runDetailAction(btn, '反映中...', async () => {
+    try {
+      const res = await gas({ action: 'retryChangeReflect', token: currentToken, recordId: r.id });
+      const rf = (res && res.reflect) || {};
+      showToast(rf.error ? 'まだ反映できません: ' + rf.error : '名簿に反映しました');
+      await openChangeDetail(r.id);
+    } catch (e) { showToast('失敗: ' + e.message); }
+  });
+}
+
+function pickChangeAddFiles(input) {
+  const MAX = 10 * 1024 * 1024;
+  const files = Array.from(input.files || []);
+  const tooBig = files.filter(f => f.size > MAX);
+  if (tooBig.length) showToast(tooBig.map(f => f.name).join('、') + ' が大きすぎます（上限10MB）');
+  const ok = files.filter(f => f.size <= MAX);
+  input.value = '';
+  let remaining = ok.length;
+  ok.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      _changeAddFiles.push({ name: file.name, mime: file.type, data: String(reader.result).split(',')[1] || '' });
+      if (--remaining === 0) renderChangeAddFileList();
+    };
+    reader.onerror = () => {
+      showToast(file.name + ' を読み込めませんでした');
+      if (--remaining === 0) renderChangeAddFileList();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderChangeAddFileList() {
+  const el = document.getElementById('chg-add-file-list');
+  const btn = document.getElementById('chg-add-btn');
+  if (!el) return;
+  el.innerHTML = _changeAddFiles.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--bg);border-radius:6px;margin-top:6px;font-size:13px;">
+      <span style="flex:1;word-break:break-all;">📎 ${esc(f.name)}</span>
+      <button type="button" onclick="_changeAddFiles.splice(${i},1);renderChangeAddFileList()"
+              style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:16px;">✕</button>
+    </div>`).join('');
+  if (btn) btn.style.display = _changeAddFiles.length ? '' : 'none';
+}
+
+async function submitChangeAddFiles(btn) {
+  if (!_changeDetail || !_changeAddFiles.length || btn.disabled) return;
+  btn.disabled = true;
+  const prev = btn.textContent;
+  btn.textContent = '送信中...';
+  try {
+    const files = [];
+    for (const f of _changeAddFiles) {
+      const res = await gas({ action: 'uploadChangeFile', token: currentToken, file: { name: f.name, mime: f.mime, data: f.data } });
+      if (res && res.url) files.push({ name: res.name || f.name, url: res.url });
+    }
+    await gas({ action: 'addChangeDocs', token: currentToken, recordId: _changeDetail.id, files });
+    showToast('書類を追加しました');
+    await openChangeDetail(_changeDetail.id);
+  } catch (e) {
+    showToast(e.message);
+    btn.disabled = false;
+    btn.textContent = prev;
+  }
 }
 
 // ===================================================
@@ -1935,7 +2211,7 @@ function _sortKey(r) {
   if (d) return d + 'T00:00:00.000Z';
   return '';
 }
-function typeIcon(t)  { return { leave:'🌴', expense:'💴', transport:'🚃', other:'📝', change:'📝', todoke:'📨' }[t] || '📋'; }
+function typeIcon(t)  { return { leave:'🌴', expense:'💴', transport:'🚃', other:'📝', change:'🪪', todoke:'📨' }[t] || '📋'; }
 function typeLabel(t) { return { leave:'休暇申請', expense:'出張費精算', transport:'交通費精算', other:'その他申請', change:'従業員情報変更届', todoke:'届出・相談' }[t] || t; }
 function contentFieldLabel(k) {
   return { leave_type:'休暇種別', start:'開始日', end:'終了日', allDay:'終日', startTime:'開始時間', endTime:'終了時間', note:'備考', title:'件名', body:'内容', purpose:'利用目的', periodStart:'開始日', periodEnd:'終了日', destination:'行き先', totalAmount:'合計金額', details:'明細' }[k] || k;
