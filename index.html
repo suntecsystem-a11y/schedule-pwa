@@ -967,7 +967,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
     <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span><span class="sidebar-short">会議室</span></button>
     <button class="sidebar-btn" data-tab="devices" data-tip="端末" onclick="switchTab('devices',this)"><span class="sidebar-icon">📱</span><span class="sidebar-label">端末</span><span class="sidebar-short">端末</span></button>
-    <button class="sidebar-btn" data-tab="cars" data-tip="車予約" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">車</span></button>
+    <button class="sidebar-btn" data-tab="cars" data-tip="車予約" onclick="switchTab('cars',this)" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">車</span></button>
     <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">問い合わせ</span></button>
     <button class="sidebar-btn" data-tab="tasks" data-tip="タスク" onclick="switchTab('tasks',this)"><span class="sidebar-icon">✅</span><span class="sidebar-label">タスク</span><span class="sidebar-short">タスク</span></button>
     <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span><span class="sidebar-short">eラーニング</span></button>
@@ -998,7 +998,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="tab-btn" data-tab="mypage" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms',this)">🏢 会議室</button>
     <button class="tab-btn" data-tab="devices" onclick="switchTab('devices',this)">📱 端末</button>
-    <button class="tab-btn" data-tab="cars" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
+    <button class="tab-btn" data-tab="cars" onclick="switchTab('cars',this)" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
     <button class="tab-btn" data-tab="inquiry" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
     <button class="tab-btn" data-tab="tasks" onclick="switchTab('tasks',this)">✅ タスク</button>
     <button class="tab-btn" data-tab="elearning" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
@@ -3040,19 +3040,23 @@ const NAV_META={
   mypage:{e:'👤',k:'nav.mypage',s:'nav.mypage'},
   rooms:{e:'🏢',k:'nav.rooms',s:'nav.rooms'},
   devices:{e:'📱',k:'nav.devices',s:'nav.devices.short'},
-  cars:{e:'🚗',k:'nav.cars',s:'nav.cars.short',prep:true},
+  cars:{e:'🚗',k:'nav.cars',s:'nav.cars.short',get prep(){return !carAllowed();}},
   inquiry:{e:'💬',k:'nav.inquiry',s:'nav.inquiry',prep:true},
   tasks:{e:'✅',k:'nav.tasks',s:'nav.tasks',get prep(){return !tkAllowed();}},
   elearning:{e:'📚',k:'nav.elearning',s:'nav.elearning'},
   settings:{e:'🔧',k:'nav.settings',s:'nav.settings'},
   admin:{e:'⚙️',k:'nav.admin',s:'nav.admin'}
 };
+// 車予約タブ（準備中）を先行して開ける社員番号。全員に開放するときは NAV_META.cars の prep を外す
+const CAR_ALLOWED_IDS=['90'];
+function carAllowed(){return !!(currentUser&&CAR_ALLOWED_IDS.includes(String(currentUser.id)));}
 const BOTTOM_TABS=['home','calendar','team'];
 const MORE_TABS=['apply','mypage','rooms','devices','cars','inquiry','tasks','elearning','settings','admin'];
 let _currentTab='home';
 let _moreNotifCount=0;
 function _applyNavLabels(){
   document.querySelectorAll('.sidebar-btn[data-tab="tasks"],.tab-btn[data-tab="tasks"]').forEach(b=>{const ok=tkAllowed();b.disabled=!ok;b.style.opacity=ok?'':'0.4';b.style.cursor=ok?'':'not-allowed';});
+  document.querySelectorAll('.sidebar-btn[data-tab="cars"],.tab-btn[data-tab="cars"]').forEach(b=>{const ok=carAllowed();b.disabled=!ok;b.style.opacity=ok?'':'0.4';b.style.cursor=ok?'':'not-allowed';});
   document.querySelectorAll('.sidebar-btn[data-tab]').forEach(btn=>{
     const m=NAV_META[btn.dataset.tab];if(!m)return;
     const lbl=btn.querySelector('.sidebar-label');
@@ -5195,6 +5199,7 @@ document.addEventListener('pointerup',e=>{
 });
 function switchTab(tab, btn){
   if(tab==='tasks'&&!tkAllowed())return;
+  if(tab==='cars'&&!carAllowed())return;
   ['home','calendar','tasks','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
