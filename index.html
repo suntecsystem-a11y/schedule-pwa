@@ -5580,7 +5580,7 @@ function renderWeek(){
         r.span=span;
       });
     });
-    html+=`<div class="week-day-col${isT?' today':''}" onclick="onCellClick('${ds}')">`;
+    html+=`<div class="week-day-col${isT?' today':''}" onclick="onWeekColClick(event,'${ds}')">`;
     html+=Array.from({length:TOTAL_H},()=>`<div class="week-hour-line"></div>`).join('');
     evRects.forEach(r=>{
       const e=r.e, ip=e.approvalStatus==='申請中';
@@ -5633,6 +5633,14 @@ function eventCardHTML(e){
   </div>`;
 }
 function onCellClick(ds){ openAddModal(ds) }
+// 週表示の時間帯クリック：押した位置の1時間枠（例 15:00〜16:00）で予定登録を開く
+function onWeekColClick(event, ds){
+  const HOUR_PX=48, START_H=8, END_H=20;  // renderWeek と同じ値
+  const y=event.clientY-event.currentTarget.getBoundingClientRect().top;
+  const h=Math.max(START_H,Math.min(END_H-1,START_H+Math.floor(y/HOUR_PX)));
+  const hh=n=>String(n).padStart(2,'0')+':00';
+  openAddModal(ds, hh(h), hh(h+1));
+}
 
 // ===== 日の全件ポップアップ =====
 function openDayPopup(ds){
@@ -6561,7 +6569,8 @@ async function doSetPin(){
 }
 
 // ===== 予定追加モーダル =====
-function openAddModal(dateStr){
+// startTime/endTime は任意（週表示の時間帯クリックなど）。省略時は 09:00〜10:00
+function openAddModal(dateStr, startTime, endTime){
   editingId=null;selectedRoom=null;selectedPeople=new Set([currentUser.id]);
   document.getElementById('modal-title-text').textContent=t('ev.add');
   document.getElementById('ev-type').value='会議室';
@@ -6570,8 +6579,8 @@ function openAddModal(dateStr){
   document.getElementById('ev-date').value=ds;
   document.getElementById('ev-start-date').value=ds;
   document.getElementById('ev-end-date').value=ds;
-  document.getElementById('ev-start').value='09:00';
-  document.getElementById('ev-end').value='10:00';
+  document.getElementById('ev-start').value=startTime||'09:00';
+  document.getElementById('ev-end').value=endTime||'10:00';
   document.getElementById('ev-title').value='';
   document.getElementById('ev-memo').value='';
   selectedRentals=[];
