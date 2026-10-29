@@ -1391,7 +1391,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <div class="ev-row" id="date-single-row">
         <div class="ev-row-icon">📅</div>
         <div class="ev-row-content">
-          <input type="date" id="ev-date" oninput="checkRoomConflict();renderPeopleSchedule();checkParticipantConflicts()">
+          <input type="date" id="ev-date" oninput="checkRoomConflict();renderPeopleSchedule();checkParticipantConflicts();syncRentalDates()">
         </div>
       </div>
       <div class="ev-row" id="date-range-row" style="display:none">
@@ -1401,9 +1401,9 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
             <div class="ev-date-block"><span id="date-start-label">出発日</span><span class="ev-date-sep" style="visibility:hidden">〜</span><span id="date-end-label">帰社日</span></div>
           </div>
           <div class="ev-date-block">
-            <input type="date" id="ev-start-date" oninput="renderPeopleSchedule();checkParticipantConflicts()">
+            <input type="date" id="ev-start-date" oninput="renderPeopleSchedule();checkParticipantConflicts();syncRentalDates()">
             <span class="ev-date-sep">〜</span>
-            <input type="date" id="ev-end-date" oninput="renderPeopleSchedule();checkParticipantConflicts()">
+            <input type="date" id="ev-end-date" oninput="renderPeopleSchedule();checkParticipantConflicts();syncRentalDates()">
           </div>
         </div>
       </div>
@@ -1414,9 +1414,9 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
             <div class="ev-time-block"><span id="time-start-label">出発時間</span><span class="ev-date-sep" style="visibility:hidden">〜</span><span id="time-end-label">帰社時間</span></div>
           </div>
           <div class="ev-time-block">
-            <input type="time" id="ev-start" oninput="checkRoomConflict();checkParticipantConflicts()" onclick="this.showPicker&&this.showPicker()">
+            <input type="time" id="ev-start" oninput="checkRoomConflict();checkParticipantConflicts();syncEvCarTimes()" onclick="this.showPicker&&this.showPicker()">
             <span class="ev-date-sep">〜</span>
-            <input type="time" id="ev-end" oninput="checkRoomConflict();checkParticipantConflicts()" onclick="this.showPicker&&this.showPicker()">
+            <input type="time" id="ev-end" oninput="checkRoomConflict();checkParticipantConflicts();syncEvCarTimes()" onclick="this.showPicker&&this.showPicker()">
           </div>
         </div>
       </div>
@@ -1509,9 +1509,9 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
         <div class="ev-row-content">
           <div style="font-size:0.72em;color:var(--text2);font-weight:600;margin-bottom:3px" id="rental-dates-label">貸出期間</div>
           <div class="ev-date-block">
-            <input type="date" id="ev-rental-start" style="flex:1" onchange="renderRentalPicker()">
+            <input type="date" id="ev-rental-start" style="flex:1" onchange="_rentalDatesTouched=true;renderRentalPicker()">
             <span class="ev-date-sep">〜</span>
-            <input type="date" id="ev-rental-end" style="flex:1" onchange="renderRentalPicker()">
+            <input type="date" id="ev-rental-end" style="flex:1" onchange="_rentalDatesTouched=true;renderRentalPicker()">
           </div>
         </div>
       </div>
@@ -1524,6 +1524,19 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
             style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;font-family:inherit;outline:none;box-sizing:border-box">
         </div>
       </div>
+      <!-- 社用車（外出・出張時。2026-10-29） -->
+      <div class="ev-row" id="evcar-row" style="display:none">
+        <div class="ev-row-icon">🚗</div>
+        <div class="ev-row-content" style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:0.92em" id="evcar-label">社用車を使う（任意）</span>
+          <label style="position:relative;width:44px;height:24px;cursor:pointer">
+            <input type="checkbox" id="evcar-on" onchange="onEvCarToggle()" style="opacity:0;width:0;height:0">
+            <span id="evcar-track" style="position:absolute;inset:0;background:#ccc;border-radius:12px;transition:.2s"></span>
+            <span id="evcar-knob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+          </label>
+        </div>
+      </div>
+      <div id="evcar-panel" style="display:none;padding:4px 16px 12px 52px;border-bottom:1px solid #f0f0f0"></div>
       <!-- 承認者選択（一般ユーザーの外出・出張・在宅時） -->
       <div class="ev-row" id="approver-row" style="display:none">
         <div class="ev-row-icon">👤</div>
@@ -1713,8 +1726,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
           </select>
         </div>
       </div>
-      <!-- 申請済み確認欄 -->
-      <div class="ev-row">
+      <!-- 申請済み確認欄（管理者が確認する欄のため、申請者の画面では出さない） -->
+      <div class="ev-row" id="car-confirm-row" style="display:none">
         <div class="ev-row-icon">✅</div>
         <div class="ev-row-content">
           <label style="display:flex;align-items:center;gap:8px;font-size:0.92em;cursor:pointer">
@@ -2132,6 +2145,7 @@ ja:{
 'my.todoke.title':'📨 届出のお知らせ（{n}件）','my.todoke.label':'届出・相談','my.todoke.request':'新しい届出が届きました','my.todoke.status':'届出の状況が更新されました','my.todoke.message':'届出にメッセージが届きました',
 'my.notices':'🔔 お知らせ（{n}件）','my.read.all':'すべて既読',
 'my.car.confirmed':'車予約が確認されました','my.car.depart':'出発','my.car.return':'帰社予定',
+'evcar.use':'社用車を使う（任意）','evcar.car':'車両','evcar.dest':'行先','evcar.depart':'出発日時','evcar.return':'帰社予定日時','evcar.busy':'（予約あり）','evcar.conflict':'この時間帯は他の予約があります','evcar.required':'車・行先・出発日時・帰社予定日時を入力してください','evcar.order':'帰社予定日時は出発日時より後にしてください','evcar.norepeat':'車を使う予定は繰り返し登録できません','evcar.locked':'出発後のため車の内容は変更できません','evcar.save.fail':'⚠️ 車の予約: {msg}','car.st.applied':'申請中（未承認）','car.st.reserved':'予約中','car.st.inuse':'使用中','car.st.returned':'帰社済','car.st.pending':'未承認','car.status.label':'状態','car.depart.btn':'🍺 出発（アルコールチェック）','car.depart.title':'出発前のアルコールチェック','car.depart.save':'出発する','car.depart.need':'アルコール濃度を入力し、証明写真を撮影してください','car.departed':'🚗 出発を記録しました','car.open.schedule':'予定を開く','my.car.overdue':'⚠️ 帰社予定を過ぎています',
 'my.empId':'社員番号:','my.events.of':'{date}の予定','my.no.events':'予定はありません',
 'my.weekly':'今週のサマリー（月〜金）',
 'my.meetings':'📋 会議・打ち合わせ','my.meetings.unit':'件','my.meetings.total':'計 {time}',
@@ -2497,6 +2511,7 @@ vi:{
 'my.todoke.title':'📨 Thông báo hồ sơ ({n} mục)','my.todoke.label':'Hồ sơ・Tư vấn','my.todoke.request':'Có hồ sơ mới','my.todoke.status':'Trạng thái hồ sơ đã được cập nhật','my.todoke.message':'Có tin nhắn mới về hồ sơ',
 'my.notices':'🔔 Thông báo ({n} mục)','my.read.all':'Đọc tất cả',
 'my.car.confirmed':'Đặt xe đã xác nhận','my.car.depart':'Khởi hành','my.car.return':'Dự kiến về',
+'evcar.use':'Dùng xe công ty (tùy chọn)','evcar.car':'Xe','evcar.dest':'Điểm đến','evcar.depart':'Giờ khởi hành','evcar.return':'Dự kiến về','evcar.busy':'(Đã có người đặt)','evcar.conflict':'Khung giờ này đã có người đặt','evcar.required':'Vui lòng nhập xe, điểm đến, giờ đi và giờ về','evcar.order':'Giờ về phải sau giờ khởi hành','evcar.norepeat':'Không thể đặt lặp lại cho lịch có dùng xe','evcar.locked':'Đã khởi hành nên không thể thay đổi thông tin xe','evcar.save.fail':'⚠️ Đặt xe: {msg}','car.st.applied':'Đang chờ duyệt','car.st.reserved':'Đã đặt','car.st.inuse':'Đang sử dụng','car.st.returned':'Đã về','car.st.pending':'Chưa duyệt','car.status.label':'Trạng thái','car.depart.btn':'🍺 Khởi hành (kiểm tra cồn)','car.depart.title':'Kiểm tra cồn trước khi khởi hành','car.depart.save':'Khởi hành','car.depart.need':'Hãy nhập nồng độ cồn và chụp ảnh xác nhận','car.departed':'🚗 Đã ghi nhận khởi hành','car.open.schedule':'Mở lịch','my.car.overdue':'⚠️ Đã quá giờ về dự kiến',
 'my.empId':'Mã NV:','my.events.of':'Lịch ngày {date}','my.no.events':'Không có lịch',
 'my.weekly':'Tổng kết tuần (T2～T6)',
 'my.meetings':'📋 Họp','my.meetings.unit':'buổi','my.meetings.total':'Tổng {time}',
@@ -2854,6 +2869,7 @@ ne:{
 'my.todoke.title':'📨 निवेदन सूचना ({n} वटा)','my.todoke.label':'निवेदन・परामर्श','my.todoke.request':'नयाँ निवेदन आयो','my.todoke.status':'निवेदनको स्थिति अद्यावधिक भयो','my.todoke.message':'निवेदनमा सन्देश आयो',
 'my.notices':'🔔 सूचना ({n} वटा)','my.read.all':'सबै पढ्नुहोस्',
 'my.car.confirmed':'गाडी बुकिङ पुष्टि भयो','my.car.depart':'प्रस्थान','my.car.return':'फिर्ती समय',
+'evcar.use':'कम्पनीको गाडी प्रयोग (ऐच्छिक)','evcar.car':'गाडी','evcar.dest':'गन्तव्य','evcar.depart':'प्रस्थान समय','evcar.return':'फिर्ती समय','evcar.busy':'(बुक भइसकेको)','evcar.conflict':'यो समयमा अर्को बुकिङ छ','evcar.required':'गाडी, गन्तव्य, प्रस्थान र फिर्ती समय भर्नुहोस्','evcar.order':'फिर्ती समय प्रस्थानपछि हुनुपर्छ','evcar.norepeat':'गाडी प्रयोग हुने तालिका दोहोर्याउन मिल्दैन','evcar.locked':'प्रस्थानपछि गाडीको विवरण बदल्न मिल्दैन','evcar.save.fail':'⚠️ गाडी बुकिङ: {msg}','car.st.applied':'स्वीकृतिको प्रतीक्षामा','car.st.reserved':'बुक गरिएको','car.st.inuse':'प्रयोगमा','car.st.returned':'फर्किसकेको','car.st.pending':'स्वीकृत भएको छैन','car.status.label':'स्थिति','car.depart.btn':'🍺 प्रस्थान (मदिरा जाँच)','car.depart.title':'प्रस्थानअघि मदिरा जाँच','car.depart.save':'प्रस्थान','car.depart.need':'मदिरा मात्रा भर्नुहोस् र प्रमाण फोटो खिच्नुहोस्','car.departed':'🚗 प्रस्थान दर्ता भयो','car.open.schedule':'तालिका खोल्नुहोस्','my.car.overdue':'⚠️ फिर्ती समय नाघ्यो',
 'my.empId':'कर्मचारी नं:','my.events.of':'{date} को तालिका','my.no.events':'तालिका छैन',
 'my.weekly':'यो हप्ताको सारांश (सोम～शुक्र)',
 'my.meetings':'📋 बैठक','my.meetings.unit':'वटा','my.meetings.total':'जम्मा {time}',
@@ -3465,6 +3481,13 @@ function getOverdueRentals() {
       ev: e,
       days: Math.max(1, Math.round((new Date(today) - new Date(e.rentalEnd)) / 86400000)),
     }));
+}
+
+// 帰社予定を過ぎても帰社していない自分の車（使用中のもの）
+function getOverdueCars() {
+  if (!currentUser || !carAllowed()) return [];
+  const now = new Date();
+  return carEvents.filter(c => c.status === '使用中' && !c.endAt && _isMyCar(c) && c.endScheduled && new Date(c.endScheduled) < now);
 }
 
 // ===== フィルター =====
@@ -5217,7 +5240,11 @@ function switchTab(tab, btn){
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
   if(tab==='elearning') { if(window._elQuizState && !confirm(t('el.exit.desc'))) return; window._elQuizState = null; loadElearningCourses(); }
-  if(tab==='mypage')  { _bentoNeedReload=true; renderMyPage(); }
+  if(tab==='mypage')  {
+    _bentoNeedReload=true; renderMyPage();
+    // 車の出発・帰社ボタンのため、車タブを開ける人は車の予約も読み込む（5分キャッシュ）
+    if(carAllowed()) loadCarData().then(()=>{ if(_currentTab==='mypage') renderMyPage(); });
+  }
   if(tab==='settings') renderSettings();
   if(tab==='apply')   renderApplyTab();
   if(tab==='admin')   loadAdminUsers();
@@ -5348,6 +5375,8 @@ function renderCarInUseBanner() {
   const now = new Date();
   const active = carEvents.filter(e => {
     if (e.endAt) return false;
+    // 予定から作った予約は、出発を記録するまで「使用中」に出さない
+    if (e.status && e.status !== '使用中') return false;
     const s = new Date(e.startAt);
     const en = new Date(e.endScheduled);
     return s <= now && now <= en;
@@ -6548,6 +6577,8 @@ function openAddModal(dateStr){
   selectedRentals=[];
   document.getElementById('ev-rental-start').value=ds;
   document.getElementById('ev-rental-end').value=ds;
+  _rentalDatesTouched=false;
+  _resetEvCar();
   document.getElementById('ev-approver').value='';
   document.getElementById('ev-repeat').value='';
   document.getElementById('repeat-end-wrap').style.display='none';
@@ -6594,6 +6625,8 @@ function openEditModal(id){
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
   document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
+  _rentalDatesTouched=_rentalDatesCustomized(e);
+  _initEvCarForEdit(e);
   document.getElementById('ev-remote-reason').value=e.remoteReason||'';
   // 既存の承認者を初期選択（承認済の予定を編集する時も欄が出るため、元の承認者を引き継ぐ）
   document.getElementById('ev-approver').value=e.approvedBy||'';
@@ -6639,6 +6672,8 @@ function copyEvent(id){
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
   document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
+  _rentalDatesTouched=_rentalDatesCustomized(e);
+  _resetEvCar();  // 車は複製しない（同じ車・時間は重なるため）
   document.getElementById('ev-remote-reason').value=e.remoteReason||'';
   document.getElementById('ev-approver').value='';
   document.getElementById('ev-repeat').value='';
@@ -6697,6 +6732,8 @@ function onTypeChange(){
   document.getElementById('approver-row').style.display=needsApprover?'flex':'none';
   if(needsApprover)renderApproverSelect(typ);
   document.getElementById('remote-reason-row').style.display=typ==='在宅'?'flex':'none';
+  updateEvCarRow();
+  syncRentalDates();
   updateSaveButtonState();
   if(isRoom)checkRoomConflict();
   if(isRental){renderRentalPicker();updateRentalSummary();}
@@ -6705,7 +6742,160 @@ function onTypeChange(){
   if(!showTeams){document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();}
   renderPeopleSchedule();checkParticipantConflicts();
 }
-function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); renderPeopleSchedule(); checkParticipantConflicts(); }
+function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); renderPeopleSchedule(); checkParticipantConflicts(); syncRentalDates(); }
+
+// ----- 貸出期間を予定の日付に合わせる -----
+// 貸出期間を手で変えるまでは、予定の日付を変えると一緒に変わる（手で変えた後は追従しない）
+let _rentalDatesTouched=false;
+// 既存の予定で、貸出期間が予定の日付と違う＝以前に手で変えたもの
+function _rentalDatesCustomized(e){
+  if(!e.rentalStart&&!e.rentalEnd)return false;
+  return (e.rentalStart||'')!==(e.startDate||e.date||'')||(e.rentalEnd||'')!==(e.endDate||e.date||'');
+}
+// いまフォームで使われている予定の日付（doSaveEvent と同じ判定）
+function _evFormDateRange(){
+  const type=document.getElementById('ev-type').value;
+  const allday=document.getElementById('ev-allday').checked&&ALLDAY_TOGGLE_TYPES.includes(type);
+  const hasToggle=ALLDAY_TOGGLE_TYPES.includes(type);
+  const useRange=allday||(hasToggle&&type==='出張'&&!allday)||(!hasToggle&&MULTIDAY_TYPES.includes(type));
+  if(!useRange){const d=document.getElementById('ev-date').value;return{start:d,end:d};}
+  return{start:document.getElementById('ev-start-date').value,end:document.getElementById('ev-end-date').value};
+}
+function syncRentalDates(){
+  syncEvCarTimes();  // 車の出発/帰社予定も同じタイミングで合わせる
+  if(_rentalDatesTouched)return;
+  // 「その他」は貸出期間そのものが予定の日付なので合わせる必要がない
+  if(document.getElementById('ev-type').value==='その他')return;
+  const r=_evFormDateRange();
+  if(!r.start)return;
+  document.getElementById('ev-rental-start').value=r.start;
+  document.getElementById('ev-rental-end').value=r.end&&r.end>=r.start?r.end:r.start;
+  renderRentalPicker();
+}
+
+// ----- 社用車（外出・出張の予定から申し込む。2026-10-29）-----
+// 車の予約は予定と1回で保存・承認される（端末の貸出と同じ形）。保存先は社用車アプリ（app283）
+const CAR_SCHEDULE_TYPES=['外出','出張'];
+let _evCarTouched=false;  // 出発/帰社予定を手で変えたか（変えた後は予定の日時に追従しない）
+let _evCarLinked=null;    // 編集中の予定に紐づく車予約
+const _cg=id=>document.getElementById(id);
+function _evCarAvailable(){return carAllowed()&&CAR_SCHEDULE_TYPES.includes(_cg('ev-type').value);}
+function _evCarLocked(){return !!_evCarLinked&&(_evCarLinked.status==='使用中'||_evCarLinked.status==='帰社済'||!!_evCarLinked.endAt);}
+// 車を押さえている予約か（状態が空＝旧方式は帰社していなければ押さえている扱い）
+function _carHolds(c){return c.status?['申請中','予約中','使用中'].includes(c.status):!c.endAt;}
+function _isMyCar(c){return !!currentUser&&(c.applicantId?String(c.applicantId)===String(currentUser.id):c.applicant===currentUser.name);}
+function _paintEvCarToggle(){
+  const on=_cg('evcar-on').checked;
+  _cg('evcar-track').style.background=on?'var(--primary)':'#ccc';
+  _cg('evcar-knob').style.left=on?'22px':'2px';
+}
+function _setEvCarToggle(on){_cg('evcar-on').checked=on;_paintEvCarToggle();}
+function _resetEvCar(){
+  _evCarTouched=false;_evCarLinked=null;_setEvCarToggle(false);
+  _cg('evcar-panel').innerHTML='';_cg('evcar-panel').style.display='none';
+}
+function updateEvCarRow(){
+  const show=_evCarAvailable();
+  _cg('evcar-row').style.display=show?'flex':'none';
+  _cg('evcar-label').textContent=t('evcar.use');
+  _cg('evcar-panel').style.display=show&&_cg('evcar-on').checked?'block':'none';
+}
+async function onEvCarToggle(preCarName){
+  _paintEvCarToggle();updateEvCarRow();
+  if(!_cg('evcar-on').checked)return;
+  if(!carMasters.length)await loadCarData();
+  if(!_cg('evcar-on').checked)return;
+  renderEvCarPanel(_evCarLinked||{carName:preCarName||''});
+  syncEvCarTimes();
+}
+function renderEvCarPanel(pre){
+  const locked=_evCarLocked(),dis=locked?' disabled':'';
+  const box='width:100%;padding:7px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;font-family:inherit;background:white;color:var(--text);box-sizing:border-box';
+  const lbl='font-size:0.72em;color:var(--text2);font-weight:600;margin:8px 0 3px';
+  _cg('evcar-panel').innerHTML=
+    (locked?'<div style="font-size:0.75em;color:#e65100;font-weight:600;margin-top:6px">'+t('evcar.locked')+'</div>':'')+
+    '<div style="'+lbl+'">'+t('evcar.car')+'</div><select id="evcar-car" onchange="checkEvCarConflict()" style="'+box+'"'+dis+'></select>'+
+    '<div style="'+lbl+'">'+t('evcar.dest')+'</div><select id="evcar-dest" onchange="onEvCarDestChange()" style="'+box+'"'+dis+'></select>'+
+    '<div id="evcar-dist" style="font-size:0.75em;color:var(--text2);margin-top:3px"></div>'+
+    '<div style="'+lbl+'">'+t('evcar.depart')+'</div><input type="datetime-local" id="evcar-start" oninput="_evCarTouched=true;checkEvCarConflict()" style="'+box+'"'+dis+'>'+
+    '<div style="'+lbl+'">'+t('evcar.return')+'</div><input type="datetime-local" id="evcar-end" oninput="_evCarTouched=true;checkEvCarConflict()" style="'+box+'"'+dis+'>'+
+    '<div id="evcar-warn" class="conflict-warn" style="display:none;margin-top:8px">⚠️ '+t('evcar.conflict')+'</div>';
+  _cg('evcar-dest').innerHTML='<option value="">'+t('car.select')+'</option>'+
+    carDestinations.map(d=>'<option value="'+esc(d.name)+'"'+(d.name===pre.destination?' selected':'')+'>'+esc(d.name)+'</option>').join('');
+  if(pre.startAt){_cg('evcar-start').value=utcToDatetimeLocal(pre.startAt);_cg('evcar-end').value=utcToDatetimeLocal(pre.endScheduled);}
+  _fillEvCarSelect(pre.carName||'');
+  onEvCarDestChange();checkEvCarConflict();
+}
+function _evCarRange(){
+  const s=_cg('evcar-start')?.value,e=_cg('evcar-end')?.value;
+  return s&&e?{s:datetimeLocalToUtc(s),e:datetimeLocalToUtc(e)}:null;
+}
+function _evCarBusy(carName,r){
+  return !!r&&carEvents.some(c=>c.carName===carName&&_carHolds(c)&&String(c.id)!==String(_evCarLinked?.id||'')&&
+    c.startAt<r.e&&(c.endScheduled||c.startAt)>r.s);
+}
+// 車の選択肢。その時間に予約がある車は選べないようにする
+function _fillEvCarSelect(selected){
+  const sel=_cg('evcar-car');if(!sel)return;
+  const r=_evCarRange(),locked=_evCarLocked();
+  sel.innerHTML='<option value="">'+t('car.select')+'</option>'+carMasters.map(c=>{
+    const busy=!locked&&_evCarBusy(c.name,r);
+    return '<option value="'+esc(c.name)+'"'+(c.name===selected?' selected':'')+(busy?' disabled':'')+'>'+esc(c.name)+(busy?' '+t('evcar.busy'):'')+'</option>';
+  }).join('');
+}
+function checkEvCarConflict(){
+  const sel=_cg('evcar-car');if(!sel)return;
+  const cur=sel.value;
+  _fillEvCarSelect(cur);
+  // 日時を変えて選んでいた車が重なった場合は、選択を残したまま警告を出す
+  const busy=!!cur&&!_evCarLocked()&&_evCarBusy(cur,_evCarRange());
+  if(cur)sel.value=cur;
+  _cg('evcar-warn').style.display=busy?'block':'none';
+}
+function onEvCarDestChange(){
+  const d=carDestinations.find(x=>x.name===_cg('evcar-dest').value);
+  _cg('evcar-dist').textContent=d&&d.distance?t('car.dist')+' '+d.distance+' km':'';
+}
+// 予定の日時から出発/帰社予定の初期値を作る（終日・時刻なしは 09:00〜18:00）
+function _evCarDefaultTimes(){
+  const r=_evFormDateRange();if(!r.start)return null;
+  const timed=_cg('time-row').style.display!=='none';
+  const st=(timed&&_cg('ev-start').value)||'09:00';
+  const en=(timed&&_cg('ev-end').value)||'18:00';
+  return{start:r.start+'T'+st,end:(r.end&&r.end>=r.start?r.end:r.start)+'T'+en};
+}
+function syncEvCarTimes(){
+  if(_evCarTouched||_evCarLocked()||!_cg('evcar-on').checked)return;
+  const s=_cg('evcar-start'),e=_cg('evcar-end');if(!s||!e)return;
+  const d=_evCarDefaultTimes();if(!d)return;
+  s.value=d.start;e.value=d.end;checkEvCarConflict();
+}
+// 予定の編集を開いたとき、紐づく車予約があれば車の欄に入れる
+async function _initEvCarForEdit(e){
+  _resetEvCar();
+  if(!carAllowed()||!CAR_SCHEDULE_TYPES.includes(e.type))return;
+  await loadCarData();
+  const linked=carEvents.find(c=>String(c.scheduleId)===String(e.id)&&c.status!=='取消');
+  if(!linked||editingId!==e.id)return;  // 待っている間に別の予定を開いた
+  _evCarLinked=linked;
+  _setEvCarToggle(true);updateEvCarRow();renderEvCarPanel(linked);
+  const d=_evCarDefaultTimes();
+  _evCarTouched=!d||d.start!==_cg('evcar-start').value||d.end!==_cg('evcar-end').value;
+}
+// 保存用の car。undefined＝送らない（車の機能を使えない人）／null＝車なし（紐づく車は取消）
+// 入力に不備があれば toast を出して false を返す
+function _evCarPayload(type){
+  if(!carAllowed())return undefined;
+  if(!CAR_SCHEDULE_TYPES.includes(type)||!_cg('evcar-on').checked)return null;
+  if(_evCarLocked()){const c=_evCarLinked;return{carName:c.carName,destination:c.destination,startAt:c.startAt,endScheduled:c.endScheduled};}
+  const carName=_cg('evcar-car')?.value,dest=_cg('evcar-dest')?.value,s=_cg('evcar-start')?.value,e=_cg('evcar-end')?.value;
+  if(!carName||!dest||!s||!e){showToast(t('evcar.required'));return false;}
+  if(e<=s){showToast(t('evcar.order'));return false;}
+  const r=_evCarRange();
+  if(_evCarBusy(carName,r)){showToast(t('evcar.conflict'));return false;}
+  if(!editingId&&_cg('ev-repeat').value){showToast(t('evcar.norepeat'));return false;}
+  return{carName,destination:dest,startAt:r.s,endScheduled:r.e};
+}
 function updateTeamsToggle(){
   const c=document.getElementById('ev-teams-link').checked;
   const knob=document.getElementById('teams-knob');
@@ -7225,6 +7415,8 @@ async function doSaveEvent(){
   const needsApprover=_needsApproverFor(type);
   const selectedApprover=needsApprover?document.getElementById('ev-approver').value:'';
   if(needsApprover&&!selectedApprover){showToast(t('ev.approver.required.msg'));return}
+  const evCar=_evCarPayload(type);
+  if(evCar===false)return;
   const ev={
     id:editingId||undefined, type,
     title:document.getElementById('ev-title').value.trim()||(isOther?selectedRentals.map(r=>r.label).join('、'):''),
@@ -7242,6 +7434,7 @@ async function doSaveEvent(){
     repeatEnd:isOther?'':(document.getElementById('ev-repeat-end').value||''),
     teamsLink:document.getElementById('ev-teams-link').checked,
   };
+  if(evCar!==undefined)ev.car=evCar;
 
   if(!GAS_URL){
     // デモモード
@@ -7267,6 +7460,11 @@ async function doSaveEvent(){
     if(result.teamsUrl) savedMsg+=' 📹 Teams会議リンク生成済み';
     if(result.teamsError){ showToast('⚠️ Teams: '+result.teamsError); console.error('Teams error:',result.teamsError); }
     showToast(savedMsg);
+    if(evCar!==undefined){
+      carDataLastFetched=0;
+      if(result.carError) showToast(t('evcar.save.fail',{msg:result.carError}));
+      if(_currentTab==='cars') loadCarData({force:true}).then(()=>{ renderCarView(); });
+    }
   } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
 
@@ -7280,6 +7478,7 @@ async function doDeleteEvent(){
   try {
     await api('deleteEvent', {eventId:editingId}, t('common.deleting'));
     closeModal('add-modal-backdrop');
+    carDataLastFetched=0;  // 紐づく車の予約も取消になるため
     await loadEvents({ force: true });
     showToast(t('ev.deleted'));
   } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
@@ -8835,7 +9034,7 @@ function renderMyPage() {
 
   // 自分の車予約（直近5件）
   const myCars = carEvents
-    .filter(e => e.applicant === currentUser.name)
+    .filter(e => _isMyCar(e))
     .sort((a,b) => b.startAt.localeCompare(a.startAt))
     .slice(0, 5);
 
@@ -9139,30 +9338,35 @@ function renderMyPage() {
       </div>`;
     })()}
 
-    <!-- 自分の車予約 -->
+    <!-- 自分の車予約（車タブを開ける人だけ。出発・帰社もここから） -->
+    ${carAllowed() ? `
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="font-size:0.72em;color:var(--text2);font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.car.recent')}</div>
-      ${myCars.length ? myCars.map(e => `
+      ${myCars.length ? myCars.map(e => {
+        const canDepart = !e.endAt && (e.status === '申請中' || e.status === '予約中');
+        const canReturn = !e.endAt && (e.status === '使用中' || !e.status);
+        const overdue = canReturn && e.endScheduled && new Date(e.endScheduled) < new Date();
+        const stText = e.status ? carStatusText(e.status) : (e.endAt ? t('my.car.returned') : t('my.car.out'));
+        const stColor = e.status === '申請中' ? '#e65100' : (e.endAt || e.status === '帰社済') ? 'var(--green)' : 'var(--orange)';
+        return `
         <div style="padding:8px 0;border-bottom:1px solid var(--border)">
           <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openCarDetail('${e.id}')">
             <span style="width:8px;height:8px;border-radius:50%;background:${carColor(e.carName)};flex-shrink:0"></span>
             <div style="flex:1;min-width:0">
               <div style="font-size:0.88em;font-weight:600">${esc(e.carName)} → ${esc(e.destination)}</div>
-              <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${fmtDt(e.startAt)}</div>
+              <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${fmtDt(e.startAt)} 〜 ${fmtDt(e.endScheduled)}</div>
+              ${overdue ? '<div style="font-size:0.75em;color:#e53935;font-weight:700;margin-top:3px">' + t('my.car.overdue') + '</div>' : ''}
             </div>
-            ${e.endAt ? `<span style="font-size:0.75em;color:var(--green);font-weight:600">${t('my.car.returned')}</span>` :
-                        `<span style="font-size:0.75em;color:var(--orange);font-weight:600">${t('my.car.out')}</span>`}
-            ${e.confirmation?'<span style="font-size:0.8em">✅</span>':'<span style="font-size:0.8em">⚠️</span>'}
+            <span style="font-size:0.75em;color:${stColor};font-weight:600">${esc(stText)}</span>
           </div>
-          ${KINTONE_DOMAIN && !String(e.id).startsWith('c') ? `
-            <a href="https://${KINTONE_DOMAIN}/k/${KINTONE_CAR_APP_ID}/show#record=${e.id}" target="_blank"
-              onclick="event.stopPropagation()"
-              style="display:inline-block;margin-top:5px;font-size:0.75em;color:var(--primary);text-decoration:none">
-              ${t('my.car.open')}
-            </a>` : ''}
-        </div>`).join('') :
+          ${canDepart || canReturn ? '<div style="display:flex;gap:8px;margin-top:8px">'
+            + (canDepart ? '<button class="btn-primary" style="flex:1;margin-top:0;padding:8px;font-size:0.82em;background:#e65100" onclick="openCarEditModal(\'' + e.id + '\',\'depart\')">' + t('car.depart.btn') + '</button>' : '')
+            + (canReturn ? '<button class="btn-primary" style="flex:1;margin-top:0;padding:8px;font-size:0.82em;background:' + (overdue ? '#e53935' : 'var(--green)') + '" onclick="doCarReturn(\'' + e.id + '\')">' + t('car.return.btn') + '</button>' : '')
+            + '</div>' : ''}
+        </div>`;
+      }).join('') :
         `<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">${t('my.car.none')}</div>`}
-    </div>
+    </div>` : ''}
 
     <!-- 利用ルール -->
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
@@ -9587,21 +9791,19 @@ function loadNotifSeen() { try { return new Set(JSON.parse(localStorage.getItem(
 function saveNotifSeen(seen) { localStorage.setItem(notifSeenKey(), JSON.stringify([...seen])); }
 
 // 自分の車予約が新たに確認済みになっていないかチェック
+// 「車予約が確認されました」通知は廃止（2026-10-29）
+// 確認欄は申請者が自分でチェックできるため、承認されていなくても通知が出ていた。
+// 承認結果は連動スケジュールの「申請が承認されました」（getApprovalNotifs）で届く。
+// 端末に残っている過去の通知もここで消す。
 function checkCarConfirmNotifs() {
   if (!currentUser) return;
-  const seen = loadNotifSeen();
-  const myConfirmed = carEvents.filter(e =>
-    e.confirmation && e.applicant === currentUser.name
-  );
-  // 未読の確認済みイベント
-  const newlyConfirmed = myConfirmed.filter(e => !seen.has(String(e.id)));
-  // pending通知としてlocalStorageに保存
   const pendingKey = 'sch_notif_pending_' + (currentUser?.id || '');
-  localStorage.setItem(pendingKey, JSON.stringify(newlyConfirmed));
-  updateNotifBadge(newlyConfirmed.length + getOverdueRentals().length);
+  localStorage.setItem(pendingKey, '[]');
+  updateNotifBadge(getApprovalPendingNotifs().filter(n=>n.type==='approved'||n.type==='rejected').length + getPendingApprovals().length + getOverdueRentals().length);
 }
 
 function updateNotifBadge(count) {
+  count = (count || 0) + getOverdueCars().length;  // 帰社予定を過ぎた自分の車（呼び出し側の件数には含まれない）
   const badge = document.getElementById('sidebar-notif-badge');
   const tabBadge = document.getElementById('tab-notif-badge');
   if (badge) { badge.textContent = count || ''; badge.style.display = count ? 'flex' : 'none'; }
@@ -9745,7 +9947,8 @@ async function loadCarData({ force = false } = {}) {
       api('getDestinations', {}),
       api('getCarEvents', {}),
     ]);
-    carMasters = masters; carDestinations = dests; carEvents = evs;
+    // 取消（却下・予定の削除・車を外した）は表示しない
+    carMasters = masters; carDestinations = dests; carEvents = evs.filter(e => e.status !== '取消');
     carDataLastFetched = Date.now();
   } catch(err) {
     showToast(t('car.load.fail',{msg:err.message}));
@@ -9857,10 +10060,12 @@ function renderCarMonth() {
 
 function carEventState(ev) {
   const now = new Date();
-  if (ev.endAt) return 'returned';          // 帰社済み
+  if (ev.endAt || ev.status === '帰社済') return 'returned';  // 帰社済み
+  // 予定から作った予約は、出発（アルコールチェック）を記録するまで「予定」のまま
+  if (ev.status === '申請中' || ev.status === '予約中') return 'upcoming';
   const start = new Date(ev.startAt);
   const end   = new Date(ev.endScheduled);
-  if (now < start) return 'upcoming';       // 予定（未出発）
+  if (ev.status !== '使用中' && now < start) return 'upcoming';  // 予定（未出発）
   if (now > end)   return 'overdue';        // 超過（未帰社）
   return 'active';                          // 出中
 }
@@ -9939,7 +10144,8 @@ function renderCarTimeline() {
             background:${carStateBg(state)};border-left:3px solid ${carStateBorder(state)}">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
               <span style="font-size:0.72em;font-weight:700;padding:2px 8px;border-radius:10px;${carStateBadgeStyle(state)}">${icon} ${label}</span>
-              ${ev.confirmation ? '' : `<span style="font-size:0.7em;color:var(--orange);font-weight:600">${t('car.unconfirmed')}</span>`}
+              ${ev.status === '申請中' ? '<span style="font-size:0.7em;color:#e65100;font-weight:700">' + t('car.st.pending') + '</span>' : ''}
+              ${ev.confirmation || !_carDepartedFront(ev) ? '' : '<span style="font-size:0.7em;color:var(--orange);font-weight:600">' + t('car.unconfirmed') + '</span>'}
             </div>
             <div style="font-size:0.88em;font-weight:700">${esc(ev.applicant)}
               <span style="font-size:0.8em;color:var(--text2);font-weight:400;margin-left:4px">→ ${esc(ev.destination)}</span>
@@ -9988,44 +10194,40 @@ function esc(s) {
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// ----- モーダル開閉 -----
-function openCarAddModal(dateStr, carName) {
-  carEditingId = null; carPhotos = [];
-  document.getElementById('car-modal-title-text').textContent = t('car.reserve');
-  document.getElementById('car-btn-delete').style.display = 'none';
-  document.getElementById('car-conflict-warn').style.display  = 'none';
-  document.getElementById('car-alcohol-warn').style.display   = 'none';
-  document.getElementById('car-photo-list').innerHTML = '';
-  stopCarCamera();
-  populateCarSelect(carName || '');
-  populateDestSelect('');
-  const today = dateStr || fmtDate(new Date());
-  document.getElementById('car-start').value = today + 'T09:00';
-  document.getElementById('car-end').value   = today + 'T17:00';
-  document.getElementById('car-confirmation').checked = false;
-  document.getElementById('car-alcohol').value = '0';
-  document.getElementById('car-alcohol-badge').style.display = 'none';
-  document.getElementById('car-memo').value = '';
-  document.getElementById('car-endat').value = '';
-  document.getElementById('car-endat-row').style.display = 'none';
-  checkCarConflict();
-  document.getElementById('car-schedule-row').style.display = 'flex';
-  document.getElementById('car-schedule-type').value = '外出';
-  populateCarScheduleType('外出');
-  const _needsCa = currentUser && currentUser.role === '一般';
-  document.getElementById('car-approver-row').style.display = _needsCa ? 'flex' : 'none';
-  if (_needsCa) renderCarApproverSelect();
-  document.getElementById('car-approver').value = '';
-  updateCarSaveButtonState();
-  openModal('car-modal-backdrop');
+// 出発済みか（確認欄＝管理者のアルコール確認は、出発後にだけ意味を持つ）
+function _carDepartedFront(ev) {
+  return ev.status ? (ev.status === '使用中' || ev.status === '帰社済') : !!(ev.endAt || (ev.photos || []).length);
+}
+// 状態（Kintoneの値）を表示用に
+function carStatusText(st) {
+  return { '申請中': t('car.st.applied'), '予約中': t('car.st.reserved'), '使用中': t('car.st.inuse'), '帰社済': t('car.st.returned') }[st] || st || '';
 }
 
-function openCarEditModal(id) {
+// ----- モーダル開閉 -----
+// 車の予約は予定登録（外出）から行う。車を選んだ状態で予定登録を開く（2026-10-29）
+function openCarAddModal(dateStr, carName) {
+  openAddModal(dateStr);
+  document.getElementById('ev-type').value = '外出';
+  onTypeChange();
+  _setEvCarToggle(true);
+  onEvCarToggle(carName);
+}
+
+// 予約の当日の記録。mode='depart' は出発前のアルコールチェック（濃度＋証明写真が必須）
+// 車・行先・出発日時は予定の編集から変える（ここでは変えられない）
+let carEditMode = '';
+function openCarEditModal(id, mode) {
   const ev = carEvents.find(e => e.id === id);
   if (!ev) return;
   carEditingId = id; carPhotos = (ev.photos || []).slice();
-  document.getElementById('car-modal-title-text').textContent = t('car.edit');
-  document.getElementById('car-btn-delete').style.display = 'block';
+  carEditMode = mode || '';
+  const isDepart = carEditMode === 'depart';
+  document.getElementById('car-modal-title-text').textContent = isDepart ? t('car.depart.title') : t('car.edit');
+  document.getElementById('car-btn-save').textContent = isDepart ? t('car.depart.save') : t('common.save');
+  // 予定から作った予約は予定の削除・車を外す操作で取り消す
+  document.getElementById('car-btn-delete').style.display = ev.scheduleId ? 'none' : 'block';
+  ['car-select', 'car-dest', 'car-start'].forEach(k => { document.getElementById(k).disabled = true; });
+  document.getElementById('car-confirm-row').style.display = 'none';
   document.getElementById('car-conflict-warn').style.display = 'none';
   document.getElementById('car-alcohol-warn').style.display  = 'none';
   stopCarCamera();
@@ -10034,10 +10236,12 @@ function openCarEditModal(id) {
   document.getElementById('car-start').value = utcToDatetimeLocal(ev.startAt);
   document.getElementById('car-end').value   = utcToDatetimeLocal(ev.endScheduled);
   document.getElementById('car-confirmation').checked = ev.confirmation;
-  document.getElementById('car-alcohol').value = ev.alcohol || '';
+  // 出発時は濃度を空にして入力してもらう（作成時の初期値 0 をそのまま出さない）
+  document.getElementById('car-alcohol').value = isDepart ? '' : (ev.alcohol || '');
+  document.getElementById('car-alcohol-badge').style.display = 'none';
   document.getElementById('car-memo').value = ev.memo || '';
   document.getElementById('car-endat').value = ev.endAt ? utcToDatetimeLocal(ev.endAt) : '';
-  document.getElementById('car-endat-row').style.display = 'flex';
+  document.getElementById('car-endat-row').style.display = isDepart ? 'none' : 'flex';
   renderCarPhotos();
   checkCarConflict();
   checkCarAlcohol();
@@ -10050,28 +10254,6 @@ function openCarEditModal(id) {
 
 function closeCarModal() { stopCarCamera(); closeModal('car-modal-backdrop'); }
 
-// ----- スケジュール連動 -----
-function populateCarScheduleType(selected) {
-  const sel = document.getElementById('car-schedule-type');
-  sel.innerHTML = ['外出','出張'].map(v =>
-    `<option value="${v}" ${v===selected?'selected':''}>${tType(v)}</option>`
-  ).join('');
-}
-function renderCarApproverSelect() {
-  const sel = document.getElementById('car-approver');
-  if (!sel) return;
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">' + t('ev.approver.select') + '</option>';
-  const approvers = USERS.filter(u => u.role && u.role !== '一般' && u.id !== currentUser.id);
-  approvers.sort((a, b) => (a.dept || '').localeCompare(b.dept || '') || (a.name || '').localeCompare(b.name || ''));
-  approvers.forEach(u => {
-    const o = document.createElement('option');
-    o.value = u.id;
-    o.textContent = t('ev.approver.format', {name: u.name, dept: u.dept || '', role: u.role || ''});
-    sel.appendChild(o);
-  });
-  if (cur) sel.value = cur;
-}
 function updateCarSaveButtonState() {
   const btn = document.getElementById('car-btn-save');
   if (!btn) return;
@@ -10121,7 +10303,7 @@ function checkCarConflict() {
   if (!car || !start || !end) { warn.style.display = 'none'; return; }
   const sUtc = datetimeLocalToUtc(start), eUtc = datetimeLocalToUtc(end);
   const conflict = carEvents.some(ev =>
-    ev.id !== carEditingId && ev.carName === car &&
+    ev.id !== carEditingId && ev.carName === car && _carHolds(ev) &&
     ev.startAt < eUtc && (ev.endScheduled || ev.startAt) > sUtc
   );
   warn.style.display = conflict ? 'block' : 'none';
@@ -10144,84 +10326,66 @@ function checkCarAlcohol() {
 
 // ----- 保存・削除 -----
 async function doSaveCarEvent() {
-  const car   = document.getElementById('car-select').value;
-  const dest  = document.getElementById('car-dest').value;
-  const start = document.getElementById('car-start').value;
-  const end   = document.getElementById('car-end').value;
-  if (!car)   { showToast(t('car.vehicle.required')); return; }
-  if (!dest)  { showToast(t('car.dest.required')); return; }
-  if (!start) { showToast(t('car.depart.required')); return; }
-  if (!end)   { showToast(t('car.return.required')); return; }
-  if (end <= start) { showToast(t('car.return.order')); return; }
-  const isNewCar = !carEditingId;
-  const schedType = isNewCar ? document.getElementById('car-schedule-type').value : '';
-  const needsCarApprover = isNewCar && currentUser && currentUser.role === '一般';
-  const carApprover = needsCarApprover ? document.getElementById('car-approver').value : '';
-  if (needsCarApprover && !carApprover) { showToast(t('ev.approver.required.msg')); return; }
-  const sUtc = datetimeLocalToUtc(start), eUtc = datetimeLocalToUtc(end);
-  const carConflict = carEvents.some(ev =>
-    ev.id !== carEditingId && ev.carName === car &&
-    ev.startAt < eUtc && (ev.endScheduled || ev.startAt) > sUtc
+  if (!carEditingId) return;
+  const ev0 = carEvents.find(e => e.id === carEditingId);
+  if (!ev0) return;
+  const end = document.getElementById('car-end').value;
+  if (!end) { showToast(t('car.return.required')); return; }
+  if (end <= utcToDatetimeLocal(ev0.startAt)) { showToast(t('car.return.order')); return; }
+  const alcohol = document.getElementById('car-alcohol').value;
+  const memo = document.getElementById('car-memo').value.trim();
+
+  // 出発：アルコールチェック（濃度＋証明写真）を記録して使用中にする
+  if (carEditMode === 'depart') {
+    if (alcohol === '' || !carPhotos.length) { showToast(t('car.depart.need')); return; }
+    if (!GAS_URL) {
+      Object.assign(ev0, { alcohol, photos: carPhotos.slice(), memo, status: '使用中' });
+      closeCarModal(); renderCarView(); showToast(t('car.departed')); return;
+    }
+    try {
+      await api('departCarEvent', { eventId: carEditingId, alcohol, photos: carPhotos, memo }, t('car.updating'));
+      await loadCarData({ force: true }); renderCarView(); closeCarModal();
+      if (_currentTab === 'mypage') renderMyPage();
+      showToast(t('car.departed'));
+    } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
+    return;
+  }
+
+  // 編集：帰社予定の延長・実際の終了日時・アルコール・写真・備考
+  const endScheduled = datetimeLocalToUtc(end);
+  const conflict = carEvents.some(e =>
+    e.id !== carEditingId && e.carName === ev0.carName && _carHolds(e) &&
+    e.startAt < endScheduled && (e.endScheduled || e.startAt) > ev0.startAt
   );
-  if (carConflict) { showToast(t('car.conflict')); return; }
-  const destData = carDestinations.find(d => d.name === dest);
-  const ev = {
-    id:           carEditingId || undefined,
-    applicant:    currentUser.name,
-    carName:      car,
-    destination:  dest,
-    startAt:      datetimeLocalToUtc(start),
-    endScheduled: datetimeLocalToUtc(end),
-    confirmation: document.getElementById('car-confirmation').checked,
-    alcohol:      document.getElementById('car-alcohol').value || '',
-    distance:     destData?.distance || '',
-    memo:         document.getElementById('car-memo').value.trim(),
-    photos:       carPhotos,
-    endAt:        document.getElementById('car-endat').value ? datetimeLocalToUtc(document.getElementById('car-endat').value) : '',
+  if (conflict) { showToast(t('car.conflict')); return; }
+  const endAtLocal = document.getElementById('car-endat').value;
+  const payload = {
+    id: carEditingId, endScheduled,
+    endAt: endAtLocal ? datetimeLocalToUtc(endAtLocal) : '',
+    alcohol, photos: carPhotos, memo,
   };
   if (!GAS_URL) {
-    if (carEditingId) { const i=carEvents.findIndex(e=>e.id===carEditingId); carEvents[i]={...ev,id:carEditingId}; showToast(t('car.updated.msg')); }
-    else              { carEvents.push({...ev,id:'c'+Date.now()}); showToast(t('car.saved')); }
-    closeCarModal(); renderCarView(); return;
+    Object.assign(ev0, payload);
+    closeCarModal(); renderCarView(); showToast(t('car.updated.msg')); return;
   }
   try {
-    const result = await api('saveCarEvent', {event:ev}, carEditingId?t('car.updating'):t('car.saving'));
-    if (isNewCar) ev.id = result.id;
-    // 新規: 連動スケジュールイベント作成
-    if (isNewCar && schedType) {
-      const [startDate, startTime] = start.split('T');
-      const [endDate, endTime] = end.split('T');
-      const schedEv = {
-        type: schedType,
-        title: dest,
-        startDate, endDate, start: startTime, end: endTime,
-        people: [], rentals: [], memo: '',
-        selectedApprover: carApprover,
-      };
-      try {
-        const sr = await api('saveEvent', {event: schedEv}, '');
-        if (sr.approvalStatus === '承認済') showToast(t('car.sched.auto', {type: tType(schedType)}));
-        else showToast(t('car.sched.applied', {type: tType(schedType)}));
-      } catch(se) {
-        showToast(t('car.sched.fail'));
-      }
-    }
+    await api('saveCarEvent', { event: payload }, t('car.updating'));
     await loadCarData({ force: true }); renderCarView(); closeCarModal();
-    showToast(carEditingId ? t('car.updated.msg') : t('car.saved'));
+    if (_currentTab === 'mypage') renderMyPage();
+    showToast(t('car.updated.msg'));
   } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
 }
 async function doCarReturn(id) {
   const ev = carEvents.find(e=>e.id===id); if(!ev) return;
-  const nowUtc = new Date().toISOString().slice(0,19)+'Z';
-  const updated = {...ev, endAt: nowUtc};
   if(!GAS_URL){
-    const i=carEvents.findIndex(e=>e.id===id); carEvents[i]=updated;
+    Object.assign(ev, { endAt: new Date().toISOString().slice(0,19)+'Z', status: ev.status ? '帰社済' : '' });
     closeModal('car-detail-backdrop'); renderCarView(); showToast(t('car.returned')); return;
   }
   try {
-    await api('saveCarEvent', {event: updated}, t('car.updating'));
+    await api('returnCarEvent', {eventId: id}, t('car.updating'));
     await loadCarData({ force: true }); renderCarView();
     closeModal('car-detail-backdrop');
+    if (_currentTab === 'mypage') renderMyPage();
     showToast('🏠 ' + t('car.returned'));
   } catch(err){ showToast(t('common.error.toast',{msg:err.message})); }
 }
@@ -10242,17 +10406,18 @@ async function doDeleteCarEvent() {
 function openCarDetail(id) {
   const ev = carEvents.find(e => e.id === id);
   if (!ev) return;
-  const isOwner = ev.applicant === currentUser.name;
+  const isOwner = _isMyCar(ev);
   document.getElementById('car-detail-content').innerHTML = `
     <div style="margin-bottom:12px"><span style="font-size:2em">🚗</span></div>
     <h2 style="font-size:1.05em;margin-bottom:14px">${esc(ev.applicant)} → ${esc(ev.destination)}</h2>
     <table style="width:100%;font-size:0.85em;border-collapse:collapse">
+      ${ev.status ? '<tr><td style="color:var(--text2);padding:7px 0;width:80px">' + t('car.status.label') + '</td><td><strong' + (ev.status === '申請中' ? ' style="color:#e65100"' : '') + '>' + esc(carStatusText(ev.status)) + '</strong></td></tr>' : ''}
       <tr><td style="color:var(--text2);padding:7px 0;width:80px">${t('car.vehicle')}</td><td><strong>${esc(ev.carName)}</strong></td></tr>
       <tr><td style="color:var(--text2);padding:7px 0">${t('car.depart.short')}</td><td><strong>${fmtDt(ev.startAt)}</strong></td></tr>
       <tr><td style="color:var(--text2);padding:7px 0">${t('car.return.short')}</td><td><strong>${fmtDt(ev.endScheduled)}</strong></td></tr>
       ${ev.endAt?`<tr><td style="color:var(--text2);padding:7px 0">${t('car.end.short')}</td><td><strong style="color:var(--green)">✅ ${fmtDt(ev.endAt)}</strong></td></tr>`:`<tr><td style="color:var(--text2);padding:7px 0">${t('car.end.short')}</td><td style="color:var(--text2)">${t('car.not.returned')}</td></tr>`}
-      <tr><td style="color:var(--text2);padding:7px 0">${t('car.confirm.status')}</td><td>${ev.confirmation?t('car.confirm.done'):t('car.unconfirmed')}</td></tr>
-      ${ev.alcohol?`<tr><td style="color:var(--text2);padding:7px 0">${t('car.alcohol')}</td><td>${esc(ev.alcohol)} mg/L</td></tr>`:''}
+      ${_carDepartedFront(ev) ? '<tr><td style="color:var(--text2);padding:7px 0">' + t('car.confirm.status') + '</td><td>' + (ev.confirmation ? t('car.confirm.done') : t('car.unconfirmed')) + '</td></tr>' : ''}
+      ${ev.alcohol && _carDepartedFront(ev) ? '<tr><td style="color:var(--text2);padding:7px 0">' + t('car.alcohol') + '</td><td>' + esc(ev.alcohol) + ' mg/L</td></tr>' : ''}
       ${ev.distance?`<tr><td style="color:var(--text2);padding:7px 0">${t('car.dist')}</td><td>${esc(ev.distance)} km</td></tr>`:''}
       ${ev.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('car.memo')}</td><td>${esc(ev.memo)}</td></tr>`:''}
     </table>
@@ -10269,13 +10434,18 @@ function openCarDetail(id) {
         </a>
       </div>` : ''}
   `;
-  const canReturn = isOwner && !ev.endAt;
+  // 出発は予定から作った予約（申請中・予約中）。帰社は使用中、または状態のない旧方式の予約
+  const canDepart = isOwner && !ev.endAt && (ev.status === '申請中' || ev.status === '予約中');
+  const canReturn = isOwner && !ev.endAt && (ev.status === '使用中' || !ev.status);
+  const linkedEv = ev.scheduleId ? events.find(x => String(x.id) === String(ev.scheduleId)) : null;
   document.getElementById('car-detail-actions').innerHTML = isOwner
     ? `<div class="btn-row">
         <button class="btn-outline" onclick="closeModal('car-detail-backdrop')">${t('car.close')}</button>
+        ${canDepart ? '<button class="btn-primary" style="background:#e65100" onclick="openCarEditModal(\'' + ev.id + '\',\'depart\')">' + t('car.depart.btn') + '</button>' : ''}
         ${canReturn ? `<button class="btn-primary" style="background:var(--green)" onclick="doCarReturn('${ev.id}')">${t('car.return.btn')}</button>` : ''}
         <button class="btn-primary" onclick="openCarEditModal('${ev.id}')">${t('car.edit.btn')}</button>
-       </div>`
+       </div>
+       ${linkedEv ? '<button class="btn-outline" style="width:100%;margin-top:8px" onclick="closeModal(\'car-detail-backdrop\');openDetail(\'' + linkedEv.id + '\')">' + t('car.open.schedule') + '</button>' : ''}`
     : `<button class="btn-outline" style="width:100%" onclick="closeModal('car-detail-backdrop')">${t('car.close')}</button>
        <p class="owner-only-note">${t('car.owner.only',{name:esc(ev.applicant)})}</p>`;
   openModal('car-detail-backdrop');
