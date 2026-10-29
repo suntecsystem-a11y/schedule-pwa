@@ -336,7 +336,6 @@ button:disabled { opacity: .55; cursor: progress; }
       <option value="">選択してください</option>
       <option value="expense">💴 出張費精算</option>
       <option value="transport">🚃 交通費精算</option>
-      <option value="other">📝 その他申請</option>
       <option value="change">🪪 従業員情報変更届</option>
       <option value="todoke">📨 届出・相談</option>
       <option id="opt-onboarding" value="onboarding" hidden>🎉 新入社員 入社登録</option>
@@ -593,15 +592,17 @@ async function doLogin() {
 // ===================================================
 function initMain() {
   document.getElementById('header-username').textContent = currentUser.name;
-  const canApprove = currentUser.isAdmin || (currentUser.role && currentUser.role !== '一般');
-  document.getElementById('tab-pending-btn').style.display = canApprove ? '' : 'none';
-  // 全申請タブは HR_VIEWERS(88,100) / DEV_VIEWERS のみ。
-  // 管理者フラグでは出さない（2026-10-16）。権限はGAS側に問い合わせる。
+  // 要承認・全申請タブは HR_VIEWERS(88,100) / DEV_VIEWERS のみ。
+  // 管理者フラグ・役職では出さない（2026-10-16 全申請／2026-10-29 要承認）。権限はGAS側に問い合わせる。
+  document.getElementById('tab-pending-btn').style.display = 'none';
   document.getElementById('tab-all-btn').style.display = 'none';
   document.getElementById('tab-todoke-btn').style.display = 'none';
   gas({ action: 'getApplyPerms', token: currentToken })
     .then(p => {
       applyPerms = p || {};
+      // canApprove が無い旧GASのときは canViewAll（総務＋開発者）で代用する
+      const canApprove = applyPerms.canApprove !== undefined ? applyPerms.canApprove : applyPerms.canViewAll;
+      document.getElementById('tab-pending-btn').style.display = canApprove ? '' : 'none';
       document.getElementById('tab-all-btn').style.display = applyPerms.canViewAll ? '' : 'none';
       // 届出対応タブは総務（HR_VIEWERS）だけ。個人情報を含むため管理者フラグでは出さない
       document.getElementById('tab-todoke-btn').style.display = applyPerms.canViewAll ? '' : 'none';
@@ -609,7 +610,6 @@ function initMain() {
     .catch(() => { /* 取得できなければ非表示のまま */ });
   showScreen('main');
   loadTab('mine');
-  // 一般社員でも承認者に指名されていればタブを出す（交通費精算を総務が承認するケース）
   loadPendingBadge();
   refreshOnboardingEligibility(); // 起動時に先読みしてキャッシュ（モーダルを開いたとき即表示するため）
   _openTodokeFromUrl();
@@ -649,8 +649,6 @@ async function loadPendingBadge() {
     const data = await gas({ action: 'getApplyPending', token: currentToken });
     const count = data.count || 0;
     updatePendingBadge(count);
-    // 役職が一般でも承認者に指名された申請があればタブを出す
-    if (count > 0) document.getElementById('tab-pending-btn').style.display = '';
   } catch {}
 }
 
@@ -725,9 +723,9 @@ async function loadTab(name) {
         ...((applyAll && applyAll.other)  || []).map(r => ({ ...r, _appType: 'other' })),
         ...((applyAll && applyAll.transport) || []).map(r => ({ ...r, _appType: 'transport' })),
         ...(expenses || []).filter(r => r.approvalStatus === '申請中').map(r => ({ ...r, _appType: 'expense' })),
-        // 自分が出した変更届は自分で承認できないので出さない
-        ...(changes || []).filter(r => r.status === '申請中' && r.applicantId !== currentUser.id).map(_changeToListRecord),
-      ];
+        ...(changes || []).filter(r => r.status === '申請中').map(_changeToListRecord),
+      // 自分が出した申請は自分で承認できないので出さない（総務が自分で申請したとき）
+      ].filter(r => String(r.applicantId || '') !== String(currentUser.id));
       updatePendingBadge(records.filter(r => r.approvalStatus === '申請中').length);
     } else if (name === 'all') {
       const [applyAll, expenses, changes] = await Promise.all([
@@ -903,6 +901,8 @@ async function openDetail(appType, id) {
     // （2026-10-27 テストで、総務に出張費の承認ボタンが出ない・申請した本人に出る食い違いが見つかった）
     const canApprove = (typeof r.canApprove === 'boolean') ? r.canApprove : _canApproveApply(r);
     const isOwn = r.applicantId === currentUser.id;
+    // 編集・再利用・再申請できる種別（出張費は別画面、その他申請は廃止のため出さない）
+    const canResubmit = appType !== 'expense' && appType !== 'other';
     const footer = document.getElementById('detail-footer');
     footer.innerHTML = '';
 
@@ -919,7 +919,7 @@ async function openDetail(appType, id) {
         footer.appendChild(rejectBtn);
         footer.appendChild(approveBtn);
       }
-      if (isOwn && appType !== 'expense') {
+      if (isOwn && canResubmit) {
         const editBtn = document.createElement('button');
         editBtn.className = 'btn-submit';
         editBtn.textContent = '編集';
@@ -934,14 +934,14 @@ async function openDetail(appType, id) {
         footer.appendChild(withdrawBtn);
       }
     }
-    if (isOwn && appType !== 'expense') {
+    if (isOwn && canResubmit) {
       const reuseBtn = document.createElement('button');
       reuseBtn.className = 'btn-cancel';
       reuseBtn.textContent = '再利用';
       reuseBtn.onclick = () => reuseApply(appType, r);
       footer.appendChild(reuseBtn);
     }
-    if (isOwn && r.approvalStatus === '否認' && appType !== 'expense') {
+    if (isOwn && r.approvalStatus === '否認' && canResubmit) {
       const reApplyBtn = document.createElement('button');
       reApplyBtn.className = 'btn-submit';
       reApplyBtn.textContent = '再申請';
@@ -1747,7 +1747,7 @@ function renderNewFields() {
       </div>
       <button type="button" class="btn-add-row" onclick="addTransportRow()">＋ 行を追加</button>
       <div id="transport-total-display" style="text-align:right;font-size:15px;font-weight:700;color:var(--primary);margin-top:8px;">合計：0 円</div>
-      ${getApproverSectionHTML('transport')}
+      <div style="margin-top:14px;font-size:13px;color:var(--text-sub);">承認者：総務（申請すると総務に届きます）</div>
     `;
     addTransportRow();
   } else if (type === 'change') {
@@ -1758,12 +1758,6 @@ function renderNewFields() {
     closeModal('modal-new');
     location.href = 'onboarding.html';
     return;
-  } else if (type === 'other') {
-    el.innerHTML = `
-      <label>件名</label><input type="text" id="f-other-title" placeholder="申請の件名">
-      <label>内容</label><textarea id="f-other-body" placeholder="申請内容を記入してください" style="min-height:120px;"></textarea>
-      ${getApproverSectionHTML()}
-    `;
   } else {
     el.innerHTML = '';
   }
@@ -1855,7 +1849,6 @@ async function submitTransport() {
   const dest        = document.getElementById('f-tr-dest').value.trim();
   if (!periodStart || !periodEnd) throw new Error('日程を入力してください');
   if (!dest) throw new Error('行き先を入力してください');
-  const approverEmpId = _getSelectedApproverEmpId();
   const rows = document.getElementById('transport-rows');
   const details = [...rows.querySelectorAll('tr')].map(tr => {
     const g = f => tr.querySelector(`[data-f="${f}"]`)?.value || '';
@@ -1865,7 +1858,8 @@ async function submitTransport() {
   const content = JSON.stringify({
     periodStart, periodEnd, destination: dest, details, totalAmount: total,
   });
-  const applyData = { applicantName: currentUser.name, content, approverEmpId };
+  // 承認者は選ばない（2026-10-29：交通費精算は総務が承認。GAS側で総務に通知する）
+  const applyData = { applicantName: currentUser.name, content };
   if (editingRecord && editingRecord.appType === 'transport') applyData.id = editingRecord.id;
   await gas({ action: 'saveApply', token: currentToken, appType: 'transport', applyData });
 }
@@ -2056,17 +2050,11 @@ async function submitNew() {
         { label: '日程',     value: `${periodStart} 〜 ${periodEnd}` },
         { label: '行き先',   value: dest },
         { label: '合計金額', value: document.getElementById('transport-total-display')?.textContent || '0円' },
-        { label: '承認者',   value: _getApproverDisplayName() },
+        { label: '承認者',   value: '総務' },
       ];
     } else {
-      const title = document.getElementById('f-other-title').value.trim();
-      if (!title) throw new Error('件名を入力してください');
-      const body  = document.getElementById('f-other-body').value || '';
-      items = [
-        { label: '件名', value: title },
-        { label: '内容', value: body.length > 60 ? body.slice(0, 60) + '…' : body || 'なし' },
-        { label: '承認者', value: _getApproverDisplayName() },
-      ];
+      // その他申請は廃止（2026-10-29）
+      throw new Error('申請種別を選択してください');
     }
   } catch (e) { showToast(e.message); return; }
 
@@ -2075,7 +2063,6 @@ async function submitNew() {
       if (type === 'leave') await submitLeave();
       else if (type === 'expense') await submitExpense();
       else if (type === 'transport') await submitTransport();
-      else await submitOther();
       closeModal('modal-confirm');
       closeModal('modal-new');
       showToast(editingRecord ? '更新しました' : '申請しました');
@@ -2183,16 +2170,6 @@ async function submitExpense() {
     details,
     receipts: receiptPhotos,
   }});
-}
-
-async function submitOther() {
-  const title = document.getElementById('f-other-title').value.trim();
-  if (!title) throw new Error('件名を入力してください');
-  const approverEmpId = _getSelectedApproverEmpId();
-  const content = JSON.stringify({ title, body: document.getElementById('f-other-body').value });
-  const applyData = { applicantName: currentUser.name, content, approverEmpId };
-  if (editingRecord && editingRecord.appType === 'other') applyData.id = editingRecord.id;
-  await gas({ action: 'saveApply', token: currentToken, appType: 'other', applyData });
 }
 
 function _getSelectedApproverEmpId() {
