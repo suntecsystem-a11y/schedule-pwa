@@ -1555,18 +1555,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
           <textarea id="ev-remote-reason" rows="2" placeholder="在宅勤務の理由を入力" style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;font-family:inherit;resize:vertical;background:white;color:var(--text)"></textarea>
         </div>
       </div>
-      <!-- Teams会議リンク -->
-      <div class="ev-row" id="teams-link-row" style="display:none">
-        <div class="ev-row-icon">📹</div>
-        <div class="ev-row-content" style="display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:0.92em">Teams会議リンクを生成</span>
-          <label style="position:relative;width:44px;height:24px;cursor:pointer">
-            <input type="checkbox" id="ev-teams-link" style="opacity:0;width:0;height:0">
-            <span style="position:absolute;inset:0;background:var(--border);border-radius:12px;transition:.2s"></span>
-            <span id="teams-knob" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
-          </label>
-        </div>
-      </div>
+      <!-- Teams会議リンク（作成機能は 2026-10-30 に廃止。既存の予定のリンクだけ表示する） -->
       <div id="teams-url-display" style="display:none;padding:4px 16px 10px 52px">
         <a id="teams-url-link" href="#" target="_blank" style="font-size:0.82em;color:var(--primary);word-break:break-all"></a>
       </div>
@@ -6608,7 +6597,6 @@ function openAddModal(dateStr, startTime, endTime){
   if(document.getElementById('rental-search')) document.getElementById('rental-search').value='';
   document.getElementById('people-sched-toggle').style.transform='';
   if(document.getElementById('people-search')) document.getElementById('people-search').value='';
-  document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();
   document.getElementById('teams-url-display').style.display='none';
   onTypeChange();renderPeoplePicker();renderRoomPicker();
   updatePeopleSummary();renderPeopleSchedule();
@@ -6639,7 +6627,6 @@ function openEditModal(id){
   document.getElementById('ev-remote-reason').value=e.remoteReason||'';
   // 既存の承認者を初期選択（承認済の予定を編集する時も欄が出るため、元の承認者を引き継ぐ）
   document.getElementById('ev-approver').value=e.approvedBy||'';
-  document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();
   if(e.teamsUrl){
     document.getElementById('teams-url-display').style.display='block';
     const link=document.getElementById('teams-url-link');
@@ -6746,9 +6733,6 @@ function onTypeChange(){
   updateSaveButtonState();
   if(isRoom)checkRoomConflict();
   if(isRental){renderRentalPicker();updateRentalSummary();}
-  const showTeams=['会議室','打ち合わせ','来社'].includes(typ);
-  document.getElementById('teams-link-row').style.display=showTeams?'flex':'none';
-  if(!showTeams){document.getElementById('ev-teams-link').checked=false;updateTeamsToggle();}
   renderPeopleSchedule();checkParticipantConflicts();
 }
 function onAlldayChange(){ updateAlldayToggleVisual(); applyAlldayLayout(); renderPeopleSchedule(); checkParticipantConflicts(); syncRentalDates(); }
@@ -6905,14 +6889,6 @@ function _evCarPayload(type){
   if(!editingId&&_cg('ev-repeat').value){showToast(t('evcar.norepeat'));return false;}
   return{carName,destination:dest,startAt:r.s,endScheduled:r.e};
 }
-function updateTeamsToggle(){
-  const c=document.getElementById('ev-teams-link').checked;
-  const knob=document.getElementById('teams-knob');
-  const bg=document.getElementById('ev-teams-link').nextElementSibling;
-  if(knob) knob.style.left=c?'22px':'2px';
-  if(bg) bg.style.background=c?'var(--primary)':'var(--border)';
-}
-document.getElementById('ev-teams-link').addEventListener('change',updateTeamsToggle);
 function updateAlldayToggleVisual(){
   const c=document.getElementById('ev-allday').checked;
   const knob=document.getElementById('allday-knob');
@@ -7441,7 +7417,6 @@ async function doSaveEvent(){
     selectedApprover,
     repeat:isOther?'':(document.getElementById('ev-repeat').value||''),
     repeatEnd:isOther?'':(document.getElementById('ev-repeat-end').value||''),
-    teamsLink:document.getElementById('ev-teams-link').checked,
   };
   if(evCar!==undefined)ev.car=evCar;
 
@@ -7466,8 +7441,6 @@ async function doSaveEvent(){
       savedMsg=t('ev.repeat.result',{n:total});
       if(result.repeatSkipped>0) savedMsg+=t('ev.repeat.skip',{n:result.repeatSkipped});
     }
-    if(result.teamsUrl) savedMsg+=' 📹 Teams会議リンク生成済み';
-    if(result.teamsError){ showToast('⚠️ Teams: '+result.teamsError); console.error('Teams error:',result.teamsError); }
     showToast(savedMsg);
     if(evCar!==undefined){
       carDataLastFetched=0;
