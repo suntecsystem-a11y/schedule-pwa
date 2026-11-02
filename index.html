@@ -1818,8 +1818,8 @@ const ROOMS = [
   {id:'1階会議室', name:'本社1階会議室', building:'本社', floor:'1F', capacity:8, until:'2026-11-02'},
   {id:'2階会議室', name:'本社2階会議室', building:'本社', floor:'2F', capacity:4, until:'2026-11-02'},
   {id:'新棟2階', name:'新棟2階会議室', building:'新棟', floor:'2F', capacity:6, from:'2026-11-03'},
-  {id:'新棟3階北', name:'新棟3階北会議室', building:'新棟', floor:'3F', capacity:4, from:'2026-11-03'},
-  {id:'新棟3階中央', name:'新棟3階中央会議室', building:'新棟', floor:'3F', capacity:4, from:'2026-11-03'},
+  {id:'新棟3階北', name:'新棟3階第1会議室（東）', building:'新棟', floor:'3F', capacity:4, from:'2026-11-03'},
+  {id:'新棟3階中央', name:'新棟3階第2会議室（中央）', building:'新棟', floor:'3F', capacity:4, from:'2026-11-03'},
 ];
 const roomPlace = r => r.building + ' ' + r.floor;  // 建屋＋フロア（例：新棟 3F）
 const roomName = id => (ROOMS.find(r=>r.id===id)||{}).name || id || '';
