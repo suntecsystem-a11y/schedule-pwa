@@ -5617,7 +5617,7 @@ function eventCardHTML(e){
         <span class="status-badge status-${e.type}">${tType(e.type)}</span>
         ${e.start?`<span>🕐 ${e.start}〜${e.end}</span>`:''}
         ${isMultiDay(e)?`<span>📆 ${e.startDate}〜${e.endDate}</span>`:''}
-        ${room?`<span>📍 ${room.name}</span>`:''}
+        ${e.room?`<span>📍 ${esc(roomName(e.room))}</span>`:''}
       </div>
       ${(e.people||[]).length?`<div class="event-card-people">${(e.people||[]).map(p=>`<span class="person-chip">${userName(p)}</span>`).join('')}</div>`:''}
       ${isRejected&&e.rejectionReason?`<div style="font-size:0.75em;color:#c62828;margin-top:6px">${t('cal.reject.reason')}${esc(e.rejectionReason)}</div>`:''}
@@ -6073,7 +6073,7 @@ function renderHomeDayWidgets(){
         const timeStr = e.start ? `${e.start}〜${e.end}　` : '';
         return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer" onclick="openDetail('${e.id}')">
           <span style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></span>
-          <span style="font-size:0.82em"><span style="color:var(--text2)">${timeStr}</span><strong>${e.type}</strong>${e.title?' '+e.title:''}</span>
+          <span style="font-size:0.82em"><span style="color:var(--text2)">${timeStr}</span><strong>${e.type}</strong>${e.title?' '+e.title:''}${e.room?`<span style="color:var(--text2)">　📍${esc(roomName(e.room))}</span>`:''}</span>
         </div>`;
       }).join('');
     }
@@ -7506,7 +7506,7 @@ function openDetail(id){
     <table style="width:100%;font-size:0.85em;border-collapse:collapse">
       <tr><td style="color:var(--text2);padding:7px 0;width:70px">${t('detail.date')}</td><td><strong>${isMultiDay(e)?e.startDate+' 〜 '+e.endDate:e.date}</strong></td></tr>
       ${e.start?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.time')}</td><td><strong>${e.start} 〜 ${e.end}</strong></td></tr>`:''}
-      ${room?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.place')}</td><td><strong>${room.name}</strong></td></tr>`:''}
+      ${e.room?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.place')}</td><td><strong>${esc(roomName(e.room))}</strong></td></tr>`:''}
       ${(e.people||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.people')}</td><td>${(e.people||[]).map(userName).join('、')}</td></tr>`:''}
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
