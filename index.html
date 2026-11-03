@@ -626,7 +626,7 @@ input,select{font-family:inherit;outline:none}
 .inc-filter-chip.on.sev1{background:#e3f2fd;color:#1565c0;border-color:#90caf9}
 
 /* タスク管理タブ */
-#tab-tasks{--tk-leftw:590px;--tk-rowh:34px;--tk-line:#e6e8ee}
+#tab-tasks{--tk-namew:300px;--tk-leftw:590px;--tk-rowh:34px;--tk-line:#e6e8ee}
 .tk-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .tk-head h2{font-size:1.15em}
 .tk-head small{color:var(--text2);font-size:.78em}
@@ -657,7 +657,11 @@ input,select{font-family:inherit;outline:none}
 .tk-row.l0 .tk-nm{font-weight:700}
 .tk-c{padding:0 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;display:flex;align-items:center;border-right:1px solid var(--tk-line);font-size:.8em}
 .tk-hrow .tk-c{border-bottom:1px solid var(--tk-line)}
-.tk-c.name{width:300px;font-size:.85em}.tk-c.who{width:70px;gap:6px}.tk-c.st{width:70px}.tk-c.d{width:50px;justify-content:center}.tk-c.pg{width:50px;justify-content:flex-end;border-right:0}
+.tk-c.name{width:var(--tk-namew);font-size:.85em;position:relative}
+.tk-rs{position:absolute;top:0;right:-3px;width:9px;height:100%;cursor:col-resize;z-index:7;touch-action:none}
+.tk-rs::after{content:"";position:absolute;top:25%;bottom:25%;left:3px;width:3px;border-radius:2px;background:#b8c2d0}
+.tk-rs:hover::after,.tk-rs.on::after{background:var(--primary)}
+body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px}.tk-c.st{width:70px}.tk-c.d{width:50px;justify-content:center}.tk-c.pg{width:50px;justify-content:flex-end;border-right:0}
 .tk-tw{width:16px;flex:none;cursor:pointer;color:var(--text2);text-align:center;user-select:none;font-size:.7em}
 .tk-nm{overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .tk-av{width:20px;height:20px;border-radius:50%;background:var(--primary-light);color:var(--primary-dark);font-weight:700;font-size:10px;display:inline-flex;align-items:center;justify-content:center;flex:none;margin-right:5px}
@@ -714,9 +718,8 @@ input,select{font-family:inherit;outline:none}
 .tk-li{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:.9em}
 .tk-li .nm{flex:1}
 @media(max-width:700px){
-  #tab-tasks{--tk-leftw:230px}
+  #tab-tasks{--tk-namew:130px;--tk-leftw:230px}
   .tk-c.who,.tk-c.st,.tk-c.pg,.tk-hrow .tk-c.who,.tk-hrow .tk-c.st,.tk-hrow .tk-c.pg{display:none}
-  .tk-c.name{width:130px}
   #tk-view{height:calc(100vh - 330px)}
 }
 /* タスク入力フォーム（右スライドパネル） */
@@ -4422,9 +4425,36 @@ function tkFit(){
   const v=document.getElementById('tk-view');if(!v)return;
   const bn=document.getElementById('bottom-nav');
   const bh=bn&&bn.offsetParent!==null?bn.offsetHeight:0;
+  tkNameWRestore();
   v.style.height=Math.max(380,window.innerHeight-v.getBoundingClientRect().top-bh-14)+'px';
 }
 window.addEventListener('resize',()=>{if(typeof _tk!=='undefined'&&_tk.loaded)tkFit();});
+// ガント左側（施策／活動／タスク名）の幅：ヘッダー右端のつまみで伸縮。値はこの端末のブラウザに保存
+function tkNameW(n,save){
+  const t=document.getElementById('tab-tasks');if(!t)return;
+  const fix=window.innerWidth<=700?100:290;
+  if(n==null){t.style.removeProperty('--tk-namew');t.style.removeProperty('--tk-leftw');if(save){try{localStorage.removeItem('tkNameW');}catch(e){}}return;}
+  n=Math.max(100,Math.min(900,Math.round(n)));
+  t.style.setProperty('--tk-namew',n+'px');t.style.setProperty('--tk-leftw',(n+fix)+'px');
+  if(save){try{localStorage.setItem('tkNameW',String(n));}catch(e){}}
+}
+function tkNameWRestore(){let v=null;try{v=parseInt(localStorage.getItem('tkNameW'));}catch(e){}if(v>=100)tkNameW(v,false);}
+document.addEventListener('pointerdown',e=>{
+  const h=e.target.closest&&e.target.closest('.tk-rs');
+  if(!h||e.button!==0)return;
+  e.preventDefault();e.stopPropagation();
+  const nm=h.parentElement,w0=parseFloat(getComputedStyle(nm).width)||nm.getBoundingClientRect().width,x0=e.clientX;
+  h.classList.add('on');document.body.classList.add('tk-resizing');
+  try{h.setPointerCapture(e.pointerId);}catch(_){}
+  const mv=ev=>tkNameW(w0+ev.clientX-x0,false);
+  const up=ev=>{
+    h.removeEventListener('pointermove',mv);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);
+    h.classList.remove('on');document.body.classList.remove('tk-resizing');
+    tkNameW(w0+ev.clientX-x0,true);
+  };
+  h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);
+},true);
+document.addEventListener('dblclick',e=>{if(e.target.closest&&e.target.closest('.tk-rs'))tkNameW(null,true);});
 function tkGanttHtml(){
   const rows=tkRows(_tk.roots,0,[]);
   if(!rows.length)return '<div class="tk-empty">条件に合うタスクがありません</div>';
@@ -4447,7 +4477,7 @@ function tkGanttHtml(){
     }
   }
   let h='<div id="tk-wrap"><div id="tk-content" style="width:calc(var(--tk-leftw) + '+W+'px)">';
-  h+='<div class="tk-hrow"><div class="tk-left"><div class="tk-c name">施策／活動／タスク</div><div class="tk-c who">担当者</div><div class="tk-c st">状態</div><div class="tk-c d">開始</div><div class="tk-c d">期限</div><div class="tk-c pg">進捗</div></div><div class="tk-tl" style="width:'+W+'px"><div class="tk-hd">'+mo+dy+'</div></div></div>';
+  h+='<div class="tk-hrow"><div class="tk-left"><div class="tk-c name">施策／活動／タスク<span class="tk-rs" title="左右にドラッグして名前の幅を変更（ダブルクリックで元に戻す）"></span></div><div class="tk-c who">担当者</div><div class="tk-c st">状態</div><div class="tk-c d">開始</div><div class="tk-c d">期限</div><div class="tk-c pg">進捗</div></div><div class="tk-tl" style="width:'+W+'px"><div class="tk-hd">'+mo+dy+'</div></div></div>';
   h+='<div id="tk-weekend" style="left:var(--tk-leftw);width:'+W+'px">'+we+'</div>';
   const tx=tkDiff(R.start,today);
   if(tx>=0&&tx<days)h+='<div id="tk-today" style="left:calc(var(--tk-leftw) + '+(tx*dayW+dayW/2-1)+'px)"><b>今日</b></div>';
