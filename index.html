@@ -1824,9 +1824,12 @@ const ROOMS = [
 const roomPlace = r => r.building + ' ' + r.floor;  // 建屋＋フロア（例：新棟 3F）
 const roomName = id => (ROOMS.find(r=>r.id===id)||{}).name || id || '';
 const roomOpenOn = (r, ds) => (!r.from||ds>=r.from) && (!r.until||ds<=r.until);
+// 会議室を選べる種別（会議室は必須、打ち合わせ・来社は任意。2026-11-03）と、会議室を押さえている予定か
+const ROOM_TYPES = ['会議室','打ち合わせ','来社'];
+const usesRoom = e => ROOM_TYPES.includes(e.type) && !!e.room;
 // ds の日に予約できる会議室。withEvents=true のときは、その日に予約が残っている会議室も含める（表示用）
 const roomsOn = (ds, withEvents) => ROOMS.filter(r => roomOpenOn(r, ds) ||
-  (withEvents && events.some(e=>e.type==='会議室'&&e.room===r.id&&eventIncludesDate(e,ds))));
+  (withEvents && events.some(e=>usesRoom(e)&&e.room===r.id&&eventIncludesDate(e,ds))));
 const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休み','在宅','来社','その他'];
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅', 'その他'];
@@ -2091,7 +2094,7 @@ ja:{
 'ev.depart.time':'出発時間','ev.return.time':'帰社時間',
 'ev.repeat.none':'繰り返しなし','ev.repeat.daily':'毎日','ev.repeat.weekday':'毎日（平日のみ）',
 'ev.repeat.weekly':'毎週','ev.repeat.weekly_nohol':'毎週（土日祝除く）','ev.repeat.monthly':'毎月（同日）','ev.repeat.end':'終了日',
-'ev.room':'会議室','ev.conflict':'⚠️ この時間帯はすでに予約があります',
+'ev.room':'会議室','ev.room.optional':'会議室（任意）','ev.conflict':'⚠️ この時間帯はすでに予約があります',
 'ev.people':'参加者 / 対象者','ev.people.search':'名前で検索...',
 'ev.people.schedule':'参加者の当日予定','ev.rental':'端末貸出（任意）','ev.rental.dates':'貸出期間','ev.rental.start':'貸出開始日','ev.rental.end':'返却予定日',
 'ev.approver':'承認者を選択','ev.approver.required':'（必須）','ev.approver.select':'選択してください',
@@ -2459,7 +2462,7 @@ vi:{
 'ev.depart.time':'Giờ đi','ev.return.time':'Giờ về',
 'ev.repeat.none':'Không lặp','ev.repeat.daily':'Hàng ngày','ev.repeat.weekday':'Hàng ngày (trừ T7/CN)',
 'ev.repeat.weekly':'Hàng tuần','ev.repeat.weekly_nohol':'Hàng tuần (trừ T7/CN/lễ)','ev.repeat.monthly':'Hàng tháng','ev.repeat.end':'Ngày kết thúc',
-'ev.room':'Phòng họp','ev.conflict':'⚠️ Thời gian này đã có đặt',
+'ev.room':'Phòng họp','ev.room.optional':'Phòng họp (tùy chọn)','ev.conflict':'⚠️ Thời gian này đã có đặt',
 'ev.people':'Người tham gia','ev.people.search':'Tìm theo tên...',
 'ev.people.schedule':'Lịch hôm nay của người tham gia','ev.rental':'Mượn thiết bị (tùy chọn)','ev.rental.dates':'Thời gian mượn','ev.rental.start':'Ngày mượn','ev.rental.end':'Ngày trả dự kiến',
 'ev.approver':'Chọn người phê duyệt','ev.approver.required':'(Bắt buộc)','ev.approver.select':'Vui lòng chọn',
@@ -2817,7 +2820,7 @@ ne:{
 'ev.depart.time':'प्रस्थान समय','ev.return.time':'फिर्ती समय',
 'ev.repeat.none':'दोहोर्याउन छैन','ev.repeat.daily':'दैनिक','ev.repeat.weekday':'कार्यदिन मात्र',
 'ev.repeat.weekly':'साप्ताहिक','ev.repeat.weekly_nohol':'साप्ताहिक (शनि/आइत/बिदा बाहेक)','ev.repeat.monthly':'मासिक','ev.repeat.end':'अन्त्य मिति',
-'ev.room':'बैठक कोठा','ev.conflict':'⚠️ यो समयमा पहिले नै बुक छ',
+'ev.room':'बैठक कोठा','ev.room.optional':'बैठक कोठा (ऐच्छिक)','ev.conflict':'⚠️ यो समयमा पहिले नै बुक छ',
 'ev.people':'सहभागी','ev.people.search':'नामले खोज्नुहोस्...',
 'ev.people.schedule':'सहभागीको आजको तालिका','ev.rental':'उपकरण भाडा (ऐच्छिक)','ev.rental.dates':'भाडा अवधि','ev.rental.start':'भाडा सुरु मिति','ev.rental.end':'फिर्ता मिति',
 'ev.approver':'स्वीकृतकर्ता छान्नुहोस्','ev.approver.required':'(आवश्यक)','ev.approver.select':'छान्नुहोस्',
@@ -5319,7 +5322,7 @@ function renderDashboard() {
   const totalSlots = dRooms.length * roomHours;
   let usedSlots = 0;
   dRooms.forEach(r => {
-    const roomEvs = events.filter(e => e.type === '会議室' && e.room === r.id && eventIncludesDate(e, ds));
+    const roomEvs = events.filter(e => usesRoom(e) && e.room === r.id && eventIncludesDate(e, ds));
     roomEvs.forEach(e => {
       const s = Math.max(timeToMins(e.start||'09:00'), 9*60);
       const en = Math.min(timeToMins(e.end||'18:00'), 18*60);
@@ -5678,7 +5681,7 @@ function renderRoomAvailabilityNow(){
   const ds = fmtDate(now);
   const hNow = now.getHours() + now.getMinutes()/60;
   const hStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-  const todayRoomEvs = events.filter(e=>e.date===ds&&e.type==='会議室'&&e.room);
+  const todayRoomEvs = events.filter(e=>e.date===ds&&usesRoom(e));
   const label = document.getElementById('room-now-label');
   const chips = document.getElementById('room-now-chips');
   if(!label||!chips) return;
@@ -5700,7 +5703,7 @@ function renderRoomTimeline(){
     const [h,m]=tv.split(':').map(Number);
     return Math.max(0,Math.min(100,((h+m/60-TL_START)/TL_HOURS)*100));
   };
-  const roomEvs=events.filter(e=>e.date===ds&&e.type==='会議室'&&e.room&&e.start&&e.end);
+  const roomEvs=events.filter(e=>e.date===ds&&usesRoom(e)&&e.start&&e.end);
   const now=new Date();
   const isToday=fmtDate(now)===ds;
   const nowPos=isToday?toPos(now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')):null;
@@ -5718,7 +5721,7 @@ function renderRoomTimeline(){
         const people=(e.people||[]).map(userName).join('・');
         const label=w>15?(esc(e.title||t('room.booking')))+' '+e.start+'–'+e.end:w>8?e.start+'–'+e.end:'';
         const tip=esc((e.title||t('room.booking'))+' '+e.start+'〜'+e.end+(people?' ('+people+')':''));
-        return`<div class="room-tl-block" style="left:${l}%;width:${w}%;background:${STATUS_COLOR['会議室']}" title="${tip}" onclick="event.stopPropagation();openDetail('${e.id}')">${label}</div>`;
+        return`<div class="room-tl-block" style="left:${l}%;width:${w}%;background:${STATUS_COLOR[e.type]||STATUS_COLOR['会議室']}" title="${tip}" onclick="event.stopPropagation();openDetail('${e.id}')">${label}</div>`;
       }).join('');
       const nowLine=nowPos!==null&&nowPos>0&&nowPos<100?`<div style="position:absolute;left:${nowPos}%;top:-2px;bottom:-2px;width:2px;background:var(--red);z-index:3;border-radius:1px;pointer-events:none"><div style="position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--red)"></div></div>`:'';
       html+=`<div style="background:white;border-radius:var(--radius);padding:12px;margin-bottom:10px;box-shadow:var(--shadow)">
@@ -6081,7 +6084,7 @@ function renderHomeDayWidgets(){
   const roomEl = document.getElementById('home-room-status');
   if(roomEl){
     if(roomLabel) roomLabel.textContent = t('home.room.avail')+`（${hStr}）`;
-    const todayRoomEvs = events.filter(e => e.date===today && e.type==='会議室' && e.room);
+    const todayRoomEvs = events.filter(e => e.date===today && usesRoom(e));
     roomEl.innerHTML = roomsOn(today).map(room => {
       const busy = todayRoomEvs.some(e =>
         e.room===room.id && timeToMins(e.start)<=hNow*60 && timeToMins(e.end)>hNow*60
@@ -6702,7 +6705,7 @@ function onTypeChange(){
   const typ=document.getElementById('ev-type').value;
   const isOther=typ==='その他';
   const hasAlldayToggle=ALLDAY_TOGGLE_TYPES.includes(typ);
-  const isRoom=typ==='会議室';
+  const isRoom=ROOM_TYPES.includes(typ);
   const isRental=RENTAL_TYPES.includes(typ);
   if(isOther){
     document.getElementById('allday-row').style.display='none';
@@ -6720,6 +6723,7 @@ function onTypeChange(){
     if(!hasAlldayToggle) document.getElementById('ev-allday').checked=false;
     updateAlldayToggleVisual();applyAlldayLayout();
     document.getElementById('room-row').style.display=isRoom?'flex':'none';
+    const _rl=document.getElementById('ev-room-label');if(_rl)_rl.textContent=typ==='会議室'?t('ev.room'):t('ev.room.optional');
     document.getElementById('rental-row').style.display=isRental?'flex':'none';
     document.getElementById('rental-dates-row').style.display=isRental&&selectedRentals.length?'flex':'none';
     document.getElementById('rental-purpose-row').style.display=isRental&&selectedRentals.length?'flex':'none';
@@ -7233,7 +7237,7 @@ function renderRoomPicker(){
   const pickRooms=roomsOn(date);
   if(selectedRoom&&!pickRooms.some(r=>r.id===selectedRoom)) selectedRoom=null;
   document.getElementById('room-picker').innerHTML=pickRooms.map(r=>{
-    const conflict=events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===r.id&&eventIncludesDate(e,date)&&start<e.end&&end>e.start);
+    const conflict=events.some(e=>e.id!==editingId&&usesRoom(e)&&e.room===r.id&&eventIncludesDate(e,date)&&start<e.end&&end>e.start);
     const sel=selectedRoom===r.id;
     return`<div class="room-card${conflict?' conflict':sel?' selected':''}" onclick="${conflict?'':'selectRoom(\''+r.id+'\',this)'}">
       <div class="room-name">${r.name}</div><div class="room-floor">${roomPlace(r)}　${t('ev.room.capacity',{n:r.capacity})}</div>
@@ -7253,7 +7257,7 @@ function renderRoomTimelineMini(date, selStart, selEnd){
     const [h,m]=t.split(':').map(Number);
     return Math.max(0,Math.min(100,((h+m/60-TL_START)/TL_HOURS)*100));
   };
-  const roomEvs=events.filter(e=>e.id!==editingId&&e.type==='会議室'&&eventIncludesDate(e,date)&&e.room&&e.start&&e.end);
+  const roomEvs=events.filter(e=>e.id!==editingId&&usesRoom(e)&&eventIncludesDate(e,date)&&e.start&&e.end);
   const nowLeft=toPos(selStart), nowRight=toPos(selEnd);
   const hasNow=nowLeft!==null&&nowRight!==null&&selStart&&selEnd;
 
@@ -7387,8 +7391,9 @@ async function doSaveEvent(){
     if(showTime&&start&&end&&end<=start&&startDate===endDate){showToast(t('ev.time.order'));return}
   }
   if(type==='会議室'&&!selectedRoom){showToast(t('ev.room.required'));return}
-  if(type==='会議室'&&!roomsOn(date).some(r=>r.id===selectedRoom)){showToast('この日付では、選んだ会議室を予約できません（11/3以降は新棟の会議室を選んでください）');return}
-  if(type==='会議室'&&events.some(e=>e.id!==editingId&&e.type==='会議室'&&e.room===selectedRoom&&eventIncludesDate(e,date)&&start<e.end&&end>e.start)){
+  const _useRoom=ROOM_TYPES.includes(type)&&!!selectedRoom;
+  if(_useRoom&&!roomsOn(date).some(r=>r.id===selectedRoom)){showToast('この日付では、選んだ会議室を予約できません（11/3以降は新棟の会議室を選んでください）');return}
+  if(_useRoom&&events.some(e=>e.id!==editingId&&usesRoom(e)&&e.room===selectedRoom&&eventIncludesDate(e,date)&&start<e.end&&end>e.start)){
     showToast(t('ev.conflict'));return;
   }
   const isRental=RENTAL_TYPES.includes(type);
@@ -7406,7 +7411,7 @@ async function doSaveEvent(){
     id:editingId||undefined, type,
     title:document.getElementById('ev-title').value.trim()||(isOther?selectedRentals.map(r=>r.label).join('、'):''),
     date, startDate, endDate, start, end,
-    room:type==='会議室'?selectedRoom:null,
+    room:ROOM_TYPES.includes(type)?(selectedRoom||null):null,
     people:[...selectedPeople],
     rentals:isRental?[...selectedRentals]:[],
     rentalStart, rentalEnd,
