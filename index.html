@@ -1210,7 +1210,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   </div>
 
   <!-- 日報入力／課題確認状況モーダル（中身はJSで描画） -->
-  <div id="dr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)closeDrModal()">
+  <div id="dr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this&&!this.dataset.lock)closeDrModal()">
     <div id="dr-modal-body" style="background:white;border-radius:16px;padding:20px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)"></div>
   </div>
 
@@ -7823,9 +7823,12 @@ async function doIssueCheck() {
   }
 }
 
-function openDrModal(html) {
+// lock: true の画面（Kaizen Step の入力）は、外側をクリックしても閉じない（キャンセル・送信でだけ閉じる）
+function openDrModal(html, { lock = false } = {}) {
   document.getElementById('dr-modal-body').innerHTML = html;
-  document.getElementById('dr-modal').style.display = 'flex';
+  const m = document.getElementById('dr-modal');
+  m.dataset.lock = lock ? '1' : '';
+  m.style.display = 'flex';
 }
 function closeDrModal() {
   document.getElementById('dr-modal').style.display = 'none';
@@ -7946,7 +7949,7 @@ async function openDailyReport() {
     <div style="display:flex;gap:10px;justify-content:flex-end">
       <button onclick="closeDrModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
       <button id="dr-submit-btn" onclick="submitDailyReport()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">${t('common.send')}</button>
-    </div>`);
+    </div>`, { lock: true });
   if (isEdit && (rep.newIssues || []).length) rep.newIssues.forEach(i => addDrNewIssue(i));
   else addDrNewIssue(); // 本日感じた課題は最初から1件分の入力欄を表示
 }
