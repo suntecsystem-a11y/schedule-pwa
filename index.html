@@ -4542,7 +4542,10 @@ const TK_DASH_CARDS=[
 function tkDashSel(k){_tk.dashSel=k;tkRender(true);}
 // ===== TODOタブ（レコード種別「Todo」。日付や親を持たない「やれたらいいね」。担当者本人だけに見える） =====
 function tkTodoBar(){
-  return '<div class="tk-bar"><input type="search" id="tk-q" class="tk-q" placeholder="🔍 内容・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'
+  const people=[...new Set(tkPeople().concat((_tk.todos||[]).map(t=>t.who).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'ja'));
+  const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">すべて</button></div>':'';
+  return '<div class="tk-bar">'+scopeBtns+'<input type="search" id="tk-q" class="tk-q" placeholder="🔍 内容・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'
+    +tkWhoPicker(people)
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
     +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了タスク表示</label>'
     +'<span class="tk-sp"></span><button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
@@ -4552,7 +4555,7 @@ function tkTodoHtml(){
   const all=_tk.todos||[];
   const terms=tkNorm(_tk.q).split(/\s+/).filter(Boolean);
   const hit=t=>{if(!terms.length)return true;const h=tkNorm(t.title)+' '+tkNorm(t.tag);return terms.every(w=>h.includes(w));};
-  const items=all.filter(t=>hit(t)&&(!_tk.st||t.st===_tk.st)&&(_tk.done||t.st!=='完了'))
+  const items=all.filter(t=>hit(t)&&tkWhoOK({who:t.who,co:[]})&&(!_tk.st||t.st===_tk.st)&&(_tk.done||t.st!=='完了'))
     .map(t=>({id:t.id,type:'タスク',title:t.title,who:t.who,st:t.st,start:'',end:t.end||'',p:t.st==='完了'?100:0,parent:'',ch:[],hold:false,co:[]}));
   const list=tkDashFlat(items);
   return '<div id="tk-dash"><div class="tkt-add"><input type="text" id="tkt-new" placeholder="TODOを入力して Enter（自分だけに表示されます）" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();tkTodoAdd()}">'
@@ -4576,7 +4579,7 @@ async function tkTodoToggle(id,on){
   const t=tkTodoFind(id);if(!t)return;
   const st=on?'完了':'未着手';
   try{
-    await api('saveTask',{task:{id:t.id,type:'Todo',title:t.title,status:st,owner:_tk.me,end:t.end||'',tag:t.tag||'',parent:''}},'更新中...');
+    await api('saveTask',{task:{id:t.id,type:'Todo',title:t.title,status:st,owner:t.who||_tk.me,end:t.end||'',tag:t.tag||'',parent:''}},'更新中...');
     t.st=st;
   }catch(e){showToast('更新に失敗：'+((e&&e.message)||e));}
   tkRender(true);
@@ -4614,7 +4617,7 @@ async function tkTodoSave(){
   const end=document.getElementById('tktm-end').value,detail=document.getElementById('tktm-detail').value;
   try{
     const st=document.getElementById('tktm-st').value;
-    await api('saveTask',{task:{id,type:'Todo',title,status:st,owner:_tk.me,end,tag:t.tag||'',parent:'',detail}},'保存中...');
+    await api('saveTask',{task:{id,type:'Todo',title,status:st,owner:t.who||_tk.me,end,tag:t.tag||'',parent:'',detail}},'保存中...');
     t.title=title;t.end=end;t.st=st;
     tkTodoClose();tkRender(true);showToast('保存しました');
   }catch(e){showToast('保存に失敗：'+((e&&e.message)||e));}
@@ -4640,7 +4643,7 @@ async function tkTodoPromote(){
   if(!title){showToast('内容を入力してください');return;}
   const detail=document.getElementById('tktm-detail').value;
   try{
-    await api('saveTask',{task:{id,type:'タスク',title,status:t.st==='完了'?'完了':'未着手',owner:_tk.me,parent,start:s,end:e,progress:t.st==='完了'?100:0,detail,tag:t.tag||'',co:[]}},'タスクにしています...');
+    await api('saveTask',{task:{id,type:'タスク',title,status:t.st==='完了'?'完了':'未着手',owner:t.who||_tk.me,parent,start:s,end:e,progress:t.st==='完了'?100:0,detail,tag:t.tag||'',co:[]}},'タスクにしています...');
     _tk.todos=(_tk.todos||[]).filter(x=>String(x.id)!==String(id));
     tkTodoClose();
     showToast('タスクにしました');
