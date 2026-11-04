@@ -10777,13 +10777,70 @@ function renderElearningList() {
   wrap.innerHTML = html;
 }
 
+// ---- eラーニングの画像・動画の一時 URL（SharePoint）----
+// 同じリンクは50分使い回す。取りに行っている途中なら、もう一度頼まずに同じ結果を待つ
+const EL_TEMPURL_TTL = 50 * 60 * 1000;
+const _elIsSpUrl = (u) => !!u && (u.includes('sharepoint.com') || u.includes('sharepoint-df.com'));
+function _elCachedTempUrl(shareUrl) {
+  const entry = window._elVideoCache && window._elVideoCache[shareUrl];
+  if (entry && Date.now() - entry.ts < EL_TEMPURL_TTL) return entry.url;
+  if (entry) delete window._elVideoCache[shareUrl];
+  return null;
+}
+function _elGetTempUrl(shareUrl) {
+  const hit = _elCachedTempUrl(shareUrl);
+  if (hit) return Promise.resolve(hit);
+  if (!window._elTempUrlPending) window._elTempUrlPending = {};
+  if (window._elTempUrlPending[shareUrl]) return window._elTempUrlPending[shareUrl];
+  const p = (async () => {
+    if (!GAS_URL) throw new Error('GAS未設定');
+    const sess = loadSession();
+    const body = JSON.stringify({ action:'getSpTempUrl', token: sess?.token, shareUrl });
+    const res = await fetch(GAS_URL, { method:'POST', body, redirect:'follow' });
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || 'URL取得失敗');
+    if (!json.data || !json.data.url) throw new Error('URL取得失敗');
+    if (!window._elVideoCache) window._elVideoCache = {};
+    window._elVideoCache[shareUrl] = { url: json.data.url, ts: Date.now() };
+    return json.data.url;
+  })().finally(() => { delete window._elTempUrlPending[shareUrl]; });
+  window._elTempUrlPending[shareUrl] = p;
+  return p;
+}
+// 教材を開いたときに、紹介と全問題の画像・動画の一時 URL を先に取っておく（同時に2つまで）。
+// Worker への頼みは、問題を全部見たときと同じ回数（1つのリンクにつき50分に1回）で、増えるのは途中でやめたときだけ。
+// 画像は中身も先に読み込む（SharePoint から直接で、Cloudflare は通らない）。動画は重いので URL だけ
+async function _elPrefetchMedia(course) {
+  const items = [];
+  const seen = new Set();
+  const add = (videoUrl, imageUrl) => {
+    // _elMediaHtml と同じく、動画があれば動画、なければ SharePoint の画像
+    const it = videoUrl ? { url: videoUrl, img: false } : (_elIsSpUrl(imageUrl) ? { url: imageUrl, img: true } : null);
+    if (!it || seen.has(it.url) || _elCachedTempUrl(it.url)) return;
+    seen.add(it.url);
+    items.push(it);
+  };
+  add(course.introVideoUrl, course.introImageUrl);
+  (course.questions || []).forEach((q) => add(q.videoUrl, q.imageUrl));
+  if (!window._elImgPreload) window._elImgPreload = [];
+  const worker = async () => {
+    while (items.length) {
+      const it = items.shift();
+      try {
+        const url = await _elGetTempUrl(it.url);
+        if (it.img) { const im = new Image(); im.src = url; window._elImgPreload.push(im); }
+      } catch (e) { /* 失敗したものは、表示するときにもう一度取りに行ってエラーを出す */ }
+    }
+  };
+  window._elImgPreload.length = 0;
+  await Promise.all([worker(), worker()]);
+}
+
 function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
   maxHeight = maxHeight || '360px';
   if (videoUrl) {
     const uid = 'elv_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-    const entry = window._elVideoCache && window._elVideoCache[videoUrl];
-    const cached = entry && (Date.now() - entry.ts < 50 * 60 * 1000) ? entry.url : null;
-    if (!cached && entry) delete window._elVideoCache[videoUrl];
+    const cached = _elCachedTempUrl(videoUrl);
     if (cached) {
       return `<div class="el-quiz-media"><video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(cached)}"></video></div>`;
     }
@@ -10796,11 +10853,9 @@ function _elMediaHtml(videoUrl, imageUrl, maxHeight) {
     </div>`;
   }
   if (imageUrl) {
-    if (imageUrl.includes('sharepoint.com') || imageUrl.includes('sharepoint-df.com')) {
+    if (_elIsSpUrl(imageUrl)) {
       const uid = 'eli_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-      const entry = window._elVideoCache && window._elVideoCache[imageUrl];
-      const cached = entry && (Date.now() - entry.ts < 50 * 60 * 1000) ? entry.url : null;
-      if (!cached && entry) delete window._elVideoCache[imageUrl];
+      const cached = _elCachedTempUrl(imageUrl);
       if (cached) {
         return `<div class="el-quiz-media"><img src="${_esc(cached)}" alt="" style="max-height:${maxHeight}"></div>`;
       }
@@ -10820,16 +10875,8 @@ async function _resolveElImage(uid, shareUrl, maxHeight) {
   const el = document.getElementById(uid);
   if (!el) return;
   try {
-    if (!GAS_URL) throw new Error('GAS未設定');
-    const sess = loadSession();
-    const body = JSON.stringify({ action:'getSpTempUrl', token: sess?.token, shareUrl });
-    const res = await fetch(GAS_URL, { method:'POST', body, redirect:'follow' });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'URL取得失敗');
-    if (!json.data || !json.data.url) throw new Error('URL取得失敗');
-    if (!window._elVideoCache) window._elVideoCache = {};
-    window._elVideoCache[shareUrl] = { url: json.data.url, ts: Date.now() };
-    el.innerHTML = `<img src="${_esc(json.data.url)}" alt="" style="max-height:${maxHeight}">`;
+    const url = await _elGetTempUrl(shareUrl);
+    el.innerHTML = `<img src="${_esc(url)}" alt="" style="max-height:${maxHeight}">`;
   } catch(e) {
     console.error('[eラーニング画像]', e.message, shareUrl);
     el.innerHTML = `<div style="background:#fff3e0;border-radius:var(--radius);padding:16px;text-align:center;border:1px solid #ffcc02">
@@ -10843,16 +10890,8 @@ async function _resolveElVideo(uid, shareUrl, maxHeight) {
   const el = document.getElementById(uid);
   if (!el) return;
   try {
-    if (!GAS_URL) throw new Error('GAS未設定');
-    const sess = loadSession();
-    const body = JSON.stringify({ action:'getSpTempUrl', token: sess?.token, shareUrl });
-    const res = await fetch(GAS_URL, { method:'POST', body, redirect:'follow' });
-    const json = await res.json();
-    if (!json.ok) throw new Error(json.error || 'URL取得失敗');
-    if (!json.data || !json.data.url) throw new Error('URL取得失敗');
-    if (!window._elVideoCache) window._elVideoCache = {};
-    window._elVideoCache[shareUrl] = { url: json.data.url, ts: Date.now() };
-    el.innerHTML = `<video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(json.data.url)}"></video>`;
+    const url = await _elGetTempUrl(shareUrl);
+    el.innerHTML = `<video controls playsinline style="width:100%;max-height:${maxHeight};border-radius:var(--radius)" src="${_esc(url)}"></video>`;
   } catch(e) {
     console.error('[eラーニング動画]', e.message, shareUrl);
     el.innerHTML = `<div style="background:#fff3e0;border-radius:var(--radius);padding:16px;text-align:center;border:1px solid #ffcc02">
@@ -10892,6 +10931,7 @@ async function openElearningCourse(courseId) {
   }
 
   window._elPendingCourse = course;
+  if (GAS_URL) setTimeout(() => _elPrefetchMedia(course), 0); // 紹介の画像・動画を出してから、残りを先読み
 
   wrap.innerHTML = `<div class="el-intro-wrap">
     <button onclick="loadElearningCourses()" style="background:none;border:none;color:var(--primary);font-size:0.85em;font-weight:700;cursor:pointer;padding:0;margin-bottom:12px">${t('el.back')}</button>
