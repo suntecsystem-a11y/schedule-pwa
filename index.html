@@ -634,6 +634,10 @@ input,select{font-family:inherit;outline:none}
 .tk-tabs{display:flex;padding:0 8px;border-bottom:1px solid var(--border)}
 .tk-tabs button{background:none;color:var(--text2);padding:10px 16px;font-size:.88em;border-bottom:3px solid transparent;border-radius:0;cursor:pointer}
 .tk-tabs button.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+.tkt{padding:14px 16px}.tkt-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.tkt-add input[type=text]{flex:1;min-width:200px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:.92em}.tkt-add input[type=date]{padding:7px 8px;border:1px solid var(--border);border-radius:8px}
+.tkt-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border)}.tkt-row .tt{flex:1;cursor:pointer;word-break:break-all}.tkt-row .tt.done{text-decoration:line-through;color:var(--text2)}.tkt-row .dd{font-size:.8em;color:var(--text2);white-space:nowrap}.tkt-row .dd.late{color:var(--red);font-weight:700}
+.tkt-note{font-size:.8em;color:var(--text2);margin:0 0 10px}
+#tkt-modal{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px}#tkt-modal .box{background:var(--card,#fff);border-radius:12px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:18px}#tkt-modal label{display:block;font-size:.8em;color:var(--text2);margin:10px 0 4px}#tkt-modal input,#tkt-modal textarea,#tkt-modal select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:.92em;box-sizing:border-box}#tkt-modal .btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}#tkt-modal details{margin-top:14px;border-top:1px solid var(--border);padding-top:8px}
 .tk-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--border);font-size:.8em}
 .tk-bar select,.tk-btn{font-size:1em;border:1px solid #cfd6e0;background:#fff;border-radius:6px;padding:5px 9px;color:var(--text);cursor:pointer}
 .tk-bar label{display:flex;align-items:center;gap:5px;color:var(--text2)}
@@ -4141,6 +4145,7 @@ async function tkLoad(scope,keep,fresh){
   try{
     const r=await api('getTasks',{scope:_tk.scope,fresh:fresh?1:0},'タスクを読み込み中...');
     _tk.me=r.me;_tk.canAll=r.canAll;_tk.scope=r.scope;_tk.error='';_tk.parents=r.parents||[];_tk.caps=r.caps||{};_tk.pmap={};_tk.parents.forEach(p=>{_tk.pmap[p.id]=p;});
+    _tk.todos=r.todos||[];
     tkBuild(r.nodes);_tk.loaded=true;_tk.fresh=!keep;
   }catch(e){_tk.error=(e&&e.message)||String(e);}
   tkRender(!!keep);
@@ -4282,14 +4287,16 @@ function tkRender(keepScroll){
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
     +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const isPol=_tk.view==='policy';
-  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'<button onclick="tkManual()">📖 マニュアル</button></div>';
+  const isTodo=_tk.view==='todo';
+  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['todo','TODO'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'<button onclick="tkManual()">📖 マニュアル</button></div>';
   let body='';
   if(isPol)body=tkPolicyHtml();
+  else if(isTodo)body=tkTodoHtml();
   else if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
   else if(_tk.view==='gantt')body=tkGanttHtml();
   else if(_tk.view==='kanban')body=tkKanbanHtml();
   else body=tkDashHtml();
-  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():bar)+'<div id="tk-view">'+body+'</div></div>';
+  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():(isTodo?'':bar))+'<div id="tk-view">'+body+'</div></div>';
   tkFit();
   if(isPol)tkPolicyAfter(keepScroll,psl,pst);
   const nd=document.getElementById('tk-dash');if(nd&&keepScroll)nd.scrollTop=dst;
@@ -4522,18 +4529,121 @@ function tkDashData(){
     all:tasks,
     delayed:tasks.filter(tkIsLate),
     deadlineSoon:tasks.filter(t=>{if(!t.end||t.st==='完了'||t.hold)return false;const e=tkParse(t.end);return e>=today&&e<=lim;}),
-    notStartedSoon:tasks.filter(t=>t.start&&t.st==='未着手'&&!t.hold&&today>=tkBizAdd(tkParse(t.start),-3)),
-    undated:tasks.filter(t=>!t.start||!t.end)
+    notStartedSoon:tasks.filter(t=>t.start&&t.st==='未着手'&&!t.hold&&today>=tkBizAdd(tkParse(t.start),-3))
   };
 }
 const TK_DASH_CARDS=[
   ['all','全タスク','タスク','var(--primary-dark)','タスク一覧'],
   ['delayed','遅延','タスク','var(--red)','遅延タスク'],
   ['deadlineSoon','終了3営業日','タスク','var(--orange)','終了3営業日以内・未完了タスク'],
-  ['notStartedSoon','開始3営業日','タスク','var(--blue)','開始3営業日前・未着手タスク'],
-  ['undated','日程未設定','Todo','#8e8e93','Todo（日程未設定）']
-];
+  ['notStartedSoon','開始3営業日','タスク','var(--blue)','開始3営業日前・未着手タスク']
+];   // Todoは専用の「TODO」タブへ移した
 function tkDashSel(k){_tk.dashSel=k;tkRender(true);}
+// ===== TODOタブ（レコード種別「Todo」。日付や親を持たない「やれたらいいね」。担当者本人だけに見える） =====
+function tkTodoHtml(){
+  const all=_tk.todos||[];
+  const today=tkToday();
+  const list=all.filter(t=>_tk.todoDone||t.st!=='完了').slice().sort((a,b)=>((a.st==='完了')-(b.st==='完了'))||String(a.end||'9999').localeCompare(String(b.end||'9999'))||((+b.id)-(+a.id)));
+  const rows=list.map(t=>{
+    const done=t.st==='完了';
+    const late=!done&&t.end&&tkParse(t.end)<today;
+    return '<div class="tkt-row"><input type="checkbox" '+(done?'checked':'')+' onchange="tkTodoToggle(\''+t.id+'\',this.checked)">'
+      +'<span class="tt'+(done?' done':'')+'" onclick="tkTodoOpen(\''+t.id+'\')">'+tkEsc(t.title)+'</span>'
+      +(t.end?'<span class="dd'+(late?' late':'')+'">期限 '+tkEsc(tkFmt(tkParse(t.end)))+'</span>':'')
+      +'<button class="tk-btn" onclick="tkTodoOpen(\''+t.id+'\')">詳細</button></div>';
+  }).join('');
+  return '<div class="tkt"><p class="tkt-note">「やれたらいいね」を気軽に置く場所です（自分だけに表示されます）。日程や担当の活動が決まったら、詳細から「タスクに昇格」できます。</p>'
+    +'<div class="tkt-add"><input type="text" id="tkt-new" placeholder="やりたいこと・気になることを入力して Enter" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();tkTodoAdd()}">'
+    +'<input type="date" id="tkt-end" title="期限（任意）"><button class="tk-btn tk-new" onclick="tkTodoAdd()">＋ 追加</button>'
+    +'<label style="margin-left:auto"><input type="checkbox" '+(_tk.todoDone?'checked':'')+' onchange="_tk.todoDone=this.checked;tkRender(true)"> 完了も表示</label></div>'
+    +(rows||'<div class="tk-empty">'+(all.length?'未完了のTODOはありません':'TODOはまだありません')+'</div>')+'</div>';
+}
+function tkTodoFind(id){return (_tk.todos||[]).find(x=>String(x.id)===String(id));}
+async function tkTodoAdd(){
+  const ti=document.getElementById('tkt-new'),en=document.getElementById('tkt-end');
+  const title=ti?ti.value.trim():'';
+  if(!title){showToast('内容を入力してください');return;}
+  const end=en?en.value:'';
+  try{
+    const res=await api('saveTask',{task:{type:'Todo',title,status:'未着手',owner:_tk.me,start:'',end,tag:'',parent:''}},'登録中...');
+    _tk.todos=[{id:String(res.id),title,who:_tk.me,st:'未着手',end,tag:''}].concat(_tk.todos||[]);
+    tkRender(true);
+    const n=document.getElementById('tkt-new');if(n)n.focus();
+  }catch(e){showToast('登録に失敗：'+((e&&e.message)||e));}
+}
+async function tkTodoToggle(id,on){
+  const t=tkTodoFind(id);if(!t)return;
+  const st=on?'完了':'未着手';
+  try{
+    await api('saveTask',{task:{id:t.id,type:'Todo',title:t.title,status:st,owner:_tk.me,end:t.end||'',tag:t.tag||'',parent:''}},'更新中...');
+    t.st=st;
+  }catch(e){showToast('更新に失敗：'+((e&&e.message)||e));}
+  tkRender(true);
+}
+async function tkTodoOpen(id){
+  const t=tkTodoFind(id);if(!t)return;
+  let r;
+  try{r=await api('getTaskRecord',{id:String(id)},'読み込み中...');}
+  catch(e){showToast('読み込みに失敗：'+((e&&e.message)||e));return;}
+  const acts=(_tk.parents||[]).filter(p=>p.type==='活動');
+  const old=document.getElementById('tkt-modal');if(old)old.remove();
+  const m=document.createElement('div');m.id='tkt-modal';m.dataset.id=String(id);
+  m.onclick=e=>{if(e.target===m)tkTodoClose();};
+  m.innerHTML='<div class="box"><h3 style="margin:0 0 6px">TODO #'+tkEsc(id)+'</h3>'
+    +'<label>内容</label><input type="text" id="tktm-title" value="'+tkEsc(r.title||t.title)+'">'
+    +'<label>期限（任意）</label><input type="date" id="tktm-end" value="'+tkEsc(r.end||'')+'">'
+    +'<label>詳細・メモ</label><textarea id="tktm-detail" rows="5">'+tkEsc(r.detail||'')+'</textarea>'
+    +'<div class="btns"><button class="tk-btn tk-new" onclick="tkTodoSave()">保存</button><button class="tk-btn" onclick="tkTodoClose()">閉じる</button>'
+    +(r.canDelete?'<button class="tk-btn" style="margin-left:auto;color:var(--red)" onclick="tkTodoDelete()">削除</button>':'')+'</div>'
+    +'<details><summary style="cursor:pointer;font-weight:700">タスクに昇格（日程と活動を決める）</summary>'
+    +(acts.length?'<label>紐づける活動</label><select id="tktm-parent"><option value="">選んでください</option>'+acts.map(p=>'<option value="'+tkEsc(p.id)+'">'+tkEsc(p.title)+' (#'+tkEsc(p.id)+')</option>').join('')+'</select>'
+      +'<label>開始日</label><input type="date" id="tktm-s"><label>終了日</label><input type="date" id="tktm-e" value="'+tkEsc(r.end||'')+'">'
+      +'<div class="btns"><button class="tk-btn tk-new" onclick="tkTodoPromote()">タスクにする</button></div>'
+      :'<p class="tkt-note" style="margin-top:8px">タスクを追加できる活動がありません（活動の担当者・施策リーダー・管理者のみ追加できます）</p>')
+    +'</details></div>';
+  document.body.appendChild(m);
+}
+function tkTodoClose(){const m=document.getElementById('tkt-modal');if(m)m.remove();}
+async function tkTodoSave(){
+  const m=document.getElementById('tkt-modal');if(!m)return;
+  const id=m.dataset.id,t=tkTodoFind(id);if(!t)return;
+  const title=document.getElementById('tktm-title').value.trim();
+  if(!title){showToast('内容を入力してください');return;}
+  const end=document.getElementById('tktm-end').value,detail=document.getElementById('tktm-detail').value;
+  try{
+    await api('saveTask',{task:{id,type:'Todo',title,status:t.st,owner:_tk.me,end,tag:t.tag||'',parent:'',detail}},'保存中...');
+    t.title=title;t.end=end;
+    tkTodoClose();tkRender(true);showToast('保存しました');
+  }catch(e){showToast('保存に失敗：'+((e&&e.message)||e));}
+}
+async function tkTodoDelete(){
+  const m=document.getElementById('tkt-modal');if(!m)return;
+  const id=m.dataset.id;
+  if(!confirm('このTODOを削除しますか？'))return;
+  try{
+    await api('deleteTask',{id},'削除中...');
+    _tk.todos=(_tk.todos||[]).filter(x=>String(x.id)!==String(id));
+    tkTodoClose();tkRender(true);showToast('削除しました');
+  }catch(e){showToast('削除に失敗：'+((e&&e.message)||e));}
+}
+async function tkTodoPromote(){
+  const m=document.getElementById('tkt-modal');if(!m)return;
+  const id=m.dataset.id,t=tkTodoFind(id);if(!t)return;
+  const parent=document.getElementById('tktm-parent').value;
+  if(!parent){showToast('紐づける活動を選んでください');return;}
+  const s=document.getElementById('tktm-s').value,e=document.getElementById('tktm-e').value;
+  if(s&&e&&s>e){showToast('終了日は開始日以降にしてください');return;}
+  const title=document.getElementById('tktm-title').value.trim();
+  if(!title){showToast('内容を入力してください');return;}
+  const detail=document.getElementById('tktm-detail').value;
+  try{
+    await api('saveTask',{task:{id,type:'タスク',title,status:t.st==='完了'?'完了':'未着手',owner:_tk.me,parent,start:s,end:e,progress:t.st==='完了'?100:0,detail,tag:t.tag||'',co:[]}},'タスクにしています...');
+    _tk.todos=(_tk.todos||[]).filter(x=>String(x.id)!==String(id));
+    tkTodoClose();
+    showToast('タスクにしました');
+    await tkLoad(null,true,true);
+  }catch(err){showToast('昇格に失敗：'+((err&&err.message)||err));}
+}
 // 上位（施策→活動）から順に、配下のタスクをインデントして並べる。グループは開閉できる
 const TK_TYPE_COL={'基本方針':'#37474f','事業グループ':'#546e7a','事業':'#00695c','事業カテゴリ':'#00897b','施策':'#8e24aa','施策方針':'#6d4c41','活動':'#1e88e5'};
 function tkDashToggle(id){_tk.dashClosed=_tk.dashClosed||{};_tk.dashClosed[id]=!_tk.dashClosed[id];tkRender(true);}
