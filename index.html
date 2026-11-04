@@ -4544,42 +4544,20 @@ function tkDashSel(k){_tk.dashSel=k;tkRender(true);}
 function tkTodoBar(){
   return '<div class="tk-bar"><input type="search" id="tk-q" class="tk-q" placeholder="🔍 内容・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
+    +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了タスク表示</label>'
     +'<span class="tk-sp"></span><button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
 }
-function tkTodoSel(k){_tk.todoSel=k;tkRender(true);}
-function tkTodoSort(k){const c=_tk.todoSort||{k:'def',d:1};_tk.todoSort=c.k===k?{k,d:-c.d}:{k,d:1};tkRender(true);}
+// ダッシュボードの一覧表（tkDashFlat）と同じ表。TodoはGantt等に出さないので、表示用に同じ形へ変換して渡す
 function tkTodoHtml(){
   const all=_tk.todos||[];
-  const today=tkToday();
   const terms=tkNorm(_tk.q).split(/\s+/).filter(Boolean);
   const hit=t=>{if(!terms.length)return true;const h=tkNorm(t.title)+' '+tkNorm(t.tag);return terms.every(w=>h.includes(w));};
-  const base=all.filter(t=>hit(t)&&(!_tk.st||t.st===_tk.st));
-  const isLate=t=>t.st!=='完了'&&t.end&&tkParse(t.end)<today;
-  const D={open:base.filter(t=>t.st!=='完了'),late:base.filter(isLate),done:base.filter(t=>t.st==='完了'),all:base};
-  const CARDS=[['open','未着手・進行中など','TODO','var(--primary-dark)','未完了のTODO'],['late','期限超過','TODO','var(--red)','期限を過ぎた未完了のTODO'],['done','完了','TODO','var(--green)','完了したTODO'],['all','すべて','TODO','#8e8e93','すべてのTODO']];
-  const selK=D[_tk.todoSel]?_tk.todoSel:'open';
-  const cards='<div class="tk-tiles">'+CARDS.map(c=>'<div class="tk-dt'+(selK===c[0]?' sel':'')+'" style="--acc:'+c[3]+'" onclick="tkTodoSel(\''+c[0]+'\')"><div class="dl">'+c[2]+'</div><div class="dv" style="color:'+c[3]+'">'+D[c[0]].length+'</div><div class="ds">'+c[1]+'</div></div>').join('')+'</div>';
-  const sort=_tk.todoSort||{k:'def',d:1};
-  const val={n:t=>t.title,st:t=>TK_STS.indexOf(t.st),ed:t=>t.end||'9999'};
-  const cmpDef=(a,b)=>String(a.end||'9999').localeCompare(String(b.end||'9999'))||((+b.id)-(+a.id));
-  const items=D[selK].slice().sort(sort.k==='def'?cmpDef:(a,b)=>{const x=val[sort.k](a),y=val[sort.k](b);const c=typeof x==='number'?x-y:String(x).localeCompare(String(y),'ja');return (c||cmpDef(a,b))*sort.d;});
-  const th=(k,label,cls)=>'<th class="'+cls+'" onclick="tkTodoSort(\''+k+'\')">'+label+(sort.k===k?(sort.d>0?' ▲':' ▼'):'')+'</th>';
-  const head='<thead><tr><th class="tkt-c"></th>'+th('n','TODO','tk-fl-n')+th('st','状態','tk-fl-st')+th('ed','期限','tk-fl-d')+'<th class="tkt-op"></th></tr></thead>';
-  const body=items.map(t=>{
-    const late=isLate(t),done=t.st==='完了';
-    return '<tr class="tkt-tr'+(done?' done':'')+'"><td class="tkt-c"><input type="checkbox" '+(done?'checked':'')+' onchange="tkTodoToggle(\''+t.id+'\',this.checked)"></td>'
-      +'<td class="tk-fl-n" title="'+tkEsc(t.title)+'" onclick="tkTodoOpen(\''+t.id+'\')">'+tkEsc(t.title)+'</td>'
-      +'<td class="tk-fl-st" onclick="tkTodoOpen(\''+t.id+'\')"><span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[t.st]||'#9e9e9e'))+'">'+(late?'遅延':tkEsc(t.st))+'</span></td>'
-      +'<td class="tk-fl-d'+(late?' late':'')+'" onclick="tkTodoOpen(\''+t.id+'\')">'+(t.end?tkFmt(tkParse(t.end)):'-')+'</td>'
-      +'<td class="tkt-op"><button class="tk-btn" onclick="tkTodoOpen(\''+t.id+'\')">詳細</button></td></tr>';
-  }).join('');
-  const sel=CARDS.find(c=>c[0]===selK);
-  return '<div id="tk-dash">'+cards
-    +'<div class="tkt-add"><input type="text" id="tkt-new" placeholder="やりたいこと・気になることを入力して Enter（自分だけに表示されます）" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();tkTodoAdd()}">'
+  const items=all.filter(t=>hit(t)&&(!_tk.st||t.st===_tk.st)&&(_tk.done||t.st!=='完了'))
+    .map(t=>({id:t.id,type:'タスク',title:t.title,who:t.who,st:t.st,start:'',end:t.end||'',p:t.st==='完了'?100:0,parent:'',ch:[],hold:false,co:[]}));
+  const list=tkDashFlat(items);
+  return '<div id="tk-dash"><div class="tkt-add"><input type="text" id="tkt-new" placeholder="TODOを入力して Enter（自分だけに表示されます）" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();tkTodoAdd()}">'
     +'<input type="date" id="tkt-end" title="期限（任意）"><button class="tk-btn tk-new" onclick="tkTodoAdd()">＋ 追加</button></div>'
-    +'<div class="tk-dp" style="margin-bottom:12px"><h4>'+tkEsc(sel[4])+' <small>'+items.length+'件</small></h4>'
-    +(items.length?'<div class="tk-fl"><table class="tkt-tbl">'+head+'<tbody>'+body+'</tbody></table></div>':'<div class="ds">'+(all.length?'該当なし':'TODOはまだありません')+'</div>')
-    +'<p class="tkt-note" style="margin-top:8px">日程や担当の活動が決まったら、「詳細」から「タスクに昇格」できます。</p></div></div>';
+    +'<div class="tk-dp" style="margin-bottom:12px"><h4>TODO <small>'+items.length+'件</small></h4>'+(list||'<div class="ds">'+(all.length?'該当なし':'TODOはまだありません')+'</div>')+'</div></div>';
 }
 function tkTodoFind(id){return (_tk.todos||[]).find(x=>String(x.id)===String(id));}
 async function tkTodoAdd(){
@@ -4614,6 +4592,7 @@ async function tkTodoOpen(id){
   m.onclick=e=>{if(e.target===m)tkTodoClose();};
   m.innerHTML='<div class="box"><h3 style="margin:0 0 6px">TODO #'+tkEsc(id)+'</h3>'
     +'<label>内容</label><input type="text" id="tktm-title" value="'+tkEsc(r.title||t.title)+'">'
+    +'<label>状態</label><select id="tktm-st">'+TK_STS.map(x=>'<option'+(x===t.st?' selected':'')+'>'+x+'</option>').join('')+'</select>'
     +'<label>期限（任意）</label><input type="date" id="tktm-end" value="'+tkEsc(r.end||'')+'">'
     +'<label>詳細・メモ</label><textarea id="tktm-detail" rows="5">'+tkEsc(r.detail||'')+'</textarea>'
     +'<div class="btns"><button class="tk-btn tk-new" onclick="tkTodoSave()">保存</button><button class="tk-btn" onclick="tkTodoClose()">閉じる</button>'
@@ -4634,8 +4613,9 @@ async function tkTodoSave(){
   if(!title){showToast('内容を入力してください');return;}
   const end=document.getElementById('tktm-end').value,detail=document.getElementById('tktm-detail').value;
   try{
-    await api('saveTask',{task:{id,type:'Todo',title,status:t.st,owner:_tk.me,end,tag:t.tag||'',parent:'',detail}},'保存中...');
-    t.title=title;t.end=end;
+    const st=document.getElementById('tktm-st').value;
+    await api('saveTask',{task:{id,type:'Todo',title,status:st,owner:_tk.me,end,tag:t.tag||'',parent:'',detail}},'保存中...');
+    t.title=title;t.end=end;t.st=st;
     tkTodoClose();tkRender(true);showToast('保存しました');
   }catch(e){showToast('保存に失敗：'+((e&&e.message)||e));}
 }
@@ -5096,7 +5076,7 @@ document.addEventListener('click',e=>{
   const el=e.target.closest('.tk-left,.tk-card,.tk-li,.tk-gb,.tk-dl-row,.tk-fl-row');
   if(!el)return;
   const host=el.closest('[data-id]');
-  if(host&&host.dataset.id)tkfOpenEdit(host.dataset.id);
+  if(host&&host.dataset.id){if(_tk.view==='todo'){tkTodoOpen(host.dataset.id);return;}tkfOpenEdit(host.dataset.id);}
 });
 document.addEventListener('click',e=>{
   const root=document.getElementById('tab-tasks');
