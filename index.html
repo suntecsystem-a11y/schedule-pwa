@@ -770,6 +770,49 @@ body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px
 .tkf-foot .tkf-save{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:700}
 .tkf-foot .tkf-del{color:var(--red);border-color:#f0b8ba}
 .tkf-foot a{font-size:.8em;color:var(--primary);text-decoration:none}
+.tkd{padding:14px 16px;overflow:auto;height:100%}
+.tkd-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.tkd-card{background:#f4f6fa;border-radius:8px;padding:10px 12px}
+.tkd-l{font-size:.75em;color:var(--text2)}.tkd-v{font-size:1.5em;font-weight:700}.tkd-s{font-size:.72em;color:var(--text2)}
+.tkd-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.tkd-h{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;margin-bottom:8px}.tkd-h b{font-size:.95em}.tkd-h span{font-size:.75em;color:var(--text2)}
+.tkd-x{overflow-x:auto}.tkd-t{width:100%;border-collapse:collapse;font-size:.82em;min-width:760px}
+.tkd-t th{font-weight:500;color:var(--text2);text-align:left;padding:6px 6px;border-bottom:1px solid #cfd6e0;font-size:.9em;white-space:nowrap}
+.tkd-t td{padding:8px 6px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tkd-t a{color:var(--primary);cursor:pointer;text-decoration:none}
+.tkd-bar{display:flex;align-items:center;gap:6px;min-width:110px}.tkd-bar i{flex:1;height:8px;background:#eef1f6;border-radius:4px;overflow:hidden;display:block}.tkd-bar i b{display:block;height:100%}
+.tkd-p{display:inline-block;font-size:.85em;padding:1px 7px;border-radius:6px;background:#eef1f6}
+.tkd-p.w{background:#fff3d6;color:#8a5a00}.tkd-p.r{background:#fde4e4;color:#b02a2a}.tkd-p.g{background:#e3f5e8;color:#1f7a3a}
+.tkd-hm{border-collapse:separate;border-spacing:3px;font-size:.85em}.tkd-hm th{font-weight:500;color:var(--text2);padding:3px 8px}
+.tkd-hm td{text-align:center;padding:8px 10px;border-radius:5px;min-width:44px;font-weight:600}
+.tkd-note{font-size:.76em;color:var(--text2);line-height:1.7;margin-top:6px}
+.tkd-who{font-size:.8em;color:var(--text2)}
+.tkf-sch{display:flex;flex-direction:column;gap:8px;padding:6px 0}
+.tkf-sch-b{display:inline-block;font-size:.82em;padding:3px 9px;border-radius:6px}
+.tkf-sch-b.ok{background:#e3f5e8;color:#1f7a3a}.tkf-sch-b.no{background:#fff3d6;color:#8a5a00}
+.tkf-sch-r{display:flex;align-items:center;gap:8px;font-size:.84em}.tkf-sch-r.past{color:var(--text2)}
+.tkf-sch-r button,.tkf-sch-f button{border:1px solid #cfd6e0;background:#fff;border-radius:6px;padding:3px 10px;font-size:.9em;cursor:pointer}
+.tkf-sch-free button{border:1px solid #cfd6e0;background:#fff;border-radius:6px;padding:3px 10px;font-size:.84em;cursor:pointer;margin:2px 4px 2px 0}
+#tkk-split{position:absolute;inset:0;display:flex}
+#tkk-left{position:relative;flex:0 0 50%;min-width:0}
+#tkk-left #tk-kanban{gap:10px;padding:12px}
+#tkk-left .tk-col{width:220px}
+#tkk-right{flex:1;min-width:0;overflow:auto;border-left:1px solid var(--border);background:#fff}
+.tkk-bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:3;flex-wrap:wrap}
+.tkk-cal{padding:6px 10px 4px}
+.tkk-grid{display:grid;grid-template-columns:38px repeat(5,minmax(0,1fr))}
+.tkk-dh{font-size:.78em;text-align:center;padding:4px 0;color:var(--text2);border-bottom:1px solid var(--border)}.tkk-dh.today{color:var(--primary);font-weight:700}
+.tkk-dh small{display:block;font-size:.85em;color:#8a5a00}
+.tkk-tm{font-size:.7em;color:var(--text3);text-align:right;padding-right:4px}.tkk-tm div{box-sizing:border-box;border-top:1px solid transparent;line-height:1}
+.tkk-day{position:relative;border-left:1px solid var(--border)}.tkk-day.today{background:#f6faff}.tkk-day.allday{background:repeating-linear-gradient(135deg,#fff 0 6px,#f1f3f7 6px 12px)}
+.tkk-sl{height:34px;box-sizing:border-box;border-top:1px solid var(--border)}
+.tkk-lunch{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,transparent 0 5px,#e3e7ee 5px 10px);pointer-events:none}
+.tkk-ev{position:absolute;left:2px;right:2px;border-radius:5px;padding:2px 4px;font-size:.72em;line-height:1.3;overflow:hidden;box-sizing:border-box}
+.tkk-ev.o{background:#e6e9ef;color:var(--text2)}
+.tkk-ev.n{background:#2a78d6;color:#fff;display:flex;gap:2px;justify-content:space-between;align-items:flex-start;cursor:grab}
+.tkk-t{cursor:pointer;overflow:hidden}.tkk-c{display:flex;gap:2px;flex:none}.tkk-c i{font-style:normal;background:rgba(255,255,255,.25);border-radius:3px;padding:0 4px;cursor:pointer}
+.tkk-day.over{background:#e8f1fd}
+.tkf-sch-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.84em}.tkf-sch-f input{border:1px solid #cfd6e0;border-radius:6px;padding:4px 6px}
 .tkf-sp{flex:1}
 /* 行・カードを押せることを示す */
 #tab-tasks .tk-row .tk-left,#tab-tasks .tk-card,#tab-tasks .tk-li,#tab-tasks .tk-dl-row{cursor:pointer}
@@ -4255,7 +4298,7 @@ function tkWhoPick(n,on){
   const nl=document.getElementById('tk-ms-list');if(nl)nl.scrollTop=st;
 }
 document.addEventListener('click',e=>{if(_tk&&_tk.whoOpen&&!e.target.closest('.tk-ms')){_tk.whoOpen=false;if(document.getElementById('tab-tasks')&&_tk.loaded)tkRender(true);}});
-function tkSet(k,v){_tk[k]=v;if(k==='view'&&v==='gantt')_tk.fresh=true;if(k==='view'&&v==='policy'&&!(_tk.pol&&_tk.pol.loaded)){tkLoadPolicy();return;}tkRender();}
+function tkSet(k,v){_tk[k]=v;if(k==='view'&&v==='gantt')_tk.fresh=true;if(k==='view'&&v==='policy'&&!(_tk.pol&&_tk.pol.loaded)){tkLoadPolicy();return;}if(k==='view'&&v==='team'&&!(_tk.team&&_tk.team.loaded)){tkLoadTeam();return;}tkRender();}
 function tkToggle(id){_tk.open[id]=!_tk.open[id];tkRender(true);}
 function tkSetAll(v){Object.keys(_tk.open).forEach(k=>_tk.open[k]=v);tkRender(true);}
 function tkZoom(n){_tk.dayW=n;_tk.fresh=true;tkRender();}
@@ -4289,15 +4332,17 @@ function tkRender(keepScroll){
     +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const isPol=_tk.view==='policy';
   const isTodo=_tk.view==='todo';
-  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['todo','TODO'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'<button onclick="tkManual()">📖 マニュアル</button></div>';
+  const isTeam=_tk.view==='team';
+  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['todo','TODO'],['team','チーム'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'<button onclick="tkManual()">📖 マニュアル</button></div>';
   let body='';
   if(isPol)body=tkPolicyHtml();
   else if(isTodo)body=tkTodoHtml();
+  else if(isTeam)body=tkTeamHtml();
   else if(!_tk.nodes.length)body='<div class="tk-empty">表示できるタスクがありません'+(_tk.scope==='mine'?'<br><small>自分が担当者・共同担当者のタスクが表示されます</small>':'')+'</div>';
   else if(_tk.view==='gantt')body=tkGanttHtml();
-  else if(_tk.view==='kanban')body=tkKanbanHtml();
+  else if(_tk.view==='kanban')body=tkkSplitHtml();
   else body=tkDashHtml();
-  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():(isTodo?tkTodoBar():bar))+'<div id="tk-view">'+body+'</div></div>';
+  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():(isTeam?tkTeamBar():(isTodo?tkTodoBar():bar)))+'<div id="tk-view">'+body+'</div></div>';
   tkFit();
   if(isPol)tkPolicyAfter(keepScroll,psl,pst);
   const nd=document.getElementById('tk-dash');if(nd&&keepScroll)nd.scrollTop=dst;
@@ -4516,8 +4561,8 @@ function tkKanbanHtml(){
     const items=all.filter(x=>tkEffSt(x)===s).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
     return '<div class="tk-col"><h3><span>'+s+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
       const late=tkIsLate(x);
-      return '<div class="tk-card" data-id="'+x.id+'" style="border-left-color:'+tkBarColor(x)+'"><div class="p">'+tkEsc(tkPath(x))+'</div><div class="t">'+tkEsc(x.title)+(x.hold&&x.st!=='保留'&&x.st!=='完了'?' <small style="color:var(--text2);font-weight:400">（上位が保留）</small>':'')+'</div>'
-        +'<div class="tk-pbar"><i style="width:'+x.p+'%"></i></div><div class="f'+(late?' late':'')+'"><span>'+tkAv(x.who)+'</span><span>'+(late?'<b>期限超過</b> ':'')+(x.ed?'期限 '+tkFmt(x.ed):'期限なし')+'</span></div></div>';
+      return '<div class="tk-card" data-id="'+x.id+'"'+tkkDragAttr(x)+' style="border-left-color:'+tkBarColor(x)+'"><div class="p">'+tkEsc(tkPath(x))+'</div><div class="t">'+tkEsc(x.title)+(x.hold&&x.st!=='保留'&&x.st!=='完了'?' <small style="color:var(--text2);font-weight:400">（上位が保留）</small>':'')+'</div>'
+        +'<div class="tk-pbar"><i style="width:'+x.p+'%"></i></div><div class="f'+(late?' late':'')+'"><span>'+tkAv(x.who)+tkkBadge(x)+'</span><span>'+(late?'<b>期限超過</b> ':'')+(x.ed?'期限 '+tkFmt(x.ed):'期限なし')+'</span></div></div>';
     }).join('')+'</div>';
   }).join('')+'</div>';
 }
@@ -4774,6 +4819,326 @@ const TKF_KPI_CATEGORY=['売上系','顧客系','マーケ系','開発系','業�
 const TKF_KPI_ITEM=['売上','粗利','利益率','受注金額','商談数','提案数','導入社数','リピート率','問い合わせ数','SNSフォロワー','PV','CV数','試作品数','改善件数','工数削減時間','育成人数','研修受講数','クレーム件数','不良率','納期遵守率','ナレッジ共有数','その他'];
 const TKF_KPI_STATUS=['順調','注意','遅延','未評価'];
 let _tkf=null;
+/*===== チームのダッシュボードと、タスクの予定（カレンダー）連携（2026-11-05） =====*/
+function tkIso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function tkMd(s){const d=tkParse(s);return d?(d.getMonth()+1)+'/'+d.getDate():'-';}
+function tkHr(min){const h=Math.round((min||0)/6)/10;return (h%1?h.toFixed(1):String(h))+'h';}
+function tkPct(v){return v==null?'-':v+'%';}
+function tkSq(s){return String(s||'').replace(/[\s　]/g,'');}
+async function tkLoadTeam(){
+  const T=_tk.team||{};
+  try{
+    const r=await api('getTeamDashboard',{dash:{period:T.period||'week',base:T.base||''}},'チームの状況を集計中...');
+    _tk.team=Object.assign({},r,{loaded:true,base:T.base||''});
+    _tk.error='';
+  }catch(e){_tk.error=(e&&e.message)||String(e);}
+  tkRender();
+}
+function tkTeamPeriod(p){_tk.team=Object.assign({},_tk.team||{},{period:p,base:'',loaded:false});tkLoadTeam();}
+function tkTeamShift(n){
+  const T=_tk.team||{};const from=tkParse(T.from)||tkToday();
+  const nb=T.period==='month'?new Date(from.getFullYear(),from.getMonth()+n,1):tkAddDays(from,7*n);
+  _tk.team=Object.assign({},T,{base:tkIso(nb),loaded:false});tkLoadTeam();
+}
+function tkTeamToday(){_tk.team=Object.assign({},_tk.team||{},{base:'',loaded:false});tkLoadTeam();}
+function tkTeamBar(){
+  const T=_tk.team;if(!T||!T.loaded)return '<div class="tk-bar"></div>';
+  const seg=[['week','週間'],['month','月間']].map(o=>'<button class="'+(T.period===o[0]?'on':'')+'" onclick="tkTeamPeriod(\''+o[0]+'\')">'+o[1]+'</button>').join('');
+  const lbl=T.period==='month'?(T.from.slice(0,4)+'年'+(+T.from.slice(5,7))+'月'):(tkMd(T.from)+' 〜 '+tkMd(T.to));
+  return '<div class="tk-bar"><div class="tk-grp">'+seg+'</div><button class="tk-btn" onclick="tkTeamShift(-1)">◀</button><b>'+lbl+'</b><button class="tk-btn" onclick="tkTeamShift(1)">▶</button><button class="tk-btn" onclick="tkTeamToday()">今日</button>'
+    +'<span class="tk-sp"></span><span class="tkd-who">'+(T.canTeam?'対象：チーム全員':'対象：自分のタスク')+'</span><button class="tk-btn" onclick="tkLoadTeam()">🔄 更新</button></div>';
+}
+function tkTeamTbl(head,rows,empty){
+  if(!rows.length)return '<div class="tkd-note">'+empty+'</div>';
+  return '<div class="tkd-x"><table class="tkd-t" style="min-width:0"><thead><tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+}
+function tkTeamHtml(){
+  const T=_tk.team;if(!T||!T.loaded)return '<div class="tk-empty">集計しています…</div>';
+  const t=T.totals,E=tkEsc;
+  const link=(id,title)=>'<a onclick="tkfOpenEdit(\''+id+'\')">'+E(title)+'</a>';
+  const who=n=>n?E(n):'<span style="color:var(--text2)">担当者なし</span>';
+  const card=(l,v,s,c)=>'<div class="tkd-card"><div class="tkd-l">'+l+'</div><div class="tkd-v"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="tkd-s">'+s+'</div></div>';
+  const mem=T.rows.filter(r=>!r.unassigned).length;
+  const cal=T.calendarReady;
+  const cards='<div class="tkd-cards">'
+    +card('割り当て率',cal?t.load+'%':'-',cal?'予定 '+tkHr(t.planMin)+' ／ 就業 '+tkHr(T.capMin*mem):'カレンダー連携の準備中')
+    +card('実施時間',cal?tkHr(t.doneMin):'-','過ぎた予定のうち、動かされなかった分')
+    +card('期限超過（現在）',t.overdue+'件','未完了の '+t.overdueRate+'%',t.overdue?'#d03b3b':'')
+    +card('遅れて完了',t.late+'件','完了 '+t.done+'件の '+tkPct(t.lateRate))
+    +card('当日完了率',tkPct(t.sameDayRate),'完了日が終了日と同じ')
+    +card('期限変更',t.changed+'件','当初期限から動いたもの')
+    +'</div>';
+  const L=T.lists;
+  const act='<div class="tkd-box"><div class="tkd-h"><b>今週動かすこと</b><span>止まっているタスク。担当者でなく、見る側の遅れも分かります</span></div>'
+    +'<div style="font-size:.8em;font-weight:700;margin:4px 0">確認待ちのまま（'+(L.confirm.length)+'件）</div>'+tkTeamTbl(['担当','タスク','経過'],L.confirm.map(x=>[who(x.who),link(x.id,x.title),x.days+'日']),'7日以上動かない確認待ちはありません。')
+    +'<div style="font-size:.8em;font-weight:700;margin:10px 0 4px">進行中のまま更新なし（'+(L.stale.length)+'件）</div>'+tkTeamTbl(['担当','タスク','経過'],L.stale.map(x=>[who(x.who),link(x.id,x.title),x.days+'日']),'14日以上動かない進行中はありません。')
+    +'<div style="font-size:.8em;font-weight:700;margin:10px 0 4px">期限超過（'+(L.overdue.length)+(t.overdue>L.overdue.length?'件のうち上位':'件')+'）</div>'+tkTeamTbl(['担当','タスク','状態','終了日','超過'],L.overdue.map(x=>[who(x.who),link(x.id,x.title),E(x.st),tkMd(x.end),'<span class="tkd-p r">'+x.days+'日</span>']),'期限超過はありません。')
+    +'</div>';
+  const pill=(v,warn)=>v?'<span class="tkd-p'+(warn?' w':'')+'">'+v+'</span>':'<span style="color:var(--text2)">0</span>';
+  const bar=p=>{const c=p>100?'#d03b3b':p<70?'#f0b429':'#2a78d6';return '<div class="tkd-bar"><i><b style="width:'+Math.min(p,100)+'%;background:'+c+'"></b></i><span>'+p+'%</span></div>';};
+  const mrows=T.rows.map(r=>'<tr><td>'+(r.unassigned?'<span style="color:var(--text2)">担当者なし</span>':E(r.name))+'</td>'
+    +'<td>'+(r.unassigned?'-':(cal?bar(r.load):'-'))+'</td>'
+    +'<td>'+(cal?tkHr(r.doneMin)+' <span style="color:var(--text2)">/ '+tkHr(r.planMin)+'</span>':'-')+'</td>'
+    +'<td><b>'+r.done+'</b></td><td>'+tkPct(r.sameDayRate)+'</td>'
+    +'<td>'+(r.late?'<span class="tkd-p w">'+r.late+'件 · '+r.lateRate+'%</span>':'<span class="tkd-p g">0</span>')+'</td>'
+    +'<td>'+(r.overdue?'<span class="tkd-p '+(r.overdueRate>=40?'r':'w')+'">'+r.overdue+'件 · '+r.overdueRate+'%</span>':'<span class="tkd-p g">0</span>')+'</td>'
+    +'<td>'+pill(r.changed,r.changed>=3)+'</td><td>'+(cal?pill(r.moves,r.moves>=4):'-')+'</td><td>'+(cal?pill(r.unsched,r.unsched>=3):'-')+'</td>'
+    +'<td>'+pill(r.stale+r.confirmWait,true)+'</td></tr>').join('');
+  const memb='<div class="tkd-box"><div class="tkd-h"><b>メンバー別の稼働と成果</b><span>割り当て＝予定÷就業時間（平日×8時間）。実施＝過ぎた予定のうち動かされなかった分</span></div><div class="tkd-x"><table class="tkd-t"><thead><tr><th>メンバー</th><th>割り当て</th><th>実施 / 予定</th><th>完了</th><th>当日完了</th><th>遅れて完了</th><th>期限超過（現在）</th><th>期限変更</th><th>予定の移動</th><th>予定なし</th><th>滞留</th></tr></thead><tbody>'+mrows+'</tbody></table></div>'
+    +'<div class="tkd-note">予定なし＝期間の終わりまでが期限なのに、カレンダーに予定がない未完了タスクの数。滞留＝進行中14日・確認待ち7日以上動かないもの。'+(cal?'':'<br>カレンダー連携の項目（959の task_id）がまだ無いため、予定に関する欄は空です。')+'</div></div>';
+  const hmax=T.period==='month'?2400:480;
+  const hm=cal?'<div class="tkd-box"><div class="tkd-h"><b>'+(T.period==='month'?'週ごとの予定時間（時間）':'日ごとの予定時間（時間）')+'</b><span>濃いほど多い。薄い日は、予定を動かした日かもしれません</span></div><div class="tkd-x"><table class="tkd-hm"><thead><tr><th></th>'
+    +T.labels.map(l=>'<th>'+tkMd(l)+(T.period==='month'?'〜':'')+'</th>').join('')+'<th>合計</th></tr></thead><tbody>'
+    +T.rows.filter(r=>!r.unassigned).map(r=>'<tr><th style="text-align:left">'+E(r.name)+'</th>'+r.plan.map(v=>{const a=Math.min(v/hmax,1);return '<td style="background:rgba(42,120,214,'+(0.08+a*0.8).toFixed(2)+');color:'+(a>0.55?'#fff':'#1d3557')+'">'+(v?Math.round(v/6)/10:'')+'</td>';}).join('')+'<td style="font-weight:700">'+tkHr(r.planMin)+'</td></tr>').join('')
+    +'</tbody></table></div></div>':'';
+  const coach='<div class="tkd-box"><div class="tkd-h"><b>完了の記録（振り返り用）</b><span>この期間に完了したもののうち、遅れて完了・終了日と違う日に完了・入力が遅れたもの</span></div>'
+    +tkTeamTbl(['担当','タスク','期限（当初→現在）','完了日','記録した日','メモ'],L.coach.map(x=>{
+      const memo=[];
+      if(x.lateDays)memo.push('<span class="tkd-p w">'+x.lateDays+'日遅れ</span>');
+      if(x.entryGap)memo.push('<span class="tkd-p">入力が'+x.entryGap+'日遅れ</span>');
+      if(!x.lateDays&&!x.entryGap)memo.push('<span class="tkd-p">終了日と違う日</span>');
+      if(x.estimated)memo.push('<span class="tkd-p">完了日は更新日で代用</span>');
+      return [who(x.who),link(x.id,x.title),(x.base&&x.base!==x.end?tkMd(x.base)+' → '+tkMd(x.end):tkMd(x.end)),tkMd(x.doneDate),x.entered?tkMd(x.entered):'-',memo.join(' ')];
+    }),'この期間の完了は、すべて終了日どおりでした。')
+    +'<div class="tkd-note">'+(T.estDone?'完了日が未入力の完了タスク（'+T.estDone+'件）は、最終更新日を完了日として数えています。完了後に編集すると、実際より遅れて見えます。<br>':'')+'指導に使う場合は、本人と一緒に見て、理由を聞くための記録として使ってください。</div></div>';
+  return '<div id="tk-dash" class="tkd">'+cards+act+memb+hm+coach+'</div>';
+}
+
+// ---- 入力パネル：タスクの予定（カレンダー）。自分が担当のタスクだけ入れられる ----
+function tkfSchMine(){
+  const r=_tkf.rec,me=tkSq(_tk.me);
+  return !!me&&(tkSq(r.owner)===me||(r.co||[]).some(c=>tkSq(c)===me));
+}
+function tkfSchedHtml(){
+  if(!_tkf||_tkf.rec.type!=='タスク'||_tkf.mode!=='update')return '';
+  const S=_tkf.sch,r=_tkf.rec;
+  let h='<details class="tkf-sec" open><summary>カレンダー</summary><div class="tkf-sch">';
+  if(!S)h+='<div class="tkd-note">予定を確認しています…</div>';
+  else if(!S.ready)h+='<div class="tkd-note">予定との連携は準備中です。</div>';
+  else{
+    h+=S.count?'<div><span class="tkf-sch-b ok">予定あり '+S.count+'件・'+tkHr(S.minutes)+(S.next?'・次は '+tkMd(S.next):'')+'</span>'+(S.moved?' <span class="tkd-note">動かした回数 '+S.moved+'</span>':'')+'</div>'
+      :'<div><span class="tkf-sch-b no">予定に入っていません</span></div>';
+    h+=(S.events||[]).map(e=>'<div class="tkf-sch-r'+(e.past?' past':'')+'"><span>'+tkMd(e.date)+'　'+tkEsc(e.start)+'〜'+tkEsc(e.end)+(e.past?'（過ぎた）':'')+'</span>'
+      +(e.mine&&!e.past&&r.status!=='完了'?'<button onclick="tkfSchPick(\''+e.id+'\',\''+e.date+'\',\''+tkEsc(e.start)+'\',\''+tkEsc(e.end)+'\')">日時を変える</button>':'')+'</div>').join('');
+    if(tkfSchMine()&&r.status!=='完了'){
+      const f=_tkf.schForm||{d:tkIso(new Date()),s:'09:00',e:'10:00'};
+      h+='<div class="tkf-sch-f"><input type="date" id="tkf-sd" value="'+tkEsc(f.d)+'" onchange="tkfSchBusy(this.value)"><input type="time" id="tkf-ss" value="'+tkEsc(f.s)+'"><span>〜</span><input type="time" id="tkf-se" value="'+tkEsc(f.e)+'">'
+        +'<button onclick="tkfSchSave()">'+(_tkf.schMove?'この予定を動かす':'予定に入れる')+'</button>'+(_tkf.schMove?'<button onclick="tkfSchPick(\'\')">やめる</button>':'')+'</div>'
+        +tkfSchFreeHtml()
+        +'<div class="tkd-note">予定はHALOのカレンダーに入ります。できなかった日は「日時を変える」で別の日へ。終わらなければ、新しい予定を足してください。</div>';
+    }
+  }
+  return h+'</div></details>';
+}
+// 空き時間：選んだ日の自分の予定（HALOのカレンダー）を読み、就業 8:00〜16:50・昼休み 12:00〜12:50 を除いた空きを出す
+function tkfHm(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+function tkfSchRead(){
+  const g=id=>{const el=document.getElementById(id);return el?el.value:'';};
+  const f=_tkf.schForm||{};
+  _tkf.schForm={d:g('tkf-sd')||f.d||tkIso(new Date()),s:g('tkf-ss')||f.s||'09:00',e:g('tkf-se')||f.e||'10:00'};
+}
+async function tkfSchBusy(d){
+  if(!_tkf||!d)return;
+  tkfCollect();tkfSchRead();_tkf.schForm.d=d;
+  let evs;
+  try{evs=await api('getEvents',{rangeStart:d,rangeEnd:d},'空きを確認中...');}
+  catch(e){if(_tkf){_tkf.schBusy={date:d,error:true};tkfRender();}return;}
+  if(!_tkf)return;
+  const me=String(currentUser&&currentUser.id);
+  const toM=t=>{const m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?(+m[1])*60+(+m[2]):null;};
+  const iv=[[720,770,'休憩']];
+  let allDay='';
+  (evs||[]).filter(e=>(String(e.userId)===me||(e.people||[]).map(String).includes(me))&&e.startDate<=d&&(e.endDate||e.startDate)>=d&&e.id!==_tkf.schMove&&e.approvalStatus!=='否認').forEach(e=>{
+    const a=toM(e.start),b=toM(e.end);
+    if(a!=null&&b!=null&&b>a&&e.startDate===(e.endDate||e.startDate))iv.push([a,b,e.title||e.type||'予定']);
+    else if(['休暇','出張','外出'].includes(e.type))allDay=allDay||e.title||e.type;
+  });
+  iv.sort((x,y)=>x[0]-y[0]);
+  const free=[];let cur=480;
+  iv.forEach(x=>{if(x[0]-cur>=30)free.push([cur,Math.min(x[0],1010)]);cur=Math.max(cur,x[1]);});
+  if(1010-cur>=30)free.push([cur,1010]);
+  _tkf.schBusy={date:d,allDay:allDay,busy:iv.filter(x=>x[2]!=='休憩'),all:iv,free:free.filter(g=>g[1]>g[0])};
+  tkfRender();
+}
+function tkfSchFreeHtml(){
+  const B=_tkf&&_tkf.schBusy;if(!B)return '';
+  if(B.error)return '<div class="tkd-note">空きを確認できませんでした。</div>';
+  const dt=tkMd(B.date);
+  if(B.allDay)return '<div class="tkd-note">'+dt+'は「'+tkEsc(B.allDay)+'」で終日埋まっています。</div>';
+  let h='<div class="tkf-sch-free"><div class="tkd-note">'+dt+'の空き（就業8:00〜16:50、昼休みを除く）。押すと時刻が入ります</div><div>';
+  h+=B.free.length?B.free.map(g=>'<button onclick="tkfSchUse('+g[0]+','+g[1]+')">'+tkfHm(g[0])+'〜'+tkfHm(g[1])+'</button>').join(''):'<span class="tkd-note">空きはありません</span>';
+  h+='</div>';
+  if(B.busy.length)h+='<div class="tkd-note">入っている予定：'+B.busy.map(x=>tkfHm(x[0])+'〜'+tkfHm(x[1])+' '+tkEsc(x[2])).join('、')+'</div>';
+  return h+'</div>';
+}
+function tkfSchUse(a,b){
+  tkfCollect();tkfSchRead();
+  _tkf.schForm.s=tkfHm(a);_tkf.schForm.e=tkfHm(Math.min(b,a+120));
+  tkfRender();
+}
+async function tkfLoadSch(){
+  if(!_tkf||_tkf.mode!=='update'||_tkf.rec.type!=='タスク')return;
+  const id=_tkf.rec.id;
+  try{
+    const r=await api('getTaskSchedule',{id:String(id)},'予定を確認中...');
+    if(!_tkf||_tkf.rec.id!==id)return;
+    tkfCollect();_tkf.sch=r;tkfRender();
+    tkfSchBusy((_tkf.schForm&&_tkf.schForm.d)||tkIso(new Date()));
+  }catch(e){if(_tkf){tkfCollect();_tkf.sch={ready:false,events:[]};tkfRender();}}
+}
+function tkfSchPick(id,d,s,e){
+  tkfCollect();
+  _tkf.schMove=id||'';
+  _tkf.schForm=id?{d:d,s:s,e:e}:null;
+  tkfRender();
+}
+async function tkfSchSave(){
+  if(!_tkf)return;
+  const d=document.getElementById('tkf-sd').value,s=document.getElementById('tkf-ss').value,e=document.getElementById('tkf-se').value;
+  if(!d||!s||!e){showToast('日付と開始・終了の時刻を入れてください');return;}
+  if(e<=s){showToast('終了は開始より後にしてください');return;}
+  const B=_tkf.schBusy;
+  if(B&&B.date===d&&B.busy){
+    const toM=t=>(+t.slice(0,2))*60+(+t.slice(3,5));
+    const hit=B.busy.find(x=>toM(s)<x[1]&&toM(e)>x[0]);
+    if(hit&&!confirm('その時間は「'+hit[2]+'」（'+tkfHm(hit[0])+'〜'+tkfHm(hit[1])+'）と重なっています。このまま入れますか？'))return;
+  }
+  try{
+    if(_tkf.schMove){await api('moveTaskEvent',{schedule:{eventId:_tkf.schMove,date:d,start:s,end:e}},'予定を動かしています...');showToast('予定を動かしました');}
+    else{await api('scheduleTask',{schedule:{taskId:_tkf.rec.id,date:d,start:s,end:e}},'予定に入れています...');showToast('予定に入れました');}
+    _tkf.schMove='';_tkf.schForm=null;
+    await tkfLoadSch();
+  }catch(err){showToast('予定を保存できませんでした：'+((err&&err.message)||err));}
+}
+/*===== かんばんの右に自分の週カレンダー：カードをつまんで空き枠（1時間）に入れる（2026-11-05） =====
+ * 表示：月〜金・8:00〜17:00（1時間ごと）。昼休み 12:00〜12:50 は入れられない。
+ * 予定は scheduleTask で作る（memo の「タスク#番号」で、どのタスクの予定か分かる）。入れた予定は、つまんで動かす・＋−で1時間ずつ長さを変える・×で取り消せる。
+ */
+const KC_H=34, KC_S=8, KC_E=17, KC_LUNCH=[720,770];
+let _tkkDrag=null;
+function tkkS(){if(!_tk.kc)_tk.kc={ws:tkkWeekStart(new Date()),events:null,loading:false};return _tk.kc;}
+function tkkWeekStart(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return tkIso(x);}
+function tkkOn(){return window.innerWidth>=900;}
+function tkkMin(t){const m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?(+m[1])*60+(+m[2]):null;}
+function tkkHm(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
+function tkkTaskId(e){const m=/^タスク#(\d+)/.exec(e.memo||'');return m?m[1]:'';}
+function tkkIsMine(x){const me=tkSq(_tk.me);return !!me&&(tkSq(x.who)===me||(x.co||[]).some(c=>tkSq(c)===me));}
+function tkkMine(){
+  const me=String(currentUser&&currentUser.id);
+  return (tkkS().events||[]).filter(e=>(String(e.userId)===me||(e.people||[]).map(String).includes(me))&&e.approvalStatus!=='否認');
+}
+async function tkkLoad(){
+  const kc=tkkS();kc.loading=true;
+  try{kc.events=(await api('getEvents',{rangeStart:kc.ws,rangeEnd:tkIso(tkAddDays(tkParse(kc.ws),6))},'カレンダーを読み込み中...'))||[];}
+  catch(e){kc.events=[];showToast('カレンダーを読み込めませんでした：'+((e&&e.message)||e));}
+  kc.loading=false;
+  if(_tk.view==='kanban')tkRender(true);
+}
+function tkkShift(n){const kc=tkkS();kc.ws=tkIso(tkAddDays(tkParse(kc.ws),7*n));kc.events=null;tkRender(true);}
+function tkkToday(){const kc=tkkS();kc.ws=tkkWeekStart(new Date());kc.events=null;tkRender(true);}
+function tkkReload(){tkkS().events=null;tkRender(true);}
+function tkkDragAttr(x){
+  if(!tkkOn()||!tkkIsMine(x)||x.st==='完了'||x.type!=='タスク')return '';
+  return ' draggable="true" title="右のカレンダーの空き枠へつまんで入れられます" ondragstart="tkkDragCard(event,\''+x.id+'\')" ondragend="_tkkDrag=null"';
+}
+function tkkBadge(x){
+  const kc=_tk.kc;if(!tkkOn()||!kc||!kc.events||x.type!=='タスク')return '';
+  const list=tkkMine().filter(e=>tkkTaskId(e)===String(x.id)).sort((a,b)=>a.startDate<b.startDate?-1:1);
+  if(list.length)return ' <span class="tkd-p g">'+tkMd(list[0].startDate)+'に予定</span>';
+  return tkkIsMine(x)&&x.st!=='完了'?' <span class="tkd-p w">この週は予定なし</span>':'';
+}
+function tkkSplitHtml(){
+  if(!tkkOn())return tkKanbanHtml();
+  const kc=tkkS();
+  if(!kc.events&&!kc.loading)setTimeout(tkkLoad,0);
+  return '<div id="tkk-split"><div id="tkk-left">'+tkKanbanHtml()+'</div><div id="tkk-right">'+tkkCalHtml()+'</div></div>';
+}
+function tkkCalHtml(){
+  const kc=tkkS(),ws=tkParse(kc.ws);
+  const dn=['月','火','水','木','金'];
+  const head='<div class="tkk-bar"><button class="tk-btn" onclick="tkkShift(-1)">◀</button><b>'+tkMd(kc.ws)+' 〜 '+tkMd(tkIso(tkAddDays(ws,6)))+'</b><button class="tk-btn" onclick="tkkShift(1)">▶</button><button class="tk-btn" onclick="tkkToday()">今週</button><span class="tk-sp"></span><span class="tkd-who">自分のカレンダー</span><button class="tk-btn" onclick="tkkReload()">🔄</button></div>';
+  if(!kc.events)return head+'<div class="tk-empty">読み込み中…</div>';
+  const mine=tkkMine(),today=tkIso(new Date());
+  let cols='',hdr='<div></div>',tm='<div class="tkk-tm">';
+  for(let r=0;r<KC_E-KC_S;r++)tm+='<div style="height:'+KC_H+'px">'+(KC_S+r)+':00</div>';
+  tm+='</div>';
+  for(let i=0;i<5;i++){
+    const d=tkIso(tkAddDays(ws,i));
+    const dayEvs=mine.filter(e=>e.startDate<=d&&(e.endDate||e.startDate)>=d);
+    let allDay='';
+    const timed=[];
+    dayEvs.forEach(e=>{
+      const a=tkkMin(e.start),b=tkkMin(e.end);
+      if(a!=null&&b!=null&&b>a&&e.startDate===(e.endDate||e.startDate))timed.push({e:e,a:a,b:b});
+      else if(['休暇','出張','外出'].includes(e.type))allDay=allDay||e.title||e.type;
+    });
+    hdr+='<div class="tkk-dh'+(d===today?' today':'')+'">'+dn[i]+' '+tkMd(d)+(allDay?'<small>'+tkEsc(allDay)+'</small>':'')+'</div>';
+    let h='<div class="tkk-day'+(d===today?' today':'')+(allDay?' allday':'')+'" data-d="'+d+'" ondragover="tkkOver(event)" ondrop="tkkDrop(event)" style="height:'+((KC_E-KC_S)*KC_H)+'px">';
+    for(let r=0;r<KC_E-KC_S;r++)h+='<div class="tkk-sl"></div>';
+    h+='<div class="tkk-lunch" style="top:'+((KC_LUNCH[0]-KC_S*60)/60*KC_H)+'px;height:'+((KC_LUNCH[1]-KC_LUNCH[0])/60*KC_H)+'px"></div>';
+    timed.forEach(x=>{
+      const a=Math.max(x.a,KC_S*60),b=Math.min(x.b,KC_E*60);if(b<=a)return;
+      const top=(a-KC_S*60)/60*KC_H,ht=Math.max(18,(b-a)/60*KC_H)-2;
+      const tid=tkkTaskId(x.e);
+      if(tid){
+        const own=String(x.e.userId)===String(currentUser&&currentUser.id);
+        h+='<div class="tkk-ev n" data-ev="'+x.e.id+'" style="top:'+top+'px;height:'+ht+'px"'+(own?' draggable="true" ondragstart="tkkDragEv(event,\''+x.e.id+'\')" ondragend="_tkkDrag=null"':'')+'><span class="tkk-t" onclick="tkfOpenEdit(\''+tid+'\')">'+tkEsc(String(x.e.title||'').replace(/^【タスク】/,''))+'</span>'
+          +(own?'<span class="tkk-c"><i title="1時間短く" onclick="tkkLen(\''+x.e.id+'\',-1)">−</i><i title="1時間長く" onclick="tkkLen(\''+x.e.id+'\',1)">＋</i><i title="取り消す" onclick="tkkDel(\''+x.e.id+'\')">×</i></span>':'')+'</div>';
+      }else h+='<div class="tkk-ev o" style="top:'+top+'px;height:'+ht+'px" title="'+tkEsc((x.e.title||x.e.type)+' '+x.e.start+'〜'+x.e.end)+'">'+tkEsc(x.e.title||x.e.type)+'</div>';
+    });
+    cols+=h+'</div>';
+  }
+  return head+'<div class="tkk-cal"><div class="tkk-grid">'+hdr+'</div><div class="tkk-grid"><div>'+tm+'</div>'+cols+'</div></div>'
+    +'<div class="tkd-note" style="padding:0 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります。青い予定は、つまんで動かす・＋−で長さを変える・×で取り消せます。</div>';
+}
+function tkkDragCard(ev,id){_tkkDrag={kind:'card',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
+function tkkDragEv(ev,id){_tkkDrag={kind:'ev',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
+function tkkOver(e){if(_tkkDrag){e.preventDefault();e.dataTransfer.dropEffect='move';}}
+function tkkConflict(d,a,b,excludeId){
+  if(a<KC_S*60||b>KC_E*60)return '就業時間（8:00〜17:00）の外';
+  if(a<KC_LUNCH[1]&&b>KC_LUNCH[0])return '昼休み';
+  for(const e of tkkMine()){
+    if(String(e.id)===String(excludeId))continue;
+    if(!(e.startDate<=d&&(e.endDate||e.startDate)>=d))continue;
+    const s=tkkMin(e.start),t=tkkMin(e.end);
+    if(s!=null&&t!=null&&t>s&&e.startDate===(e.endDate||e.startDate)){if(a<t&&b>s)return e.title||e.type||'予定';}
+    else if(['休暇','出張','外出'].includes(e.type))return e.title||e.type;
+  }
+  return '';
+}
+async function tkkDrop(e){
+  e.preventDefault();
+  const drag=_tkkDrag;_tkkDrag=null;if(!drag)return;
+  const col=e.currentTarget,d=col.dataset.d,r=col.getBoundingClientRect();
+  const row=Math.max(0,Math.min(Math.floor((e.clientY-r.top)/KC_H),KC_E-KC_S-1));
+  const a=(KC_S+row)*60;
+  let dur=60,ev=null;
+  if(drag.kind==='ev'){ev=(tkkS().events||[]).find(x=>String(x.id)===drag.id);if(!ev)return;dur=tkkMin(ev.end)-tkkMin(ev.start);}
+  const b=a+dur,hit=tkkConflict(d,a,b,drag.kind==='ev'?drag.id:'');
+  if(hit){showToast('その時間は入れられません：'+hit);return;}
+  try{
+    if(drag.kind==='card')await api('scheduleTask',{schedule:{taskId:drag.id,date:d,start:tkkHm(a),end:tkkHm(b)}},'予定に入れています...');
+    else await api('moveTaskEvent',{schedule:{eventId:drag.id,date:d,start:tkkHm(a),end:tkkHm(b)}},'予定を動かしています...');
+    showToast(drag.kind==='card'?'予定に入れました（'+tkMd(d)+' '+tkkHm(a)+'〜'+tkkHm(b)+'）':'予定を動かしました');
+  }catch(err){showToast('予定を保存できませんでした：'+((err&&err.message)||err));}
+  tkkS().events=null;tkRender(true);
+}
+async function tkkLen(id,delta){
+  const ev=(tkkS().events||[]).find(x=>String(x.id)===String(id));if(!ev)return;
+  const a=tkkMin(ev.start),b=tkkMin(ev.end)+delta*60;
+  if(b-a<60){showToast('1時間より短くはできません');return;}
+  const hit=tkkConflict(ev.startDate,a,b,id);
+  if(hit){showToast('その長さにはできません：'+hit);return;}
+  try{await api('moveTaskEvent',{schedule:{eventId:String(id),date:ev.startDate,start:tkkHm(a),end:tkkHm(b)}},'予定を変えています...');}
+  catch(err){showToast('予定を保存できませんでした：'+((err&&err.message)||err));}
+  tkkS().events=null;tkRender(true);
+}
+async function tkkDel(id){
+  if(!confirm('この予定を取り消しますか？（タスクは残ります）'))return;
+  try{await api('deleteEvent',{eventId:String(id)},'取り消しています...');showToast('予定を取り消しました');}
+  catch(err){showToast('取り消せませんでした：'+((err&&err.message)||err));}
+  tkkS().events=null;tkRender(true);
+}
 function tkfBlank(o){
   return Object.assign({id:'',revision:'',type:'タスク',parent:'',title:'',start:'',end:'',owner:'',status:'未着手',progress:0,tag:'',taskUrl:'',detail:'',risk:'',nextAction:'',
     kgi:'',departmentGoal:'',kpi:'',fiscalYear:'',kpiCategory:'',kpiItem:'',kpiName:'',kpiTarget:'',kpiActual:'',kpiUnit:'',kpiStatus:'未評価',kpiMemo:'',
@@ -4789,6 +5154,7 @@ async function tkfOpenEdit(id){
     const rec=tkfBlank(r);rec.parentOrig=rec.parent;
     _tkf={mode:'update',rec,dirty:false,busy:false,subCount:r.subCount||0,readonly:!r.canEdit,canDelete:!!r.canDelete};
     tkfRender();
+    tkfLoadSch();
   }catch(e){showToast('読み込みに失敗：'+((e&&e.message)||e));}
 }
 // ガントの日付セルのダブルクリック：その行と同じ階層に、クリックした日付で新規（施策の行なら活動、活動の行ならタスク）
@@ -4926,6 +5292,7 @@ function tkfRender(){
     +status
     +(v('owner')?tkfField('担当者','<input data-k="owner" list="tkf-names" placeholder="従業員名簿の氏名" autocomplete="off" value="'+tkEsc(r.owner)+'">'):'')
     +progress
+    +(t==='タスク'?tkfField('完了日',tkfInput('doneDate',r,'date','max="'+tkIso(new Date())+'"')+'<small style="color:var(--text2)">状態を「完了」にして保存した日付。空なら今日。押し忘れたときは、実際に終わった日を選べます</small>','wide'):'')
     +(v('start')?tkfField('開始日',tkfInput('start',r,'date')):'')
     +(v('end')?tkfField('終了日',tkfInput('end',r,'date')):'')
     +tkfField('タグ',tkfInput('tag',r,'text','placeholder="例：新棟, NAS, Teams"'),'wide')
@@ -4937,7 +5304,7 @@ function tkfRender(){
     +(v('detail')?tkfField('詳細','<textarea data-k="detail" rows="5" placeholder="内容・背景・進め方など">'+tkEsc(r.detail)+'</textarea>','wide'):'')
     +(v('risk')?tkfField('課題・リスク','<textarea data-k="risk" rows="2">'+tkEsc(r.risk)+'</textarea>','wide'):'')
     +(v('nextAction')?tkfField('次アクション','<textarea data-k="nextAction" rows="2">'+tkEsc(r.nextAction)+'</textarea>','wide'):'')
-    +'</div>'+kpi+rel
+    +'</div>'+tkfSchedHtml()+kpi+rel
     +'</div>'
     +(_tkf.readonly
       ?'<div class="tkf-foot"><span class="tkf-sp"></span><button onclick="tkfClose()">閉じる</button></div>'
@@ -5034,6 +5401,7 @@ async function tkfSave(){
     if(off.length&&!confirm(off.join('、')+' は土日です。この日程で保存しますか？'))return;
   }
   const task=Object.assign({},r,{parent:parentId,progress:Number(r.progress)||0});
+  if(task.status!=='完了')task.doneDate='';
   delete task.parentLabel;delete task.parentOrig;
   _tkf.busy=true;
   try{
