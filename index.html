@@ -5007,6 +5007,7 @@ async function tkfSchSave(){
     if(_tkf.schMove){await api('moveTaskEvent',{schedule:{eventId:_tkf.schMove,date:d,start:s,end:e}},'予定を動かしています...');showToast('予定を動かしました');}
     else{await api('scheduleTask',{schedule:{taskId:_tkf.rec.id,date:d,start:s,end:e}},'予定に入れています...');showToast('予定に入れました');}
     _tkf.schMove='';_tkf.schForm=null;
+    await tkkSyncCal();
     await tkfLoadSch();
   }catch(err){showToast('予定を保存できませんでした：'+((err&&err.message)||err));}
 }
@@ -5034,6 +5035,8 @@ async function tkkLoad(){
   kc.loading=false;
   if(_tk.view==='kanban')tkRender(true);
 }
+// 予定を入れた・動かした・取り消したら、カレンダーのページの表示（10分の覚え）も入れ替える
+async function tkkSyncCal(){try{await loadEvents({force:true});}catch(e){}}
 function tkkShift(n){const kc=tkkS();kc.ws=tkIso(tkAddDays(tkParse(kc.ws),7*n));kc.events=null;tkRender(true);}
 function tkkToday(){const kc=tkkS();kc.ws=tkkWeekStart(new Date());kc.events=null;tkRender(true);}
 function tkkReload(){tkkS().events=null;tkRender(true);}
@@ -5121,6 +5124,7 @@ async function tkkDrop(e){
     else await api('moveTaskEvent',{schedule:{eventId:drag.id,date:d,start:tkkHm(a),end:tkkHm(b)}},'予定を動かしています...');
     showToast(drag.kind==='card'?'予定に入れました（'+tkMd(d)+' '+tkkHm(a)+'〜'+tkkHm(b)+'）':'予定を動かしました');
   }catch(err){showToast('予定を保存できませんでした：'+((err&&err.message)||err));}
+  await tkkSyncCal();
   tkkS().events=null;tkRender(true);
 }
 async function tkkLen(id,delta){
@@ -5131,12 +5135,14 @@ async function tkkLen(id,delta){
   if(hit){showToast('その長さにはできません：'+hit);return;}
   try{await api('moveTaskEvent',{schedule:{eventId:String(id),date:ev.startDate,start:tkkHm(a),end:tkkHm(b)}},'予定を変えています...');}
   catch(err){showToast('予定を保存できませんでした：'+((err&&err.message)||err));}
+  await tkkSyncCal();
   tkkS().events=null;tkRender(true);
 }
 async function tkkDel(id){
   if(!confirm('この予定を取り消しますか？（タスクは残ります）'))return;
   try{await api('deleteEvent',{eventId:String(id)},'取り消しています...');showToast('予定を取り消しました');}
   catch(err){showToast('取り消せませんでした：'+((err&&err.message)||err));}
+  await tkkSyncCal();
   tkkS().events=null;tkRender(true);
 }
 function tkfBlank(o){
