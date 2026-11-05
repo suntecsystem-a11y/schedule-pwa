@@ -1416,6 +1416,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
           <select id="ev-type" onchange="onTypeChange()" style="font-size:0.95em;width:100%;border:none;outline:none;background:transparent;font-family:inherit;color:var(--text);-webkit-appearance:none;appearance:none">
             <option value="会議室">🏢 会議室予約</option>
             <option value="打ち合わせ">💬 打ち合わせ</option>
+            <option value="作業">🛠️ 作業</option>
             <option value="外出">🚶 外出</option>
             <option value="出張">✈️ 出張</option>
             <option value="休暇">🌴 休暇</option>
@@ -1881,13 +1882,13 @@ const usesRoom = e => ROOM_TYPES.includes(e.type) && !!e.room;
 // ds の日に予約できる会議室。withEvents=true のときは、その日に予約が残っている会議室も含める（表示用）
 const roomsOn = (ds, withEvents) => ROOMS.filter(r => roomOpenOn(r, ds) ||
   (withEvents && events.some(e=>usesRoom(e)&&e.room===r.id&&eventIncludesDate(e,ds))));
-const ALL_TYPES = ['会議室','打ち合わせ','外出','出張','休暇','休み','在宅','来社','その他'];
+const ALL_TYPES = ['会議室','打ち合わせ','作業','外出','出張','休暇','休み','在宅','来社','その他'];
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅', 'その他'];
 const COLOR_PALETTES = {
-  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','在席':'#ccc','会議中':'#9fa8da'},
-  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','来社':'#26a69a','その他':'#78909c','在席':'#ccc','会議中':'#90a4ae'},
-  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','来社':'#009688','その他':'#78909c','在席':'#ccc','会議中':'#e57373'},
+  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','作業':'#4dd0e1','在席':'#ccc','会議中':'#9fa8da'},
+  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','来社':'#26a69a','その他':'#78909c','作業':'#fdd835','在席':'#ccc','会議中':'#90a4ae'},
+  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','来社':'#009688','その他':'#78909c','作業':'#ffb74d','在席':'#ccc','会議中':'#e57373'},
 };
 let colorMode = localStorage.getItem('sch_color_mode') || 'normal';
 const STATUS_COLOR = {...COLOR_PALETTES.normal};
@@ -2102,7 +2103,7 @@ ja:{
 'common.error':'エラーが発生しました','common.timeout':'⚠️ 通信がタイムアウトしました',
 // 種別
 'type.room':'会議室','type.meeting':'打ち合わせ','type.out':'外出','type.trip':'出張',
-'type.leave':'休暇','type.rest':'休み','type.remote':'在宅','type.visit':'来社','type.other':'その他',
+'type.leave':'休暇','type.rest':'休み','type.remote':'在宅','type.visit':'来社','type.work':'作業','type.other':'その他',
 'type.busy':'会議中','type.present':'在席',
 // ホーム
 'home.today.schedule':'📅 今日の予定','home.room.avail':'🏢 会議室の空き',
@@ -2477,7 +2478,7 @@ vi:{
 'common.offline.short':'📵 Ngoại tuyến',
 'common.error':'Đã xảy ra lỗi','common.timeout':'⚠️ Kết nối quá thời gian',
 'type.room':'Phòng họp','type.meeting':'Họp','type.out':'Ra ngoài','type.trip':'Công tác',
-'type.leave':'Nghỉ phép','type.rest':'Nghỉ','type.remote':'Tại nhà','type.visit':'Đến công ty','type.other':'Khác',
+'type.leave':'Nghỉ phép','type.rest':'Nghỉ','type.remote':'Tại nhà','type.visit':'Đến công ty','type.work':'Công việc','type.other':'Khác',
 'type.busy':'Đang họp','type.present':'Có mặt',
 'home.today.schedule':'📅 Lịch hôm nay','home.room.avail':'🏢 Phòng họp trống',
 'home.car.avail':'🚗 Xe trống (hôm nay)','home.notice':'📢 Thông báo',
@@ -2835,7 +2836,7 @@ ne:{
 'common.offline.short':'📵 अफलाइन',
 'common.error':'त्रुटि भयो','common.timeout':'⚠️ जडान समय सकियो',
 'type.room':'बैठक कोठा','type.meeting':'बैठक','type.out':'बाहिर','type.trip':'व्यापार यात्रा',
-'type.leave':'बिदा','type.rest':'आराम','type.remote':'घरबाट काम','type.visit':'कार्यालय भ्रमण','type.other':'अन्य',
+'type.leave':'बिदा','type.rest':'आराम','type.remote':'घरबाट काम','type.visit':'कार्यालय भ्रमण','type.work':'काम','type.other':'अन्य',
 'type.busy':'बैठकमा','type.present':'उपस्थित',
 'home.today.schedule':'📅 आजको तालिका','home.room.avail':'🏢 खाली कोठा',
 'home.car.avail':'🚗 खाली गाडी (आज)','home.notice':'📢 सूचना',
@@ -3085,7 +3086,7 @@ function t(key,params){
   return s.replace(/\{(\w+)\}/g,(_,k)=>params[k]!=null?params[k]:_);
 }
 function tType(type){
-  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','在宅':'type.remote','来社':'type.visit','その他':'type.other','会議中':'type.busy','在席':'type.present'};
+  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','在宅':'type.remote','来社':'type.visit','作業':'type.work','その他':'type.other','会議中':'type.busy','在席':'type.present'};
   return m[type]?t(m[type]):type;
 }
 function tDow(i){return[t('common.mon'),t('common.tue'),t('common.wed'),t('common.thu'),t('common.fri'),t('common.sat'),t('common.sun')][i];}
@@ -3431,7 +3432,7 @@ function uid(){ return 'e'+Date.now()+Math.random().toString(36).slice(2,6) }
 // "HH:MM" → 分数値（時刻比較用）
 function timeToMins(t){ if(!t) return 0; const[h,m]=(t+':0').split(':'); return +h*60+(+m||0) }
 function userName(id){ return USERS.find(u=>u.id===id)?.name || id }
-const TYPE_ICON = {会議室:'🏢',外出:'🚶',出張:'✈️',休暇:'🌴',在宅:'🏠',打ち合わせ:'💬',来社:'🤝',その他:'📱'};
+const TYPE_ICON = {会議室:'🏢',外出:'🚶',出張:'✈️',休暇:'🌴',在宅:'🏠',打ち合わせ:'💬',来社:'🤝',その他:'📱',作業:'🛠️'};
 function typeIcon(t){ return TYPE_ICON[t]||'📌' }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200) }
 function jpNationalHolidays(y){
