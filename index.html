@@ -5172,22 +5172,27 @@ function tkkCalHtml(){
     html+='</div>';
   });
   html+='</div></div>';
-  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります。予定をクリックすると、カレンダーの予定の詳細が開きます（↗でタスクを開く）。つまんで動かす・＋−で長さを変える・×で取り消せます。</div>';
+  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります（他の予定と重なる場合は、確認が出ます）。予定をクリックすると、カレンダーの予定の詳細が開きます（↗でタスクを開く）。つまんで動かす・＋−で長さを変える・×で取り消せます。</div>';
 }
 function tkkDragCard(ev,id){_tkkDrag={kind:'card',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
 function tkkDragEv(ev,id){_tkkDrag={kind:'ev',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
 function tkkOver(e){if(_tkkDrag){e.preventDefault();e.dataTransfer.dropEffect='move';}}
-function tkkConflict(d,a,b,excludeId){
-  if(a<KC_S*60||b>KC_E*60)return '表示している時間（8:00〜20:00）の外';
-  if(a<KC_LUNCH[1]&&b>KC_LUNCH[0])return '昼休み';
+// 重なりの確認：表示している時間（8:00〜20:00）の外だけは入れられない。ほかは、重なる予定を知らせて、本人が「入れる」を選べば入る
+function tkkCheckSlot(d,a,b,excludeId){
+  if(a<KC_S*60||b>KC_E*60){showToast('表示している時間（8:00〜20:00）の外には入れられません');return false;}
+  const hit=[];
+  const add=x=>{if(x&&!hit.includes(x))hit.push(x);};
+  if(a<KC_LUNCH[1]&&b>KC_LUNCH[0])add('昼休み');
   for(const e of tkkMine()){
     if(String(e.id)===String(excludeId))continue;
     if(!(e.startDate<=d&&(e.endDate||e.startDate)>=d))continue;
     const s=tkkMin(e.start),t=tkkMin(e.end);
-    if(s!=null&&t!=null&&t>s&&e.startDate===(e.endDate||e.startDate)){if(a<t&&b>s)return e.title||e.type||'予定';}
-    else if(['休暇','出張','外出'].includes(e.type))return e.title||e.type;
+    if(s!=null&&t!=null&&t>s&&e.startDate===(e.endDate||e.startDate)){if(a<t&&b>s)add((e.title||e.type||'予定')+'（'+e.start+'〜'+e.end+'）');}
+    else if(['休暇','出張','外出'].includes(e.type))add((e.title||e.type)+'（終日）');
   }
-  return '';
+  if(!hit.length)return true;
+  const nl=String.fromCharCode(10);
+  return confirm('注意：'+tkMd(d)+' '+tkkHm(a)+'〜'+tkkHm(b)+' は、次の予定と重なっています。'+nl+nl+'・'+hit.join(nl+'・')+nl+nl+'このまま入れますか？');
 }
 async function tkkDrop(e){
   e.preventDefault();
@@ -5197,8 +5202,8 @@ async function tkkDrop(e){
   const a=(KC_S+row)*60;
   let dur=60,ev=null;
   if(drag.kind==='ev'){ev=(tkkS().events||[]).find(x=>String(x.id)===drag.id);if(!ev)return;dur=tkkMin(ev.end)-tkkMin(ev.start);}
-  const b=a+dur,hit=tkkConflict(d,a,b,drag.kind==='ev'?drag.id:'');
-  if(hit){showToast('その時間は入れられません：'+hit);return;}
+  const b=a+dur;
+  if(!tkkCheckSlot(d,a,b,drag.kind==='ev'?drag.id:''))return;
   try{
     if(drag.kind==='card')await api('scheduleTask',{schedule:{taskId:drag.id,date:d,start:tkkHm(a),end:tkkHm(b)}},'予定に入れています...');
     else await api('moveTaskEvent',{schedule:{eventId:drag.id,date:d,start:tkkHm(a),end:tkkHm(b)}},'予定を動かしています...');
@@ -5211,8 +5216,7 @@ async function tkkLen(id,delta){
   const ev=(tkkS().events||[]).find(x=>String(x.id)===String(id));if(!ev)return;
   const a=tkkMin(ev.start),b=tkkMin(ev.end)+delta*60;
   if(b-a<60){showToast('1時間より短くはできません');return;}
-  const hit=tkkConflict(ev.startDate,a,b,id);
-  if(hit){showToast('その長さにはできません：'+hit);return;}
+  if(!tkkCheckSlot(ev.startDate,a,b,id))return;
   try{await api('moveTaskEvent',{schedule:{eventId:String(id),date:ev.startDate,start:tkkHm(a),end:tkkHm(b)}},'予定を変えています...');}
   catch(err){showToast('予定を保存できませんでした：'+((err&&err.message)||err));}
   await tkkSyncCal();
