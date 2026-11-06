@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<!-- アプリとしてホーム画面に入れるための設定（2026-11-06）。Android の Chrome で「インストール」が出る -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#5c6bc0">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="HALO">
 <title>スケジュール管理</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -2292,6 +2297,14 @@ ja:{
 'push.denied':'⚠️ 通知が拒否されています。ブラウザのサイト設定でリセットしてください',
 'push.default.title':'通知','push.not.granted':'プッシュ通知が許可されませんでした',
 'push.init.error':'⚠️ 通知初期化エラー: {msg}',
+'settings.push':'🔔 通知（この端末）',
+'push.st.ok':'✅ この端末で通知を受け取れます','push.st.notreg':'⚠️ 通知は許可されていますが、この端末はまだ登録されていません',
+'push.st.default':'⚠️ 通知がまだ許可されていません','push.st.denied':'⛔ 通知がブロックされています',
+'push.st.ios':'iPhone・iPad は、Safari の共有ボタン（□↑）→「ホーム画面に追加」で追加し、ホーム画面のアイコンから開くと通知を受け取れます',
+'push.st.unsupported':'この端末・ブラウザは通知に対応していません',
+'push.help.denied':'Chrome は「⋮」→「設定」→「サイトの設定」→「通知」で、このサイトを「許可」にしてから下のボタンを押してください。iPhone は「設定」→「通知」→ HALO をオンにしてください',
+'push.help.android':'Android で届かないときは、スマホの「設定」→「アプリ」→「Chrome」→「通知」がオンか、節電で止められていないかも見てください',
+'push.btn.enable':'通知を受け取る','push.btn.again':'登録し直す','push.ok':'🔔 この端末で通知を受け取れるようにしました','push.registered.at':'登録：{d}',
 'release.note.1':'🌐 設定ページに言語設定を追加しました（ベトナム語・ネパール語に対応）',
 'release.note.2':'🤝 予定の種別に「来社」を追加しました',
 'release.note.3':'📋 有休の場合のみ、KingOfTimeで申請すると自動でカレンダーに有休が追加されます（反映まで最大1〜2時間かかる場合があります。追加されない場合のみ手動で登録をお願いします）',
@@ -2650,6 +2663,14 @@ vi:{
 'push.denied':'⚠️ Thông báo bị từ chối. Hãy đặt lại trong cài đặt trang',
 'push.default.title':'Thông báo','push.not.granted':'Push chưa được cho phép',
 'push.init.error':'⚠️ Lỗi khởi tạo thông báo: {msg}',
+'settings.push':'🔔 Thông báo (thiết bị này)',
+'push.st.ok':'✅ Thiết bị này có thể nhận thông báo','push.st.notreg':'⚠️ Đã cho phép thông báo nhưng thiết bị này chưa được đăng ký',
+'push.st.default':'⚠️ Chưa cho phép thông báo','push.st.denied':'⛔ Thông báo đang bị chặn',
+'push.st.ios':'iPhone・iPad: nhấn nút Chia sẻ (□↑) trong Safari →「Thêm vào MH chính」, rồi mở từ biểu tượng trên màn hình chính để nhận thông báo',
+'push.st.unsupported':'Thiết bị hoặc trình duyệt này không hỗ trợ thông báo',
+'push.help.denied':'Trên Chrome: 「⋮」→「Cài đặt」→「Cài đặt trang web」→「Thông báo」, đặt trang này thành「Cho phép」rồi nhấn nút bên dưới. Trên iPhone:「Cài đặt」→「Thông báo」→ bật HALO',
+'push.help.android':'Nếu Android không nhận được, hãy kiểm tra「Cài đặt」→「Ứng dụng」→「Chrome」→「Thông báo」đã bật chưa và Chrome có bị chế độ tiết kiệm pin chặn không',
+'push.btn.enable':'Nhận thông báo','push.btn.again':'Đăng ký lại','push.ok':'🔔 Thiết bị này đã có thể nhận thông báo','push.registered.at':'Đã đăng ký: {d}',
 'release.note.1':'🌐 Đã thêm cài đặt ngôn ngữ vào trang Cài đặt (hỗ trợ tiếng Việt và tiếng Nepal)',
 'release.note.2':'🤝 Đã thêm loại lịch "Đến công ty"',
 'release.note.3':'📋 Chỉ với nghỉ phép có lương: khi nộp đơn trên KingOfTime, nghỉ phép sẽ tự động thêm vào lịch (có thể mất 1-2 giờ. Chỉ đăng ký thủ công nếu không được thêm)',
@@ -3008,6 +3029,14 @@ ne:{
 'push.denied':'⚠️ सूचना अस्वीकार गरिएको छ। ब्राउजर सेटिङमा रिसेट गर्नुहोस्',
 'push.default.title':'सूचना','push.not.granted':'Push सूचना अनुमति दिइएन',
 'push.init.error':'⚠️ सूचना प्रारम्भ त्रुटि: {msg}',
+'settings.push':'🔔 सूचना (यो उपकरण)',
+'push.st.ok':'✅ यो उपकरणमा सूचना प्राप्त गर्न सकिन्छ','push.st.notreg':'⚠️ सूचना अनुमति छ, तर यो उपकरण अझै दर्ता भएको छैन',
+'push.st.default':'⚠️ सूचना अझै अनुमति दिइएको छैन','push.st.denied':'⛔ सूचना ब्लक गरिएको छ',
+'push.st.ios':'iPhone・iPad: Safari को सेयर बटन (□↑) →「Add to Home Screen」थिच्नुहोस्, अनि होम स्क्रिनको आइकनबाट खोल्दा सूचना आउँछ',
+'push.st.unsupported':'यो उपकरण वा ब्राउजरले सूचना समर्थन गर्दैन',
+'push.help.denied':'Chrome मा「⋮」→「Settings」→「Site settings」→「Notifications」मा यो साइटलाई「Allow」गरेर तलको बटन थिच्नुहोस्। iPhone मा「Settings」→「Notifications」→ HALO खोल्नुहोस्',
+'push.help.android':'Android मा सूचना नआएमा, फोनको「Settings」→「Apps」→「Chrome」→「Notifications」खुला छ कि छैन र ब्याट्री बचतले रोकेको छ कि छैन हेर्नुहोस्',
+'push.btn.enable':'सूचना प्राप्त गर्नुहोस्','push.btn.again':'फेरि दर्ता गर्नुहोस्','push.ok':'🔔 यो उपकरणमा सूचना प्राप्त गर्न मिल्ने भयो','push.registered.at':'दर्ता: {d}',
 'release.note.1':'🌐 सेटिङ पृष्ठमा भाषा सेटिङ थपियो (भियतनामी र नेपाली समर्थित)',
 'release.note.2':'🤝 तालिका प्रकारमा "कार्यालय भ्रमण" थपियो',
 'release.note.3':'📋 तलबी बिदाको लागि मात्र: KingOfTimeमा आवेदन गर्दा पात्रोमा स्वचालित रूपमा थपिन्छ (१-२ घण्टा लाग्न सक्छ। थपिएन भने मात्र आफैं दर्ता गर्नुहोस्)',
@@ -10342,6 +10371,44 @@ async function loadHolidays() {
   }
 }
 
+// ===== 通知（この端末）の状態と「通知を受け取る」ボタン（2026-11-06） =====
+// Android の Chrome は、ログイン後に自動で聞く許可を、アドレスバーの小さなベルだけで静かに出すことがあり、
+// 気づかずに通知が届かないままになる。設定画面で状態を見せ、ボタンを押したその場で許可を聞く。
+function _pushRegKey(){ return 'halo_push_ok_' + (currentUser?.id || ''); }
+function _pushMarkRegistered(){ try { localStorage.setItem(_pushRegKey(), new Date().toISOString()); } catch(e) {} }
+function _pushRegisteredAt(){ try { return localStorage.getItem(_pushRegKey()) || ''; } catch(e) { return ''; } }
+function _isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+function _isStandalone(){ return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+function pushStatus(){
+  // iPhone は、ホーム画面に追加したアイコンから開いたときだけ通知を受け取れる
+  if (_isIOS() && (!('Notification' in window) || !_isStandalone())) return 'ios';
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  if (Notification.permission !== 'granted') return 'default';
+  return _pushRegisteredAt() ? 'ok' : 'notreg';
+}
+function pushSettingsHtml(){
+  const st = pushStatus();
+  const msgKey = {ok:'push.st.ok', notreg:'push.st.notreg', default:'push.st.default', denied:'push.st.denied', ios:'push.st.ios', unsupported:'push.st.unsupported'}[st];
+  const small = 'font-size:0.75em;color:var(--text2);margin-top:6px;line-height:1.5';
+  const at = _pushRegisteredAt();
+  let h = '<div id="push-status" data-status="' + st + '" style="font-size:0.84em;line-height:1.5">' + t(msgKey) + '</div>';
+  if (st === 'ok' && at) h += '<div style="' + small + ';margin-top:2px">' + t('push.registered.at', {d: new Date(at).toLocaleString()}) + '</div>';
+  if (st === 'denied') h += '<div style="' + small + '">' + t('push.help.denied') + '</div>';
+  if (st !== 'ios' && st !== 'unsupported') {
+    h += '<button id="push-enable-btn" onclick="enablePushFromSettings()" style="margin-top:8px;padding:6px 14px;border-radius:8px;background:var(--primary);color:white;font-size:0.82em;font-weight:600">'
+      + t(st === 'ok' ? 'push.btn.again' : 'push.btn.enable') + '</button>';
+  }
+  if (/Android/i.test(navigator.userAgent) && st !== 'unsupported') h += '<div style="' + small + '">' + t('push.help.android') + '</div>';
+  return h;
+}
+async function enablePushFromSettings(){
+  // ボタンを押したその場で許可を聞く（Android の Chrome が、はっきりした許可の画面を出しやすい）
+  try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); } catch(e) {}
+  await initPushNotifications({ manual: true });
+  renderSettings();
+}
+
 // ===== 設定タブ =====
 function renderSettings() {
   const el = document.getElementById('settings-content');
@@ -10366,6 +10433,7 @@ function renderSettings() {
         const sel=currentLang===l.id;
         return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="applyLanguage('${l.id}')">${radio(sel)} ${l.label}</label>`;
       }).join(''))}
+      ${card(t('settings.push'), pushSettingsHtml())}
       ${card(t('settings.holiday'), sites.map(s => {
         const sel=siteFilter===s.id;
         return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="changeSiteFilter('${s.id}')">${radio(sel)} ${s.label}</label>`;
@@ -11564,7 +11632,8 @@ async function finishElearningQuiz() {
 
 let _fcmMessaging = null;
 
-async function initPushNotifications() {
+async function initPushNotifications(opts) {
+  const manual = !!(opts && opts.manual); // 設定画面のボタンから呼ばれたとき
   console.log('[Push] initPushNotifications 開始');
 
   if (!FIREBASE_CONFIG.apiKey || !FIREBASE_CONFIG.projectId) {
@@ -11632,7 +11701,11 @@ async function initPushNotifications() {
     });
     if (token) {
       console.log('[Push] FCMトークン取得成功');
-      api('saveFcmToken', { fcmToken: token }, '').catch(() => {});
+      try {
+        await api('saveFcmToken', { fcmToken: token }, '');
+        _pushMarkRegistered(); // 設定画面の「この端末で通知を受け取れます」に使う（2026-11-06）
+        if (manual) showToast(t('push.ok'));
+      } catch(e) { /* 保存に失敗しても次にログインしたときにやり直される */ }
     } else {
       console.warn('[Push] FCMトークンが空');
     }

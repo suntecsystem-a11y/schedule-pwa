@@ -30,8 +30,9 @@ messaging.onBackgroundMessage(payload => {
   const isTodoke = type.indexOf('todoke_') === 0 && payload.data?.recordId;
   const options = {
     body:               payload.notification?.body || '',
-    icon:               '/icon-192.png',
-    badge:              '/icon-192.png',
+    // アイコンはこのファイルと同じ場所（/schedule-pwa/）。前は '/icon-192.png'（サイトの一番上）を見ていて 404 だった（2026-11-06）
+    icon:               new URL('icon-192.png', self.registration.scope).href,
+    badge:              new URL('icon-192.png', self.registration.scope).href,
     tag:                isTodoke ? type + '_' + payload.data.recordId : type,
     data:               payload.data || {},
     requireInteraction: false,
@@ -58,7 +59,8 @@ self.addEventListener('notificationclick', event => {
       for (const client of clientList) {
         if ('focus' in client) return client.focus();
       }
-      if (clients.openWindow) return clients.openWindow('/');
+      // HALO を開いていないときは HALO の画面を開く（前は '/'＝サイトの一番上で 404 だった。2026-11-06）
+      if (clients.openWindow) return clients.openWindow(self.registration.scope);
     })
   );
 });
