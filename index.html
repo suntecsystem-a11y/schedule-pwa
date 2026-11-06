@@ -3516,9 +3516,10 @@ let _apiAbort=null;
 let _sessionExpired=false;
 let _reloginPromise=null;
 function cancelApiRequest(){if(_apiAbort){_apiAbort.abort();_apiAbort=null}}
-async function api(action, data={}, loadingMsg){
+async function api(action, data={}, loadingMsg, opts){
   // デモモード（GAS_URL未設定時）：日報・課題確認はローカルの模擬データで応答
   if(!GAS_URL && DR_DEMO_API[action]) return DR_DEMO_API[action](data);
+  if(opts && opts.quiet) return _apiQuiet(action, data);
   if(!loadingMsg)loadingMsg=t('common.processing');
   showLoading(loadingMsg);
   _apiAbort=new AbortController();
@@ -3559,6 +3560,21 @@ throw new Error(result.error || t('common.error'));
     _apiAbort=null;
     if(cancelBtn)cancelBtn.style.display='none';
     hideLoading();
+  }
+}
+// 自動の読み直し用（2026-11-06 在席の段階M2）。画面に「処理中」を出さず、取り消しボタンも使わない。
+// ログインが切れていても再ログインの小窓は出さずにエラーにする（次に手で操作したときに出る）
+async function _apiQuiet(action, data={}){
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),45000);
+  try {
+    const sess=loadSession();
+    const res=await fetch(GAS_URL, { method:'POST', body:JSON.stringify({ action, token: sess?.token, ...data }), redirect:'follow', signal:ctrl.signal });
+    const result=await res.json();
+    if(!result.ok) throw new Error(result.error || t('common.error'));
+    return result.data;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -4011,7 +4027,8 @@ function _mergeToday(fetchedMonths){
 // レースコンディション防止：最新のリクエストだけ画面に反映する
 let _loadToken = 0;
 
-async function loadEvents({ force = false, centerDate } = {}){
+// quiet=true は在席の自動の読み直し用（「処理中」を出さない・読めなくてもトーストを出さない）
+async function loadEvents({ force = false, centerDate, quiet = false } = {}){
   if(!GAS_URL){ return; }
   const token = ++_loadToken;
 
@@ -4042,10 +4059,10 @@ async function loadEvents({ force = false, centerDate } = {}){
   const rangeEnd   = fmtDate(new Date(center.getFullYear(), center.getMonth()+2, 0));
 
   try {
-    showLoading(t('ev.loading'));
+    if(!quiet) showLoading(t('ev.loading'));
     // タスクから作った予定（種別「作業」・メモが「タスク#番号」）は、カレンダーに出さない（見づらくなるため）。タスク管理のかんばんのカレンダーだけに出す
-    const data = (await api('getEvents', { rangeStart, rangeEnd })).filter(e => !(e.type === '作業' && /^タスク#\d+/.test(e.memo || '')));
-    if(token !== _loadToken){ hideLoading(); return; }
+    const data = (await api('getEvents', { rangeStart, rangeEnd }, undefined, { quiet })).filter(e => !(e.type === '作業' && /^タスク#\d+/.test(e.memo || '')));
+    if(token !== _loadToken){ if(!quiet) hideLoading(); return; }
     events = data;
     // 月別にキャッシュへ振り分け（各イベントの開始月で分類）
     months.forEach(ym => { eventsCache[ym] = { fetchedAt: now, data: [] }; });
@@ -4060,15 +4077,15 @@ async function loadEvents({ force = false, centerDate } = {}){
       }
     });
   } catch(err) {
-    if(token !== _loadToken){ hideLoading(); return; }
-    if(err.message !== 'SESSION_EXPIRED') showToast(t('ev.load.fail',{msg:err.message}));
+    if(token !== _loadToken){ if(!quiet) hideLoading(); return; }
+    if(!quiet && err.message !== 'SESSION_EXPIRED') showToast(t('ev.load.fail',{msg:err.message}));
   } finally {
-    hideLoading();
+    if(!quiet) hideLoading();
   }
   _mergeToday(months);
   renderAll(); renderRoomTimeline(); renderTeam();
-  checkApprovalNotifs();
-  Promise.all([loadDailyRest(), loadPlaces(true)]).then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); renderDashboard(); });
+  if(!quiet) checkApprovalNotifs();
+  Promise.all([loadDailyRest(quiet), loadPlaces(true)]).then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); renderDashboard(); });
 }
 
 // ===== タブ =====
@@ -5992,7 +6009,8 @@ function switchTab(tab, btn){
   else                { _markNoticesAsSeen(); }
   if(tab==='tasks')   renderTasksTab();
   if(tab==='rooms')   renderRoomTimeline();
-  if(tab==='team')    { renderTeam(); loadPlaces().then(()=>{ if(_currentTab==='team') renderTeam(); }); }
+  if(tab==='team')    { _teamLastActive=Date.now(); renderTeam(); loadPlaces().then(()=>{ if(_currentTab==='team') renderTeam(); }); _teamAutoStart(); }
+  else                _teamAutoStop();
   if(tab==='devices') { loadEvents().then(()=>renderDevices()); }
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
@@ -6560,17 +6578,47 @@ function placeOf(empId){
   const id = Object.prototype.hasOwnProperty.call(placeToday, empId) ? placeToday[empId] : (placeHome[empId]||'');
   return id && PLACES.some(p=>p.id===id) ? id : '';
 }
-// 在席ボードを開くたびに呼ぶので、全画面の「処理中」は出さない（api() は出すので使わない）。30秒以内なら読み直さない
+// 在席ボードを開くたびと自動の読み直しで呼ぶので、全画面の「処理中」は出さない。30秒以内なら読み直さない
 async function loadPlaces(force){
   if(!GAS_URL || !currentUser) return;
   if(!force && Date.now()-_placesAt < 30000) return;
   try {
-    const sess=loadSession();
-    const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'getPlaces',token:sess?.token}),redirect:'follow'});
-    const j=await res.json();
-    if(j.ok && j.data){ placeToday=j.data.today||{}; placeHome=j.data.home||{}; _placesAt=Date.now(); }
+    const d=await api('getPlaces', {}, '', { quiet:true });
+    if(d){ placeToday=d.today||{}; placeHome=d.home||{}; _placesAt=Date.now(); }
   } catch(e) { /* 表示は前の値のまま */ }
 }
+
+// ===== 在席の自動の読み直し（2026-11-06 在席マップ段階M2。いつもの表示とマップの両方） =====
+// 在席タブを表示している間だけ、30秒ごとに：今いる場所を読み直す（軽い）・状態を描き直す（会議の時間になった人を会議室へ）。
+// 予定は今までどおり10分のキャッシュで、切れたときだけ静かに読み直す（毎回 Kintone に取りに行くため）。
+// ほかのタブ・ほかのアプリを見ている間と、10分間なにも触っていない間は止める。触るか画面に戻ったら、すぐ読み直して再開する
+const TEAM_AUTO_MS = 30 * 1000, TEAM_IDLE_MS = 10 * 60 * 1000;
+let _teamAutoTimer = null, _teamLastActive = Date.now(), _teamTicking = false;
+function _teamAutoOn(){ return !!currentUser && _currentTab==='team' && document.visibilityState==='visible'; }
+async function _teamTick(){
+  if(!_teamAutoOn() || _teamTicking) return;
+  if(Date.now()-_teamLastActive > TEAM_IDLE_MS) return; // 10分触っていない
+  _teamTicking = true;
+  try {
+    await loadPlaces(true);
+    // 予定のキャッシュが切れていれば静かに読み直す（読み直したときは中で描き直す。新しければ何もしない）
+    await loadEvents({ centerDate: new Date(), quiet: true });
+    if(_currentTab==='team') renderTeam();
+  } finally { _teamTicking = false; }
+}
+function _teamAutoStart(){ if(!_teamAutoTimer) _teamAutoTimer = setInterval(_teamTick, TEAM_AUTO_MS); }
+function _teamAutoStop(){ if(_teamAutoTimer){ clearInterval(_teamAutoTimer); _teamAutoTimer = null; } }
+// 触った（マップの中で触ったときは zmap:active が届く）。止まっていたら、すぐ読み直す
+function _teamTouched(){
+  const wasIdle = Date.now()-_teamLastActive > TEAM_IDLE_MS;
+  _teamLastActive = Date.now();
+  if(wasIdle) _teamTick();
+}
+['pointerdown','keydown','touchstart','wheel'].forEach(ev=>document.addEventListener(ev, _teamTouched, { passive:true, capture:true }));
+window.addEventListener('scroll', _teamTouched, { passive:true });
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='visible' && _currentTab==='team'){ _teamLastActive = Date.now(); _teamTick(); }
+});
 // いまの状態と場所（在席ボード・部署ごと・場所ごと・メンバーの小窓で共通。2026-11-06 段階2で1つにまとめた）
 //   baseStatus … 予定と「休み」だけで決まる状態（前の在席ボードの status と同じ）
 //   status     … 表示用。在席の人が自分で「外出中」を選んでいれば '外出'
@@ -6852,7 +6900,7 @@ function _syncTeamView(){
 // ここに混ぜずに iframe で読み込み、並べる人と文言を postMessage で渡す（同じオリジンだけ）。
 // 置く場所は teamStatusNow() の結果から決めるので、ほかの表示と必ず同じになる。
 // 社内にいて場所を選んでいない人はマップに描かず、上の一覧の最後に「社内（場所未設定）」の行で出す
-let _zmapReady=false, _zmapPayload=null;
+let _zmapReady=false, _zmapPayload=null, _zmapSentJson='';
 function _zmapZone(m){
   if(m.placeId==='out' || m.status==='外出') return 'gaishutsu';
   if(m.placeId && PLACES.some(p=>p.id===m.placeId)) return m.placeId;
@@ -6901,16 +6949,22 @@ function renderTeamMap(members){
 }
 function _zmapSend(){
   const f=document.getElementById('team-map-frame');
-  if(_zmapReady && f && f.contentWindow && _zmapPayload) f.contentWindow.postMessage({type:'zmap:data', payload:_zmapPayload}, location.origin);
+  if(!(_zmapReady && f && f.contentWindow && _zmapPayload)) return;
+  // 前に送ったものと同じなら送らない（30秒ごとの描き直しで、変わっていないマップを並べ直さない）
+  const json=JSON.stringify(_zmapPayload);
+  if(json===_zmapSentJson) return;
+  _zmapSentJson=json;
+  f.contentWindow.postMessage({type:'zmap:data', payload:_zmapPayload}, location.origin);
 }
 window.addEventListener('message', e=>{
   if(e.origin!==location.origin) return;
   const f=document.getElementById('team-map-frame');
   if(!f || e.source!==f.contentWindow) return;
   const d=e.data||{};
-  if(d.type==='zmap:ready'){ _zmapReady=true; _zmapSend(); }
+  if(d.type==='zmap:ready'){ _zmapReady=true; _zmapSentJson=''; _zmapSend(); }
   else if(d.type==='zmap:height' && d.h>0){ f.style.height=Math.min(Math.ceil(d.h),20000)+'px'; }
   else if(d.type==='zmap:member' && USERS.some(u=>u.id===d.id)){ openMemberDetail(d.id); }
+  else if(d.type==='zmap:active'){ _teamTouched(); }
   else if(d.type==='zmap:move'){
     // マップのコマンド窓で選んで歩き終わった場所を保存する（外出中のマスは自分で選ぶ「外出中」）
     const code = d.place==='gaishutsu' ? 'out' : d.place;
@@ -7403,10 +7457,10 @@ async function doToggleYasumi(targetUserId){
   }
 }
 
-async function loadDailyRest(){
+async function loadDailyRest(quiet){
   if(!GAS_URL || !currentUser) return;
   try {
-    const res = await api('getDailyRest', { date: fmtDate(new Date()) }, '');
+    const res = await api('getDailyRest', { date: fmtDate(new Date()) }, '', { quiet: !!quiet });
     yasumiUsers = new Set(res.restIds || []);
   } catch(e) { /* 無視 */ }
 }

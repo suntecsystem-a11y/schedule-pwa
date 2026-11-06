@@ -404,6 +404,10 @@ body{background:#141c2c;color:#eee5cd;background-image:none}
 body{margin:0}
 .wrap{max-width:none;padding:0!important}
 .game{margin-top:0}
+/* 自動の読み直しで場所が変わった人は、新しい場所にふわっと出す */
+.char.arrive{animation:zmap-arrive .7s ease-out}
+@keyframes zmap-arrive{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.char.arrive{animation:none}}
 /* スマホの縦向きでも、誰がどこにいるか（人数・一覧）をマップより上に出す */
 @media (max-width:700px) and (orientation:portrait){
   .game>.classic-summary{order:-6}
@@ -663,6 +667,8 @@ body{margin:0}
 
   function fmtL(key,fallback,place){var s=(lastData&&lastData.labels&&lastData.labels[key])||fallback;return s.replace('{place}',place);}
   function afterMove(id){
+    // 歩いている間に届いて待たせていたデータがあれば、歩き終わってから並べる
+    if(pendingData){var p=pendingData;pendingData=null;setTimeout(function(){placePeople(p);},0);}
     document.getElementById('now-label').textContent=byId[id].name;
     document.getElementById('mobile-now-label').textContent=byId[id].name; message.textContent=fmtL('moved','あなたは {place} に いどうした！',byId[id].name);justMoved=true;if(window.__zmapOnMove)window.__zmapOnMove(id); document.querySelectorAll('.locbtn').forEach(function(btn){btn.setAttribute('aria-pressed',String(btn.dataset.loc===id));});
     document.querySelectorAll('.locbtn').forEach(function(x){x.classList.toggle('on',x.dataset.loc===id);});
@@ -1018,7 +1024,7 @@ function createTravelGraph(layout) {
   // 服の色＝部署。makeHero は決まった色で職業（見た目）を変えるので、その色を部署の順に割り当てる
   var HERO_COLORS=['#3b82c4','#e08a2e','#2fa37a','#7c6bd6','#22b0bf','#e268a0'];
   var CLOTHES={'#3b82c4':'#5379aa','#e08a2e':'#b85c4b','#2fa37a':'#50754c','#7c6bd6':'#8b6aa4','#22b0bf':'#649a9a','#e268a0':'#8b6aa4'};
-  var lastData=null, justMoved=false;
+  var lastData=null, justMoved=false, pendingData=null, prevZone={};
   function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function setText(sel,text){var el=document.querySelector(sel);if(el&&text!=null)el.textContent=text;}
   function makeChar(id,name,color){
@@ -1029,7 +1035,8 @@ function createTravelGraph(layout) {
     return ch;
   }
   function placePeople(data){
-    if(activeWalk)activeWalk.finish();
+    // 自分が歩いている途中に届いたデータ（30秒ごとの読み直しなど）は、歩き終わってから並べる（歩きを途中で切らない）
+    if(activeWalk){pendingData=data;return;}
     lastData=data;var L=data.labels||{};
     window.__zmapTotal=(data.members||[]).length+((data.extraRows||[]).reduce(function(n,r){return n+(r.names||[]).length;},0));
     window.__zmapLabels=L;
@@ -1057,11 +1064,19 @@ function createTravelGraph(layout) {
     // マスを空にして並べ直す
     document.querySelectorAll('[data-zone] .chars').forEach(function(c){c.replaceChildren();c.style.minHeight='';});
     if(you.parentNode)you.remove();
+    // 前回から場所が変わった人は、新しい場所にふわっと出す（歩くのは自分だけ。初めて並べるときは出さない）
+    var nextZone={};
     (data.members||[]).forEach(function(m){
       var box=m.zone?document.querySelector('[data-zone="'+m.zone+'"] .chars'):null;if(!box)return;
-      if(m.id===data.me){you.dataset.id=m.id;you.setAttribute('role','button');you.tabIndex=0;you.setAttribute('aria-label',m.name);ynm.textContent=m.name;box.appendChild(you);return;}
-      box.appendChild(makeChar(m.id,m.name,deptColor[m.dept||'']));
+      nextZone[m.id]=m.zone;
+      var moved=Object.prototype.hasOwnProperty.call(prevZone,m.id)&&prevZone[m.id]!==m.zone;
+      var el;
+      if(m.id===data.me){you.dataset.id=m.id;you.setAttribute('role','button');you.tabIndex=0;you.setAttribute('aria-label',m.name);ynm.textContent=m.name;el=you;}
+      else el=makeChar(m.id,m.name,deptColor[m.dept||'']);
+      el.classList.remove('arrive');if(moved){void el.offsetWidth;el.classList.add('arrive');}
+      box.appendChild(el);
     });
+    prevZone=nextZone;
     document.querySelectorAll('[data-zone] .chars').forEach(function(c){if(!c.children.length){var e=document.createElement('span');e.className='empty';e.textContent=L.nobody||'だれもいない…';c.appendChild(e);}});
     setText('#now-label',data.myPlace||'');setText('#mobile-now-label',data.myPlace||'');
     renderRoster();drawTravelRoads();
@@ -1125,6 +1140,10 @@ document.querySelectorAll('.btns').forEach(function(group){group.addEventListene
   document.addEventListener('click',pick);
   // コマンド窓で場所を選び、歩き終わったら親に保存してもらう（親が保存して並べ直したデータを送り返す）
   window.__zmapOnMove=function(id){post({type:'zmap:move',place:id});};
+  // マップの中で触ったことを親に知らせる（親は10分触られていないと自動の読み直しを止めるため。20秒に1回まで）
+  var lastActive=0;
+  function active(){var now=Date.now();if(now-lastActive<20000)return;lastActive=now;post({type:'zmap:active'});}
+  ['pointerdown','keydown','touchstart','wheel'].forEach(function(ev){document.addEventListener(ev,active,{passive:true,capture:true});});
   document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.closest&&e.target.closest('.char')){e.preventDefault();pick(e);}});
   window.addEventListener('message',function(e){
     if(e.origin!==ORIGIN||!e.data||e.data.type!=='zmap:data')return;
