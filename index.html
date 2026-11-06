@@ -4891,10 +4891,10 @@ function tkTeamHtml(){
     +'<td>'+(r.overdue?'<span class="tkd-p '+(r.overdueRate>=40?'r':'w')+'">'+r.overdue+'件 · '+r.overdueRate+'%</span>':'<span class="tkd-p g">0</span>')+'</td>'
     +'<td>'+pill(r.changed,r.changed>=3)+'</td><td>'+(cal?pill(r.moves,r.moves>=4):'-')+'</td><td>'+(cal?pill(r.unsched,r.unsched>=3):'-')+'</td>'
     +'<td>'+pill(r.stale,true)+'</td></tr>').join('');
-  const memb='<div class="tkd-box"><div class="tkd-h"><b>メンバー別の稼働と成果</b><span>割り当て＝予定÷就業時間（平日×8時間）。実施＝過ぎた予定のうち動かされなかった分</span></div><div class="tkd-x"><table class="tkd-t"><thead><tr><th>メンバー</th><th>割り当て</th><th>実施 / 予定</th><th>完了</th><th>当日完了</th><th>遅れて完了</th><th>期限超過（現在）</th><th>期限変更</th><th>予定の移動</th><th>予定なし</th><th>滞留</th></tr></thead><tbody>'+mrows+'</tbody></table></div>'
+  const memb='<div class="tkd-box"><div class="tkd-h"><b>メンバー別の稼働と成果</b><span>割り当て＝予定÷就業時間（平日×8時間）。実施＝過ぎた予定のうち動かされなかった分。同じ時間に重ねた予定は1回分</span></div><div class="tkd-x"><table class="tkd-t"><thead><tr><th>メンバー</th><th>割り当て</th><th>実施 / 予定</th><th>完了</th><th>当日完了</th><th>遅れて完了</th><th>期限超過（現在）</th><th>期限変更</th><th>予定の移動</th><th>予定なし</th><th>滞留</th></tr></thead><tbody>'+mrows+'</tbody></table></div>'
     +'<div class="tkd-note">予定なし＝期間の終わりまでが期限なのに、カレンダーに予定がない未完了タスクの数。滞留＝進行中のまま14日以上動かないもの。'+(cal?'':'<br>カレンダー連携の項目（959の task_id）がまだ無いため、予定に関する欄は空です。')+'</div></div>';
   const hmax=T.period==='month'?2400:480;
-  const hm=cal?'<div class="tkd-box"><div class="tkd-h"><b>'+(T.period==='month'?'週ごとの予定時間（時間）':'日ごとの予定時間（時間）')+'</b><span>濃いほど多い。薄い日は、予定を動かした日かもしれません</span></div><div class="tkd-x"><table class="tkd-hm"><thead><tr><th></th>'
+  const hm=cal?'<div class="tkd-box"><div class="tkd-h"><b>'+(T.period==='month'?'週ごとの予定時間（時間）':'日ごとの予定時間（時間）')+'</b><span>濃いほど多い（同じ時間に重ねた予定は1回分）。薄い日は、予定を動かした日かもしれません</span></div><div class="tkd-x"><table class="tkd-hm"><thead><tr><th></th>'
     +T.labels.map(l=>'<th>'+tkMd(l)+(T.period==='month'?'〜':'')+'</th>').join('')+'<th>合計</th></tr></thead><tbody>'
     +T.rows.filter(r=>!r.unassigned).map(r=>'<tr><th style="text-align:left">'+E(r.name)+'</th>'+r.plan.map(v=>{const a=Math.min(v/hmax,1);return '<td style="background:rgba(42,120,214,'+(0.08+a*0.8).toFixed(2)+');color:'+(a>0.55?'#fff':'#1d3557')+'">'+(v?Math.round(v/6)/10:'')+'</td>';}).join('')+'<td style="font-weight:700">'+tkHr(r.planMin)+'</td></tr>').join('')
     +'</tbody></table></div></div>':'';
@@ -5173,7 +5173,7 @@ function tkkCalHtml(){
     html+='</div>';
   });
   html+='</div></div>';
-  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります（他の予定と重なる場合は、確認が出ます）。予定をクリックすると、カレンダーの予定の詳細が開きます。タスクの予定にマウスを乗せると、ボタンが出ます（↗タスクを開く・−＋長さを変える・×取り消す）。つまんで動かせます。</div>';
+  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります（他の予定と重なる場合は、確認が出ます）。同じ時間に重ねたタスクは、その時間でまとめて実行するものとして、分析では1回分の時間で数えます。予定をクリックすると、カレンダーの予定の詳細が開きます。タスクの予定にマウスを乗せると、ボタンが出ます（↗タスクを開く・−＋長さを変える・×取り消す）。つまんで動かせます。</div>';
 }
 function tkkDragCard(ev,id){_tkkDrag={kind:'card',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
 function tkkDragEv(ev,id){_tkkDrag={kind:'ev',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
