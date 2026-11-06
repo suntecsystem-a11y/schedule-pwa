@@ -812,7 +812,7 @@ body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px
 .tkk-ev.n{background:#2a78d6;color:#fff;display:flex;gap:2px;justify-content:space-between;align-items:flex-start;cursor:grab}
 .tkk-t{cursor:pointer;overflow:hidden}.tkk-c{display:flex;gap:2px;flex:none}.tkk-c i{font-style:normal;background:rgba(255,255,255,.25);border-radius:3px;padding:0 4px;cursor:pointer}
 .tkk-day.over{background:#e8f1fd}
-.week-event .tkk-c{position:absolute;top:1px;right:1px;display:flex;gap:2px}.week-event .tkk-c i{font-style:normal;background:rgba(255,255,255,.3);border-radius:3px;padding:0 4px;cursor:pointer}.week-event[draggable=true]{cursor:grab}
+.week-event .tkk-c{display:none;position:absolute;top:2px;right:2px;gap:3px;background:rgba(0,0,0,.45);border-radius:5px;padding:2px 3px;z-index:3}.week-event:hover .tkk-c{display:flex}.week-event .tkk-c i{font-style:normal;background:#fff;color:#37474f;border-radius:3px;padding:0 5px;cursor:pointer;font-size:1.15em;line-height:1.5}.week-event .tkk-c i:hover{background:#ffe082}.week-event[draggable=true]{cursor:grab}
 .tkf-sch-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.84em}.tkf-sch-f input{border:1px solid #cfd6e0;border-radius:6px;padding:4px 6px}
 .tkf-sp{flex:1}
 /* 行・カードを押せることを示す */
@@ -5172,7 +5172,7 @@ function tkkCalHtml(){
     html+='</div>';
   });
   html+='</div></div>';
-  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります（他の予定と重なる場合は、確認が出ます）。予定をクリックすると、カレンダーの予定の詳細が開きます（↗でタスクを開く）。つまんで動かす・＋−で長さを変える・×で取り消せます。</div>';
+  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります（他の予定と重なる場合は、確認が出ます）。予定をクリックすると、カレンダーの予定の詳細が開きます。タスクの予定にマウスを乗せると、ボタンが出ます（↗タスクを開く・−＋長さを変える・×取り消す）。つまんで動かせます。</div>';
 }
 function tkkDragCard(ev,id){_tkkDrag={kind:'card',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
 function tkkDragEv(ev,id){_tkkDrag={kind:'ev',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
