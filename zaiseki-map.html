@@ -1,0 +1,1152 @@
+<!doctype html><html lang="ja"><head>
+<!--
+  HALO 在席ボードの「マップ」表示（2026-11-06 段階M1）。
+  見た目は Codex で作った「在席ボード 修正版 v17」をそのまま使い、HALO の index.html から iframe で読み込む。
+  v17 は body や見出しなどページ全体の見た目を変える書き方が多いので、index.html に混ぜずに別ページにしている。
+  やり取り（postMessage、同じオリジンだけ）：
+    こちら → 親  zmap:ready（読み込み完了）／zmap:height {h}（高さ）／zmap:member {id}（人を押した）
+                 zmap:move {place}（コマンド窓で場所を選び、歩き終わった。親が保存する）
+    親 → こちら  zmap:data {payload}（並べる人と文言。中身は index.html の renderTeamMap）
+  時間の手動切替（デモ用）は CSS で隠している。昼夜は時計で自動。
+  スマホの縦向きでも「なかま ○にん」と「いま どこに だれが いる」をマップより上に出す（誰がどこにいるかを最初に見せる）。
+  単体で開いたとき（親がいないとき）は、確認用の架空の人を並べる。
+--><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+<style>
+
+/* レイアウト概念：上にRPG風マップのデモ（固定ダーク世界）、下に作り方の解説（テーマ追従）。 */
+:root{
+  --bg:#eee5cd; --surface:#eee5cd; --surface-2:#eee5cd;
+  --ink:#141c2c; --ink-2:#697080; --ink-3:#a1a7b0;
+  --line:#eee5cd; --line-2:#eee5cd;
+  --brand:#5379aa; --brand-2:#a1a7b0; --brand-ink:#5379aa;
+  --shadow:0 1px 2px #141c2c,0 6px 20px #141c2c;
+  --shadow-sm:0 1px 2px #141c2c;
+  --fdisp:"Zen Kaku Gothic New",-apple-system,sans-serif;
+  --fbody:"Noto Sans JP",-apple-system,Meiryo,sans-serif;
+  --fpix:"DotGothic16","Noto Sans JP",monospace;
+  /* RPG固定ワールド */
+  --rp-ink:#eee5cd; --rp-win:#141c2c; --rp-win2:#272438; --rp-border:#eee5cd;
+  --rp-field:#141c2c; --rp-gold:#e6c578;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141c2c; --surface:#141c2c; --surface-2:#141c2c;
+  --ink:#eee5cd; --ink-2:#a1a7b0; --ink-3:#697080;
+  --line:#272438; --line-2:#314d39; --brand:#649a9a; --brand-2:#a1a7b0; --brand-ink:#a1a7b0;
+  --shadow:0 1px 2px #080810,0 8px 24px #080810;--shadow-sm:0 1px 2px #080810;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#141c2c; --surface:#141c2c; --surface-2:#141c2c;
+  --ink:#eee5cd; --ink-2:#a1a7b0; --ink-3:#697080;
+  --line:#272438; --line-2:#314d39; --brand:#649a9a; --brand-2:#a1a7b0; --brand-ink:#a1a7b0;
+  --shadow:0 1px 2px #080810,0 8px 24px #080810;--shadow-sm:0 1px 2px #080810;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--fbody);line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px;margin:0 auto;padding-block:36px 60px;padding-inline:18px}
+h1,h2,h3{font-family:var(--fdisp);line-height:1.3;margin:0;text-wrap:balance}
+p{margin:0}
+
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.eyebrow{font-size:.74rem;font-weight:700;letter-spacing:.14em;color:var(--brand-ink);text-transform:uppercase}
+h1.title{font-size:clamp(1.7rem,4.5vw,2.5rem);margin-top:9px}
+.lede{color:var(--ink-2);max-width:60ch;margin-top:11px;font-size:1rem}
+.pill-note{display:inline-flex;align-items:center;gap:7px;margin-top:14px;font-size:.78rem;font-weight:600;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px;box-shadow:var(--shadow-sm)}
+.pill-note::before{content:"";width:7px;height:7px;border-radius:50%;background:#b85c4b}
+.themebtn{flex-shrink:0;font:inherit;font-size:.8rem;font-weight:600;color:var(--ink-2);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 15px;cursor:pointer;box-shadow:var(--shadow-sm)}
+
+/* ===== RPGワールド ===== */
+.game{margin-top:28px;background:var(--g-bg,#080810);border:3px solid var(--g-border,#eee5cd);border-radius:14px;padding:14px;
+  box-shadow:0 0 0 3px var(--g-bg,#080810),0 14px 40px #080810;color:var(--rp-ink);font-family:var(--fpix);
+  --b-wall:#e2b888;--b-wall2:#c8b888;--b-roof:#b85c4b;--b-roof2:#815539;--b-line:#815539;--b-win:#a1a7b0;--b-win2:#649a9a;--b-door:#815539;--b-door2:#815539;
+  --z-bg:#141c2c;--z-ground:#272438;--sign-bg:#141c2c;--sign-br:#eee5cd;--cmd-bg:#141c2c;--btn-bg:#272438;--btn-br:#5379aa}
+.game.halo{--g-bg:#141c2c;--g-border:#a1a7b0;
+  --b-wall:#5379aa;--b-wall2:#697080;--b-roof:#5379aa;--b-roof2:#5379aa;--b-line:#697080;--b-win:#eee5cd;--b-win2:#a1a7b0;--b-door:#697080;--b-door2:#5379aa;
+  --z-bg:#141c2c;--z-ground:#314d39;--sign-bg:#141c2c;--sign-br:#a1a7b0;--cmd-bg:#141c2c;--btn-bg:#272438;--btn-br:#5379aa}
+.palbtn{font-family:var(--fpix);font-size:.62rem;color:var(--rp-ink);background:var(--btn-bg);border:2px solid var(--btn-br);border-radius:6px;padding:4px 10px;cursor:pointer;letter-spacing:.02em}
+.palbtn:hover{filter:brightness(1.15)}
+.hud{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.hud .now{font-size:.82rem;letter-spacing:.03em}
+.hud .now b{color:var(--rp-gold)}
+.hud .legend{display:flex;gap:10px;flex-wrap:wrap;font-size:.6rem;color:#a1a7b0}
+.hud .legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:3px;vertical-align:middle}
+
+.world{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+@media(max-width:700px){.world{grid-template-columns:1fr}}
+
+/* ピクセル建物（本社・新棟） */
+.pbuild{position:relative;margin-top:18px;background:var(--b-wall);border:3px solid #141c2c;border-radius:3px;
+  box-shadow:inset 0 0 0 2px var(--b-wall2),0 6px 0 #141c2c}
+.bname{position:absolute;top:-9px;left:50%;transform:translateX(-50%);z-index:4;font-size:.62rem;color:#eee5cd;
+  background:var(--sign-bg);border:2px solid var(--sign-br);border-radius:4px;padding:1px 12px;letter-spacing:.08em}
+.proof{position:relative;height:15px;background:var(--b-roof);box-shadow:inset 0 -4px 0 var(--b-roof2);border-radius:2px 2px 0 0}
+.proof::before{content:"";position:absolute;top:-6px;left:0;right:0;height:6px;
+  background:repeating-linear-gradient(90deg,var(--b-roof) 0 6px,transparent 6px 12px)}
+.pstory{display:flex;border-top:3px solid var(--b-line)}
+.proom{flex:1;position:relative;min-height:78px;padding:19px 6px 9px;overflow:hidden;
+  background:repeating-linear-gradient(0deg,#080810 0 7px,transparent 7px 14px)}
+.proom+.proom{border-left:3px solid var(--b-line)}
+.rlabel{position:absolute;top:4px;left:5px;z-index:3;font-size:.55rem;color:#eee5cd;background:var(--sign-bg);border:1px solid var(--sign-br);border-radius:3px;padding:0 5px;letter-spacing:.04em}
+.win{position:absolute;top:5px;right:7px;width:13px;height:12px;background:var(--b-win);z-index:1;
+  box-shadow:0 0 0 2px #141c2c,inset 0 2px 0 #eee5cd,inset 2px 0 0 var(--b-win2);transition:background .5s,box-shadow .5s}
+.pentrance .pdoor{position:absolute;left:12px;bottom:0;width:20px;height:30px;background:var(--b-door);z-index:1;
+  border-radius:3px 3px 0 0;box-shadow:0 0 0 2px #141c2c,inset 0 0 0 2px var(--b-door2)}
+.pentrance .pdoor::after{content:"";position:absolute;right:4px;top:14px;width:3px;height:3px;background:#e6c578}
+.pentrance .proom{padding-left:42px}
+/* 会議室（机付きで一般席と区別） */
+.proom.mtg{background:repeating-linear-gradient(0deg,#5379aa 0 7px,transparent 7px 14px)}
+.proom.mtg::after{content:"";position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:28px;height:11px;border-radius:3px;z-index:0;
+  background:var(--b-door,#815539);box-shadow:0 0 0 2px #141c2c,inset 0 2px 0 #eee5cd}
+.proom.mtg .rlabel{background:#314d39;border-color:#a1a7b0;color:#eee5cd}
+
+/* フィールド区画 */
+.fieldrow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+@media(max-width:700px){.fieldrow{grid-template-columns:repeat(2,1fr)}}
+.zone{position:relative;border:3px solid #141c2c;border-radius:5px;min-height:124px;padding:24px 6px 10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;box-shadow:0 5px 0 #141c2c}
+.zone.field{background:linear-gradient(180deg,#314d39,#272438)}
+.zone.status{background:linear-gradient(180deg,#314d39,#272438)}
+.zone.rest{background:linear-gradient(180deg,#272438,#272438)}
+.zland{line-height:0;position:relative;z-index:1;margin:2px 0 0}
+
+/* ドット絵スプライト共通 */
+.spritewrap{position:relative;display:inline-block;vertical-align:bottom}
+.spritewrap .dot{position:absolute;left:0;top:0;background:transparent}
+.char{position:relative}
+.char .ymark{position:absolute;top:-12px;left:50%;transform:translateX(-50%);color:var(--rp-gold);font-size:.7rem;z-index:2;animation:bob 1s ease-in-out infinite}
+.char.you.walking .dot{animation:walk .22s steps(2) infinite}
+.char.you.flip .spritewrap{transform:scaleX(-1)}
+.walkclone{pointer-events:none}
+@keyframes walk{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.char .ymark,.char.you.walking .dot{animation:none}}
+.zlabel{position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:.6rem;color:#eee5cd;background:var(--sign-bg);border:2px solid var(--sign-br);border-radius:4px;padding:1px 8px;letter-spacing:.04em;z-index:4;white-space:nowrap;box-shadow:0 2px 0 #080810}
+.chars{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;justify-content:center;z-index:3}
+.zone>.chars{position:relative;width:100%;flex-wrap:wrap;margin-top:6px;padding-top:4px}
+.proom .chars{justify-content:flex-start;flex-wrap:wrap}
+.empty{font-size:.6rem;color:#e6c578;font-weight:700;padding:4px 2px;text-shadow:0 1px 0 #080810}
+/* 在席一覧 */
+.roster-box{margin-top:12px;background:var(--cmd-bg);border:3px solid var(--g-border,#eee5cd);border-radius:9px;padding:10px 12px}
+.roster-ttl{font-size:.64rem;color:#a1a7b0;letter-spacing:.08em;margin-bottom:8px}
+.roster{display:grid;gap:6px}
+.rrow{display:flex;gap:8px;align-items:flex-start;font-size:.7rem}
+.rloc{flex:0 0 92px;color:var(--rp-gold);font-weight:700}
+.rppl{display:flex;flex-wrap:wrap;gap:4px;min-width:0}
+.rchip{background:var(--btn-bg);border:1px solid var(--btn-br);border-radius:4px;padding:1px 7px;color:#eee5cd}
+.rchip.me{background:var(--rp-gold);color:#080810;border-color:#eee5cd;font-weight:700}
+.rempty{font-size:.7rem;color:#e6c578;font-weight:700}
+
+/* キャラ */
+.char{display:flex;flex-direction:column;align-items:center;gap:2px;width:34px}
+.sprite{width:20px;height:22px;border-radius:6px;background:var(--c,#a1a7b0);position:relative;margin-top:9px;
+  box-shadow:0 2px 0 #080810,inset 0 -4px 0 #080810;image-rendering:pixelated}
+.sprite::before{content:"";position:absolute;top:-8px;left:50%;transform:translateX(-50%);width:13px;height:13px;border-radius:50%;
+  background:var(--c,#a1a7b0);box-shadow:0 1px 0 #080810,inset 0 -3px 0 #080810}
+.char .nm{font-size:.52rem;color:#eee5cd;background:#141c2c;border-radius:3px;padding:0 3px;max-width:42px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.char.you .sprite{--c:var(--rp-gold)}
+.char.you .sprite::after{content:"▼";position:absolute;top:-22px;left:50%;transform:translateX(-50%);color:var(--rp-gold);font-size:.6rem;animation:bob 1s ease-in-out infinite}
+.char.you .nm{color:#080810;background:var(--rp-gold);font-weight:700}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(3px)}}
+@media (prefers-reduced-motion:reduce){.char.you .sprite::after{animation:none}}
+
+/* コマンドウィンドウ */
+.cmd{margin-top:12px;background:var(--cmd-bg);border:3px solid var(--g-border,#eee5cd);border-radius:9px;padding:11px 12px 13px;
+  box-shadow:inset 0 0 0 2px #080810}
+.cmd .q{font-size:.8rem;margin-bottom:9px}
+.cmd .q b{color:var(--rp-gold)}
+.cmd .grp{font-size:.58rem;color:#a1a7b0;letter-spacing:.1em;margin:7px 0 4px}
+.btns{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px}
+.locbtn{font-family:var(--fpix);font-size:.66rem;color:var(--rp-ink);background:var(--btn-bg);border:2px solid var(--btn-br);
+  border-radius:6px;padding:7px 4px;cursor:pointer;letter-spacing:.02em;transition:transform .05s}
+.locbtn:hover{filter:brightness(1.18)}
+.locbtn:active{transform:translateY(1px)}
+.locbtn.on{background:var(--rp-gold);color:#080810;border-color:#eee5cd;font-weight:700}
+
+/* ===== 昼夜（端末の時計に連動／デモ用に時間帯も選べる） ===== */
+.game{transition:background .6s ease}
+.game[data-tod="dawn"]{background:linear-gradient(180deg,#a1a7b0,#697080 58%,#272438);--tod-tint:#e6c578}
+.game[data-tod="day"]{background:linear-gradient(180deg,#5379aa,#697080 58%,#272438);--tod-tint:#eee5cd}
+.game[data-tod="dusk"]{background:linear-gradient(180deg,#b85c4b,#815539 58%,#272438);--tod-tint:#b85c4b}
+.game[data-tod="night"]{background:linear-gradient(180deg,#141c2c,#141c2c 58%,#080810);--tod-tint:#141c2c}
+.world,.fieldrow{position:relative}
+.world::after,.fieldrow::after{content:"";position:absolute;inset:-2px;pointer-events:none;z-index:6;border-radius:7px;
+  background:var(--tod-tint,transparent);transition:background .6s ease}
+.game[data-tod="night"] .win{background:#e6c578;
+  box-shadow:0 0 0 2px #141c2c,0 0 7px 2px #e6c578,inset 0 2px 0 #eee5cd}
+.todctl{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:-4px 0 12px;font-size:.62rem;color:#a1a7b0}
+.todctl button{font-family:var(--fpix);font-size:.6rem;color:var(--rp-ink);background:var(--btn-bg);border:2px solid var(--btn-br);
+  border-radius:6px;padding:4px 9px;cursor:pointer;letter-spacing:.02em}
+.todctl button:hover{filter:brightness(1.18)}
+.todctl button.on{background:var(--rp-gold);color:#080810;border-color:#eee5cd;font-weight:700}
+
+/* ===== 解説（テーマ追従） ===== */
+section{margin-top:48px}
+.sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.sec-no{font-family:var(--fdisp);font-size:.82rem;font-weight:700;color:var(--brand);letter-spacing:.1em}
+h2{font-size:1.4rem}
+.sec-sub{color:var(--ink-2);font-size:.92rem;flex-basis:100%;max-width:70ch}
+.steps{display:grid;gap:12px}
+.step{display:grid;grid-template-columns:30px 1fr;gap:13px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm)}
+.step .n{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#eee5cd;font-family:var(--fdisp);font-weight:700;display:grid;place-items:center}
+.step h3{font-size:1rem;margin-bottom:4px}
+.step p{font-size:.88rem;color:var(--ink-2)}
+.step code{font-family:ui-monospace,monospace;font-size:.82em;background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.callout{margin-top:14px;background:color-mix(in srgb,var(--brand) 9%,var(--surface));border:1px solid color-mix(in srgb,var(--brand) 28%,var(--line));border-radius:12px;padding:15px 17px}
+.callout b{color:var(--ink)}
+.callout p{font-size:.88rem;color:var(--ink-2)}
+footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-3);font-size:.8rem}
+
+:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#eee5cd;color:#080810}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}
+
+:root{--fpix:"DotGothic16",Meiryo,monospace;--fbody:var(--fpix);--fdisp:var(--fpix);--bg:#141c2c;--ink:#eee5cd;--ink-2:#eee5cd;--surface:#080810;--line:#697080;--brand-ink:#e6c578;--rp-gold:#e6c578}
+body{background:#141c2c;color:#eee5cd;font-family:var(--fpix);background-image:repeating-linear-gradient(0deg,#eee5cd 0 1px,transparent 1px 4px)}
+.wrap{max-width:1160px;padding-top:28px}.eyebrow{color:#e6c578;letter-spacing:.22em}.title{color:#eee5cd;text-shadow:3px 3px #272438;letter-spacing:.12em}.lede{font-size:14px;max-width:72ch;color:#eee5cd}.pill-note{border-radius:0;background:#080810;border-color:#697080;color:#eee5cd;box-shadow:none}.themebtn{border-radius:0;background:#080810;color:white;border:2px solid white}.game{padding:20px;border-radius:0;border:3px solid #eee5cd;box-shadow:0 0 0 3px #080810,0 0 0 5px #697080,8px 10px 0 #0008;--cmd-bg:#080810;--sign-bg:#080810;--btn-bg:transparent;--btn-br:transparent;--b-wall:#a1a7b0;--b-wall2:#697080;--b-line:#314d39;--b-roof:#697080;--b-roof2:#314d39;--b-win:#a1a7b0;--b-door:#815539;--b-door2:#815539}
+.game[data-tod]{background:#272438;--tod-tint:transparent;background-image:linear-gradient(90deg,#141c2c 2px,transparent 2px),linear-gradient(#141c2c 2px,transparent 2px),repeating-linear-gradient(135deg,transparent 0 12px,#50754c 12px 14px,transparent 14px 24px);background-size:24px 24px,24px 24px,24px 24px}
+.game[data-tod="night"]{background-color:#272438}.game[data-tod="dusk"]{background-color:#314d39}.game[data-tod="dawn"]{background-color:#314d39}
+.roster-box,.cmd,.quest-message{background:#080810;border:2px solid #eee5cd;border-radius:2px;box-shadow:0 0 0 2px #080810,inset 0 0 0 3px #080810,inset 0 0 0 4px #8b6aa4;padding:16px 18px}
+.roster-box{margin:0 0 20px}.roster-ttl{color:#eee5cd;font-size:13px;letter-spacing:.15em;margin-bottom:12px}.roster{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 22px}.rrow{font-size:12px}.rloc{flex-basis:138px;color:#eee5cd}.rchip{border:0;border-radius:0;padding:0 4px;background:none;color:#eee5cd}.rchip.me{color:#e6c578;background:none}.rchip.me:before{content:'▶ ';font-size:9px}.hud{background:#080810;padding:10px 12px;margin-bottom:8px;border:2px solid #a1a7b0}.hud .now{font-size:14px}.hud .legend{font-size:11px;color:#eee5cd}.hud .legend i{border-radius:0}.todctl{background:#080810;margin:0 0 18px;padding:6px 10px;color:#a1a7b0}.todctl button{border:0;border-radius:0;background:none;font-size:12px}.todctl button.on{color:#e6c578;background:none}.todctl button.on:before{content:'▶ '}
+.world{gap:24px}.pbuild{border-radius:0;border-color:#272438;box-shadow:inset 0 0 0 2px #a1a7b0,0 6px #141c2c;margin-top:22px}.proof{height:22px;border-radius:0;background-image:repeating-linear-gradient(90deg,transparent 0 14px,#eee5cd 14px 16px)}.proof:before{height:8px;top:-8px}.pstory{border-top-width:4px}.proom{min-height:102px;padding:30px 8px 14px;background-color:#8b6aa4;background-image:repeating-linear-gradient(0deg,transparent 0 15px,#697080 15px 17px),repeating-linear-gradient(90deg,transparent 0 30px,#697080 30px 32px)}.bname,.rlabel,.zlabel{border-radius:0;background:#080810;color:white;border:2px solid #eee5cd;box-shadow:0 0 0 2px #080810;font-size:12px;line-height:1.6}.bname{top:-17px;font-size:14px;padding:0 20px}.rlabel{left:8px;top:6px;font-size:10px}.proom.mtg .rlabel{background:#080810;border-color:#eee5cd;color:#eee5cd}.proom.mtg{background-color:#697080}.win{top:9px;right:10px}.fieldrow{gap:14px;margin-top:24px}.zone{border-radius:0;min-height:142px;border:3px solid #141c2c;box-shadow:inset 0 0 0 2px #697080,0 4px #080810;padding-top:29px}.zone.field{background:#314d39}.zone.status{background:#815539;box-shadow:inset 0 0 0 2px #b85c4b,0 4px #141c2c}.zone.rest{background:#314d39;box-shadow:inset 0 0 0 2px #8b6aa4,0 4px #141c2c}.zlabel{top:7px;font-size:11px}.char{width:38px;gap:4px}.chars{gap:8px}.char .nm{font-size:11px;border-radius:0;background:#080810;color:white;max-width:64px;padding:0 3px}.char.you .nm{background:#080810;color:#e6c578}.spritewrap{image-rendering:pixelated;filter:drop-shadow(2px 2px 0 #0005)}.empty{color:#eee5cd;font-size:11px}.cmd{margin-top:20px}.cmd .q{font-size:15px;padding-bottom:10px;border-bottom:1px solid #50754c}.cmd .grp{font-size:12px;color:#a1a7b0;margin:12px 0 5px}.btns{grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:2px 8px}.locbtn{position:relative;text-align:left;padding:9px 8px 9px 25px;font-size:14px;border:0;border-radius:0;background:none;color:#eee5cd;min-height:40px}.locbtn:hover,.locbtn:focus-visible{background:#272438;filter:none;outline:1px solid #a1a7b0}.locbtn:hover:before,.locbtn:focus-visible:before,.locbtn.on:before{content:'▶';position:absolute;left:5px;font-size:12px}.locbtn.on{background:#272438;color:#e6c578;border:0}.quest-message{margin-top:18px;font-size:15px;line-height:1.9;min-height:82px}.quest-message:before{content:'＊ ';color:#e6c578}.quest-message span{color:#e6c578}section{display:none}footer{color:#a1a7b0;border-color:#50754c;font-size:12px;margin-top:28px}.step,.callout{border-radius:0}.top .themebtn{display:none}@media(max-width:800px){.roster{grid-template-columns:1fr}.wrap{padding-inline:12px}.game{padding:12px}.rloc{flex-basis:135px}}@media(max-width:420px){.fieldrow{gap:10px}.rrow{font-size:11px}.rloc{flex-basis:116px}.btns{grid-template-columns:repeat(2,minmax(0,1fr))}.locbtn{font-size:12px}.hud .legend{gap:6px}}
+
+
+/* Stone, timber and tilework */
+.world{padding:18px 12px 22px;background:#50754c;background-image:repeating-linear-gradient(0deg,transparent 0 29px,#314d39 29px 32px),repeating-linear-gradient(90deg,transparent 0 29px,#314d39 29px 32px);border:4px solid #141c2c;box-shadow:inset 0 0 0 3px #649a9a;gap:28px}
+.pbuild:first-child{--b-roof:#a1a7b0;--b-roof2:#697080;--b-line:#314d39;border-color:#272438;box-shadow:0 5px #272438,inset 0 0 0 2px #a1a7b0}.pbuild:first-child .proof{height:23px;background:#a1a7b0;border-bottom:5px solid #50754c;background-image:repeating-linear-gradient(90deg,transparent 0 26px,#314d39 26px 29px)}.pbuild:first-child .proof:before{height:14px;top:-14px;background:repeating-linear-gradient(90deg,#a1a7b0 0 16px,transparent 16px 27px)}
+.pbuild:first-child .proom{background-color:#8b6aa4;background-image:linear-gradient(90deg,#a1a7b0 1px,transparent 1px),linear-gradient(#272438 2px,transparent 2px);background-size:24px 24px,24px 24px;box-shadow:inset 0 3px #a1a7b0,inset 3px 0 #a1a7b0}
+.pbuild:nth-child(2){--b-line:#314d39;--b-roof:#b85c4b;--b-roof2:#815539;border-color:#272438}.pbuild:nth-child(2) .proof{height:25px;background:repeating-linear-gradient(0deg,#b85c4b 0 6px,#815539 6px 9px);border-top:3px solid #b85c4b}.pbuild:nth-child(2) .proom{background-color:#b85c4b;background-image:repeating-linear-gradient(0deg,transparent 0 14px,#815539 14px 17px),repeating-linear-gradient(90deg,transparent 0 34px,#e2b888 34px 36px);box-shadow:inset 0 4px #314d39,inset 3px 0 #c8b888}
+.proom{min-height:122px;padding-top:38px;padding-bottom:18px}.proom.mtg:after{width:58px;height:18px;bottom:11px;border-radius:0;background:repeating-linear-gradient(90deg,#815539 0 17px,#815539 17px 19px);box-shadow:0 0 0 2px #272438,inset 0 3px #c8b888,0 6px #314d39}.proom.mtg .chars{position:relative;z-index:2}.pentrance .pdoor{width:25px;height:37px;border-radius:0;background:repeating-linear-gradient(90deg,#314d39 0 6px,#815539 6px 8px);border:3px solid #272438;box-shadow:0 0 0 3px #c8b888}.win{width:16px;height:19px;background:#272438!important;border:2px solid #c8b888;box-shadow:0 0 0 2px #272438!important}.win:after{content:'';position:absolute;left:5px;top:0;height:15px;width:2px;background:#c8b888}.game[data-tod=night] .win{background:#e6c578!important}
+.room-prop{position:absolute;bottom:7px;right:8px;pointer-events:none;z-index:0;image-rendering:pixelated}.room-prop svg{width:28px;height:32px}.char{border:0;padding:0;background:none;font:inherit;cursor:pointer;min-height:47px;position:relative}.char:focus-visible{outline:2px solid #e6c578;outline-offset:4px}.char:hover .nm{background:#eee5cd;color:#080810}.char:hover .spritewrap{filter:drop-shadow(0 0 3px #e6c578)}.char.you .nm{background:#080810;color:#e6c578}.char .spritewrap{width:32px!important;height:36px!important}.char .spritewrap .dot{transform:translateX(4px)}.ymark{top:-13px!important}.zone .zland{margin:8px 0 2px}.zone{min-height:165px;background-image:repeating-linear-gradient(90deg,transparent 0 22px,#eee5cd 22px 24px)!important}.world-caption{grid-column:1/-1;color:#eee5cd;text-shadow:2px 2px #141c2c;font-size:12px;text-align:center;letter-spacing:.14em;margin-top:2px}.map-heading{font-size:13px;letter-spacing:.2em;color:#e6c578;background:#080810;display:inline-block;padding:5px 12px;border:2px solid #eee5cd;margin:4px 0 10px}.status-dialog{background:#080810;color:white;border:2px solid white;border-radius:0;box-shadow:0 0 0 3px #080810,0 0 0 5px #697080,8px 8px #0008;width:min(380px,calc(100vw - 40px));padding:24px;font-family:var(--fpix)}.status-dialog::backdrop{background:#080810}.status-dialog h2{font-size:20px;border-bottom:1px solid #697080;padding-bottom:12px}.status-dialog dl{display:grid;grid-template-columns:90px 1fr;gap:12px 8px;font-size:15px}.status-dialog dt{color:#a1a7b0}.status-dialog dd{margin:0}.status-dialog button{font:inherit;color:white;background:none;border:1px solid #697080;padding:8px 18px;cursor:pointer;float:right}.status-dialog button:hover{background:#272438}.map-help{font-size:12px;color:#eee5cd;margin-top:12px}.char.you.walking .dot{animation:classic-step .24s steps(2,end) infinite}@keyframes classic-step{50%{transform:translate(4px,-3px)}}@media(prefers-reduced-motion:reduce){.char.you.walking .dot{animation:none}}@media(max-width:700px){.world{padding:14px 8px 18px;gap:30px}.proom{min-height:115px}.world-caption{font-size:10px}}
+
+
+/* Original pixel scenery and classic command presentation */
+.game{position:relative}.zone{overflow:visible}.zone:after{content:'';position:absolute;left:0;right:0;bottom:0;height:16px;background:repeating-linear-gradient(90deg,#272438 0 4px,#50754c 4px 8px,#314d39 8px 16px);pointer-events:none}.zone[data-zone=shuccho]{background-color:#50754c!important;background-image:linear-gradient(90deg,transparent 0 39%,#c8b888 39% 61%,transparent 61%)!important}.zone[data-zone=gaishutsu]{background-color:#50754c!important}.zone[data-zone=zaitaku]{background-color:#50754c!important}.zone[data-zone=rest]{background-color:#314d39!important}.zone[data-zone=ibaraki]{background-color:#697080!important}.zone[data-zone=daikoku]{background-color:#697080!important}.zone[data-zone=daikoku]:after{height:17px;background:repeating-linear-gradient(0deg,#a1a7b0 0 3px,#5379aa 3px 7px,#314d39 7px 10px)}.zone .zland{min-height:50px;display:flex;align-items:flex-end;justify-content:center}.zone .chars{padding-bottom:10px}.sign-sub{font-size:10px;color:#eee5cd;position:relative;z-index:1;letter-spacing:.1em}.quest-message{position:relative;padding-right:32px}.quest-message:after{content:'▼';position:absolute;right:14px;bottom:9px;font-size:12px;animation:prompt-blink 1.2s steps(2,end) infinite}@keyframes prompt-blink{50%{opacity:0}}.game[data-tod=night] .room-prop{filter:brightness(.8)}.sound-control{font:inherit;font-size:11px;color:#eee5cd;border:1px solid #8b6aa4;background:#080810;padding:6px 10px;cursor:pointer;margin-left:auto}.sound-control[aria-pressed=true]{color:#e6c578}.todctl .sound-control{border:1px solid #8b6aa4}.classic-summary{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;background:#080810;border:2px solid white;padding:10px 14px;margin:0 0 14px;box-shadow:inset 0 0 0 2px #080810,inset 0 0 0 3px #697080}.classic-summary b{font-weight:normal;color:#e6c578}.locbtn.on:before{animation:prompt-blink 1.2s steps(2,end) infinite}.map-heading{letter-spacing:.12em}.world{background-image:linear-gradient(90deg,transparent 0 47%,#c8b888 47% 53%,transparent 53%),repeating-linear-gradient(0deg,transparent 0 29px,#314d39 29px 32px),repeating-linear-gradient(90deg,transparent 0 29px,#314d39 29px 32px)}.walkclone{transition:none}.status-dialog h2:before{content:'＊ ';color:#e6c578}.roster-ttl{display:flex;justify-content:space-between;align-items:center;gap:8px}.roster-toggle{font:inherit;font-size:11px;background:none;border:1px solid #a1a7b0;color:#eee5cd;cursor:pointer;padding:3px 7px}.cmd .grp{color:#e2b888}.pixel-land{shape-rendering:crispEdges;image-rendering:pixelated;width:96px;height:64px;overflow:visible}.scene-star{color:#e6c578;position:absolute;top:30px;right:15px;font-size:12px;pointer-events:none}.game:not([data-tod=night]) .scene-star{display:none}@media(prefers-reduced-motion:reduce){.quest-message:after,.locbtn.on:before{animation:none}}
+
+
+/* Reserve one grid column for every command cursor. */
+.locbtn{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:center;column-gap:8px;padding:9px 10px;text-align:left}
+.locbtn:before{content:'';position:static;grid-column:1;grid-row:1;width:18px;font-size:12px;line-height:1;text-align:center;animation:none}
+.locbtn:hover:before,.locbtn:focus-visible:before,.locbtn.on:before{content:'▶';position:static;left:auto;font-size:12px;animation:none}
+.locbtn .command-text{grid-column:2;grid-row:1;min-width:0;overflow-wrap:anywhere}
+/* Keep the player's marker in its own row above the full sprite. */
+.char.you{padding-top:0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.char.you .ymark{position:static!important;top:auto!important;left:auto;transform:none;display:block;flex:0 0 14px;height:14px;line-height:12px;font-size:12px;margin:0 0 2px;animation:none}
+.char.you .spritewrap{flex-shrink:0}
+.char.you.walking .dot{animation:gentle-step .38s steps(2,end) infinite}
+@keyframes gentle-step{0%,100%{transform:translate(4px,0)}50%{transform:translate(4px,-2px)}}
+@media(prefers-reduced-motion:reduce){.char.you.walking .dot{animation:none}}
+
+
+/* Idle remains still; movement switches between two genuinely different leg poses. */
+.walk-frame{display:none;position:absolute;left:0;top:0;width:24px;height:32px;pointer-events:none}
+.char.you.walking>.spritewrap>.dot{visibility:hidden;animation:none}
+.char.you.walking>.spritewrap>.walk-frame{display:block;animation:foot-poses .48s steps(1,end) infinite}
+.char.you.walking>.spritewrap>.walk-frame-1{animation-delay:-.24s}
+.char.you.walking .walk-frame .dot{visibility:visible;animation:none;transform:translateX(4px)}
+@keyframes foot-poses{0%{opacity:1}50%,100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.char.you.walking>.spritewrap>.dot{visibility:visible}.char.you.walking>.spritewrap>.walk-frame{display:none;animation:none}}
+
+
+.char.you.walking>.spritewrap>.walk-frame{animation:four-footfalls .8s steps(1,end) infinite}
+.char.you.walking>.spritewrap>.walk-frame-0{animation-delay:0s}
+.char.you.walking>.spritewrap>.walk-frame-1{animation-delay:-.6s}
+.char.you.walking>.spritewrap>.walk-frame-2{animation-delay:-.4s}
+.char.you.walking>.spritewrap>.walk-frame-3{animation-delay:-.2s}
+@keyframes four-footfalls{0%{opacity:1}25%,100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.char.you.walking>.spritewrap>.walk-frame{display:none;animation:none}}
+
+:root{--pixel:2px;--tile:24px;--rp-gold:#e6c578;--rp-ink:#eee5cd}
+/* One logical pixel = 2 CSS pixels across people, props, stairs and scenery. */
+body{background:#141c2c;color:#eee5cd;background-image:none}
+.travel-surface{position:relative;isolation:isolate;margin-top:12px}
+.travel-roads{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:visible;shape-rendering:crispEdges}
+.travel-road{fill:none;stroke:#c8b888;stroke-width:20;stroke-linecap:square;stroke-linejoin:miter;paint-order:stroke}
+.world{position:relative;gap:40px 28px;padding:26px 46px 48px 14px;background:#314d39!important;background-image:none!important;border:4px solid #272438;box-shadow:inset 0 0 0 2px #50754c}
+.pbuild{min-width:0;margin-top:18px;border-width:2px;box-shadow:0 4px #272438!important;border-color:#272438!important}
+.pstory{position:relative;display:flex;padding-right:32px;padding-bottom:32px;border-top:4px solid #272438;align-items:stretch}
+.proom,.pentrance .proom{position:relative;min-width:0;min-height:134px;padding:42px 6px 32px!important;border-bottom:4px solid #272438;overflow:visible}
+.proom+.proom{border-left:2px solid #272438}
+.pbuild:first-child .proom{background-color:#a1a7b0;background-image:linear-gradient(#697080 2px,transparent 2px),linear-gradient(90deg,#697080 2px,transparent 2px);background-size:24px 24px;box-shadow:none}
+.pbuild:nth-child(2) .proom{background-color:#c8b888;background-image:repeating-linear-gradient(0deg,transparent 0 14px,#815539 14px 16px);box-shadow:none}
+.proom .chars{position:relative;z-index:4;gap:8px 4px;align-items:flex-end;min-height:56px;padding:0}
+.proom .char{flex-shrink:0}.proom .rlabel{font-size:10px;top:6px;left:6px;max-width:calc(100% - 12px);padding:0 3px;white-space:normal;line-height:1.4;z-index:5}
+.proom .win{top:28px;right:6px;width:12px;height:14px;border:2px solid #c8b888;background:#5379aa!important;box-shadow:0 0 0 2px #272438!important}
+.proom .win:after{left:3px;height:10px;background:#eee5cd}
+.game[data-tod=night] .win{background:#e6c578!important;box-shadow:0 0 0 2px #272438!important}
+.pbuild:first-child .proof{background:#a1a7b0;border-color:#697080;background-image:repeating-linear-gradient(90deg,transparent 0 22px,#697080 22px 24px)}
+.pbuild:first-child .proof:before{background:repeating-linear-gradient(90deg,#a1a7b0 0 16px,transparent 16px 24px)}
+.pbuild:nth-child(2) .proof{background:repeating-linear-gradient(0deg,#b85c4b 0 6px,#815539 6px 8px);border-color:#c8b888}
+.floor-corridor{position:absolute;bottom:0;left:0;right:32px;height:32px;z-index:1;background-color:#c8b888;background-image:linear-gradient(#815539 2px,transparent 2px),linear-gradient(90deg,#815539 2px,transparent 2px);background-size:24px 16px;border-top:2px solid #272438;box-sizing:border-box}
+.stair-shaft{position:absolute;right:0;top:0;bottom:0;width:32px;z-index:3;border-left:2px solid #272438;background:repeating-linear-gradient(0deg,#697080 0 6px,#a1a7b0 6px 8px);display:flex;align-items:flex-end;justify-content:center}
+.stair-shaft svg{width:24px;height:32px;flex:none;image-rendering:pixelated}
+.room-door{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);width:24px;height:12px;background:#c8b888;border-left:2px solid #815539;border-right:2px solid #815539;z-index:3}
+.pentrance .pdoor{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);width:28px;height:12px;border:0;border-left:2px solid #815539;border-right:2px solid #815539;border-radius:0;background:#c8b888;box-shadow:none;z-index:4}
+.pentrance .pdoor:after{display:none}.proom.mtg:after{width:40px;height:12px;bottom:16px;background:repeating-linear-gradient(90deg,#815539 0 12px,#c8b888 12px 14px);border-radius:0;box-shadow:0 0 0 2px #272438}
+.room-prop{bottom:16px;right:6px;z-index:1;filter:none!important}.room-prop svg{width:28px;height:32px}
+.fieldrow{margin-top:20px;padding:42px 42px 36px 8px;gap:36px 16px;background:#314d39;border:4px solid #272438;box-shadow:inset 0 0 0 2px #50754c}
+.fieldrow>.zone{position:relative;padding:30px 6px 38px;min-width:0;min-height:184px;background-image:none!important;border:2px solid #272438;box-shadow:inset 0 0 0 2px #50754c,0 4px #272438}
+.fieldrow>.zone .chars{padding:0;gap:8px 4px;z-index:4}.fieldrow>.zone .zland{position:relative;z-index:3;min-height:64px;margin-top:6px;line-height:0}
+.fieldrow>.zone .zlabel{z-index:5}.field-gate{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:24px;height:12px;background:#c8b888;border-left:2px solid #815539;border-right:2px solid #815539;z-index:4}
+.fieldrow>.zone:after{background:repeating-linear-gradient(90deg,#314d39 0 4px,#50754c 4px 8px,#314d39 8px 16px);height:12px;z-index:1}
+.fieldrow>.zone[data-zone=daikoku]:after{height:12px;background:repeating-linear-gradient(0deg,#649a9a 0 4px,#5379aa 4px 8px,#141c2c 8px 12px)}
+.arrival-slot{display:block;flex-shrink:0;visibility:hidden}
+.char .spritewrap{position:relative;width:32px!important;height:36px!important;filter:none;image-rendering:pixelated}
+.direction-sprite{position:absolute;left:0;top:0;width:24px;height:32px;display:none}
+.char:not([data-facing]) .direction-down,.char[data-facing=down] .direction-down,.char[data-facing=up] .direction-up,.char[data-facing=left] .direction-side,.char[data-facing=right] .direction-side{display:block}
+.char[data-facing=left] .direction-side{transform:translateX(32px) scaleX(-1);transform-origin:0 0}
+.pose-frame{position:absolute;left:0;top:0;width:24px;height:32px;display:none}
+.pose-frame-1{display:block}
+.char.walking .pose-frame{display:block;animation:directional-gait .8s steps(1,end) infinite}
+.char.walking .pose-frame-0{animation-delay:0s}.char.walking .pose-frame-1{animation-delay:-.6s}.char.walking .pose-frame-2{animation-delay:-.4s}.char.walking .pose-frame-3{animation-delay:-.2s}
+.char.you.walking .dot{animation:none!important;transform:translateX(4px);visibility:visible}
+.char.walking[data-terrain=stairs] .pose-frame{animation-duration:.96s}.char.walking[data-terrain=stairs] .pose-frame-1{animation-delay:-.72s}.char.walking[data-terrain=stairs] .pose-frame-2{animation-delay:-.48s}.char.walking[data-terrain=stairs] .pose-frame-3{animation-delay:-.24s}
+@keyframes directional-gait{0%{opacity:1}25%,100%{opacity:0}}
+.pixel-land{width:96px;height:64px;shape-rendering:crispEdges;image-rendering:pixelated;filter:none}
+.char .nm{color:#eee5cd;background:#080810}.char.you .nm,.char.you .ymark{color:#e6c578}.char.you .ymark{background:none}
+@media(max-width:700px){.world{padding:26px 42px 44px 8px;gap:40px}.fieldrow{padding-left:6px;padding-right:38px;gap:36px 12px}.proom,.pentrance .proom{padding-left:4px!important;padding-right:4px!important}.proom .rlabel{font-size:9px;left:4px;max-width:calc(100% - 8px)}.proom .chars{gap:8px 2px}.bname{font-size:12px;padding-inline:12px}}
+@media(max-width:390px){.fieldrow{column-gap:10px}.char{width:34px}.proom .char{width:32px}.fieldrow>.zone{padding-inline:4px}.fieldrow>.zone .zlabel{font-size:10px;padding-inline:4px}}
+@media(prefers-reduced-motion:reduce){.char.walking .pose-frame{display:none;animation:none}.char.walking .pose-frame-1{display:block}}
+
+</style><title>在席マップ</title><style id="calm-surfaces">/* Calm surfaces: retain floor boundaries and stair symbols, remove dense texture. */
+.game[data-tod]{background-image:none!important}
+.pbuild:first-child .proom{background:#697080!important;box-shadow:none}
+.pbuild:nth-child(2) .proom{background:#815539!important;box-shadow:none}
+.floor-corridor{background:#c8b888;background-image:none;border-top:2px solid #272438}
+.stair-shaft{background:#697080;background-image:none}
+.pbuild:first-child .proof{background:#697080;background-image:none}
+.pbuild:nth-child(2) .proof{background:#b85c4b;background-image:none}
+.proom.mtg:after{background:#c8b888;background-image:none;box-shadow:0 0 0 2px #272438}
+
+.pentrance .pdoor{left:calc((100% - 32px)/2)}
+</style><style id="district-roads">
+/* Leave a full 20px road plus clearance between adjacent district walls. */
+.fieldrow{padding-left:24px;padding-right:24px;column-gap:28px;row-gap:36px}
+@media(max-width:700px){.fieldrow{padding-left:24px;padding-right:24px;column-gap:24px;row-gap:36px}}
+@media(max-width:390px){.fieldrow{column-gap:24px}.fieldrow>.zone .zlabel{font-size:9px;padding-inline:2px}.fieldrow>.zone .zland{overflow:hidden;width:100%}.pixel-land{flex-shrink:0}}
+</style><style>
+@media(min-width:701px){
+  .world{align-items:end}
+  .world .pbuild .pentrance::after{
+    content:"";position:absolute;bottom:6px;width:8px;height:20px;
+    background:#c8b888;z-index:5;pointer-events:none
+  }
+  .world .pbuild:first-child .pentrance::after{right:-2px}
+  .world .pbuild:nth-child(2) .pentrance::after{left:-2px}
+}
+</style><style>
+@media(min-width:701px){
+  /* Continue the ground-floor corridor through the stair landing. */
+  .world .pbuild:first-child .pentrance .stair-shaft{
+    border-left-color:transparent;
+    background:linear-gradient(to top,#c8b888 0 32px,#697080 32px);
+  }
+  .world .pbuild:first-child .pentrance .stair-shaft svg{margin-bottom:32px}
+  .world .pbuild .pentrance::after{
+    bottom:4px;height:24px;width:10px;
+    box-shadow:0 -2px #272438,0 2px #272438;
+  }
+  .travel-link{
+    stroke-width:24px;stroke-linecap:butt;
+    filter:drop-shadow(0 -2px 0 #272438) drop-shadow(0 2px 0 #272438);
+  }
+}
+</style><style id="touch-layout">
+.locbtn{min-height:44px;min-width:0;touch-action:manipulation}
+.btns{row-gap:6px}
+.todctl button,.roster-toggle,.status-dialog button{min-height:44px;touch-action:manipulation}
+.status-dialog{max-height:calc(100dvh - 32px);overflow:auto}
+.fieldrow>.zone .zland{width:100%;min-width:0}
+.fieldrow>.zone .pixel-land{max-width:100%;height:auto;max-height:64px}
+@media(max-width:420px){
+  .locbtn{grid-template-columns:12px minmax(0,1fr);column-gap:4px;padding-inline:6px}
+  .locbtn:before{width:12px}
+  .roster-ttl{flex-wrap:wrap}
+}
+</style><style>
+.mobile-picker{display:none}
+#roster[hidden]{display:none}
+@media (max-width:700px) and (orientation:portrait){
+  .mobile-picker{display:block;position:sticky;top:0;z-index:20;background:#080810;padding:5px 0;margin-bottom:6px}
+  .mobile-picker select{width:100%;min-height:44px;font:inherit;font-size:16px;padding:6px 12px;color:#eee5cd;background:#272438;border:2px solid #c8b888;border-radius:4px}
+  .game .cmd{display:none}
+  .game .roster-box{margin-bottom:8px;padding:6px 10px}
+  .world{row-gap:26px;padding-top:16px;padding-bottom:34px}
+  .fieldrow{row-gap:28px;margin-top:12px}
+  .fieldrow>.zone{min-height:156px;padding-bottom:26px}
+}
+</style><style id="portrait-layout">
+@media (max-width:700px) and (orientation:portrait){
+  .wrap{padding:8px 8px 16px}
+  .top .eyebrow,.top .lede,.top .pill-note{display:none}
+  .top .title{font-size:18px;margin:0 0 6px;line-height:1.35}
+  .game{display:flex;flex-direction:column;padding:6px;min-width:0}
+  .mobile-picker{order:-2;padding:4px 6px 6px;border-bottom:1px solid #c8b888}
+  .mobile-current{font-size:13px;line-height:1.4;padding:2px 0 5px;overflow-wrap:anywhere}
+  .mobile-current strong{color:#e6c578}
+  .travel-surface{order:-1}
+  .game>.roster-box,.game>.hud,.game>.todctl{margin-top:8px}
+  .game>.classic-summary{margin-top:8px;margin-bottom:0}
+}
+</style><style id="portrait-map-window">
+.map-viewport{display:contents}
+@media (max-width:700px) and (orientation:portrait){
+  .map-viewport{
+    display:block;order:-1;min-width:0;height:clamp(220px,58dvh,500px);
+    overflow:auto;overflow-anchor:none;scroll-behavior:auto;
+    overscroll-behavior:contain;border:1px solid #697080;
+  }
+  .map-viewport .travel-surface{margin-top:0}
+}
+</style><style id="halo-embed">
+/* HALO にはめ込む。上の題名・説明と、時間の手動切替（デモ用）は出さない（昼夜は時計で自動のまま） */
+.top,section,footer,.todctl{display:none!important}
+/* iframe の中では地図を中でスクロールさせず、高さを親に合わせてもらう */
+.map-viewport{display:contents!important}
+body{margin:0}
+.wrap{max-width:none;padding:0!important}
+.game{margin-top:0}
+/* スマホの縦向きでも、誰がどこにいるか（人数・一覧）をマップより上に出す */
+@media (max-width:700px) and (orientation:portrait){
+  .game>.classic-summary{order:-6}
+  .game>.roster-box{order:-5}
+  .game>.hud{order:-4}
+  .game>.mobile-picker{order:-3}
+}
+</style></head><body>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+JP:wght@400;600;700&display=swap">
+
+
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <div class="eyebrow">OFFICE ADVENTURE · 在席マップ</div>
+      <h1 class="title">ぼうけんの 在席ボード</h1>
+      <p class="lede">「今いる場所」をボタンで選ぶと、自分のキャラがマップ上を移動。だれがどこにいるか一目でわかる在席ボードの試作です。下の場所ボタンを押して動かせます。昼夜は端末の時計に連動します。</p>
+      <span class="pill-note">修正版 v17 ／ 屋根付きの渡り廊下とタップ領域を調整</span>
+    </div>
+    <button class="themebtn" id="tbtn" type="button">◐ 表示切替</button>
+  </div>
+
+  <!-- ゲーム -->
+  <div class="game">
+    <div class="roster-box">
+      <div class="roster-ttl">■ いま どこに だれが いる</div>
+      <div id="roster" class="roster"></div>
+    </div>
+    <div class="hud">
+      <div class="now">げんざいち： <b id="now-label">本社 1階</b> <span id="tod-label" style="margin-left:10px;color:#cdd6f5"></span></div>
+      <div class="legend">
+        <span><i style="background:#5379aa"></i>製造</span>
+        <span><i style="background:#b85c4b"></i>営業</span>
+        <span><i style="background:#649a9a"></i>総務</span>
+        <span><i style="background:#8b6aa4"></i>開発</span>
+        <span><i style="background:#e6c578"></i>あなた</span>
+      </div>
+    </div>
+    <div class="todctl">じかん：
+      <button type="button" data-tod="auto" class="on">実時刻</button>
+      <button type="button" data-tod="dawn">朝</button>
+      <button type="button" data-tod="day">昼</button>
+      <button type="button" data-tod="dusk">夕</button>
+      <button type="button" data-tod="night">夜</button>
+    </div>
+
+    <div class="world">
+      <div class="pbuild">
+        <span class="bname">本社</span>
+        <div class="proof"></div>
+        <div class="pstory">
+          <div class="proom" data-zone="honsha-3f-s"><span class="rlabel">3階南</span><span class="win"></span><div class="chars"></div></div>
+          <div class="proom" data-zone="honsha-3f-n"><span class="rlabel">3階北</span><span class="win"></span><div class="chars"></div></div>
+        </div>
+        <div class="pstory">
+          <div class="proom" data-zone="honsha-2f-s"><span class="rlabel">2階南</span><span class="win"></span><div class="chars"></div></div>
+          <div class="proom" data-zone="honsha-2f-n"><span class="rlabel">2階北</span><span class="win"></span><div class="chars"></div></div>
+        </div>
+        <div class="pstory pentrance">
+          <span class="pdoor"></span>
+          <div class="proom" data-zone="honsha-1f"><span class="rlabel">1階</span><span class="win"></span><div class="chars"></div></div>
+          <div class="proom" data-zone="honsha-soko"><span class="rlabel">倉庫</span><span class="win"></span><div class="chars"></div></div>
+        </div>
+      </div>
+
+      <div class="pbuild">
+        <span class="bname">新棟</span>
+        <div class="proof"></div>
+        <div class="pstory">
+          <div class="proom mtg" data-zone="shinto-3f-mtg1"><span class="rlabel">3階 第1会議室（東）</span><span class="win"></span><div class="chars"></div></div>
+          <div class="proom mtg" data-zone="shinto-3f-mtg2"><span class="rlabel">3階 第2会議室（中央）</span><span class="win"></span><div class="chars"></div></div>
+          <div class="proom" data-zone="shinto-senmu"><span class="rlabel">3階 専務室</span><span class="win"></span><div class="chars"></div></div>
+        </div>
+        <div class="pstory">
+          <div class="proom mtg" data-zone="shinto-2f-mtg"><span class="rlabel">2階 会議室</span><span class="win"></span><div class="chars"></div></div>
+          <div class="proom" data-zone="shinto-2f"><span class="rlabel">2階</span><span class="win"></span><div class="chars"></div></div>
+        </div>
+        <div class="pstory pentrance"><span class="pdoor"></span><div class="proom" data-zone="shinto-1f"><span class="rlabel">1階</span><span class="win"></span><div class="chars"></div></div></div>
+      </div>
+    </div>
+
+    <div class="fieldrow">
+      <div class="zone field" data-zone="ibaraki"><span class="zlabel">茨城工場</span><div class="chars"></div></div>
+      <div class="zone field" data-zone="daikoku"><span class="zlabel">大黒</span><div class="chars"></div></div>
+      <div class="zone status" data-zone="shuccho"><span class="zlabel">出張中</span><div class="chars"></div></div>
+      <div class="zone status" data-zone="gaishutsu"><span class="zlabel">外出中</span><div class="chars"></div></div>
+      <div class="zone status" data-zone="zaitaku"><span class="zlabel">在宅</span><div class="chars"></div></div>
+      <div class="zone rest" data-zone="rest"><span class="zlabel">休暇/休み</span><div class="chars"></div></div>
+    </div>
+
+    <div class="cmd">
+      <div class="q">▶ いま どこにいる？　<b id="you-name">あなた</b> のいばしょを えらぶ</div>
+      <div class="grp">■ 本社</div>
+      <div class="btns" id="g-honsha"></div>
+      <div class="grp">■ 新棟</div>
+      <div class="btns" id="g-shinto"></div>
+      <div class="grp">■ そのほか</div>
+      <div class="btns" id="g-other"></div>
+    </div>
+
+  </div>
+
+  <!-- 作り方 -->
+  <section>
+    <div class="sec-head">
+      <span class="sec-no">作り方</span><h2>どう作れるか</h2>
+      <p class="sec-sub">今の在席ボード（種別から在席状況を出す仕組み）に、「現在地」という手動レイヤーを1枚足すだけで実現できます。既存のステータス判定はそのまま活かせます。</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><div><h3>場所マスタを決める（固定でOK）</h3><p>本社：1階／2階南／2階北／3階南／3階北、新棟：1階／2階／3階、茨城工場、大黒、出張中、外出中、在宅。コード＋表示名の一覧をアプリ内に定義します。</p></div></div>
+      <div class="step"><div class="n">2</div><div><h3>「今いる場所」ボタンの保存先</h3><p>当日限りの現在地なので、既存の「休み」設定（<code>daily_rest_&lt;日付&gt;</code>）と同じ方式で <code>location_&lt;日付&gt;</code> に <code>{社員番号: 場所コード}</code> を保存するのが手軽（翌日自動リセット・古い分は掃除）。従業員名簿にフィールド追加案もありますが、毎日のリセットが要るので非推奨。</p></div></div>
+      <div class="step"><div class="n">3</div><div><h3>自動反映と手動の優先</h3><p>出張／外出／在宅／休暇は<strong>スケジュールの予定から自動</strong>で場所を決定。手動の「今いる場所」ボタンはそれを<strong>上書き</strong>（例：予定上は在席でも「今は本社3階北」）。予定がなく手動も未設定なら「在席（場所未設定）」。</p></div></div>
+      <div class="step"><div class="n">4</div><div><h3>マップ表示＝ゾーンにキャラを配置</h3><p>各ゾーンの箱に、その場所の人をトークンとして並べるだけ。部署で色分け＋名前。自分は金色＋▼で強調。人数が多いゾーンはアイコンの下に段を増やして全員表示（マスの高さが自動で伸びる）。</p></div></div>
+      <div class="step"><div class="n">5</div><div><h3>一覧表示との切替を残す</h3><p>マップ表示／従来の一覧表示をトグルで切替可能に。探しやすさ重視の人や、タブレット（Redmi Pad SE）の縦横でも崩れないよう、一覧は残しておくのが安全。</p></div></div>
+    </div>
+
+    <div class="callout">
+      <p><b>データ量・負荷：</b>現在地は1人あたり「場所コード1つ」だけなので非常に軽量。50人規模なら <code>location_&lt;日付&gt;</code> 1プロパティに全員分が収まり、在席ボードを開くとき一緒に取得すれば追加のAPI往復もほぼ不要です。</p>
+    </div>
+
+    <div class="callout">
+      <p><b>会議室×予定の連動（構想・未実装）：</b>予定に「場所＝会議室コード」を構造化して持たせれば、進行中の会議（開始≦現在≦終了）の人を自動でその会議室へ表示できます。優先度は <code>手動の今いる場所 ＞ 会議中の会議室 ＞ 外出等の自動 ＞ 在席</code>。前提は、会議室をフリーテキストでなく<strong>会議室マスタから選ぶ</strong>形にすること（紐付けに必要）。会議室名が決まったら A／B を正式名称に差し替えます。</p>
+    </div>
+  </section>
+
+  <footer>クラシックRPG風 在席ボード · 動作確認用デモ。現在地の変更は共有・保存されません。</footer>
+
+</div>
+
+<script>
+(function(){
+  var message=document.createElement('div'); message.className='quest-message'; message.setAttribute('role','status'); message.setAttribute('aria-live','polite'); message.textContent='なかまたちは それぞれの ばしょで かつやくしている。'; document.querySelector('.cmd').after(message);
+  // テーマ切替
+  var b=document.getElementById('tbtn');
+  function cur(){var a=document.documentElement.getAttribute('data-theme');if(a)return a;return (window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light';}
+  b.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('halo_rpg_theme',n);}catch(e){}});
+  try{var s=localStorage.getItem('halo_rpg_theme');if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
+
+  // ===== ドット絵（box-shadow でピクセル描画） =====
+  function makeSprite(rows,pal,px){
+    var maxw=0; rows.forEach(function(r){ if(r.length>maxw) maxw=r.length; });
+    var sh=[];
+    rows.forEach(function(row,y){ for(var x=0;x<row.length;x++){ var c=row[x]; if(c==='.'||c===' ')continue; var col=pal[c]; if(!col)continue; sh.push((x*px)+'px '+(y*px)+'px 0 '+col); } });
+    var wrap=document.createElement('span'); wrap.className='spritewrap';
+    wrap.style.width=(maxw*px)+'px'; wrap.style.height=(rows.length*px)+'px';
+    var dot=document.createElement('span'); dot.className='dot';
+    dot.style.width=px+'px'; dot.style.height=px+'px'; dot.style.boxShadow=sh.join(',');
+    wrap.appendChild(dot); return wrap;
+  }
+  // 人物（T=服の色＝部署色）
+  var HERO=[
+    "....oooo....","...ohhhho...","..ohhhhhho..","..ohssssho..","..osseesso..",
+    "..osssssso..","...oTTTTo...","..sTTTTTTs..","..oTTTTTTo..","..oTTTTTTo..",
+    "..soTTTTos..","...obbbbo...","...ob..bo..."];
+  function heroPal(t){ return {o:'#20203a',h:'#5b3f24',s:'#f0c5a0',e:'#20203a',T:t,b:'#33241a'}; }
+  function makeHero(color){
+  var roles={"warrior":["....YYYY....","...YyyyyY...","..YyYYYYyY..","..YYssssYY..","...seess....","...sssss....","..WWBBBBWW..",".sWBbbbbBWs.",".sWBBBBBBWs.","..WBBYYBBW..","..WBBBBBBW..","...BBBBBB...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."],"traveler":["....hhhh....","...hhhhhh...","..HHHHHHHH..","...hssssh...","...seess....","...sssss....","...TTTTTT...","..TTTyyTTT..",".sTTTyTTTTs.",".sTTTyTTTTs.","..TTTyyyyT..","...TTTTTT...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."],"cleric":["....WWWW....","...WWWWWW...","..WWWyyWWW..","..WWWyyWWW..","..WWssssWW..","...seess....","...sssss....","..WWTTTTWW..",".sWWTyyTWWs.",".sWWTTTTWWs.","..WWTTTTWW..","..WWTTTTWW..","..WWTTTTWW..","...WWWWWW...","...oo..oo...","..ooo..ooo.."],"mage":[".....TT.....","....TTTT....","...TTTyTT...","...TTTTTT...","..TTTTTTTT..",".TTTTTTTTTT.","...hssssh...","...seess....","...sssss....","..TTTyyTTT..",".sTTTTTTTTs.",".sTTTTTTTTs.","..TTTTTTTT..","..TTTTTTTT..","...oo..oo...","..ooo..ooo.."],"hero":["....YYYY....","...YbYYbY...","..hYYYYYYh..","..hhsssshh..","...seess....","...sssss....","..WWTTTTWW..",".sWTTyyTTWs.",".sWTTTTTTWs.","..WTTTTTTW..","..WTTyyTTW..","...TTTTTT...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."]};
+  var original=color.toLowerCase(),role=original==='#ffd23f'?'hero':original==='#3b82c4'?'warrior':original==='#e08a2e'?'traveler':original==='#2fa37a'?'cleric':'mage';
+  var clothes={'#ffd23f':'#e6c578','#3b82c4':'#5379aa','#e08a2e':'#b85c4b','#2fa37a':'#50754c','#7c6bd6':'#8b6aa4','#e268a0':'#8b6aa4','#22b0bf':'#649a9a'};
+  var pal={T:clothes[original]||'#697080',o:'#272438',h:'#815539',H:'#c8b888',s:'#e2b888',e:'#080810',b:'#815539',W:'#eee5cd',Y:'#e6c578',y:'#c8b888',B:'#a1a7b0'};
+  var front=roles[role].slice(),back=front.slice();
+  // Preserve each hat silhouette; replace the face with hair/hood on the back.
+  for(var y=0;y<8;y++)back[y]=back[y].replace(/[se]/g,role==='cleric'?'W':role==='mage'?'T':'h');
+  for(var y=8;y<12;y++)back[y]=back[y].replace(/y/g,'T');
+  var sideHeads={
+    hero:['....YYYY....','...YYYYYY...','...hhhYYY...','...hsssss...','...hsess....','....ssss....'],
+    warrior:['....YYYY....','...YyyyyY...','...YYYYYY...','...YYssss...','...YYsess...','....ssss....'],
+    traveler:['....hhhh....','...hhhhhh...','..HHHHHHHH..','...hhssss...','...hhsess...','....ssss....'],
+    cleric:['....WWWW....','...WWWWWW...','...WWWyWW...','...WWWWWW...','...WWssss...','....ssess...','....sssss...'],
+    mage:['.....TT.....','....TTTT....','....TTyTT...','...TTTTTT...','..TTTTTTTT..','.TTTTTTTTTT.','...hhssss...','....ssess...','....sssss...']
+  };
+  var side=sideHeads[role].slice();while(side.length<12)side.push(side.length===9?'....TsTT....':'....TTTT....');side=side.concat(['....bbbb....','....bbbb....','....oooo....','....oooo....']);
+  var wrap=document.createElement('span');wrap.className='spritewrap';wrap.dataset.color=original;wrap.dataset.role=role;wrap.style.width='32px';wrap.style.height='36px';
+  [{name:'down',rows:front},{name:'up',rows:back},{name:'side',rows:side}].forEach(function(view){
+    var frames=[view.rows.slice(),view.rows.slice(),view.rows.slice(),view.rows.slice()];
+    if(view.name==='side'){
+      frames[0].splice(12,4,'...bbb.bb...','..bbb...bb..','.oooo.......','........ooo.');
+      frames[2].splice(12,4,'...bb.bbb...','..bb...bbb..','........ooo.','.oooo.......');
+    }else{
+      frames[0].splice(12,4,'..bbb..bb...','.bbb...oo...','.oooo.......','............');
+      frames[2].splice(12,4,'...bb..bbb..','...oo...bbb.','........ooo.','........oooo');
+    }
+    var direction=document.createElement('span');direction.className='direction-sprite direction-'+view.name;
+    frames.forEach(function(rows,i){var frame=makeSprite(rows,pal,2);frame.className='pose-frame pose-frame-'+i;frame.setAttribute('aria-hidden','true');direction.appendChild(frame);});wrap.appendChild(direction);
+  });
+  return wrap;
+}
+
+
+  // 場所の建物・構造物（緻密ドット絵）
+  var FACT=[
+    "..ss...............",".ssss.....bb.......","..ss......bb.......","..........bb.......",
+    "o.o.o.o.o.bb.o.o.o.","ooooooooooooooooooo","oWWWWWWWWWWWWWWWWWo","oWGgGWwGgGWwGgGWWWo",
+    "oWGgGWwGgGWwGgGWWWo","oWWWWWWWWWWWWWWWWWo","oWWWWWWDDDDWWWWWWWo","oWWWWWWDdDDWWWWWWWo",
+    "oWWWWWWDDDDWWWWWWWo","ooooooooooooooooooo"];
+  var P_FACT={o:'#2f333d',W:'#8a8f9c',w:'#6f747e',G:'#cfe6f2',g:'#93bdd4',D:'#2d323b',d:'#4a5563',s:'#c3cad6',b:'#9a5a44'};
+  var WARE=[
+    "oooooooooooooooooo","oRRRRRRRRRRRRRRRRo","oRRRRRRRRRRRRRRRRo","oWWWWWWWWWWWWWWWWo",
+    "oWGGWWWWWWWWWWGGWo","oWGGWWWWWWWWWWGGWo","oWWWWWWWWWWWWWWWWo","oWDdDdDdDdDdDdDWo",
+    "oWDdDdDdDdDdDdDWo","oWDdDdDdDdDdDdDWo","oWDdDdDdDdDdDdDWo","oooooooooooooooooo"];
+  var P_WARE={o:'#263142',R:'#49566b',W:'#8c97a8',G:'#cfe6f2',D:'#5a6678',d:'#454f60'};
+  var HOUSE=[
+    "......bb........","......bb........",".....oooo.......","....oRRRRo......","...oRRrRRRo.....",
+    "..oRRrRRrRRo....",".oRRrRRrRRrRo...","oRRRRRRRRRRRRo..","oWWWWWWWWWWWWo..","oWGgWWWWWWGgWo..",
+    "oWGgWWooWWGgWo..","oWWWWoDDoWWWWWo.","oWWWWoDDoWWWWWo.","ooooooooooooooo"];
+  var P_HOUSE={o:'#35241e',R:'#c65a44',r:'#a84836',W:'#ead9b2',G:'#8fd0ea',g:'#63aed0',D:'#7a5330',b:'#8a6a58'};
+  var TRAIN=[
+    "...ooooooooooooo..","..oNNNNNNNNNNNNNo.",".oNnGGGGGGGGGGGNNo","oNNNNNNNNNNNNNNNNo",
+    "oNNbbNNbbNNbbNNNNo","oNNNNNNNNNNNNNNNNo",".oo..........oo..."];
+  var P_TRAIN={o:'#24303f',N:'#eef2f8',n:'#c9d3e0',G:'#5fb0e0',b:'#2f7fc0'};
+  var CAR=[
+    ".....oooooooo....","....oCCCCCCCCo...","...oCCCCCCCCCCo..","oooCCGGGGGGCCCoo.",
+    "oCCCGGGGGGGGCCCCo","oCCCCCCCCCCCCCCCo","oKKooooooooooKKo.",".KK..........KK.."];
+  var P_CAR={o:'#2a1e14',C:'#e0923a',G:'#bfe2f2',K:'#1b1b22'};
+  var PARA=[
+    ".....UUUU.....","...UUUUUUUU...","..UuUUUUuUUU..",".UUUUUUUUUUUU.","......PP......",
+    "......PP......","......PP......","......PP......","...dddddddd..."];
+  var P_PARA={U:'#e0566a',u:'#f4f4ff',P:'#8a6a58',d:'#d9c38a'};
+
+  // HALO配色（青系）の代替パレット
+  var H_FACT={o:'#1f3652',W:'#5b7fa6',w:'#48658a',G:'#aee3f4',g:'#74c4e6',D:'#223c5c',d:'#355a82',s:'#cfe6f5',b:'#3f93cf'};
+  var H_WARE={o:'#1f3652',R:'#3f93cf',W:'#5b7fa6',G:'#aee3f4',D:'#2f567f',d:'#274a70'};
+  var H_HOUSE={o:'#1f3652',R:'#3f93cf',r:'#2f6ea0',W:'#dbe8f3',G:'#aee3f4',g:'#74c4e6',D:'#2f567f',b:'#4a6b8f'};
+  var H_TRAIN={o:'#1f3652',N:'#eaf2fb',n:'#bcd2e8',G:'#5aa9e0',b:'#2a6699'};
+  var H_CAR={o:'#1f3652',C:'#3f93cf',G:'#cfeefb',K:'#16233a'};
+  var H_PARA={U:'#3f93cf',u:'#eaf6fb',P:'#4a6b8f',d:'#9fc4e0'};
+
+  // 場所データ
+  var LOCS=[
+    {id:'honsha-1f',name:'本社 1階',grp:'g-honsha',short:'1階'},
+    {id:'honsha-2f-s',name:'本社 2階南',grp:'g-honsha',short:'2階南'},
+    {id:'honsha-2f-n',name:'本社 2階北',grp:'g-honsha',short:'2階北'},
+    {id:'honsha-3f-s',name:'本社 3階南',grp:'g-honsha',short:'3階南'},
+    {id:'honsha-3f-n',name:'本社 3階北',grp:'g-honsha',short:'3階北'},
+    {id:'honsha-soko',name:'本社 倉庫',grp:'g-honsha',short:'倉庫'},
+    {id:'shinto-1f',name:'新棟 1階',grp:'g-shinto',short:'1階'},
+    {id:'shinto-2f',name:'新棟 2階',grp:'g-shinto',short:'2階'},
+    {id:'shinto-2f-mtg',name:'新棟 2階 会議室',grp:'g-shinto',short:'2階 会議室'},
+    {id:'shinto-3f-mtg1',name:'新棟 3階 第1会議室（東）',grp:'g-shinto',short:'3階 第1会議室（東）'},
+    {id:'shinto-3f-mtg2',name:'新棟 3階 第2会議室（中央）',grp:'g-shinto',short:'3階 第2会議室（中央）'},
+    {id:'shinto-senmu',name:'新棟 3階 専務室',grp:'g-shinto',short:'3階 専務室'},
+    {id:'ibaraki',name:'茨城工場',grp:'g-other',short:'茨城工場'},
+    {id:'daikoku',name:'大黒',grp:'g-other',short:'大黒'},
+    {id:'gaishutsu',name:'外出中',grp:'g-other',short:'外出中'}
+  ];
+  // 選べるのは自分で選ぶ場所だけ（出張・在宅・休暇は予定から自動なので選択肢に無い）。外出中は「外出中」のマスへ
+  var byId={}; LOCS.forEach(function(l){byId[l.id]=l;});
+
+  // あなたトークン生成
+  var you=document.createElement('span');
+  you.className='char you';
+  var ymk=document.createElement('span'); ymk.className='ymark'; ymk.textContent='▼';
+  var ynm=document.createElement('span'); ynm.className='nm'; ynm.textContent='あなた';
+  you.appendChild(ymk); you.appendChild(makeHero('#ffd23f')); you.appendChild(ynm);
+
+  function fmtL(key,fallback,place){var s=(lastData&&lastData.labels&&lastData.labels[key])||fallback;return s.replace('{place}',place);}
+  function afterMove(id){
+    document.getElementById('now-label').textContent=byId[id].name;
+    document.getElementById('mobile-now-label').textContent=byId[id].name; message.textContent=fmtL('moved','あなたは {place} に いどうした！',byId[id].name);justMoved=true;if(window.__zmapOnMove)window.__zmapOnMove(id); document.querySelectorAll('.locbtn').forEach(function(btn){btn.setAttribute('aria-pressed',String(btn.dataset.loc===id));});
+    document.querySelectorAll('.locbtn').forEach(function(x){x.classList.toggle('on',x.dataset.loc===id);});
+    if(typeof renderRoster==='function') renderRoster();
+    if(typeof capZones==='function') capZones();
+    if(typeof fitPeople==='function') fitPeople();
+  }
+/* Pure geometry: all edges are orthogonal and connect visible doors/corridors. */
+function createTravelGraph(layout) {
+  var nodes={},edges=[],adj={};
+  function node(id,x,y){nodes[id]={id:id,x:x,y:y};adj[id]=[];return id;}
+  function edge(a,b,kind){var p=nodes[a],q=nodes[b];if(Math.abs(p.x-q.x)>.1&&Math.abs(p.y-q.y)>.1)throw Error('Diagonal route: '+a+' -> '+b);var length=Math.abs(p.x-q.x)+Math.abs(p.y-q.y);edges.push({a:a,b:b,kind:kind});adj[a].push({id:b,cost:length,kind:kind});adj[b].push({id:a,cost:length,kind:kind});}
+  var world=layout.world,field=layout.field;
+  var hub=node('world:hub',world.right-18,world.bottom-22);
+
+  var stacked=layout.buildings.length>1&&Math.abs(layout.buildings[0].rect.left-layout.buildings[1].rect.left)<40;
+  layout.buildings.forEach(function(build,bi){
+    var floors=build.floors,ground=floors[floors.length-1],stairX=build.rect.right-18;
+    floors.forEach(function(floor,fi){
+      var floorId='b'+bi+':f'+fi,cy=floor.rect.bottom-16;
+      node(floorId,stairX,cy);
+      if(fi)edge('b'+bi+':f'+(fi-1),floorId,'stairs');
+      floor.rooms.forEach(function(room){
+        var r=room.rect,x=(r.left+r.right)/2;
+        node(room.id+':inner',x,r.bottom-12);node(room.id+':door',x,r.bottom);node(room.id+':hall',x,cy);
+        edge(room.id+':inner',room.id+':door','inside');edge(room.id+':door',room.id+':hall','door');edge(room.id+':hall',floorId,'hall');
+      });
+      floor.rooms.forEach(function(room,i){if(i)edge(floor.rooms[i-1].id+':hall',room.id+':hall','hall');});
+    });
+    var gx=(ground.rooms[0].rect.left+ground.rooms[ground.rooms.length-1].rect.right)/2,gy=ground.rect.bottom-16;
+    var gateHall=node('b'+bi+':gatehall',gx,gy),gate=node('b'+bi+':gate',gx,build.rect.bottom),apron=node('b'+bi+':apron',gx,build.rect.bottom+16);
+    ground.rooms.forEach(function(room){edge(room.id+':hall',gateHall,'hall');});
+    edge('b'+bi+':f'+(floors.length-1),gateHall,'hall');edge(gateHall,gate,'door');edge(gate,apron,'path');
+    var road=node('b'+bi+':road',stacked?nodes[hub].x:gx,stacked?nodes[apron].y:nodes[hub].y);
+    edge(apron,road,'path');if(stacked)edge(road,hub,'path');
+  });
+
+  // Facing ground-floor doors connect only across the gap between buildings.
+  if(!stacked&&layout.buildings.length===2){
+    var left=layout.buildings[0],right=layout.buildings[1];
+    var leftHall=nodes['b0:gatehall'],rightHall=nodes['b1:gatehall'];
+    var leftDoor=node('link:left',left.rect.right,leftHall.y);
+    var rightDoor=node('link:right',right.rect.left,rightHall.y);
+    var middleX=(left.rect.right+right.rect.left)/2;
+    var leftTurn=node('link:turn-left',middleX,leftHall.y);
+    var rightTurn=node('link:turn-right',middleX,rightHall.y);
+    edge('b0:f'+(left.floors.length-1),leftDoor,'hall');
+    edge(rightDoor,'b1:gatehall','hall');
+    edge(leftDoor,leftTurn,'link');edge(leftTurn,rightTurn,'link');edge(rightTurn,rightDoor,'link');
+  }
+  // Field roads form a connected grid: a lane between every column and a
+  // cross-road above/below every row. Every geometric junction is a graph node.
+  var rows=[];
+  layout.zones.slice().sort(function(a,b){return a.rect.top-b.rect.top||a.rect.left-b.rect.left;}).forEach(function(zone){
+    var row=rows.find(function(row){return Math.abs(row[0].rect.top-zone.rect.top)<2;});if(!row){row=[];rows.push(row);}row.push(zone);
+  });
+  if(rows.length){
+    var firstRow=rows[0].slice().sort(function(a,b){return a.rect.left-b.rect.left;});
+    var minLeft=Math.min.apply(null,layout.zones.map(function(z){return z.rect.left;}));
+    var maxRight=Math.max.apply(null,layout.zones.map(function(z){return z.rect.right;}));
+    var lanes=[(field.left+minLeft)/2];
+    for(var ci=1;ci<firstRow.length;ci++)lanes.push((firstRow[ci-1].rect.right+firstRow[ci].rect.left)/2);
+    lanes.push((maxRight+field.right)/2);
+    var ys=[field.top+18].concat(rows.map(function(row){return Math.max.apply(null,row.map(function(z){return z.rect.bottom;}))+16;}));
+    var xs=lanes.concat(layout.zones.map(function(z){return (z.rect.left+z.rect.right)/2;}),[nodes[hub].x]);
+    if(!stacked)layout.buildings.forEach(function(_,bi){xs.push(nodes['b'+bi+':road'].x);});
+    xs=Array.from(new Set(xs)).sort(function(a,b){return a-b;});
+    function junction(ri,x){return 'field:grid:'+ri+':'+xs.indexOf(x);}
+    ys.forEach(function(y,ri){xs.forEach(function(x,xi){var id=node(junction(ri,x),x,y);if(xi)edge(junction(ri,xs[xi-1]),id,'path');});});
+    lanes.forEach(function(x){for(var ri=1;ri<ys.length;ri++)edge(junction(ri-1,x),junction(ri,x),'path');});
+    if(stacked){var fieldHub=node('field:hub',nodes[hub].x,ys[0]);edge(hub,fieldHub,'path');edge(fieldHub,junction(0,nodes[hub].x),'path');}
+    // Each building gets its own straight connection to the field's top road.
+    if(!stacked)layout.buildings.forEach(function(_,bi){var road='b'+bi+':road';edge(road,junction(0,nodes[road].x),'path');});
+    rows.forEach(function(row,ri){row.forEach(function(zone){var r=zone.rect,x=(r.left+r.right)/2;
+      node(zone.id+':inner',x,r.bottom-12);node(zone.id+':door',x,r.bottom);node(zone.id+':road',x,ys[ri+1]);
+      edge(zone.id+':inner',zone.id+':door','door');edge(zone.id+':door',zone.id+':road','path');edge(zone.id+':road',junction(ri+1,x),'path');
+    });});
+  }
+  function route(from,to){
+    var start=from+':inner',end=to+':inner';if(!nodes[start]||!nodes[end])return [];
+    var dist={},prev={},pending=new Set(Object.keys(nodes));dist[start]=0;
+    while(pending.size){var u=null,best=Infinity;pending.forEach(function(id){if((dist[id]===undefined?Infinity:dist[id])<best){u=id;best=dist[id];}});if(u===null)break;pending.delete(u);if(u===end)break;adj[u].forEach(function(e){var d=best+e.cost;if(dist[e.id]===undefined||d<dist[e.id]){dist[e.id]=d;prev[e.id]={id:u,kind:e.kind};}});}
+    if(dist[end]===undefined)return [];var ids=[end],cur=end;while(cur!==start){cur=prev[cur].id;ids.unshift(cur);}return ids.map(function(id,i){return {x:nodes[id].x,y:nodes[id].y,id:id,kind:i?prev[id].kind:'inside'};});
+  }
+  return {nodes:nodes,edges:edges,route:route};
+}
+
+  var activeWalk=null,travelSurface=null,mapViewport=null,roadLayer=null,roadResize=null;
+  function pageRect(el){var r=el.getBoundingClientRect();return {left:r.left+window.scrollX,right:r.right+window.scrollX,top:r.top+window.scrollY,bottom:r.bottom+window.scrollY};}
+  function travelLayout(){return {world:pageRect(document.querySelector('.world')),field:pageRect(document.querySelector('.fieldrow')),buildings:Array.from(document.querySelectorAll('.pbuild')).map(function(b){return {rect:pageRect(b),floors:Array.from(b.querySelectorAll('.pstory')).map(function(f){return {rect:pageRect(f),rooms:Array.from(f.querySelectorAll('[data-zone]')).map(function(r){return {id:r.dataset.zone,rect:pageRect(r)};})};})};}),zones:Array.from(document.querySelectorAll('.fieldrow>[data-zone]')).map(function(z){return {id:z.dataset.zone,rect:pageRect(z)};})};}
+  function drawTravelRoads(){
+    if(!travelSurface||!roadLayer)return;
+    var graph=createTravelGraph(travelLayout()),origin=pageRect(travelSurface),ns='http://www.w3.org/2000/svg';
+    roadLayer.setAttribute('width',travelSurface.offsetWidth);roadLayer.setAttribute('height',travelSurface.offsetHeight);
+    roadLayer.setAttribute('viewBox','0 0 '+travelSurface.offsetWidth+' '+travelSurface.offsetHeight);
+    var group=document.createElementNS(ns,'g');
+    graph.edges.filter(function(e){return e.kind==='path'||e.kind==='link';}).forEach(function(e){var a=graph.nodes[e.a],b=graph.nodes[e.b];if(a.x===b.x&&a.y===b.y)return;var line=document.createElementNS(ns,'path');line.setAttribute('d','M'+(a.x-origin.left)+' '+(a.y-origin.top)+' L'+(b.x-origin.left)+' '+(b.y-origin.top));line.setAttribute('class',e.kind==='link'?'travel-road travel-link':'travel-road');group.appendChild(line);});
+    var west=graph.nodes['link:left'],east=graph.nodes['link:right'];
+    if(west&&east){
+      var left=west.x-origin.left,right=east.x-origin.left;
+      var top=west.y-origin.top,bottom=east.y-origin.top;
+      function bridgePiece(path,fill,stroke){
+        var piece=document.createElementNS(ns,'path');
+        piece.setAttribute('d',path);
+        piece.setAttribute('fill',fill);
+        if(stroke)piece.setAttribute('stroke',stroke);
+        group.appendChild(piece);
+      }
+      // Posts sit against the two walls, leaving the middle open to view.
+      bridgePiece('M'+(left-2)+' '+(top-20)+' h5 v31 h-5 Z M'+(right-3)+' '+(bottom-20)+' h5 v31 h-5 Z','#815539','#272438');
+      var roofLeft=left-5,roofRight=right+5;
+      var eaveLeft=top-14,eaveRight=bottom-14;
+      bridgePiece('M'+roofLeft+' '+eaveLeft+' L'+(left-1)+' '+(top-28)+' L'+(right+1)+' '+(bottom-28)+' L'+roofRight+' '+eaveRight+' Z','#815539','#272438');
+      bridgePiece('M'+roofLeft+' '+(eaveLeft-2)+' L'+roofRight+' '+(eaveRight-2)+' v4 L'+roofLeft+' '+(eaveLeft+2)+' Z','#e2b888','#272438');
+    }
+    roadLayer.replaceChildren(group);
+  }
+  function initTravelMap(){
+    var world=document.querySelector('.world'),field=document.querySelector('.fieldrow');travelSurface=document.createElement('div');travelSurface.className='travel-surface';world.before(travelSurface);travelSurface.append(world,field);
+    mapViewport=document.createElement('div');
+    mapViewport.className='map-viewport';
+    mapViewport.setAttribute('role','region');
+    mapViewport.setAttribute('aria-label','在席マップ');
+    travelSurface.before(mapViewport);
+    mapViewport.appendChild(travelSurface);
+    roadLayer=document.createElementNS('http://www.w3.org/2000/svg','svg');roadLayer.setAttribute('class','travel-roads');roadLayer.setAttribute('aria-hidden','true');travelSurface.appendChild(roadLayer);
+    document.querySelectorAll('.pstory').forEach(function(floor){
+      var hall=document.createElement('span');hall.className='floor-corridor';hall.setAttribute('aria-hidden','true');floor.appendChild(hall);
+      var shaft=document.createElement('span');shaft.className='stair-shaft';shaft.setAttribute('aria-hidden','true');shaft.innerHTML='<svg viewBox="0 0 12 16" width="24" height="32" shape-rendering="crispEdges"><path fill="#272438" d="M0 0h12v16H0z"/><path fill="#c8b888" d="M1 13h10v2H1zm2-3h8v2H3zm2-3h6v2H5zm2-3h4v2H7z"/></svg>';floor.appendChild(shaft);
+      floor.querySelectorAll('.proom').forEach(function(room){var door=document.createElement('span');door.className='room-door';door.setAttribute('aria-hidden','true');room.appendChild(door);});
+    });
+    document.querySelectorAll('.fieldrow>.zone').forEach(function(z){var gate=document.createElement('span');gate.className='field-gate';gate.setAttribute('aria-hidden','true');z.appendChild(gate);});
+    var queue=function(){clearTimeout(roadResize);roadResize=setTimeout(drawTravelRoads,60);};
+    var lastWidth=document.documentElement.clientWidth;
+    window.addEventListener('resize',function(){
+      var width=document.documentElement.clientWidth;
+      if(width!==lastWidth&&activeWalk)activeWalk.finish();
+      lastWidth=width;
+      queue();
+    });
+    window.addEventListener('load',queue);
+    if(document.fonts)document.fonts.ready.then(queue);
+    if(window.ResizeObserver){var ro=new ResizeObserver(queue);ro.observe(world);ro.observe(field);}
+    queue();
+  }
+  function footPoint(ch){var r=pageRect(ch.querySelector('.spritewrap'));return {x:r.left+16,y:r.top+32};}
+  function footConnector(foot,inner,reverse){var result=[{x:foot.x,y:foot.y,kind:'inside'},{x:foot.x,y:inner.y,kind:'inside'},{x:inner.x,y:inner.y,kind:'inside'}];return reverse?result.reverse():result;}
+  var cameraRun=0;
+  function keepTravelerVisible(traveler,elapsed){
+    if(!mapViewport||!window.matchMedia('(max-width:700px) and (orientation:portrait)').matches)return false;
+    var bounds=traveler.getBoundingClientRect();
+    var frame=mapViewport.getBoundingClientRect();
+    var visibleTop=frame.top+mapViewport.clientTop;
+    var bottom=visibleTop+mapViewport.clientHeight;
+    var freeSpace=bottom-visibleTop-(bounds.bottom-bounds.top);
+    if(freeSpace<=0)return false;
+    // Follow at the edge of a central band, without jumping back to center.
+    var margin=Math.min(110,freeSpace*.24);
+    var upper=visibleTop+margin,lower=bottom-margin;
+    var delta=bounds.top<upper?bounds.top-upper:bounds.bottom>lower?bounds.bottom-lower:0;
+    if(Math.abs(delta)<1)return false;
+    if(elapsed!=null){
+      var maxStep=1.2*elapsed;
+      var eased=delta*(1-Math.exp(-elapsed/85));
+      delta=Math.sign(delta)*Math.min(Math.abs(delta),maxStep,Math.max(1,Math.abs(eased)));
+    }
+    var previous=mapViewport.scrollTop;
+    mapViewport.scrollTop=previous+delta;
+    return mapViewport.scrollTop!==previous;
+  }
+  function moveTo(id,animate){
+    var zone=document.querySelector('[data-zone="'+id+'"]');if(!zone)return;
+    if(activeWalk){if(activeWalk.target===id)return;activeWalk.finish();}
+    var run=++cameraRun;
+    var chars=zone.querySelector('.chars'),origin=you.closest('[data-zone]');
+    var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if(!animate||RM||!origin||origin===zone){var empty=chars.querySelector('.empty');if(empty)empty.remove();chars.appendChild(you);you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
+    var em=chars.querySelector('.empty');if(em)em.remove();
+    // Reserve the exact arrival dimensions without counting a second person.
+    var first=pageRect(you),start=footPoint(you),offsetX=start.x-first.left,offsetY=start.y-first.top;
+    var slot=document.createElement('span');slot.className='arrival-slot';slot.setAttribute('aria-hidden','true');slot.style.width=(first.right-first.left)+'px';slot.style.height=(first.bottom-first.top)+'px';chars.appendChild(slot);
+    first=pageRect(you);start=footPoint(you);offsetX=start.x-first.left;offsetY=start.y-first.top;
+    origin.querySelector('.chars').style.minHeight=origin.querySelector('.chars').getBoundingClientRect().height+'px';chars.style.minHeight=chars.getBoundingClientRect().height+'px';
+    var target=pageRect(slot),end={x:target.left+offsetX,y:target.top+offsetY};
+    var graph=createTravelGraph(travelLayout()),route=graph.route(origin.dataset.zone,id);
+    if(!route.length){slot.remove();chars.appendChild(you);you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
+    var points=footConnector(start,route[0],false).concat(route.slice(1),footConnector(end,route[route.length-1],true).slice(1));
+    points=points.filter(function(p,i,a){return !i||Math.abs(p.x-a[i-1].x)+Math.abs(p.y-a[i-1].y)>.1;});
+    // Merge junctions on a straight stretch so the animation does not restart.
+    points=points.reduce(function(result,p){
+      var b=result[result.length-1],a=result[result.length-2];
+      if(a&&b&&(b.kind==='stairs')===(p.kind==='stairs')){
+        var dx=b.x-a.x,dy=b.y-a.y,ex=p.x-b.x,ey=p.y-b.y;
+        if((Math.abs(dx)<.1&&Math.abs(ex)<.1&&dy*ey>0)||(Math.abs(dy)<.1&&Math.abs(ey)<.1&&dx*ex>0)){result[result.length-1]=p;return result;}
+      }
+      result.push(p);return result;
+    },[]);
+    var cloneHost=document.body;
+    if(travelSurface&&window.matchMedia('(max-width:700px) and (orientation:portrait)').matches){
+      // Keep the animated sprite in the same scroll coordinate space as the map.
+      cloneHost=travelSurface;
+      var surface=pageRect(travelSurface);
+      offsetX+=surface.left+travelSurface.clientLeft;
+      offsetY+=surface.top+travelSurface.clientTop;
+    }
+    var clone=you.cloneNode(true);clone.classList.add('walking','walkclone');clone.classList.remove('flip');clone.setAttribute('aria-hidden','true');clone.removeAttribute('role');clone.removeAttribute('tabindex');
+    clone.style.cssText='position:absolute;left:0;top:0;margin:0;z-index:9999;pointer-events:none;transform:translate('+(start.x-offsetX)+'px,'+(start.y-offsetY)+'px)';
+    cloneHost.appendChild(clone);you.style.visibility='hidden';document.querySelector('.game').setAttribute('aria-busy','true');message.textContent=fmtL('moving','あなたは {place} へ いどうちゅう。',byId[id].name);
+    drawTravelRoads();var finished=false,animation=null,timer=null,index=1;
+    function finish(){if(finished)return;finished=true;clearTimeout(timer);if(animation)animation.cancel();you.dataset.facing='down';clone.remove();slot.remove();chars.appendChild(you);you.style.visibility='';document.querySelector('.game').removeAttribute('aria-busy');activeWalk=null;afterMove(id);if(!origin.querySelector('.char')&&!origin.querySelector('.empty')){var empty=document.createElement('span');empty.className='empty';empty.textContent='だれもいない…';origin.querySelector('.chars').appendChild(empty);}drawTravelRoads();}
+    activeWalk={target:id,finish:finish};
+    function next(){
+      if(finished)return;if(index>=points.length){finish();return;}
+      var a=points[index-1],b=points[index++],dx=b.x-a.x,dy=b.y-a.y,distance=Math.abs(dx)+Math.abs(dy);
+      clone.dataset.facing=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');clone.dataset.terrain=b.kind;
+      var duration=Math.max(90,Math.round(distance*(b.kind==='stairs'?10:7.8)));
+      animation=clone.animate([{transform:'translate('+(a.x-offsetX)+'px,'+(a.y-offsetY)+'px)'},{transform:'translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)'}],{duration:duration,easing:'steps('+Math.max(2,Math.ceil(duration/40))+', end)',fill:'forwards'});
+      var done=false;function complete(){if(done||finished)return;done=true;clearTimeout(timer);clone.style.transform='translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)';animation.cancel();next();}animation.onfinish=complete;timer=setTimeout(complete,duration+250);
+    }
+    next();
+    if(window.requestAnimationFrame&&window.matchMedia('(max-width:700px) and (orientation:portrait)').matches){
+      var previousFrame=null,arrivalFrame=null;
+      function follow(now){
+        if(run!==cameraRun)return;
+        var elapsed=previousFrame===null?16:Math.min(32,Math.max(1,now-previousFrame));
+        previousFrame=now;
+        if(finished&&arrivalFrame===null)arrivalFrame=now;
+        var adjusted=keepTravelerVisible(finished?you:clone,elapsed);
+        if(!finished||(adjusted&&now-arrivalFrame<650))window.requestAnimationFrame(follow);
+      }
+      window.requestAnimationFrame(follow);
+    }
+  }
+
+  // ボタン生成
+  LOCS.forEach(function(l){
+    var g=document.getElementById(l.grp); if(!g)return;
+    var btn=document.createElement('button');
+    btn.className='locbtn'; btn.type='button'; btn.dataset.loc=l.id; btn.textContent=l.short;
+    btn.addEventListener('click',function(){moveTo(l.id,true);});
+    g.appendChild(btn);
+  });
+
+  // 配置済みの静的キャラをドット絵に差し替え
+  document.querySelectorAll('.char').forEach(function(ch){
+    var sp=ch.querySelector('.sprite'); if(!sp)return;
+    var col=(sp.style.getPropertyValue('--c')||'').trim()||'#8893a5';
+    ch.replaceChild(makeHero(col), sp);
+  });
+  // フィールド区画の建物（ドット絵）＝RPG配色とHALO配色の2パレットを保持
+  var LAND={
+    ibaraki:{rows:FACT,pal:P_FACT,palH:H_FACT,px:3}, daikoku:{rows:WARE,pal:P_WARE,palH:H_WARE,px:3},
+    zaitaku:{rows:HOUSE,pal:P_HOUSE,palH:H_HOUSE,px:3}, shuccho:{rows:TRAIN,pal:P_TRAIN,palH:H_TRAIN,px:3},
+    gaishutsu:{rows:CAR,pal:P_CAR,palH:H_CAR,px:3}, rest:{rows:PARA,pal:P_PARA,palH:H_PARA,px:3}
+  };
+  function renderScenes(halo){
+    document.querySelectorAll('.zone').forEach(function(z){
+      var def=LAND[z.dataset.zone]; if(!def)return;
+      var old=z.querySelector('.zland'); if(old) old.remove();
+      var w=document.createElement('span'); w.className='zland';
+      w.appendChild(makeSprite(def.rows, halo?def.palH:def.pal, def.px));
+      z.insertBefore(w, z.querySelector('.chars'));
+    });
+  }
+  // コンパクト版：建物は拡大せず小さいドット絵のまま中央表示
+  function fitScenes(){
+    document.querySelectorAll('.zone .zland').forEach(function(w){ w.style.zoom=''; });
+  }
+  var _rt; window.addEventListener('resize',function(){clearTimeout(_rt);_rt=setTimeout(function(){fitScenes();fitPeople();},150);});
+
+  // 初期描画（RPG配色）
+  var game=document.querySelector('.game');
+  renderScenes(false); fitScenes();
+  if(window.ResizeObserver){ try{ new ResizeObserver(function(){fitScenes();}).observe(game); }catch(e){} }
+  window.addEventListener('load',fitScenes);
+  setTimeout(fitScenes,300); setTimeout(fitScenes,900);
+
+  // ===== 昼夜（端末の時計に連動／デモ用に時間帯も選べる） =====
+  function todFromHour(h){ if(h>=6&&h<10)return 'dawn'; if(h>=10&&h<16)return 'day'; if(h>=16&&h<19)return 'dusk'; return 'night'; }
+  var TOD_LAB={dawn:'あさ',day:'ひる',dusk:'ゆうがた',night:'よる'};
+  var todMode='auto';
+  function applyTod(){
+    var tod = todMode==='auto' ? todFromHour(new Date().getHours()) : todMode;
+    if(game) game.setAttribute('data-tod',tod);
+    var lab=document.getElementById('tod-label');
+    if(lab){ var d=new Date(); var hm=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2); lab.textContent=TOD_LAB[tod]+(todMode==='auto'?' '+hm:''); }
+  }
+  document.querySelectorAll('.todctl button').forEach(function(btn){
+    btn.addEventListener('click',function(){ todMode=btn.dataset.tod; document.querySelectorAll('.todctl button').forEach(function(x){x.classList.toggle('on',x===btn);}); applyTod(); });
+  });
+  applyTod();
+  setInterval(function(){ if(todMode==='auto') applyTod(); },60000);
+
+  // ===== 在席の一覧（ぱっと見で誰がどこにいるか） =====
+  function zoneLabel(z){
+    if(z.classList.contains('proom')){
+      var b=z.closest('.pbuild'); var bn=b?b.querySelector('.bname'):null; var rl=z.querySelector('.rlabel');
+      return (bn?bn.textContent:'')+(rl?' '+rl.textContent:'');
+    }
+    var zl=z.querySelector('.zlabel'); return zl?zl.textContent:'';
+  }
+  function renderRoster(){
+    var host=document.getElementById('roster'); if(!host)return;
+    var rows=[];
+    document.querySelectorAll('[data-zone]').forEach(function(z){
+      var chs=[].slice.call(z.querySelectorAll('.chars .char'));
+      if(!chs.length)return;
+      var chips=chs.map(function(ch){var nm=ch.querySelector('.nm');return '<span class="rchip'+(ch.classList.contains('you')?' me':'')+'">'+escH(nm?nm.textContent:'')+'</span>';}).join('');
+      rows.push('<div class="rrow"><span class="rloc">'+escH(zoneLabel(z))+'</span><span class="rppl">'+chips+'</span></div>');
+    });
+    // マップに描かない人（社内で場所を選んでいない人など）は、一覧の最後に行を足す
+    ((lastData&&lastData.extraRows)||[]).forEach(function(r){
+      if(!r.names||!r.names.length)return;
+      rows.push('<div class="rrow"><span class="rloc">'+escH(r.label)+'</span><span class="rppl">'+r.names.map(function(n){return '<span class="rchip">'+escH(n)+'</span>';}).join('')+'</span></div>');
+    });
+    host.innerHTML=rows.join('')||'<div class="rempty">だれもいません</div>';
+  }
+  // 全員のアイコンを表示（増えたら折り返して段が増え、マスの高さが伸びる）
+  function capZones(){
+    document.querySelectorAll('[data-zone] .char').forEach(function(c){c.hidden=false;});
+    document.querySelectorAll('.morebadge').forEach(function(b){b.remove();});
+  }
+  // コンパクト版は縮小しない（多いときはアイコンの下に段を増やし、マスの高さが伸びる）
+  function fitPeople(){
+    document.querySelectorAll('.zone .chars, .proom .chars').forEach(function(ch){ ch.style.zoom=''; });
+  }
+  renderRoster(); capZones(); fitPeople();
+
+  var mobilePicker=document.createElement('div');
+  mobilePicker.className='mobile-picker';
+  var destination=document.createElement('select');
+  destination.setAttribute('aria-label','行き先を選ぶ');
+  destination.add(new Option('行き先を選ぶ',''));
+  LOCS.forEach(function(location){destination.add(new Option(location.name,location.id));});
+  destination.addEventListener('change',function(){
+    var id=destination.value;
+    destination.value='';
+    if(id)document.querySelector('.locbtn[data-loc="'+id+'"]').click();
+  });
+  var mobileCurrent=document.createElement('div');
+  mobileCurrent.className='mobile-current';
+  mobileCurrent.setAttribute('aria-live','polite');
+  mobileCurrent.append('現在地 ');
+  var mobileCurrentLabel=document.createElement('strong');
+  mobileCurrentLabel.id='mobile-now-label';
+  mobileCurrentLabel.textContent=document.getElementById('now-label').textContent;
+  mobileCurrent.appendChild(mobileCurrentLabel);
+  mobilePicker.append(mobileCurrent,destination);
+  document.querySelector('.game').prepend(mobilePicker);
+  initTravelMap();
+
+  // ===== HALO から受け取った人を並べる（段階M1：見るだけ） =====
+  // 服の色＝部署。makeHero は決まった色で職業（見た目）を変えるので、その色を部署の順に割り当てる
+  var HERO_COLORS=['#3b82c4','#e08a2e','#2fa37a','#7c6bd6','#22b0bf','#e268a0'];
+  var CLOTHES={'#3b82c4':'#5379aa','#e08a2e':'#b85c4b','#2fa37a':'#50754c','#7c6bd6':'#8b6aa4','#22b0bf':'#649a9a','#e268a0':'#8b6aa4'};
+  var lastData=null, justMoved=false;
+  function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function setText(sel,text){var el=document.querySelector(sel);if(el&&text!=null)el.textContent=text;}
+  function makeChar(id,name,color){
+    var ch=document.createElement('span');ch.className='char';ch.dataset.id=id;
+    ch.setAttribute('role','button');ch.tabIndex=0;ch.setAttribute('aria-label',name);
+    ch.appendChild(makeHero(color));
+    var nm=document.createElement('span');nm.className='nm';nm.textContent=name;ch.appendChild(nm);
+    return ch;
+  }
+  function placePeople(data){
+    if(activeWalk)activeWalk.finish();
+    lastData=data;var L=data.labels||{};
+    window.__zmapTotal=(data.members||[]).length+((data.extraRows||[]).reduce(function(n,r){return n+(r.names||[]).length;},0));
+    window.__zmapLabels=L;
+    // 文言（3言語。親が t() で作って渡す）
+    var Z=L.zones||{};Object.keys(Z).forEach(function(id){setText('[data-zone="'+id+'"] .zlabel',Z[id]);});
+    var rt=document.querySelector('.roster-ttl');if(rt&&L.roster&&rt.firstChild&&rt.firstChild.nodeType===3)rt.firstChild.textContent=L.roster;
+    setText('.map-heading',L.heading);setText('.map-help',L.help);
+    // 下のメッセージ：予定が優先されているときはそのこと、歩いた直後は「いどうした！」を残す、それ以外はいつもの文
+    if(data.busy)setText('.quest-message',data.busy);else if(!justMoved)setText('.quest-message',L.quest);
+    justMoved=false;
+    // コマンド窓とスマホの行き先選び
+    if(L.cmdAsk){var q=document.querySelector('.cmd .q');if(q)q.textContent='▶ '+L.cmdAsk;}
+    var grps=document.querySelectorAll('.cmd .grp');if(grps[2]&&L.cmdOther)grps[2].textContent='■ '+L.cmdOther;
+    var go=document.querySelector('.locbtn[data-loc="gaishutsu"] .command-text');if(go&&Z.gaishutsu)go.textContent=Z.gaishutsu;
+    var sel=document.querySelector('.mobile-picker select');
+    if(sel){if(L.pick)sel.options[0].text=L.pick;[].forEach.call(sel.options,function(o){if(o.value==='gaishutsu'&&Z.gaishutsu)o.text=Z.gaishutsu;});}
+    var mc=document.querySelector('.mobile-current');if(mc&&L.nowShort&&mc.firstChild&&mc.firstChild.nodeType===3)mc.firstChild.textContent=L.nowShort+' ';
+    var now=document.querySelector('.hud .now');if(now&&L.now&&now.firstChild&&now.firstChild.nodeType===3)now.firstChild.textContent=L.now+' ';
+    // 部署ごとの色と凡例
+    var deptColor={},depts=[];
+    (data.members||[]).forEach(function(m){var d=m.dept||'';if(!Object.prototype.hasOwnProperty.call(deptColor,d)){deptColor[d]=HERO_COLORS[depts.length%HERO_COLORS.length];depts.push(d);}});
+    var lg=document.querySelector('.hud .legend');
+    if(lg){lg.replaceChildren();depts.forEach(function(d){var s=document.createElement('span'),i=document.createElement('i');i.style.background=CLOTHES[deptColor[d]];s.appendChild(i);s.appendChild(document.createTextNode(d||L.otherDept||''));lg.appendChild(s);});
+      var ys=document.createElement('span'),yi=document.createElement('i');yi.style.background='#e6c578';ys.appendChild(yi);ys.appendChild(document.createTextNode(L.you||'あなた'));lg.appendChild(ys);}
+    // マスを空にして並べ直す
+    document.querySelectorAll('[data-zone] .chars').forEach(function(c){c.replaceChildren();c.style.minHeight='';});
+    if(you.parentNode)you.remove();
+    (data.members||[]).forEach(function(m){
+      var box=m.zone?document.querySelector('[data-zone="'+m.zone+'"] .chars'):null;if(!box)return;
+      if(m.id===data.me){you.dataset.id=m.id;you.setAttribute('role','button');you.tabIndex=0;you.setAttribute('aria-label',m.name);ynm.textContent=m.name;box.appendChild(you);return;}
+      box.appendChild(makeChar(m.id,m.name,deptColor[m.dept||'']));
+    });
+    document.querySelectorAll('[data-zone] .chars').forEach(function(c){if(!c.children.length){var e=document.createElement('span');e.className='empty';e.textContent=L.nobody||'だれもいない…';c.appendChild(e);}});
+    setText('#now-label',data.myPlace||'');setText('#mobile-now-label',data.myPlace||'');
+    renderRoster();drawTravelRoads();
+  }
+  window.__zmapPlacePeople=placePeople;
+})();
+</script>
+
+<script>
+(function(){
+var colors={'#3b82c4':['製造','せんし'],'#e08a2e':['営業','たびびと'],'#2fa37a':['総務','そうりょ'],'#7c6bd6':['開発','まほうつかい'],'#e268a0':['未設定','まほうつかい'],'#22b0bf':['未設定','まほうつかい']};
+var dialog=document.createElement('dialog');dialog.className='status-dialog';dialog.innerHTML='<h2></h2><dl><dt>ぶしょ</dt><dd class="dept"></dd><dt>げんざいち</dt><dd class="place"></dd></dl><form method="dialog"><button>▶ とじる</button></form>';document.body.appendChild(dialog);
+function openStatus(ch){var z=ch.closest('[data-zone]');if(!z)return;var isYou=ch.classList.contains('you');var color=ch.dataset.color;var role=colors[color]||['未設定','ぼうけんしゃ'];dialog.querySelector('h2').textContent=ch.querySelector('.nm').textContent;dialog.querySelector('.dept').textContent=isYou?'あなた':role[0];var label=z.querySelector('.rlabel,.zlabel');var build=z.closest('.pbuild');dialog.querySelector('.place').textContent=(build?build.querySelector('.bname').textContent+' ':'')+(label?label.textContent:'');dialog.showModal();}
+document.querySelectorAll('.char:not(.walkclone)').forEach(function(ch){ch.setAttribute('role','button');ch.tabIndex=0;ch.setAttribute('aria-label',ch.querySelector('.nm').textContent+' のステータス');ch.dataset.color=ch.querySelector('.spritewrap').dataset.color;ch.addEventListener('click',function(){openStatus(ch)});ch.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openStatus(ch)}});});
+var prop='<svg viewBox="0 0 14 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#272438" d="M1 1h12v14H1z"/><path fill="#b85c4b" d="M2 2h10v2H2zm0 5h10v2H2zm0 5h10v2H2z"/><path fill="#e2b888" d="M3 4h2v3H3zm5 5h2v3H8z"/><path fill="#b85c4b" d="M6 4h2v3H6zm-3 5h2v3H3z"/><path fill="#649a9a" d="M9 4h2v3H9zm-3 5h1v3H6z"/></svg>';
+document.querySelectorAll('.proom').forEach(function(room,i){if(i%2===0){var el=document.createElement('span');el.className='room-prop';el.innerHTML=prop;room.appendChild(el);}});
+var title=document.createElement('div');title.className='map-heading';title.textContent='◆ なかまたちの せかい';document.querySelector('.world').before(title);
+var cap=document.createElement('div');cap.className='world-caption';cap.textContent='';
+var help=document.createElement('p');help.className='map-help';help.textContent='＊ キャラクターを えらぶと なかまの じょうほうが みられます。';document.querySelector('.fieldrow').after(help);
+dialog.addEventListener('click',function(e){if(e.target===dialog){var r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
+})();
+</script><script>
+(function(){
+var game=document.querySelector('.game');
+var summary=document.createElement('div');summary.className='classic-summary';game.prepend(summary);
+function refresh(){var n=window.__zmapTotal!=null?window.__zmapTotal:document.querySelectorAll('[data-zone] .char').length;var SL=(window.__zmapLabels&&window.__zmapLabels.summary)||{};function people(k){return SL.people?SL.people.replace('{n}',k):k+' にん';}var away=document.querySelectorAll('.zone.status .char').length;var rest=document.querySelectorAll('.zone.rest .char').length;summary.replaceChildren();[[SL.all||'なかま',people(n)],[SL.away||'しゃがい',people(away)],[SL.rest||'おやすみ',people(rest)]].forEach(function(pair){var line=document.createElement('span');line.textContent=pair[0]+'　';var b=document.createElement('b');b.textContent=pair[1];line.appendChild(b);summary.appendChild(line);});}
+new MutationObserver(refresh).observe(document.querySelector('.world'),{childList:true,subtree:true});new MutationObserver(refresh).observe(document.querySelector('.fieldrow'),{childList:true,subtree:true});refresh();
+var roster=document.querySelector('#roster');var toggle=document.createElement('button');toggle.className='roster-toggle';toggle.type='button';toggle.textContent='− とじる';toggle.setAttribute('aria-expanded','true');toggle.setAttribute('aria-controls','roster');document.querySelector('.roster-ttl').appendChild(toggle);toggle.onclick=function(){roster.hidden=!roster.hidden;toggle.textContent=roster.hidden?'＋ なかま一覧':'− とじる';toggle.setAttribute('aria-expanded',String(!roster.hidden));};
+var scenes={
+ibaraki:{sub:'どうぐを つくる まち',body:'<path fill="#272438" d="M7 12h33v15H7zM11 4h6v10h-6zM30 6h5v8h-5z"/><path fill="#a1a7b0" d="M8 13h31v13H8zM12 4h4v9h-4zM31 6h3v7h-3z"/><path fill="#e6c578" d="M11 16h5v4h-5zm9 0h5v4h-5zm10 0h5v4h-5z"/><path fill="#314d39" d="M21 23h7v4h-7z"/><path fill="#a1a7b0" d="M10 0h4v2h-4zm4 2h5v2h-5zm17 0h3v3h-3z"/>'},
+daikoku:{sub:'みなとの そうこ',body:'<path fill="#c8b888" d="M2 25h44v4H2z"/><path fill="#314d39" d="M8 12h30v14H8zM5 12l18-10 18 10z"/><path fill="#b85c4b" d="M7 11L23 3l16 8z"/><path fill="#c8b888" d="M10 13h26v12H10z"/><path fill="#815539" d="M19 17h9v8h-9z"/><path fill="#c8b888" d="M3 20h6v5H3zm34-1h7v6h-7z"/><path fill="#5379aa" d="M12 15h4v4h-4zm17 0h4v4h-4z"/>'},
+shuccho:{sub:'たびの とちゅう',body:'<path fill="#5379aa" d="M0 16L10 2l11 14L32 0l16 18z"/><path fill="#a1a7b0" d="M7 7l3-5 4 6-4-2zm21-1 4-6 5 7-5-2z"/><path fill="#c8b888" d="M23 14h5l5 16H14z"/><path fill="#272438" d="M36 11h2v16h-2z"/><path fill="#c8b888" d="M30 12h15v6H30z"/><path fill="#815539" d="M33 14h8v2h-8z"/>'},
+gaishutsu:{sub:'まちへ おでかけ',body:'<path fill="#314d39" d="M6 7h3v21H6z"/><path fill="#c8b888" d="M1 9h19v6H1zm2 8h18v6H3z"/><path fill="#815539" d="M3 11h12v2H3zm3 8h12v2H6z"/><path fill="#314d39" d="M29 7h15v13H29zM26 11h21v7H26z"/><path fill="#50754c" d="M30 5h12v12H30zM27 10h18v6H27z"/><path fill="#815539" d="M34 18h5v10h-5z"/><path fill="#e6c578" d="M24 27h23v3H24z"/>'},
+zaitaku:{sub:'じぶんの いえ',body:'<path fill="#272438" d="M6 13L24 1l19 12v2H6z"/><path fill="#b85c4b" d="M8 12L24 3l16 9z"/><path fill="#e2b888" d="M10 14h28v14H10z"/><path fill="#697080" d="M22 18h7v10h-7z"/><path fill="#5379aa" d="M13 17h5v5h-5zm18 0h5v5h-5z"/><path fill="#eee5cd" d="M15 17h1v5h-1zm18 0h1v5h-1z"/><path fill="#815539" d="M33 3h4v7h-4z"/>'},
+rest:{sub:'やどやで ひとやすみ',body:'<path fill="#272438" d="M6 12L24 1l18 11v16H6z"/><path fill="#697080" d="M8 11L24 3l16 8z"/><path fill="#c8b888" d="M9 13h30v14H9z"/><path fill="#314d39" d="M21 18h8v10h-8z"/><path fill="#e6c578" d="M12 16h5v6h-5zm20 0h4v6h-4z"/><path fill="#272438" d="M35 0h2v12h-2z"/><path fill="#eee5cd" d="M28 1h17v7H28z"/><path fill="#697080" d="M30 2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v1h-1zm1-2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v2h-1z"/>'}
+};
+Object.keys(scenes).forEach(function(id){var zone=document.querySelector('[data-zone="'+id+'"]');var land=zone.querySelector('.zland');land.innerHTML='<svg class="pixel-land" viewBox="0 0 48 32" aria-hidden="true">'+scenes[id].body+'</svg>';var star=document.createElement('span');star.className='scene-star';star.textContent='✦';zone.appendChild(star);});
+// Sound is opt-in and generated locally, without recordings or network access.
+var enabled=false,ctx;var sound=document.createElement('button');sound.type='button';sound.className='sound-control';sound.textContent='おと：なし';sound.setAttribute('aria-pressed','false');document.querySelector('.todctl').appendChild(sound);
+function tone(freq,start,length){var o=ctx.createOscillator(),g=ctx.createGain();o.type='square';o.frequency.value=freq;g.gain.setValueAtTime(.025,start);g.gain.exponentialRampToValueAtTime(.001,start+length);o.connect(g);g.connect(ctx.destination);o.start(start);o.stop(start+length);}
+function play(){if(!enabled||!ctx)return;ctx.resume().then(function(){var t=ctx.currentTime;tone(440,t,.06);tone(660,t+.07,.09);}).catch(function(){});}
+sound.onclick=function(){try{if(!ctx){var Audio=window.AudioContext||window.webkitAudioContext;if(!Audio){sound.textContent='おと：非対応';sound.disabled=true;return;}ctx=new Audio();}enabled=!enabled;sound.textContent=enabled?'おと：あり':'おと：なし';sound.setAttribute('aria-pressed',String(enabled));play();}catch(e){sound.textContent='おと：非対応';sound.disabled=true;}};
+document.querySelectorAll('.locbtn').forEach(function(btn){btn.addEventListener('click',play);});
+// Arrow-key command navigation, with Enter/Space retaining native activation.
+document.querySelectorAll('.btns').forEach(function(group){group.addEventListener('keydown',function(e){if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(e.key))return;var buttons=Array.from(group.querySelectorAll('button'));var i=buttons.indexOf(document.activeElement);if(i<0)return;var cols=getComputedStyle(group).gridTemplateColumns.split(' ').length;var next=e.key==='Home'?0:e.key==='End'?buttons.length-1:i+(e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:e.key==='ArrowDown'?cols:-cols);e.preventDefault();buttons[Math.max(0,Math.min(buttons.length-1,next))].focus();});});
+
+})();
+</script><script>
+ document.querySelectorAll('.locbtn').forEach(function(button){var label=document.createElement('span');label.className='command-text';label.textContent=button.textContent;button.replaceChildren(label);});
+</script>
+
+
+
+
+<script>
+(function(){
+  var ORIGIN=location.origin, standalone=window.parent===window;
+  function post(msg){if(!standalone)window.parent.postMessage(msg,ORIGIN);}
+  // 人を押したら親に知らせる（親がいつものメンバーの小窓を開く）
+  function pick(e){var ch=e.target.closest&&e.target.closest('.char');if(!ch||!ch.dataset.id||ch.classList.contains('walkclone'))return;post({type:'zmap:member',id:ch.dataset.id});}
+  document.addEventListener('click',pick);
+  // コマンド窓で場所を選び、歩き終わったら親に保存してもらう（親が保存して並べ直したデータを送り返す）
+  window.__zmapOnMove=function(id){post({type:'zmap:move',place:id});};
+  document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.closest&&e.target.closest('.char')){e.preventDefault();pick(e);}});
+  window.addEventListener('message',function(e){
+    if(e.origin!==ORIGIN||!e.data||e.data.type!=='zmap:data')return;
+    window.__zmapPlacePeople(e.data.payload||{});sendHeight();
+  });
+  var lastH=0;
+  // 中身の高さを送る（scrollHeight は窓の高さより小さくならないので、幅を広げたときに縮まなくなる）
+  function sendHeight(){var h=Math.ceil(document.body.getBoundingClientRect().height);if(h&&h!==lastH){lastH=h;post({type:'zmap:height',h:h});}}
+  if(window.ResizeObserver)new ResizeObserver(sendHeight).observe(document.body);
+  window.addEventListener('load',sendHeight);
+  if(standalone){
+    // 単体で開いたときの確認用（架空の人）
+    window.__zmapPlacePeople({me:'D1',myPlace:'本社 2階南',members:[
+      {id:'D1',name:'田中',dept:'営業部',zone:'honsha-2f-s'},{id:'D2',name:'斎藤',dept:'営業部',zone:'gaishutsu'},
+      {id:'D3',name:'高橋',dept:'営業部',zone:'shuccho'},{id:'D4',name:'渡辺',dept:'製造部',zone:'shinto-senmu'},
+      {id:'D5',name:'伊藤',dept:'製造部',zone:'ibaraki'},{id:'D6',name:'清水',dept:'製造部',zone:'shinto-3f-mtg1'},
+      {id:'D7',name:'鈴木',dept:'総務部',zone:'shinto-3f-mtg1'},{id:'D8',name:'山田',dept:'総務部',zone:'shinto-2f-mtg'},
+      {id:'D9',name:'井上',dept:'総務部',zone:'zaitaku'},{id:'D10',name:'松本',dept:'開発部',zone:'rest'}],
+      extraRows:[{label:'社内（場所未設定）',names:['岡田','小川']}],labels:{}});
+  } else {
+    post({type:'zmap:ready'});
+  }
+})();
+</script>
+</body></html>

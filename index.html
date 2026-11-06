@@ -144,6 +144,8 @@ input,select{font-family:inherit;outline:none}
 .team-vbtn{padding:6px 16px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;font-weight:600;color:var(--text2);background:white;cursor:pointer;transition:all .15s}
 .team-vbtn.active{background:var(--primary);color:white;border-color:var(--primary)}
 /* 在席ボードの「今いる場所」（2026-11-06） */
+.team-mode-btn{min-height:36px;padding:0 14px;border-radius:18px;border:2px solid #272438;background:#141c2c;color:#e6c578;font-size:0.82em;font-weight:700;cursor:pointer}
+.team-mode-btn.back{background:white;color:var(--primary-dark);border-color:var(--primary)}
 .myplace-card{background:white;border:2px solid var(--primary);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
 .myplace-main{display:flex;align-items:center;gap:12px;flex:1 1 260px;min-width:0}
 .myplace-icon{width:42px;height:42px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:1.3em;flex-shrink:0}
@@ -1212,8 +1214,10 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   <div class="content" id="tab-tasks" style="display:none"></div>
 
   <div class="content" id="tab-team" style="display:none">
+    <!-- いつもの表示 ⇔ マップの切替（表示の選択肢とは分けて、一番上の右に置く） -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button type="button" class="team-mode-btn" id="team-mode-btn" onclick="toggleTeamMode()"></button></div>
     <div id="team-myplace"></div>
-    <div style="background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)">
+    <div id="team-view-card" style="background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <button class="team-vbtn active" id="team-vbtn-normal" onclick="switchTeamView('normal')">在席ボード</button>
         <button class="team-vbtn" id="team-vbtn-dept" onclick="switchTeamView('dept')">📋 部署ごと</button>
@@ -1227,6 +1231,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       </div>
     </div>
     <div id="team-grid"></div>
+    <!-- 在席マップ（zaiseki-map.html を iframe で。マップを選んだときだけ読み込む。2026-11-06 段階M1） -->
+    <div id="team-map-wrap" style="display:none"></div>
   </div>
 
   <!-- 端末 -->
@@ -2208,6 +2214,14 @@ ja:{
 'team.place':'📍 場所ごと','place.filter':'場所','place.nobody':'だれもいない',
 'place.sec.away':'社外・お休み','place.sec.unset':'社内・場所未設定','place.sec.otherroom':'そのほかの会議室',
 'place.my.short':'今いる場所','place.change.short':'変更','place.back.short':'戻った',
+// 在席マップ（2026-11-06 段階M1）。マップの中はゲーム風のひらがなの文言
+'team.map.on':'🗺 マップで見る','team.map.off':'📋 いつもの表示に戻る','team.map.title':'在席マップ',
+'map.roster':'■ いま どこに だれが いる','map.unset':'社内（場所未設定）','map.nobody':'だれもいない…','map.now':'げんざいち：','map.you':'あなた',
+'map.sum.all':'なかま','map.sum.away':'しゃがい','map.sum.rest':'おやすみ','map.people':'{n} にん',
+'map.heading':'◆ なかまたちの せかい','map.help':'＊ キャラクターを えらぶと なかまの じょうほうが みられます。いどうは とびら・ろうか・かいだんを とおります。','map.quest':'なかまたちは それぞれの ばしょで かつやくしている。',
+'map.z.shuccho':'出張中','map.z.rest':'休暇/休み',
+'map.cmd.ask':'いま どこにいる？　{name} の いばしょを えらぶ','map.cmd.other':'そのほか','map.pick':'行き先を選ぶ','map.now.short':'現在地',
+'map.moved':'あなたは {place} に いどうした！','map.moving':'あなたは {place} へ いどうちゅう。','map.busy':'いまは よていの「{status}」が ひょうじされている。',
 'team.present':'{n}/{total}名在席','team.schedule':'予定なし','team.allday':'終日',
 'team.other':'その他','team.dept.header':'{month}月{day}日（{dow}）の予定',
 // メンバー詳細
@@ -2600,6 +2614,13 @@ vi:{
 'team.place':'📍 Theo vị trí','place.filter':'Vị trí','place.nobody':'Không có ai',
 'place.sec.away':'Bên ngoài・Nghỉ','place.sec.unset':'Trong công ty・Chưa chọn vị trí','place.sec.otherroom':'Phòng họp khác',
 'place.my.short':'Vị trí hiện tại','place.change.short':'Đổi','place.back.short':'Đã về',
+'team.map.on':'🗺 Xem bản đồ','team.map.off':'📋 Về cách hiển thị thường','team.map.title':'Bản đồ vị trí',
+'map.roster':'■ Ai đang ở đâu','map.unset':'Trong công ty (chưa chọn vị trí)','map.nobody':'Không có ai…','map.now':'Vị trí hiện tại:','map.you':'Bạn',
+'map.sum.all':'Mọi người','map.sum.away':'Bên ngoài','map.sum.rest':'Nghỉ','map.people':'{n} người',
+'map.heading':'◆ Thế giới của mọi người','map.help':'＊ Chọn nhân vật để xem thông tin. Khi di chuyển sẽ đi qua cửa, hành lang và cầu thang.','map.quest':'Mọi người đang làm việc ở nơi của mình.',
+'map.z.shuccho':'Đang công tác','map.z.rest':'Nghỉ phép/Nghỉ',
+'map.cmd.ask':'Bây giờ bạn ở đâu? Chọn vị trí của {name}','map.cmd.other':'Khác','map.pick':'Chọn nơi đến','map.now.short':'Vị trí',
+'map.moved':'Bạn đã đến {place}!','map.moving':'Bạn đang đi đến {place}.','map.busy':'Hiện đang hiển thị lịch "{status}".',
 'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch','team.allday':'Cả ngày',
 'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
 'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
@@ -2980,6 +3001,13 @@ ne:{
 'team.place':'📍 स्थान अनुसार','place.filter':'स्थान','place.nobody':'कोही छैन',
 'place.sec.away':'बाहिर・बिदा','place.sec.unset':'कार्यालयमा・स्थान नछानिएको','place.sec.otherroom':'अन्य बैठक कोठा',
 'place.my.short':'हालको स्थान','place.change.short':'बदल्नुहोस्','place.back.short':'फर्किएँ',
+'team.map.on':'🗺 नक्सामा हेर्नुहोस्','team.map.off':'📋 सामान्य दृश्यमा फर्कनुहोस्','team.map.title':'उपस्थिति नक्सा',
+'map.roster':'■ अहिले को कहाँ छ','map.unset':'कार्यालयमा (स्थान नछानिएको)','map.nobody':'कोही छैन…','map.now':'हालको स्थान:','map.you':'तपाईं',
+'map.sum.all':'सबै','map.sum.away':'बाहिर','map.sum.rest':'बिदा','map.people':'{n} जना',
+'map.heading':'◆ साथीहरूको संसार','map.help':'＊ पात्र छान्दा जानकारी हेर्न सकिन्छ। सर्दा ढोका, करिडोर र भर्याङ हुँदै जान्छ।','map.quest':'सबै आ-आफ्नो ठाउँमा काम गर्दैछन्।',
+'map.z.shuccho':'व्यापारिक यात्रामा','map.z.rest':'बिदा/आराम',
+'map.cmd.ask':'अहिले कहाँ हुनुहुन्छ? {name} को स्थान छान्नुहोस्','map.cmd.other':'अन्य','map.pick':'जाने ठाउँ छान्नुहोस्','map.now.short':'हालको स्थान',
+'map.moved':'तपाईं {place} पुग्नुभयो!','map.moving':'तपाईं {place} तर्फ जाँदै हुनुहुन्छ।','map.busy':'अहिले तालिकाको "{status}" देखाइएको छ।',
 'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन','team.allday':'दिनभर',
 'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
 'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
@@ -3460,7 +3488,10 @@ let filterPeople = new Set(), filterTypes = new Set();
 let adminAllUsers = [];
 let pinTargetEmpId = null;
 let teamFilterStatus = null;
-let teamView = 'normal'; // 'normal' | 'dept' | 'place'
+// 表示の選択肢 'normal' | 'dept' | 'place' と、画面モード 'normal'（いつもの表示）| 'map'。
+// どちらも最後に選んだものを端末ごとに覚える（最初は在席ボード・いつもの表示）
+let teamView = (()=>{ try { const v=localStorage.getItem('halo_team_view'); return ['normal','dept','place'].includes(v) ? v : 'normal'; } catch(e) { return 'normal'; } })();
+let teamMode = (()=>{ try { return localStorage.getItem('halo_team_mode')==='map' ? 'map' : 'normal'; } catch(e) { return 'normal'; } })();
 let teamFilterPlace = null; // 場所の絞り込み（'honsha' | 'shinto' | 'ibaraki' | 'daikoku'）
 let mpUserId = null, mpWeekOffset = 0;
 let holidays = [];
@@ -6507,11 +6538,12 @@ const PLACES = [
   {id:'honsha-3f-n',    grp:'honsha', short:'3階北'},
   {id:'honsha-soko',    grp:'honsha', short:'倉庫'}, // 11月末まで。消すときは連絡がある（自動では消さない）
   {id:'shinto-1f',      grp:'shinto', short:'1階'},
-  {id:'shinto-senmu',   grp:'shinto', short:'専務室'},
+  {id:'shinto-2f',      grp:'shinto', short:'2階'}, // 2026-11-06 追加（新棟2階は「2階」と「2階 会議室」の2部屋）
   // room は ROOMS の id。その会議室を押さえた予定がある人は、その時間はこの場所に出す
   {id:'shinto-2f-mtg',  grp:'shinto', short:'2階 会議室',          room:'新棟2階'},
   {id:'shinto-3f-mtg1', grp:'shinto', short:'3階 第1会議室（東）',   room:'新棟3階第1会議室（東）'},
   {id:'shinto-3f-mtg2', grp:'shinto', short:'3階 第2会議室（中央）', room:'新棟3階第2会議室（中央）'},
+  {id:'shinto-senmu',   grp:'shinto', short:'3階 専務室'}, // 専務室は新棟3階（2026-11-06 確認）
   {id:'ibaraki',        grp:'other',  short:'茨城工場'},
   {id:'daikoku',        grp:'other',  short:'大黒'},
   {id:'out',            grp:'other',  short:''}, // 外出中（名前は t('place.out')）
@@ -6703,6 +6735,11 @@ function renderTeam(){
   const now=new Date();
   const nowMins=now.getHours()*60+now.getMinutes();
   renderMyPlace(teamStatusNow(currentUser, ds, nowMins).baseStatus);
+  _syncTeamView();
+  if (teamMode === 'map') {
+    renderTeamMap(USERS.filter(u=>!u.isPartner&&!u.isTest).map(u=>({...u, ...teamStatusNow(u, ds, nowMins)})));
+    return;
+  }
   if (teamView === 'dept') { renderTeamDeptView(); return; }
   const kw=(document.getElementById('team-search')?.value||'').toLowerCase();
   const _teamHol=holidays.find(h=>h.date===ds);
@@ -6788,13 +6825,99 @@ function renderTeam(){
 
 function switchTeamView(v) {
   teamView = v;
-  document.getElementById('team-vbtn-normal').classList.toggle('active', v === 'normal');
-  document.getElementById('team-vbtn-dept').classList.toggle('active', v === 'dept');
-  document.getElementById('team-vbtn-place')?.classList.toggle('active', v === 'place');
-  // 部署ごと・場所ごとビューでは検索・ステータスチップを非表示
-  document.getElementById('team-search-wrap').style.display = v === 'normal' ? 'block' : 'none';
+  try { localStorage.setItem('halo_team_view', v); } catch(e) {}
   renderTeam();
 }
+function toggleTeamMode() {
+  teamMode = teamMode==='map' ? 'normal' : 'map';
+  try { localStorage.setItem('halo_team_mode', teamMode); } catch(e) {}
+  renderTeam();
+}
+// 表示切替ボタン・検索欄・マップの出し分け（renderTeam のたびに合わせる。前回の表示を覚えて開いたときもこれでそろう）。
+// マップのときは「あなたの今いる場所」と表示の切替を出さず、マップだけにする
+function _syncTeamView(){
+  const isMap = teamMode==='map';
+  [['normal','team-vbtn-normal'],['dept','team-vbtn-dept'],['place','team-vbtn-place']]
+    .forEach(([v,id])=>document.getElementById(id)?.classList.toggle('active', teamView===v));
+  // 部署ごと・場所ごとでは検索・ステータスチップを非表示
+  const sw=document.getElementById('team-search-wrap'); if(sw) sw.style.display = teamView==='normal' ? 'block' : 'none';
+  const show=(id,on)=>{ const el=document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
+  show('team-myplace', !isMap); show('team-view-card', !isMap); show('team-grid', !isMap); show('team-map-wrap', isMap);
+  const mb=document.getElementById('team-mode-btn');
+  if(mb){ mb.textContent = isMap ? t('team.map.off') : t('team.map.on'); mb.classList.toggle('back', isMap); }
+}
+
+// ===== 在席マップ（2026-11-06 段階M1：見るだけ） =====
+// 見た目は zaiseki-map.html（Codex で作った v17 をそのまま）。ページ全体の見た目を変える書き方が多いので、
+// ここに混ぜずに iframe で読み込み、並べる人と文言を postMessage で渡す（同じオリジンだけ）。
+// 置く場所は teamStatusNow() の結果から決めるので、ほかの表示と必ず同じになる。
+// 社内にいて場所を選んでいない人はマップに描かず、上の一覧の最後に「社内（場所未設定）」の行で出す
+let _zmapReady=false, _zmapPayload=null;
+function _zmapZone(m){
+  if(m.placeId==='out' || m.status==='外出') return 'gaishutsu';
+  if(m.placeId && PLACES.some(p=>p.id===m.placeId)) return m.placeId;
+  if(m.status==='出張') return 'shuccho';
+  if(m.status==='在宅') return 'zaitaku';
+  if(m.status==='休暇' || m.status==='休み') return 'rest';
+  return '';
+}
+function renderTeamMap(members){
+  const wrap=document.getElementById('team-map-wrap'); if(!wrap) return;
+  let frame=document.getElementById('team-map-frame');
+  if(!frame){
+    frame=document.createElement('iframe');
+    frame.id='team-map-frame';
+    frame.title=t('team.map.title');
+    frame.src='zaiseki-map.html?v=1';
+    frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
+    wrap.appendChild(frame);
+  }
+  const unset=[], otherRooms={};
+  const list=[];
+  members.forEach(m=>{
+    const zone=_zmapZone(m);
+    if(zone) list.push({id:m.id, name:m.name, dept:m.dept||'', zone});
+    else if(m.placeText) (otherRooms[m.placeText]=otherRooms[m.placeText]||[]).push(m.name); // PLACES に無い会議室
+    else unset.push(m.name);
+  });
+  const me=members.find(m=>m.id===currentUser.id);
+  const myPlace=!me ? '' : me.placeText || (me.placeId==='out' ? t('place.out')
+    : (PLACE_STATUSES.includes(me.baseStatus) ? t('place.unset') : tType(me.status)));
+  // 予定（会議・出張など）や休みがあるときは、場所を選んでもその時間は予定のほうが出ることを知らせる
+  const busy = me && me.baseStatus!=='在席' ? t('map.busy',{status:tType(me.baseStatus)}) : '';
+  _zmapPayload={
+    me: currentUser.id, myPlace, members: list, busy,
+    extraRows: [...Object.keys(otherRooms).map(k=>({label:k, names:otherRooms[k]})), {label:t('map.unset'), names:unset}],
+    labels: {
+      roster:t('map.roster'), nobody:t('map.nobody'), now:t('map.now'), you:t('map.you'), otherDept:t('team.other'),
+      heading:t('map.heading'), help:t('map.help'), quest:t('map.quest'),
+      cmdAsk:t('map.cmd.ask',{name:currentUser.name}), cmdOther:t('map.cmd.other'), pick:t('map.pick'), nowShort:t('map.now.short'),
+      moved:t('map.moved'), moving:t('map.moving'),
+      summary:{all:t('map.sum.all'), away:t('map.sum.away'), rest:t('map.sum.rest'), people:t('map.people')},
+      zones:{shuccho:t('map.z.shuccho'), gaishutsu:t('place.out'), zaitaku:tType('在宅'), rest:t('map.z.rest')},
+    },
+  };
+  _zmapSend();
+}
+function _zmapSend(){
+  const f=document.getElementById('team-map-frame');
+  if(_zmapReady && f && f.contentWindow && _zmapPayload) f.contentWindow.postMessage({type:'zmap:data', payload:_zmapPayload}, location.origin);
+}
+window.addEventListener('message', e=>{
+  if(e.origin!==location.origin) return;
+  const f=document.getElementById('team-map-frame');
+  if(!f || e.source!==f.contentWindow) return;
+  const d=e.data||{};
+  if(d.type==='zmap:ready'){ _zmapReady=true; _zmapSend(); }
+  else if(d.type==='zmap:height' && d.h>0){ f.style.height=Math.min(Math.ceil(d.h),20000)+'px'; }
+  else if(d.type==='zmap:member' && USERS.some(u=>u.id===d.id)){ openMemberDetail(d.id); }
+  else if(d.type==='zmap:move'){
+    // マップのコマンド窓で選んで歩き終わった場所を保存する（外出中のマスは自分で選ぶ「外出中」）
+    const code = d.place==='gaishutsu' ? 'out' : d.place;
+    if(!PLACES.some(p=>p.id===code) || code===placeOf(currentUser.id)) return;
+    savePlace(code, false);
+  }
+});
 
 // 場所ごと表示（2026-11-06 段階2）：本社・新棟・拠点の場所ごとに、いまそこにいる人を並べる。
 // 会議室を押さえた予定がある人はその会議室の行に出る。社外・お休みの人と、社内で場所を選んでいない人は下にまとめる
