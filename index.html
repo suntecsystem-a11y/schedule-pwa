@@ -4558,10 +4558,15 @@ function tkGanttHtml(){
 }
 function tkKanbanHtml(){
   const all=_tk.nodes.filter(n=>!n.ch.length&&tkVisible(n));
-  const cols=TK_STS.filter(s=>(s!=='保留'||all.some(x=>tkEffSt(x)==='保留'))&&(s!=='完了'||_tk.done));
-  return '<div id="tk-kanban">'+cols.map(s=>{
-    const items=all.filter(x=>tkEffSt(x)===s).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
-    return '<div class="tk-col"><h3><span>'+s+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
+  const split=!!(_tk.ks&&_tk.ks.loaded);   // 予定の読み込みが済んだら、未着手・進行中を「予定なし／予定済み」に分ける
+  const cols=[];
+  TK_STS.filter(s=>(s!=='保留'||all.some(x=>tkEffSt(x)==='保留'))&&(s!=='完了'||_tk.done)).forEach(s=>{
+    if(split&&(s==='未着手'||s==='進行中')){cols.push({s:s,sch:false,label:s+'（予定なし）'});cols.push({s:s,sch:true,label:s+'（予定済み）'});}
+    else cols.push({s:s,sch:null,label:s});
+  });
+  return '<div id="tk-kanban">'+cols.map(c=>{
+    const items=all.filter(x=>tkEffSt(x)===c.s&&(c.sch===null||tkkIsSched(x)===c.sch)).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
+    return '<div class="tk-col"'+(c.sch?' style="border-top:3px solid #43a047"':'')+'><h3><span>'+c.label+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
       const late=tkIsLate(x);
       return '<div class="tk-card" data-id="'+x.id+'"'+tkkDragAttr(x)+' style="border-left-color:'+tkBarColor(x)+'"><div class="p">'+tkEsc(tkPath(x))+'</div><div class="t">'+tkEsc(x.title)+(x.hold&&x.st!=='保留'&&x.st!=='完了'?' <small style="color:var(--text2);font-weight:400">（上位が保留）</small>':'')+'</div>'
         +'<div class="tk-pbar"><i style="width:'+x.p+'%"></i></div><div class="f'+(late?' late':'')+'"><span>'+tkAv(x.who)+tkkBadge(x)+'</span><span>'+(late?'<b>期限超過</b> ':'')+(x.ed?'期限 '+tkFmt(x.ed):'期限なし')+'</span></div></div>';
@@ -5037,21 +5042,35 @@ async function tkkLoad(){
   if(_tk.view==='kanban')tkRender(true);
 }
 // 予定を入れた・動かした・取り消したら、カレンダーのページの表示（10分の覚え）も入れ替える
-async function tkkSyncCal(){try{await loadEvents({force:true});}catch(e){}}
+async function tkkSyncCal(){_tk.ks=null;try{await loadEvents({force:true});}catch(e){}}
 function tkkShift(n){const kc=tkkS();kc.ws=tkIso(tkAddDays(tkParse(kc.ws),7*n));kc.events=null;tkRender(true);}
 function tkkToday(){const kc=tkkS();kc.ws=tkkWeekStart(new Date());kc.events=null;tkRender(true);}
-function tkkReload(){tkkS().events=null;tkRender(true);}
+function tkkReload(){tkkS().events=null;_tk.ks=null;tkRender(true);}
 function tkkDragAttr(x){
   if(!tkkOn()||!tkkIsMine(x)||x.st==='完了'||x.type!=='タスク')return '';
   return ' draggable="true" title="右のカレンダーの空き枠へつまんで入れられます" ondragstart="tkkDragCard(event,\''+x.id+'\')" ondragend="_tkkDrag=null"';
 }
+// 予定済み＝今日以降に、そのタスクの予定がある。過ぎた予定だけのタスクは「予定なし」（入れ直しが要る）
+function tkkIsSched(x){return !!(_tk.ks&&_tk.ks.loaded&&x.type==='タスク'&&_tk.ks.next[String(x.id)]);}
+async function tkkSchedLoad(){
+  const ks=_tk.ks={loading:true,loaded:false,next:{}};
+  try{
+    const t0=tkIso(new Date()),t1=tkIso(tkAddDays(new Date(),180));
+    const evs=await api('getEvents',{rangeStart:t0,rangeEnd:t1},'予定を確認中...');
+    (evs||[]).forEach(e=>{const id=tkkTaskId(e);if(!id)return;const d=e.startDate||e.date;if(!d||d<t0)return;if(!ks.next[id]||d<ks.next[id])ks.next[id]=d;});
+    ks.loaded=true;
+  }catch(e){ks.failed=true;}   // 読めないときは、分けずに今までのかんばんを出す（読み直しは🔄）
+  ks.loading=false;
+  if(_tk.view==='kanban')tkRender(true);
+}
 function tkkBadge(x){
-  const kc=_tk.kc;if(!tkkOn()||!kc||!kc.events||x.type!=='タスク')return '';
-  const list=tkkMine().filter(e=>tkkTaskId(e)===String(x.id)).sort((a,b)=>a.startDate<b.startDate?-1:1);
-  if(list.length)return ' <span class="tkd-p g">'+tkMd(list[0].startDate)+'に予定</span>';
-  return tkkIsMine(x)&&x.st!=='完了'?' <span class="tkd-p w">この週は予定なし</span>':'';
+  const ks=_tk.ks;if(!ks||!ks.loaded||x.type!=='タスク')return '';
+  const d=ks.next[String(x.id)];
+  if(d)return ' <span class="tkd-p g">'+tkMd(d)+'に予定</span>';
+  return tkkIsMine(x)&&x.st!=='完了'?' <span class="tkd-p w">予定なし</span>':'';
 }
 function tkkSplitHtml(){
+  if(!_tk.ks)setTimeout(tkkSchedLoad,0);
   if(!tkkOn())return tkKanbanHtml();
   const kc=tkkS();
   if(!kc.events&&!kc.loading)setTimeout(tkkLoad,0);
