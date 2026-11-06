@@ -164,6 +164,17 @@ input,select{font-family:inherit;outline:none}
 .place-opt.out{background:#fff3e0;border-color:#ffcc80;color:#a84300}
 .place-opt.out.sel{background:#e65100;border-color:#e65100;color:white}
 .place-rules{background:var(--primary-light);border-radius:10px;padding:10px 12px;font-size:0.78em;color:#1a237e;line-height:1.6;margin-top:14px}
+/* 場所ごと表示（2026-11-06 段階2） */
+.place-secs{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;align-items:start}
+.place-sec{background:white;border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow)}
+.place-sec-title{margin:0 0 4px;font-size:0.9em;font-weight:700;display:flex;align-items:baseline;gap:8px}
+.place-sec-title span{font-size:0.82em;font-weight:600;color:var(--primary)}
+.place-row{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--border);align-items:flex-start}
+.place-row-label{width:118px;flex-shrink:0;font-size:0.8em;font-weight:700;padding-top:2px}
+.place-row-ppl{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:5px}
+.place-chip{font-size:0.8em;padding:3px 10px;border-radius:12px;border:0;background:#f0f1f5;color:var(--text);cursor:pointer;font-family:inherit}
+.place-chip.me{background:var(--primary-light);color:var(--primary-dark);font-weight:700}
+.place-empty{font-size:0.75em;color:var(--text2);padding-top:3px}
 
 /* タブレット(600px+)：コンパクトサイドバー（アイコンのみ） */
 @media(min-width:600px){
@@ -1198,11 +1209,13 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <button class="team-vbtn active" id="team-vbtn-normal" onclick="switchTeamView('normal')">在席ボード</button>
         <button class="team-vbtn" id="team-vbtn-dept" onclick="switchTeamView('dept')">📋 部署ごと</button>
+        <button class="team-vbtn" id="team-vbtn-place" onclick="switchTeamView('place')">📍 場所ごと</button>
       </div>
       <div id="team-search-wrap">
         <input type="text" id="team-search" placeholder="🔍 名前で検索..." oninput="renderTeam()"
           style="width:100%;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em;margin-bottom:10px">
         <div style="display:flex;flex-wrap:wrap;gap:5px" id="team-status-chips"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px" id="team-place-chips"></div>
       </div>
     </div>
     <div id="team-grid"></div>
@@ -1871,6 +1884,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <div>
         <div style="font-size:1.05em;font-weight:700" id="mp-name"></div>
         <div style="font-size:0.8em;color:var(--text2)" id="mp-dept"></div>
+        <div class="team-place" id="mp-place" style="display:none;font-size:0.8em;white-space:normal"></div>
         <span class="status-badge" id="mp-status-badge" style="margin-top:4px;display:inline-block"></span>
       </div>
     </div>
@@ -2183,6 +2197,8 @@ ja:{
 'place.rule.3':'10分以上その場所にいるときは、場所を変更してください。',
 'place.sethome':'この場所を「いつもの場所」にする（毎朝ここから始まる）',
 'place.clear':'場所を外す','place.ok':'決定','place.saved':'場所を「{place}」にしました','place.cleared':'場所を外しました',
+'team.place':'📍 場所ごと','place.filter':'場所','place.nobody':'だれもいない',
+'place.sec.away':'社外・お休み','place.sec.unset':'社内・場所未設定','place.sec.otherroom':'そのほかの会議室',
 'team.present':'{n}/{total}名在席','team.schedule':'予定なし','team.allday':'終日',
 'team.other':'その他','team.dept.header':'{month}月{day}日（{dow}）の予定',
 // メンバー詳細
@@ -2572,6 +2588,8 @@ vi:{
 'place.rule.3':'Nếu ở một nơi từ 10 phút trở lên, hãy đổi vị trí.',
 'place.sethome':'Đặt nơi này làm "vị trí thường ngày" (mỗi sáng bắt đầu từ đây)',
 'place.clear':'Bỏ vị trí','place.ok':'Xác nhận','place.saved':'Đã đổi vị trí thành "{place}"','place.cleared':'Đã bỏ vị trí',
+'team.place':'📍 Theo vị trí','place.filter':'Vị trí','place.nobody':'Không có ai',
+'place.sec.away':'Bên ngoài・Nghỉ','place.sec.unset':'Trong công ty・Chưa chọn vị trí','place.sec.otherroom':'Phòng họp khác',
 'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch','team.allday':'Cả ngày',
 'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
 'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
@@ -2949,6 +2967,8 @@ ne:{
 'place.rule.3':'कुनै ठाउँमा १० मिनेट वा बढी बस्दा स्थान बदल्नुहोस्।',
 'place.sethome':'यो स्थानलाई "सामान्य स्थान" बनाउनुहोस् (हरेक बिहान यहीँबाट सुरु)',
 'place.clear':'स्थान हटाउनुहोस्','place.ok':'पक्का गर्नुहोस्','place.saved':'स्थान "{place}" मा बदलियो','place.cleared':'स्थान हटाइयो',
+'team.place':'📍 स्थान अनुसार','place.filter':'स्थान','place.nobody':'कोही छैन',
+'place.sec.away':'बाहिर・बिदा','place.sec.unset':'कार्यालयमा・स्थान नछानिएको','place.sec.otherroom':'अन्य बैठक कोठा',
 'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन','team.allday':'दिनभर',
 'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
 'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
@@ -3292,6 +3312,7 @@ function applyLanguage(lang){
   // 在席ボード
   const _tvn=document.getElementById('team-vbtn-normal');if(_tvn)_tvn.textContent=t('team.board');
   const _tvd=document.getElementById('team-vbtn-dept');if(_tvd)_tvd.textContent=t('team.dept');
+  const _tvp=document.getElementById('team-vbtn-place');if(_tvp)_tvp.textContent=t('team.place');
   const _ts=document.getElementById('team-search');if(_ts)_ts.placeholder=t('team.search');
   // 管理者パネル
   const _at=document.getElementById('admin-title-text');if(_at)_at.innerHTML=t('admin.members')+' <span style="font-size:0.8em;color:var(--text2);font-weight:400">'+t('admin.pin.reissue')+'</span>';
@@ -3428,7 +3449,8 @@ let filterPeople = new Set(), filterTypes = new Set();
 let adminAllUsers = [];
 let pinTargetEmpId = null;
 let teamFilterStatus = null;
-let teamView = 'normal'; // 'normal' | 'dept'
+let teamView = 'normal'; // 'normal' | 'dept' | 'place'
+let teamFilterPlace = null; // 場所の絞り込み（'honsha' | 'shinto' | 'ibaraki' | 'daikoku'）
 let mpUserId = null, mpWeekOffset = 0;
 let holidays = [];
 let allHolidays = [];
@@ -6472,9 +6494,10 @@ const PLACES = [
   {id:'honsha-soko',    grp:'honsha', short:'倉庫'}, // 11月末まで。消すときは連絡がある（自動では消さない）
   {id:'shinto-1f',      grp:'shinto', short:'1階'},
   {id:'shinto-senmu',   grp:'shinto', short:'専務室'},
-  {id:'shinto-2f-mtg',  grp:'shinto', short:'2階 会議室'},
-  {id:'shinto-3f-mtg1', grp:'shinto', short:'3階 第1会議室（東）'},
-  {id:'shinto-3f-mtg2', grp:'shinto', short:'3階 第2会議室（中央）'},
+  // room は ROOMS の id。その会議室を押さえた予定がある人は、その時間はこの場所に出す
+  {id:'shinto-2f-mtg',  grp:'shinto', short:'2階 会議室',          room:'新棟2階'},
+  {id:'shinto-3f-mtg1', grp:'shinto', short:'3階 第1会議室（東）',   room:'新棟3階第1会議室（東）'},
+  {id:'shinto-3f-mtg2', grp:'shinto', short:'3階 第2会議室（中央）', room:'新棟3階第2会議室（中央）'},
   {id:'ibaraki',        grp:'other',  short:'茨城工場'},
   {id:'daikoku',        grp:'other',  short:'大黒'},
   {id:'out',            grp:'other',  short:''}, // 外出中（名前は t('place.out')）
@@ -6502,6 +6525,56 @@ async function loadPlaces(force){
     if(j.ok && j.data){ placeToday=j.data.today||{}; placeHome=j.data.home||{}; _placesAt=Date.now(); }
   } catch(e) { /* 表示は前の値のまま */ }
 }
+// いまの状態と場所（在席ボード・部署ごと・場所ごと・メンバーの小窓で共通。2026-11-06 段階2で1つにまとめた）
+//   baseStatus … 予定と「休み」だけで決まる状態（前の在席ボードの status と同じ）
+//   status     … 表示用。在席の人が自分で「外出中」を選んでいれば '外出'
+//   placeId    … PLACES の id。会議室を押さえた予定（会議・打ち合わせ・来社）があればその部屋、無ければ本人が選んだ場所。
+//                自分で選んだ外出中は 'out'。社外・お休みの人は ''
+//   placeText  … 📍に出す名前（PLACES に無い会議室は会議室の名前）
+const PLACE_STATUSES = ['在席','打ち合わせ','来社','会議中']; // 社内にいる状態（場所を出す）
+function placeIdOfRoom(room){ return (PLACES.find(p=>p.room&&p.room===room)||{}).id||''; }
+function teamStatusNow(u, ds, nowMins){
+  const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&_isUserInEvent(e,u.id)&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
+  const isNowInEvent=(e)=>{
+    if(!e.start||!e.end) return true;
+    const isFirstDay=(e.startDate||e.date)===ds;
+    const isLastDay=(e.endDate||e.date)===ds;
+    if(!isFirstDay&&!isLastDay) return true;
+    const sMins=isFirstDay?timeToMins(e.start):0;
+    const eMins=isLastDay?timeToMins(e.end):24*60;
+    return sMins<=nowMins&&nowMins<eMins;
+  };
+  const activeEvs=myEvs.filter(isNowInEvent);
+  const inMeeting=activeEvs.some(e=>e.type==='会議室');
+  const statusBase=STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>activeEvs.some(e=>e.type===s));
+  const hasVacEv=activeEvs.some(e=>e.type==='休暇');
+  const baseStatus=(yasumiUsers.has(u.id)&&!hasVacEv)?'休み':inMeeting?'会議中':(statusBase||'在席');
+  const ev=inMeeting ? activeEvs.find(e=>e.type==='会議室') : activeEvs.find(e=>e.type===baseStatus);
+  let status=baseStatus, subInfo=ev?.title||'', placeId='', placeText='';
+  if(PLACE_STATUSES.includes(baseStatus)){
+    if(ev && usesRoom(ev)){
+      // 予定が優先：押さえた会議室を場所にする
+      placeId=placeIdOfRoom(ev.room);
+      placeText=placeId ? placeLabel(placeId) : roomName(ev.room);
+    } else {
+      const mine=placeOf(u.id);
+      if(mine==='out'){
+        // 自分で選んだ外出中は、予定の無い「在席」のときだけ外出として数える
+        if(baseStatus==='在席'){ status='外出'; subInfo=t('place.out.self'); placeId='out'; }
+      } else if(mine){
+        placeId=mine; placeText=placeLabel(mine);
+      }
+    }
+  }
+  return {status, baseStatus, subInfo, placeId, placeText, placeUnset: status==='在席'&&!placeText, myEvs};
+}
+// 場所の絞り込み（本社・新棟は建物ごと、それ以外は場所ごと）
+function placeMatches(placeId, filter){
+  const p=PLACES.find(x=>x.id===placeId); if(!p) return false;
+  return p.grp===filter || p.id===filter;
+}
+function teamTogglePlace(f){ teamFilterPlace=teamFilterPlace===f?null:f; renderTeam(); }
+
 // 「外出中」にする前の場所（戻るボタン用）。今日の分だけ。無ければいつもの場所
 function _placeBack(){
   try {
@@ -6588,11 +6661,12 @@ async function savePlace(id, setHome){
 
 function renderTeam(){
   if (!currentUser) return;
-  if (teamView === 'dept') { renderMyPlace(null); renderTeamDeptView(); return; }
   const ds=fmtDate(new Date());
   const d=parseDate(ds);
   const now=new Date();
-  const nowTime=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const nowMins=now.getHours()*60+now.getMinutes();
+  renderMyPlace(teamStatusNow(currentUser, ds, nowMins).baseStatus);
+  if (teamView === 'dept') { renderTeamDeptView(); return; }
   const kw=(document.getElementById('team-search')?.value||'').toLowerCase();
   const _teamHol=holidays.find(h=>h.date===ds);
   const isCompHoliday=!!_teamHol;
@@ -6603,33 +6677,8 @@ function renderTeam(){
 
   // 全員のステータスを優先度順に計算（パートナー・テストユーザーは在席ボード対象外）
   const teamUsers=USERS.filter(u=>!u.isPartner&&!u.isTest);
-  const members=teamUsers.map(u=>{
-    const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&_isUserInEvent(e,u.id)&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
-    const nowMins=timeToMins(nowTime);
-    const isNowInEvent=(e)=>{
-      if(!e.start||!e.end) return true;
-      const isFirstDay=(e.startDate||e.date)===ds;
-      const isLastDay=(e.endDate||e.date)===ds;
-      const isMiddle=!isFirstDay&&!isLastDay;
-      if(isMiddle) return true;
-      const sMins=isFirstDay?timeToMins(e.start):0;
-      const eMins=isLastDay?timeToMins(e.end):24*60;
-      return sMins<=nowMins&&nowMins<eMins;
-    };
-    const activeEvs=myEvs.filter(isNowInEvent);
-    const inMeeting=activeEvs.some(e=>e.type==='会議室');
-    const statusBase=STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>activeEvs.some(e=>e.type===s));
-    const _hasVacEv=activeEvs.some(e=>e.type==='休暇');
-    const status=(yasumiUsers.has(u.id)&&!_hasVacEv)?'休み':inMeeting?'会議中':(statusBase||'在席');
-    const ev=inMeeting
-      ? activeEvs.find(e=>e.type==='会議室')
-      : activeEvs.find(e=>e.type===status);
-    // 今いる場所：予定も休みも無い「在席」の人にだけ出す。「外出中」を選んだ人は外出として数える
-    const place=status==='在席' ? placeOf(u.id) : '';
-    if(place==='out') return{...u, status:'外出', baseStatus:status, subInfo:t('place.out.self'), place:'', placeUnset:false};
-    return{...u, status, baseStatus:status, subInfo: ev?.title||roomName(ev?.room)||'', place, placeUnset: status==='在席'&&!place};
-  });
-  renderMyPlace(members.find(m=>m.id===currentUser.id)?.baseStatus||null);
+  const members=teamUsers.map(u=>({...u, ...teamStatusNow(u, ds, nowMins)}));
+  if (teamView === 'place') { renderTeamPlaceView(members, d, isHoliday, holName); return; }
 
   // ステータスチップ（件数付き）
   const statusCounts={};
@@ -6643,11 +6692,23 @@ function renderTeam(){
         onclick="teamToggleStatus('${s}')">${STATUS_ICON[s]||''} ${tType(s)} <span style="opacity:.7">${statusCounts[s]}</span></div>`
     ).join('');
   }
+  // 場所の絞り込みチップ（件数付き）
+  const placeChipsEl=document.getElementById('team-place-chips');
+  if(placeChipsEl){
+    const PLACE_FILTERS=[['honsha',PLACE_GRP_NAME.honsha],['shinto',PLACE_GRP_NAME.shinto],['ibaraki',placeLabel('ibaraki')],['daikoku',placeLabel('daikoku')]];
+    placeChipsEl.innerHTML=GAS_URL ? `<span style="font-size:0.78em;font-weight:700;color:var(--text2);align-self:center">📍 ${esc(t('place.filter'))}</span>`
+      +PLACE_FILTERS.map(([f,label])=>{
+        const n=members.filter(m=>placeMatches(m.placeId,f)).length;
+        const on=teamFilterPlace===f;
+        return `<div class="filter-chip${on?' active':''}" style="${on?'background:var(--primary);color:white;border-color:transparent':''}" onclick="teamTogglePlace('${f}')">${esc(label)} <span style="opacity:.7">${n}</span></div>`;
+      }).join('') : '';
+  }
 
   // 絞り込み
   let filtered=members;
   if(kw) filtered=filtered.filter(m=>m.name.toLowerCase().includes(kw)||(m.dept||'').toLowerCase().includes(kw));
   if(teamFilterStatus) filtered=filtered.filter(m=>m.status===teamFilterStatus);
+  if(teamFilterPlace) filtered=filtered.filter(m=>placeMatches(m.placeId,teamFilterPlace));
 
   const grid=document.getElementById('team-grid');
   if(!filtered.length){
@@ -6681,7 +6742,7 @@ function renderTeam(){
           <div class="member-name" style="font-size:0.82em;margin-top:4px">${esc(m.name)}</div>
           <span class="status-badge status-${m.status}" style="font-size:0.75em;margin-top:3px">${tType(m.status)}</span>
           ${m.subInfo?`<div style="font-size:0.72em;color:var(--text2);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">${esc(m.subInfo)}</div>`:''}
-          ${m.place?`<div class="team-place">📍${esc(placeLabel(m.place))}</div>`:''}${m.placeUnset&&GAS_URL?`<div class="team-place unset">${esc(t('place.unset'))}</div>`:''}
+          ${m.placeText?`<div class="team-place">📍${esc(m.placeText)}</div>`:''}${m.placeUnset&&GAS_URL?`<div class="team-place unset">${esc(t('place.unset'))}</div>`:''}
         </div>`).join('')}
       </div>
     </div>`;
@@ -6692,9 +6753,49 @@ function switchTeamView(v) {
   teamView = v;
   document.getElementById('team-vbtn-normal').classList.toggle('active', v === 'normal');
   document.getElementById('team-vbtn-dept').classList.toggle('active', v === 'dept');
-  // 部署ごとビューでは検索・ステータスチップを非表示
-  document.getElementById('team-search-wrap').style.display = v === 'dept' ? 'none' : 'block';
+  document.getElementById('team-vbtn-place')?.classList.toggle('active', v === 'place');
+  // 部署ごと・場所ごとビューでは検索・ステータスチップを非表示
+  document.getElementById('team-search-wrap').style.display = v === 'normal' ? 'block' : 'none';
   renderTeam();
+}
+
+// 場所ごと表示（2026-11-06 段階2）：本社・新棟・拠点の場所ごとに、いまそこにいる人を並べる。
+// 会議室を押さえた予定がある人はその会議室の行に出る。社外・お休みの人と、社内で場所を選んでいない人は下にまとめる
+function renderTeamPlaceView(members, d, isHoliday, holName){
+  const grid=document.getElementById('team-grid');
+  const chip=m=>{
+    const me=m.id===currentUser.id;
+    const st=m.status!=='在席' ? '（'+tType(m.status)+'）' : '';
+    return `<button type="button" class="place-chip${me?' me':''}" onclick="openMemberDetail('${m.id}')">${esc(m.name)}${esc(st)}</button>`;
+  };
+  const row=(label,ppl)=>`<div class="place-row"><div class="place-row-label">${esc(label)}</div><div class="place-row-ppl">`
+    +(ppl.length ? ppl.map(chip).join('') : `<span class="place-empty">${esc(t('place.nobody'))}</span>`)+`</div></div>`;
+  const sec=(title,n,rows)=>`<section class="place-sec"><h3 class="place-sec-title">${esc(title)}<span>${esc(t('home.people',{n}))}</span></h3>${rows}</section>`;
+
+  const byPlace=id=>members.filter(m=>m.placeId===id);
+  const grpSec=(g,title)=>{
+    const list=PLACES.filter(p=>p.grp===g);
+    const n=members.filter(m=>list.some(p=>p.id===m.placeId)).length;
+    return sec(title,n,list.map(p=>row(p.id==='out'?t('place.out'):p.short, byPlace(p.id))).join(''));
+  };
+  // PLACES に無い会議室（前の本社の会議室など）を押さえている人
+  const otherRooms=[...new Set(members.filter(m=>m.placeText&&!m.placeId).map(m=>m.placeText))];
+  const otherSec=otherRooms.length
+    ? sec(t('place.sec.otherroom'), members.filter(m=>m.placeText&&!m.placeId).length, otherRooms.map(r=>row(r, members.filter(m=>m.placeText===r&&!m.placeId))).join(''))
+    : '';
+  const away=members.filter(m=>!PLACE_STATUSES.includes(m.baseStatus));
+  const unset=members.filter(m=>PLACE_STATUSES.includes(m.baseStatus)&&!m.placeId&&!m.placeText);
+
+  const header=`<div style="font-size:0.82em;color:var(--text2);font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+    <span>${t('cal.day.title',{month:d.getMonth()+1,day:d.getDate(),dow:tDow((d.getDay()+6)%7)})}</span>
+    ${isHoliday?`<span style="background:#fce4ec;color:var(--red);border-radius:8px;padding:2px 8px;font-size:0.88em">🎌 ${holName||t('team.holiday')}</span>`:''}
+    <span style="margin-left:auto;color:var(--primary)">${t('home.people',{n:members.length})}</span>
+  </div>`;
+  grid.innerHTML=header+`<div class="place-secs">`
+    +grpSec('honsha',PLACE_GRP_NAME.honsha)+grpSec('shinto',PLACE_GRP_NAME.shinto)+grpSec('other',t('place.grp.other'))+otherSec
+    +sec(t('place.sec.away'),away.length,`<div class="place-row"><div class="place-row-ppl">${away.length?away.map(chip).join(''):`<span class="place-empty">${esc(t('place.nobody'))}</span>`}</div></div>`)
+    +sec(t('place.sec.unset'),unset.length,`<div class="place-row"><div class="place-row-ppl">${unset.length?unset.map(chip).join(''):`<span class="place-empty">${esc(t('place.nobody'))}</span>`}</div></div>`)
+    +`</div>`;
 }
 
 function renderTeamDeptView() {
@@ -6712,29 +6813,12 @@ function renderTeamDeptView() {
 
   const teamUsers = USERS.filter(u=>!u.isPartner);
   const members = teamUsers.map(u => {
-    const myEvs = events.filter(e =>
-      eventIncludesDate(e, ds) && _isUserInEvent(e, u.id) &&
-      e.approvalStatus !== '申請中' && e.approvalStatus !== '否認');
-    const isNowInEv=(e)=>{
-      if(!e.start||!e.end) return true;
-      const isFirst=(e.startDate||e.date)===ds, isLast=(e.endDate||e.date)===ds;
-      if(!isFirst&&!isLast) return true;
-      const sM=isFirst?timeToMins(e.start):0, eM=isLast?timeToMins(e.end):24*60;
-      return sM<=nowMins&&nowMins<eM;
-    };
-    const activeEvs=myEvs.filter(isNowInEv);
-    const inMeeting=activeEvs.some(e=>e.type==='会議室');
-    const statusBase = STATUS_PRIORITY.filter(s => s!=='会議中'&&s!=='休み')
-      .find(s => activeEvs.some(e=>e.type===s));
-    const _hasVacEv2 = activeEvs.some(e=>e.type==='休暇');
-    const status = (yasumiUsers.has(u.id) && !_hasVacEv2) ? '休み'
-      : inMeeting ? '会議中'
-      : (statusBase || '在席');
+    const st = teamStatusNow(u, ds, nowMins);
     // 今日の予定（会議室含む）を時刻順
-    const todayEvs = myEvs
+    const todayEvs = st.myEvs
       .slice()
       .sort((a,b) => timeToMins(a.start||'00:00') - timeToMins(b.start||'00:00'));
-    return { ...u, status, todayEvs };
+    return { ...u, status: st.status, placeText: st.placeText, todayEvs };
   });
 
   const depts = [...new Set(teamUsers.map(m => m.dept || t('team.other')))];
@@ -6762,6 +6846,7 @@ function renderTeamDeptView() {
         <div style="width:80px;flex-shrink:0">
           <div style="font-size:0.88em;font-weight:700">${esc(m.name)}</div>
           <span class="status-badge status-${m.status}" style="font-size:0.68em;margin-top:2px">${tType(m.status)}</span>
+          ${m.placeText?`<div class="team-place" style="white-space:normal">📍${esc(m.placeText)}</div>`:''}
         </div>
         <div style="flex:1;min-width:0">${evList}</div>
       </div>`;
@@ -6842,6 +6927,14 @@ function openMemberDetail(userId){
   document.getElementById('mp-avatar').style.background = color;
   document.getElementById('mp-name').textContent = u.name;
   document.getElementById('mp-dept').textContent = u.dept||'';
+  // 今いる場所（在席ボードのカードと同じ。2026-11-06 段階2）
+  const _mpNow = new Date();
+  const _mpSt = teamStatusNow(u, ds, _mpNow.getHours()*60+_mpNow.getMinutes());
+  const _mpPlace = document.getElementById('mp-place');
+  if(_mpPlace){
+    _mpPlace.textContent = _mpSt.placeText ? '📍'+_mpSt.placeText : (_mpSt.placeId==='out' ? t('place.out.self') : '');
+    _mpPlace.style.display = _mpPlace.textContent ? '' : 'none';
+  }
   const badge = document.getElementById('mp-status-badge');
   badge.textContent = tType(status); badge.style.background = color+'22'; badge.style.color = color;
   renderMemberDay();
