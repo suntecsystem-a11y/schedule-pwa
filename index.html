@@ -4835,12 +4835,13 @@ function tkSq(s){return String(s||'').replace(/[\s　]/g,'');}
 async function tkLoadTeam(){
   const T=_tk.team||{};
   try{
-    const r=await api('getTeamDashboard',{dash:{period:T.period||'week',base:T.base||''}},'チームの状況を集計中...');
+    const r=await api('getTeamDashboard',{dash:{period:T.period||'week',base:T.base||'',team:T.team||''}},'チームの状況を集計中...');
     _tk.team=Object.assign({},r,{loaded:true,base:T.base||''});
     _tk.error='';
   }catch(e){_tk.error=(e&&e.message)||String(e);}
   tkRender();
 }
+function tkTeamSelect(v){_tk.team=Object.assign({},_tk.team||{},{team:v,loaded:false});tkLoadTeam();}
 function tkTeamPeriod(p){_tk.team=Object.assign({},_tk.team||{},{period:p,base:'',loaded:false});tkLoadTeam();}
 function tkTeamShift(n){
   const T=_tk.team||{};const from=tkParse(T.from)||tkToday();
@@ -4852,8 +4853,8 @@ function tkTeamBar(){
   const T=_tk.team;if(!T||!T.loaded)return '<div class="tk-bar"></div>';
   const seg=[['week','週間'],['month','月間']].map(o=>'<button class="'+(T.period===o[0]?'on':'')+'" onclick="tkTeamPeriod(\''+o[0]+'\')">'+o[1]+'</button>').join('');
   const lbl=T.period==='month'?(T.from.slice(0,4)+'年'+(+T.from.slice(5,7))+'月'):(tkMd(T.from)+' 〜 '+tkMd(T.to));
-  return '<div class="tk-bar"><div class="tk-grp">'+seg+'</div><button class="tk-btn" onclick="tkTeamShift(-1)">◀</button><b>'+lbl+'</b><button class="tk-btn" onclick="tkTeamShift(1)">▶</button><button class="tk-btn" onclick="tkTeamToday()">今日</button>'
-    +'<span class="tk-sp"></span><span class="tkd-who">'+(T.canTeam?'対象：チーム全員':'対象：自分のタスク')+'</span><button class="tk-btn" onclick="tkLoadTeam()">🔄 更新</button></div>';
+  return '<div class="tk-bar">'+(T.teams&&T.teams.length?'<label>チーム <select onchange="tkTeamSelect(this.value)"><option value="">全員</option>'+T.teams.map(x=>'<option value="'+tkEsc(x.name)+'"'+(T.team===x.name?' selected':'')+'>'+tkEsc(x.name)+'（'+x.count+'名）</option>').join('')+'</select></label>':'')+'<div class="tk-grp">'+seg+'</div><button class="tk-btn" onclick="tkTeamShift(-1)">◀</button><b>'+lbl+'</b><button class="tk-btn" onclick="tkTeamShift(1)">▶</button><button class="tk-btn" onclick="tkTeamToday()">今日</button>'
+    +'<span class="tk-sp"></span><span class="tkd-who">'+(T.canTeam?(T.team?'対象：'+tkEsc(T.team):'対象：全員'):'対象：自分のタスク')+'</span><button class="tk-btn" onclick="tkLoadTeam()">🔄 更新</button></div>';
 }
 function tkTeamTbl(head,rows,empty){
   if(!rows.length)return '<div class="tkd-note">'+empty+'</div>';
