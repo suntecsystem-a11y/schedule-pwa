@@ -5107,8 +5107,15 @@ function tkkLayout(evs){
   });
   return rects;
 }
+// 予定をクリックしたら、カレンダーの予定の詳細を開く（タスクではなく）。カレンダーのページで読み込んだ範囲に無い予定は、ここで読んだ分を足してから開く
 function tkkOpen(id){
-  if(typeof openDetail==='function'&&(events||[]).some(x=>String(x.id)===String(id)))openDetail(id);
+  if(typeof openDetail!=='function')return;
+  if(!(events||[]).some(x=>String(x.id)===String(id))){
+    const e=(tkkS().events||[]).find(x=>String(x.id)===String(id));
+    if(!e)return;
+    events.push(e);
+  }
+  openDetail(String(id));
 }
 // 見た目は、カレンダーの週表示（renderWeek）と同じ class・同じ作り。自分の予定だけを出す
 function tkkCalHtml(){
@@ -5155,9 +5162,9 @@ function tkkCalHtml(){
       const tid=tkkTaskId(e),own=String(e.userId)===String(currentUser&&currentUser.id);
       const title=String(e.title||tType(e.type));
       if(tid&&own){
-        html+='<div class="week-event" draggable="true" ondragstart="tkkDragEv(event,\''+e.id+'\')" ondragend="_tkkDrag=null" style="'+bg+';top:'+r.top+'px;height:'+r.height+'px;left:'+l+'%;width:'+w+'%" onclick="event.stopPropagation();tkfOpenEdit(\''+tid+'\')">'
+        html+='<div class="week-event" draggable="true" ondragstart="tkkDragEv(event,\''+e.id+'\')" ondragend="_tkkDrag=null" style="'+bg+';top:'+r.top+'px;height:'+r.height+'px;left:'+l+'%;width:'+w+'%" onclick="event.stopPropagation();tkkOpen(\''+e.id+'\')">'
           +typeIcon(e.type)+' '+esc(title.replace(/^【タスク】/,''))
-          +'<span class="tkk-c" onclick="event.stopPropagation()"><i title="1時間短く" onclick="tkkLen(\''+e.id+'\',-1)">−</i><i title="1時間長く" onclick="tkkLen(\''+e.id+'\',1)">＋</i><i title="取り消す" onclick="tkkDel(\''+e.id+'\')">×</i></span></div>';
+          +'<span class="tkk-c" onclick="event.stopPropagation()"><i title="タスクを開く" onclick="tkfOpenEdit(\''+tid+'\')">↗</i><i title="1時間短く" onclick="tkkLen(\''+e.id+'\',-1)">−</i><i title="1時間長く" onclick="tkkLen(\''+e.id+'\',1)">＋</i><i title="取り消す" onclick="tkkDel(\''+e.id+'\')">×</i></span></div>';
       }else{
         html+='<div class="week-event" style="'+bg+';top:'+r.top+'px;height:'+r.height+'px;left:'+l+'%;width:'+w+'%" onclick="event.stopPropagation();tkkOpen(\''+e.id+'\')">'+(ip?t('cal.pending'):'')+typeIcon(e.type)+' '+esc(title)+'</div>';
       }
@@ -5165,7 +5172,7 @@ function tkkCalHtml(){
     html+='</div>';
   });
   html+='</div></div>';
-  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります。タスクの予定は、つまんで動かす・＋−で長さを変える・×で取り消せます。</div>';
+  return head+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります。予定をクリックすると、カレンダーの予定の詳細が開きます（↗でタスクを開く）。つまんで動かす・＋−で長さを変える・×で取り消せます。</div>';
 }
 function tkkDragCard(ev,id){_tkkDrag={kind:'card',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
 function tkkDragEv(ev,id){_tkkDrag={kind:'ev',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
