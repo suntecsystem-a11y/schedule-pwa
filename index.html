@@ -143,6 +143,27 @@ input,select{font-family:inherit;outline:none}
 .dept-ratio{font-size:0.78em;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px}
 .team-vbtn{padding:6px 16px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;font-weight:600;color:var(--text2);background:white;cursor:pointer;transition:all .15s}
 .team-vbtn.active{background:var(--primary);color:white;border-color:var(--primary)}
+/* 在席ボードの「今いる場所」（2026-11-06） */
+.myplace-card{background:white;border:2px solid var(--primary);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.myplace-main{display:flex;align-items:center;gap:12px;flex:1 1 260px;min-width:0}
+.myplace-icon{width:42px;height:42px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:1.3em;flex-shrink:0}
+.myplace-label{font-size:0.75em;color:var(--text2);font-weight:600}
+.myplace-name{font-size:1.15em;font-weight:700}
+.myplace-sub{font-size:0.72em;color:var(--text2);margin-top:2px}
+.myplace-btns{display:flex;flex-wrap:wrap;gap:8px}
+.myplace-btn{min-height:40px;padding:0 14px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text);font-size:0.85em;font-weight:700;cursor:pointer}
+.myplace-btn.primary{background:var(--primary);border-color:var(--primary);color:white}
+.myplace-btn.out{background:#fff3e0;border-color:#ffcc80;color:#a84300}
+.myplace-btn:disabled{opacity:.45;cursor:default}
+.team-place{font-size:0.72em;color:var(--primary-dark);font-weight:700;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%}
+.team-place.unset{color:var(--text2);font-weight:400}
+.place-grp{font-size:0.78em;font-weight:700;color:var(--text2);margin:12px 0 6px}
+.place-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
+.place-opt{min-height:44px;padding:4px 6px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text);font-size:0.85em;font-weight:600;cursor:pointer;line-height:1.3}
+.place-opt.sel{background:var(--primary);border-color:var(--primary);color:white;font-weight:700}
+.place-opt.out{background:#fff3e0;border-color:#ffcc80;color:#a84300}
+.place-opt.out.sel{background:#e65100;border-color:#e65100;color:white}
+.place-rules{background:var(--primary-light);border-radius:10px;padding:10px 12px;font-size:0.78em;color:#1a237e;line-height:1.6;margin-top:14px}
 
 /* タブレット(600px+)：コンパクトサイドバー（アイコンのみ） */
 @media(min-width:600px){
@@ -1172,6 +1193,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   <div class="content" id="tab-tasks" style="display:none"></div>
 
   <div class="content" id="tab-team" style="display:none">
+    <div id="team-myplace"></div>
     <div style="background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <button class="team-vbtn active" id="team-vbtn-normal" onclick="switchTeamView('normal')">在席ボード</button>
@@ -1833,6 +1855,14 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   </div>
 </div>
 
+<!-- 在席ボード：今いる場所を選ぶ（2026-11-06。スマホは下から、PC は中央に出る） -->
+<div class="modal-backdrop" id="place-modal-backdrop" onclick="closeModalIfBackdrop(event,'place-modal-backdrop')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="place-modal-content"></div>
+  </div>
+</div>
+
 <!-- メンバー詳細ポップアップ -->
 <div class="member-popup" id="member-popup" style="display:none" onclick="if(event.target===this)closeMemberPopup()">
   <div class="member-popup-card">
@@ -2141,6 +2171,18 @@ ja:{
 // 在席ボード
 'team.board':'在席ボード','team.dept':'📋 部署ごと','team.search':'🔍 名前で検索...',
 'team.nobody':'該当するメンバーがいません','team.holiday':'休日',
+// 在席ボードの「今いる場所」（2026-11-06）。場所の名前（本社 2階南 など）は固有名詞なので訳さない
+'place.my':'あなたの今いる場所','place.unset':'場所未設定','place.change':'場所を変更',
+'place.out':'外出中','place.out.btn':'外出中にする','place.out.self':'外出中（自分で選択）','place.back':'戻った：{place}',
+'place.home.is':'いつもの場所：{place}（毎朝ここから始まります）','place.home.none':'「いつもの場所」を決めると、毎朝その場所から始まります',
+'place.busy':'今は予定の「{status}」が表示されています',
+'place.title':'今いる場所を選ぶ','place.sub':'今日だけ有効です。翌日は「いつもの場所」（決めていなければ未設定）に戻ります',
+'place.grp.other':'拠点・そのほか',
+'place.rule.1':'会議の予定・出張・在宅・休暇・予定に入れた外出は、その時間だけ自動で表示されます。',
+'place.rule.2':'「外出中」は、予定に入れない短い外出のときだけ使ってください。',
+'place.rule.3':'10分以上その場所にいるときは、場所を変更してください。',
+'place.sethome':'この場所を「いつもの場所」にする（毎朝ここから始まる）',
+'place.clear':'場所を外す','place.ok':'決定','place.saved':'場所を「{place}」にしました','place.cleared':'場所を外しました',
 'team.present':'{n}/{total}名在席','team.schedule':'予定なし','team.allday':'終日',
 'team.other':'その他','team.dept.header':'{month}月{day}日（{dow}）の予定',
 // メンバー詳細
@@ -2519,6 +2561,17 @@ vi:{
 'rooms.no.res':'Chưa có đặt','rooms.book.room':'＋ Đặt phòng họp',
 'team.board':'Điểm danh','team.dept':'📋 Theo phòng ban','team.search':'🔍 Tìm theo tên...',
 'team.nobody':'Không tìm thấy','team.holiday':'Ngày nghỉ',
+'place.my':'Vị trí hiện tại của bạn','place.unset':'Chưa chọn vị trí','place.change':'Đổi vị trí',
+'place.out':'Đang ra ngoài','place.out.btn':'Báo đang ra ngoài','place.out.self':'Đang ra ngoài (tự chọn)','place.back':'Đã quay lại: {place}',
+'place.home.is':'Vị trí thường ngày: {place} (mỗi sáng bắt đầu từ đây)','place.home.none':'Nếu đặt "vị trí thường ngày", mỗi sáng sẽ bắt đầu từ vị trí đó',
+'place.busy':'Hiện đang hiển thị lịch "{status}"',
+'place.title':'Chọn vị trí hiện tại','place.sub':'Chỉ có hiệu lực trong hôm nay. Ngày mai sẽ trở về "vị trí thường ngày" (nếu chưa đặt thì để trống)',
+'place.grp.other':'Cơ sở khác・Khác',
+'place.rule.1':'Lịch họp, công tác, làm việc tại nhà, nghỉ phép và ra ngoài đã đăng ký lịch sẽ tự động hiển thị trong thời gian đó.',
+'place.rule.2':'Chỉ dùng "Đang ra ngoài" cho những lần ra ngoài ngắn không đăng ký lịch.',
+'place.rule.3':'Nếu ở một nơi từ 10 phút trở lên, hãy đổi vị trí.',
+'place.sethome':'Đặt nơi này làm "vị trí thường ngày" (mỗi sáng bắt đầu từ đây)',
+'place.clear':'Bỏ vị trí','place.ok':'Xác nhận','place.saved':'Đã đổi vị trí thành "{place}"','place.cleared':'Đã bỏ vị trí',
 'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch','team.allday':'Cả ngày',
 'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
 'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
@@ -2885,6 +2938,17 @@ ne:{
 'rooms.no.res':'बुकिङ छैन','rooms.book.room':'＋ कोठा बुक गर्नुहोस्',
 'team.board':'उपस्थिति बोर्ड','team.dept':'📋 विभाग अनुसार','team.search':'🔍 नामले खोज्नुहोस्...',
 'team.nobody':'कोही भेटिएन','team.holiday':'बिदा',
+'place.my':'तपाईंको हालको स्थान','place.unset':'स्थान छानिएको छैन','place.change':'स्थान बदल्नुहोस्',
+'place.out':'बाहिर गएको','place.out.btn':'बाहिर गएको भनी राख्नुहोस्','place.out.self':'बाहिर गएको (आफैं छानेको)','place.back':'फर्किएँ: {place}',
+'place.home.is':'सामान्य स्थान: {place} (हरेक बिहान यहीँबाट सुरु हुन्छ)','place.home.none':'"सामान्य स्थान" तोक्नुभयो भने हरेक बिहान त्यहीँबाट सुरु हुन्छ',
+'place.busy':'अहिले तालिकाको "{status}" देखाइएको छ',
+'place.title':'हालको स्थान छान्नुहोस्','place.sub':'आजको लागि मात्र मान्य। भोलि "सामान्य स्थान" मा फर्किन्छ (नतोकेको भए खाली)',
+'place.grp.other':'अन्य कार्यस्थल・अन्य',
+'place.rule.1':'बैठक, व्यापारिक यात्रा, घरबाट काम, बिदा र तालिकामा राखिएको बाहिर जाने कुरा त्यही समयमा स्वतः देखाइन्छ।',
+'place.rule.2':'"बाहिर गएको" तालिकामा नराखिने छोटो बाहिर जाँदा मात्र प्रयोग गर्नुहोस्।',
+'place.rule.3':'कुनै ठाउँमा १० मिनेट वा बढी बस्दा स्थान बदल्नुहोस्।',
+'place.sethome':'यो स्थानलाई "सामान्य स्थान" बनाउनुहोस् (हरेक बिहान यहीँबाट सुरु)',
+'place.clear':'स्थान हटाउनुहोस्','place.ok':'पक्का गर्नुहोस्','place.saved':'स्थान "{place}" मा बदलियो','place.cleared':'स्थान हटाइयो',
 'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन','team.allday':'दिनभर',
 'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
 'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
@@ -3938,7 +4002,7 @@ async function loadEvents({ force = false, centerDate } = {}){
   _mergeToday(months);
   renderAll(); renderRoomTimeline(); renderTeam();
   checkApprovalNotifs();
-  loadDailyRest().then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); renderDashboard(); });
+  Promise.all([loadDailyRest(), loadPlaces(true)]).then(() => { renderTeam(); renderHome(); renderHomeDayWidgets(); renderDashboard(); });
 }
 
 // ===== タブ =====
@@ -5861,7 +5925,7 @@ function switchTab(tab, btn){
   else                { _markNoticesAsSeen(); }
   if(tab==='tasks')   renderTasksTab();
   if(tab==='rooms')   renderRoomTimeline();
-  if(tab==='team')    renderTeam();
+  if(tab==='team')    { renderTeam(); loadPlaces().then(()=>{ if(_currentTab==='team') renderTeam(); }); }
   if(tab==='devices') { loadEvents().then(()=>renderDevices()); }
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
   if(tab==='inquiry') loadInquiryFiles();
@@ -6394,9 +6458,137 @@ function _isUserInEvent(e, uid) {
 const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','打ち合わせ','会議中'];
 const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢'};
 
+// ===== 在席ボード：今いる場所（2026-11-06） =====
+// 本人が選ぶ「今日の場所」と「いつもの場所」。保存は Worker（getPlaces / setPlace、Durable Object）。他の人の場所は変えられない。
+// 予定（会議・外出・出張・在宅・休暇）や「休み」がある人はそちらを表示し、場所は「在席」の人にだけ出す。
+// id は Worker の places.js の PLACE_CODES と同じ。足すときは両方に足す（消すときはここだけでよい）。
+// 場所の名前は固有名詞なので訳さない（会議室の名前と同じ）
+const PLACES = [
+  {id:'honsha-1f',      grp:'honsha', short:'1階'},
+  {id:'honsha-2f-s',    grp:'honsha', short:'2階南'},
+  {id:'honsha-2f-n',    grp:'honsha', short:'2階北'},
+  {id:'honsha-3f-s',    grp:'honsha', short:'3階南'},
+  {id:'honsha-3f-n',    grp:'honsha', short:'3階北'},
+  {id:'honsha-soko',    grp:'honsha', short:'倉庫'}, // 11月末まで。消すときは連絡がある（自動では消さない）
+  {id:'shinto-1f',      grp:'shinto', short:'1階'},
+  {id:'shinto-senmu',   grp:'shinto', short:'専務室'},
+  {id:'shinto-2f-mtg',  grp:'shinto', short:'2階 会議室'},
+  {id:'shinto-3f-mtg1', grp:'shinto', short:'3階 第1会議室（東）'},
+  {id:'shinto-3f-mtg2', grp:'shinto', short:'3階 第2会議室（中央）'},
+  {id:'ibaraki',        grp:'other',  short:'茨城工場'},
+  {id:'daikoku',        grp:'other',  short:'大黒'},
+  {id:'out',            grp:'other',  short:''}, // 外出中（名前は t('place.out')）
+];
+const PLACE_GRP_NAME = {honsha:'本社', shinto:'新棟'};
+let placeToday = {}, placeHome = {}, _placesAt = 0, _placeSel = '';
+function placeLabel(id){
+  if(id==='out') return t('place.out');
+  const p=PLACES.find(x=>x.id===id); if(!p) return '';
+  return PLACE_GRP_NAME[p.grp] ? PLACE_GRP_NAME[p.grp]+' '+p.short : p.short;
+}
+// 今日の場所（'' は「今日は場所なし」）が無ければいつもの場所。画面に無いコードは未設定として扱う
+function placeOf(empId){
+  const id = Object.prototype.hasOwnProperty.call(placeToday, empId) ? placeToday[empId] : (placeHome[empId]||'');
+  return id && PLACES.some(p=>p.id===id) ? id : '';
+}
+// 在席ボードを開くたびに呼ぶので、全画面の「処理中」は出さない（api() は出すので使わない）。30秒以内なら読み直さない
+async function loadPlaces(force){
+  if(!GAS_URL || !currentUser) return;
+  if(!force && Date.now()-_placesAt < 30000) return;
+  try {
+    const sess=loadSession();
+    const res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify({action:'getPlaces',token:sess?.token}),redirect:'follow'});
+    const j=await res.json();
+    if(j.ok && j.data){ placeToday=j.data.today||{}; placeHome=j.data.home||{}; _placesAt=Date.now(); }
+  } catch(e) { /* 表示は前の値のまま */ }
+}
+// 「外出中」にする前の場所（戻るボタン用）。今日の分だけ。無ければいつもの場所
+function _placeBack(){
+  try {
+    const s=JSON.parse(localStorage.getItem('halo_place_prev')||'null');
+    if(s && s.date===fmtDate(new Date()) && PLACES.some(p=>p.id===s.id) && s.id!=='out') return s.id;
+  } catch(e) {}
+  const h=placeHome[currentUser.id];
+  return h && h!=='out' && PLACES.some(p=>p.id===h) ? h : '';
+}
+// 在席ボードの一番上の「あなたの今いる場所」。baseStatus は予定・休みから決まった状態（場所を足す前）
+function renderMyPlace(baseStatus){
+  const el=document.getElementById('team-myplace'); if(!el) return;
+  if(!GAS_URL || !currentUser || currentUser.isPartner){ el.innerHTML=''; return; }
+  const cur=placeOf(currentUser.id);
+  const home=placeHome[currentUser.id]||'';
+  const homeOk=home && home!=='out' && PLACES.some(p=>p.id===home);
+  const sub=homeOk ? t('place.home.is',{place:placeLabel(home)}) : t('place.home.none');
+  const busy=(baseStatus && baseStatus!=='在席')
+    ? `<div class="myplace-sub" style="color:var(--primary-dark);font-weight:700">${esc(t('place.busy',{status:tType(baseStatus)}))}</div>` : '';
+  let quick='';
+  if(cur==='out'){
+    const back=_placeBack();
+    if(back) quick=`<button type="button" class="myplace-btn" onclick="savePlace('${back}',false)">${esc(t('place.back',{place:placeLabel(back)}))}</button>`;
+  } else {
+    quick=`<button type="button" class="myplace-btn out" onclick="savePlace('out',false)">${esc(t('place.out.btn'))}</button>`;
+  }
+  el.innerHTML=`<div class="myplace-card">
+    <div class="myplace-main">
+      <div class="myplace-icon">📍</div>
+      <div style="min-width:0">
+        <div class="myplace-label">${esc(t('place.my'))}</div>
+        <div class="myplace-name">${esc(cur ? placeLabel(cur) : t('place.unset'))}</div>
+        <div class="myplace-sub">${esc(sub)}</div>
+        ${busy}
+      </div>
+    </div>
+    <div class="myplace-btns">${quick}<button type="button" class="myplace-btn primary" onclick="openPlacePicker()">${esc(t('place.change'))}</button></div>
+  </div>`;
+}
+function openPlacePicker(){
+  _placeSel=placeOf(currentUser.id);
+  const content=document.getElementById('place-modal-content');
+  if(content) content.innerHTML='';
+  renderPlacePicker();
+  openModal('place-modal-backdrop');
+}
+function pickPlace(id){ _placeSel=id; renderPlacePicker(); }
+function renderPlacePicker(){
+  const el=document.getElementById('place-modal-content'); if(!el) return;
+  const homeChecked=!!document.getElementById('place-sethome')?.checked;
+  const grp=(g,title)=>`<div class="place-grp">${esc(title)}</div><div class="place-grid">`+PLACES.filter(p=>p.grp===g).map(p=>{
+    const label=p.id==='out' ? t('place.out') : p.short;
+    const sel=_placeSel===p.id;
+    return `<button type="button" class="place-opt${p.id==='out'?' out':''}${sel?' sel':''}" aria-pressed="${sel}" onclick="pickPlace('${p.id}')">${sel?'✓ ':''}${esc(label)}</button>`;
+  }).join('')+`</div>`;
+  el.innerHTML=`<div class="modal-title" style="margin-bottom:4px">${esc(t('place.title'))}</div>
+    <div style="font-size:0.78em;color:var(--text2)">${esc(t('place.sub'))}</div>
+    ${grp('honsha',PLACE_GRP_NAME.honsha)}${grp('shinto',PLACE_GRP_NAME.shinto)}${grp('other',t('place.grp.other'))}
+    <div class="place-rules"><div>${esc(t('place.rule.1'))}</div><div>${esc(t('place.rule.2'))}</div><div style="font-weight:700">${esc(t('place.rule.3'))}</div></div>
+    <label style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:0.85em;margin-top:8px;cursor:pointer">
+      <input type="checkbox" id="place-sethome" ${homeChecked?'checked':''} ${_placeSel==='out'?'disabled':''} style="width:20px;height:20px;accent-color:var(--primary);flex-shrink:0">
+      <span>${esc(t('place.sethome'))}</span>
+    </label>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button type="button" class="myplace-btn" style="flex:1;min-height:48px" onclick="savePlace('',document.getElementById('place-sethome').checked)">${esc(t('place.clear'))}</button>
+      <button type="button" class="myplace-btn primary" style="flex:2;min-height:48px" ${_placeSel?'':'disabled'} onclick="savePlace(_placeSel,document.getElementById('place-sethome').checked)">${esc(t('place.ok'))}</button>
+    </div>`;
+}
+async function savePlace(id, setHome){
+  const before=placeOf(currentUser.id);
+  try {
+    const res=await api('setPlace',{place:id,setHome:!!setHome});
+    placeToday=res.today||{}; placeHome=res.home||{}; _placesAt=Date.now();
+    if(id==='out' && before && before!=='out'){
+      try { localStorage.setItem('halo_place_prev',JSON.stringify({date:fmtDate(new Date()),id:before})); } catch(e) {}
+    }
+    closeModal('place-modal-backdrop');
+    renderTeam();
+    showToast(id ? t('place.saved',{place:placeLabel(id)}) : t('place.cleared'));
+  } catch(e) {
+    if(e.name!=='AbortError') showToast(t('common.error.toast',{msg:e.message}));
+  }
+}
+
 function renderTeam(){
   if (!currentUser) return;
-  if (teamView === 'dept') { renderTeamDeptView(); return; }
+  if (teamView === 'dept') { renderMyPlace(null); renderTeamDeptView(); return; }
   const ds=fmtDate(new Date());
   const d=parseDate(ds);
   const now=new Date();
@@ -6432,8 +6624,12 @@ function renderTeam(){
     const ev=inMeeting
       ? activeEvs.find(e=>e.type==='会議室')
       : activeEvs.find(e=>e.type===status);
-    return{...u, status, subInfo: ev?.title||roomName(ev?.room)||''};
+    // 今いる場所：予定も休みも無い「在席」の人にだけ出す。「外出中」を選んだ人は外出として数える
+    const place=status==='在席' ? placeOf(u.id) : '';
+    if(place==='out') return{...u, status:'外出', baseStatus:status, subInfo:t('place.out.self'), place:'', placeUnset:false};
+    return{...u, status, baseStatus:status, subInfo: ev?.title||roomName(ev?.room)||'', place, placeUnset: status==='在席'&&!place};
   });
+  renderMyPlace(members.find(m=>m.id===currentUser.id)?.baseStatus||null);
 
   // ステータスチップ（件数付き）
   const statusCounts={};
@@ -6485,6 +6681,7 @@ function renderTeam(){
           <div class="member-name" style="font-size:0.82em;margin-top:4px">${esc(m.name)}</div>
           <span class="status-badge status-${m.status}" style="font-size:0.75em;margin-top:3px">${tType(m.status)}</span>
           ${m.subInfo?`<div style="font-size:0.72em;color:var(--text2);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%">${esc(m.subInfo)}</div>`:''}
+          ${m.place?`<div class="team-place">📍${esc(placeLabel(m.place))}</div>`:''}${m.placeUnset&&GAS_URL?`<div class="team-place unset">${esc(t('place.unset'))}</div>`:''}
         </div>`).join('')}
       </div>
     </div>`;
