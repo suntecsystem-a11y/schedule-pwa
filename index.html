@@ -3953,6 +3953,7 @@ function updateSidebarTips(collapsed){
 
 function doLogout(){
   clearSession(); currentUser=null; USERS=[]; events=[];
+  try{_tk=_tkInit();_tkAccess=null;}catch(e){}   // タスク管理の表示データも消す（別の人が同じ画面でログインしても、前の人のタスクが見えないように）
   Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
   carDataLastFetched = 0;
   filterPeople.clear(); filterTypes.clear();
@@ -4011,7 +4012,8 @@ async function loadEvents({ force = false, centerDate } = {}){
 
   try {
     showLoading(t('ev.loading'));
-    const data = await api('getEvents', { rangeStart, rangeEnd });
+    // タスクから作った予定（種別「作業」・メモが「タスク#番号」）は、カレンダーに出さない（見づらくなるため）。タスク管理のかんばんのカレンダーだけに出す
+    const data = (await api('getEvents', { rangeStart, rangeEnd })).filter(e => !(e.type === '作業' && /^タスク#\d+/.test(e.memo || '')));
     if(token !== _loadToken){ hideLoading(); return; }
     events = data;
     // 月別にキャッシュへ振り分け（各イベントの開始月で分類）
@@ -4292,7 +4294,8 @@ async function tkFetchAccess(){
   }catch(e){_tkAccess=false;}
   _applyNavLabels();renderBottomNav();
 }
-let _tk={caps:{},loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,doneS:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};
+function _tkInit(){return {caps:{},loaded:false,scope:'mine',view:'gantt',dayW:28,nodes:[],byId:{},roots:[],me:'',canAll:false,who:'',st:'',done:false,doneS:false,dashSel:'delayed',open:{},error:'',range:null,fresh:true};}
+let _tk=_tkInit();   // ログアウトのたびに作り直す（前の人のタスクが、次にログインした人に残らないように）
 function tkEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function tkToday(){const d=new Date();d.setHours(0,0,0,0);return d;}
 function tkParse(s){if(!s)return null;const p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
