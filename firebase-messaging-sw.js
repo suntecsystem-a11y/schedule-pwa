@@ -21,7 +21,7 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // バックグラウンド通知の受信（アプリが閉じているとき）
-messaging.onBackgroundMessage(payload => {
+messaging.onBackgroundMessage(async payload => {
   const title   = payload.notification?.title || 'スケジュール通知';
   const type    = payload.data?.type || 'general';
   // 届出（todoke_*）だけは届出IDごとに別通知にする。
@@ -37,7 +37,15 @@ messaging.onBackgroundMessage(payload => {
     data:               payload.data || {},
     requireInteraction: false,
   };
-  self.registration.showNotification(title, options);
+  await self.registration.showNotification(title, options);
+
+  // 同じ通知が2つ出ないようにする（2026-11-06）。
+  // 送る側（Worker・GAS）は notification 付きで送っているので、Firebase は自分でも1つ表示してから、ここを呼ぶ。
+  // 押したときの動き（届出なら申請アプリを開く）はこのファイルの notificationclick で作ってあるので、
+  // こちらで出した方を残し、Firebase が出した方（data に FCM_MSG を持つもの）を閉じる。
+  // 上の表示に失敗したときは、ここまで来ないので Firebase の方が残る（通知が0になることはない）。
+  const shown = await self.registration.getNotifications();
+  shown.forEach(n => { if (n.data && n.data.FCM_MSG) n.close(); });
 });
 
 // 通知をタップしたときの動作（アプリを開く・フォーカスする）
