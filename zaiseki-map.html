@@ -9,6 +9,9 @@
     親 → こちら  zmap:data {payload}（並べる人と文言。中身は index.html の renderTeamMap）
   時間の手動切替（デモ用）は CSS で隠している。昼夜は時計で自動。
   スマホの縦向きでも「なかま ○にん」と「いま どこに だれが いる」をマップより上に出す（誰がどこにいるかを最初に見せる）。
+  スマホの縦向きでは、マップを v17 の元の作りどおり高さの決まった枠に入れ、枠の中だけをスクロールさせる。
+  枠の高さは v17 の「画面の高さの58%」。iframe の中では画面の高さがわからないので、親から zmap:viewport {vh} で受け取る。
+  スマホでは自分も歩かずに、行き先へふわっと移す（遠くへ歩くと画面の外を十数秒歩くだけになるため）。PC・タブレットは歩く。
   単体で開いたとき（親がいないとき）は、確認用の架空の人を並べる。
 --><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
 
@@ -414,6 +417,8 @@ body{margin:0}
   .game>.roster-box{order:-5}
   .game>.hud{order:-4}
   .game>.mobile-picker{order:-3}
+  /* マップは枠の中だけスクロール（v17 の元の作り）。高さは親から受け取った画面の高さ（--zmap-vh）の58% */
+  .map-viewport{display:block!important;height:clamp(220px,calc(var(--zmap-vh,800px) * .58),500px)!important}
 }
 </style></head><body>
 
@@ -845,7 +850,8 @@ function createTravelGraph(layout) {
     var run=++cameraRun;
     var chars=zone.querySelector('.chars'),origin=you.closest('[data-zone]');
     var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-    if(!animate||RM||!origin||origin===zone){var empty=chars.querySelector('.empty');if(empty)empty.remove();chars.appendChild(you);you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
+    var PHONE=window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
+    if(!animate||RM||PHONE||!origin||origin===zone){var empty=chars.querySelector('.empty');if(empty)empty.remove();chars.appendChild(you);if(animate&&origin!==zone){you.classList.remove('arrive');void you.offsetWidth;you.classList.add('arrive');}you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
     var em=chars.querySelector('.empty');if(em)em.remove();
     // Reserve the exact arrival dimensions without counting a second person.
     var first=pageRect(you),start=footPoint(you),offsetX=start.x-first.left,offsetY=start.y-first.top;
@@ -1146,8 +1152,10 @@ document.querySelectorAll('.btns').forEach(function(group){group.addEventListene
   ['pointerdown','keydown','touchstart','wheel'].forEach(function(ev){document.addEventListener(ev,active,{passive:true,capture:true});});
   document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.closest&&e.target.closest('.char')){e.preventDefault();pick(e);}});
   window.addEventListener('message',function(e){
-    if(e.origin!==ORIGIN||!e.data||e.data.type!=='zmap:data')return;
-    window.__zmapPlacePeople(e.data.payload||{});sendHeight();
+    if(e.origin!==ORIGIN||!e.data)return;
+    if(e.data.type==='zmap:data'){window.__zmapPlacePeople(e.data.payload||{});sendHeight();}
+    // 親の画面の高さ（スマホでマップの枠の高さを決める）
+    else if(e.data.type==='zmap:viewport'&&e.data.vh>0){document.documentElement.style.setProperty('--zmap-vh',Math.round(e.data.vh)+'px');sendHeight();}
   });
   var lastH=0;
   // 中身の高さを送る（scrollHeight は窓の高さより小さくならないので、幅を広げたときに縮まなくなる）

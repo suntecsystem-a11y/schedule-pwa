@@ -6956,12 +6956,20 @@ function _zmapSend(){
   _zmapSentJson=json;
   f.contentWindow.postMessage({type:'zmap:data', payload:_zmapPayload}, location.origin);
 }
+// 画面の高さをマップに伝える（スマホではマップを画面の高さの58%の枠に入れ、枠の中だけスクロールさせるため。
+// iframe の中では画面の高さがわからない）。開いたときと、画面の大きさ・向きが変わったとき
+function _zmapSendViewport(){
+  const f=document.getElementById('team-map-frame');
+  if(_zmapReady && f && f.contentWindow) f.contentWindow.postMessage({type:'zmap:viewport', vh:window.innerHeight}, location.origin);
+}
+let _zmapResizeTimer=null;
+window.addEventListener('resize', ()=>{ clearTimeout(_zmapResizeTimer); _zmapResizeTimer=setTimeout(_zmapSendViewport, 200); });
 window.addEventListener('message', e=>{
   if(e.origin!==location.origin) return;
   const f=document.getElementById('team-map-frame');
   if(!f || e.source!==f.contentWindow) return;
   const d=e.data||{};
-  if(d.type==='zmap:ready'){ _zmapReady=true; _zmapSentJson=''; _zmapSend(); }
+  if(d.type==='zmap:ready'){ _zmapReady=true; _zmapSentJson=''; _zmapSendViewport(); _zmapSend(); }
   else if(d.type==='zmap:height' && d.h>0){ f.style.height=Math.min(Math.ceil(d.h),20000)+'px'; }
   else if(d.type==='zmap:member' && USERS.some(u=>u.id===d.id)){ openMemberDetail(d.id); }
   else if(d.type==='zmap:active'){ _teamTouched(); }
