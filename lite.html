@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-title" content="HALO Lite">
 <!--
   HALO Lite（個人スマホ用の簡易版、2026-11-10）
-  使えるのは「予定（自分の予定の確認・登録）」「お弁当」「在籍ボード（件名なし）・自分の場所と休み」「安否確認」「お知らせ」「通知」だけ。
+  使えるのは「予定（自分の予定の確認・登録）とお弁当（同じタブ。カレンダーは1つ）」「在籍ボード（件名なし）・自分の場所と休み」「安否確認」「お知らせ」「通知」だけ。
   安否確認の一覧・発信・再通知・終了は役職者だけ（Worker の safety.js が役職を確かめる）。
   守りは Worker 側（schedule-dev/worker/src/lite.js）。ここで機能を足しても、Worker の LITE_ACTIONS に無い処理は断られる。
   ログイン情報は通常版（index.html の sch_sess）と別の halo_lite_sess に保存する。
@@ -139,14 +139,12 @@ nav button.on{color:var(--primary);font-weight:700}
   <main>
     <div id="safety-area"></div>
     <section id="tab-cal"></section>
-    <section id="tab-bento" class="hidden"></section>
     <section id="tab-board" class="hidden"></section>
     <section id="tab-more" class="hidden"></section>
   </main>
   <button class="fab" id="fab" onclick="openEventForm()">＋ 予定</button>
   <nav>
-    <button id="nav-cal" class="on" onclick="switchTab('cal')"><span class="ic">📅</span>予定</button>
-    <button id="nav-bento" onclick="switchTab('bento')"><span class="ic">🍱</span>お弁当</button>
+    <button id="nav-cal" class="on" onclick="switchTab('cal')"><span class="ic">📅</span><span id="nav-cal-label">予定・弁当</span></button>
     <button id="nav-board" onclick="switchTab('board')"><span class="ic">🏢</span>在籍</button>
     <button id="nav-more" onclick="switchTab('more')"><span class="ic">☰</span>その他</button>
   </nav>
@@ -282,27 +280,26 @@ async function startApp(){
     const [users, hol] = await Promise.all([ api('getUsers'), api('getHolidays').catch(()=>[]) ]);
     USERS = users||[]; holidays = hol||[];
   }catch(e){ if(e.message!=='SESSION_EXPIRED') toast('読み込みに失敗：'+e.message); return; }
-  if(!bentoVisible()) { $('nav-bento').classList.add('hidden'); }
+  $('nav-cal-label').textContent = bentoVisible() ? '予定・弁当' : '予定';
   await loadEvents(true);
   renderCal();
   loadSafety();
   api('getRentalMasters',{}, {silent:true}).then(r=>{ rental = r && r.masters ? r : {masters:[],rentalDetails:{}}; }).catch(()=>{});
   // お弁当の🍱をカレンダーに出すため、一度読む
-  if(bentoVisible()) api('getMyBentoReservations',{}, {silent:true}).then(r=>{ bentoList=(r&&r.reservations)||[]; if(tab==='cal') renderCal(); }).catch(()=>{});
+  loadBento();
   setTimeout(()=>initPush(false), 1200);
 }
 async function reloadAll(){
   _loadedRange=''; await loadEvents(true); renderCal(); loadSafety();
-  if(tab==='bento') loadBento(); if(tab==='board') loadBoard(); if(tab==='more') renderMore();
+  if(bentoVisible()) loadBento(); if(tab==='board') loadBoard(); if(tab==='more') renderMore();
 }
 
 // ============================================================ タブ
 function switchTab(t){
   tab=t;
-  ['cal','bento','board','more'].forEach(x=>{ $('tab-'+x).classList.toggle('hidden', x!==t); $('nav-'+x).classList.toggle('on', x===t); });
+  ['cal','board','more'].forEach(x=>{ $('tab-'+x).classList.toggle('hidden', x!==t); $('nav-'+x).classList.toggle('on', x===t); });
   $('fab').classList.toggle('hidden', t!=='cal');
   if(t==='cal') renderCal();
-  if(t==='bento') loadBento();
   if(t==='board') loadBoard();
   if(t==='more') renderMore();
   window.scrollTo(0,0);
@@ -331,10 +328,11 @@ function renderCal(){
     const evs=mine.filter(e=>inc(e,ds));
     const hol=holidays.some(h=>h.date===ds);
     const cls=['d', d.getMonth()!==m?'out':'', d.getDay()===0?'sun':'', d.getDay()===6?'sat':'', hol?'hol':'', ds===today?'today':'', ds===selDate?'sel':''].join(' ');
-    const bentoHere = bentoList.some(b=>b.date===ds && b.status!=='キャンセル');
+    const bLive = bentoList.filter(b=>b.date===ds && b.status!=='キャンセル');
+    const bReq = bLive.length && bLive.every(b=>b.status==='キャンセル依頼');
     cells += `<div class="${cls}" onclick="pickDate('${ds}')"><div>${d.getDate()}</div>
       <div class="dots">${evs.slice(0,4).map(e=>`<span class="dot" style="background:${COLOR[e.type]||'#90a4ae'}"></span>`).join('')}${evs.length>4?'<span style="font-size:.7em">+</span>':''}</div>
-      ${bentoHere?'<div class="bento">🍱</div>':''}</div>`;
+      ${bLive.length?`<div class="bento" style="${bReq?'opacity:.35':''}">🍱${bLive.length>1?'<span style="font-size:.75em">'+bLive.length+'</span>':''}</div>`:''}</div>`;
   }
   const dayEvs = mine.filter(e=>inc(e,selDate)).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
   const sd=new Date(selDate+'T00:00:00');
@@ -346,9 +344,12 @@ function renderCal(){
     </div>
     <div class="card">
       <h2>${sd.getMonth()+1}月${sd.getDate()}日（${WD[sd.getDay()]}）${hol?` <span style="color:#d32f2f;font-size:.8em">${esc(hol.name||'休日')}</span>`:''}</h2>
+      <div class="dept-h" style="margin-top:2px">📅 予定</div>
       ${dayEvs.length ? dayEvs.map(evCard).join('') : '<div class="empty">この日のあなたの予定はありません</div>'}
+      ${bentoVisible() ? bentoDayHtml(selDate) : ''}
       <div class="note" style="margin-top:6px">※ 簡易版では、あなたが登録した予定と、参加者にあなたが入っている予定だけ表示します。</div>
-    </div>`;
+    </div>
+    ${bentoVisible() ? bentoUpcomingHtml() : ''}`;
 }
 function evTime(e){
   const ds = (e.startDate&&e.endDate&&e.startDate!==e.endDate) ? `${e.startDate.slice(5).replace('-','/')}〜${e.endDate.slice(5).replace('-','/')}` : '';
@@ -600,17 +601,12 @@ async function saveEvent(){
 function bentoVisible(){ return !!(me && String(me.dept||'').indexOf('大黒製造')<0); }
 const BSTC = { '予約':'#1565c0', '注文済み':'#2e7d32', 'キャンセル依頼':'#e65100', 'キャンセル':'#9e9e9e' };
 async function loadBento(){
-  if(!bentoVisible()){ $('tab-bento').innerHTML='<div class="card empty">お弁当の予約は対象外です</div>'; return; }
-  $('tab-bento').innerHTML='<div class="card empty">読み込み中…</div>';
+  if(!bentoVisible()) return;
   try{ const r=await api('getMyBentoReservations',{}, {silent:true}); bentoList = (r&&r.reservations)||[]; }
-  catch(e){ $('tab-bento').innerHTML=`<div class="card empty">読み込みに失敗：${esc(e.message)}</div>`; return; }
-  renderBento();
+  catch(e){ if(e.message!=='SESSION_EXPIRED') toast('お弁当の読み込みに失敗：'+e.message); return; }
+  if(tab==='cal') renderCal();
 }
-// お弁当のカレンダー（2026-11-10）。予約のある日に🍱、日を押すとその日の予約（変更・キャンセル）か「この日に予約する」
-let bentoMonth = firstOfMonth(new Date());
-let bentoSel = fmt(new Date());
-function bentoMove(n){ bentoMonth = new Date(bentoMonth.getFullYear(), bentoMonth.getMonth()+n, 1); renderBento(); }
-function bentoPick(ds){ bentoSel = ds; renderBento(); }
+// 予定のタブの「選んだ日」の欄に出すお弁当（2026-11-10、予定とお弁当を1つのタブに）
 const bentoReservable = ds => ds > fmt(new Date()) && !isHoliday(ds); // 当日は不可・土日休日は不可（Worker も同じ判定）
 function bentoRow(b){
   const i=bentoList.indexOf(b);
@@ -618,46 +614,29 @@ function bentoRow(b){
   const canEdit=b.status==='予約';
   const canCancel=b.status==='予約'||b.status==='注文済み';
   return `<div class="ev" style="border-left-color:${BSTC[b.status]||'#999'};cursor:default">
-    <div class="t">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${esc(b.menu)}（${esc(b.rice)}）<span class="badge" style="color:${BSTC[b.status]||'#999'}">${esc(b.status)}</span></div>
+    <div class="t">🍱 ${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${esc(b.menu)}（${esc(b.rice)}）<span class="badge" style="color:${BSTC[b.status]||'#999'}">${esc(b.status)}</span></div>
     <div class="s">自己負担 ${b.self}円${b.total?' ／ 税込 '+b.total+'円':''}</div>
     ${canCancel?`<div class="row2" style="margin-top:8px">${canEdit?`<button class="btn btn-ghost" style="padding:7px" onclick="openBentoSheet(${i})">変更</button>`:''}<button class="btn btn-danger" style="padding:7px" onclick="bentoCancel(${i})">キャンセル</button></div>`:''}
   </div>`;
 }
-function renderBento(){
+function bentoDayHtml(ds){
+  const dayList=bentoList.filter(b=>b.date===ds);
+  const btn = !bentoReservable(ds) ? ''
+    : dayList.some(b=>b.status==='予約'||b.status==='注文済み')
+      ? `<button class="btn btn-ghost" style="width:100%;padding:8px;font-size:.85em" onclick="openBentoSheet(null,'${ds}')">＋ もう1つ予約する（黒船デーのみ）</button>`
+      : `<button class="btn btn-primary" onclick="openBentoSheet(null,'${ds}')">🍱 この日にお弁当を予約する</button>`;
+  return `<div class="dept-h" style="margin-top:12px">🍱 お弁当</div>
+    ${dayList.length ? dayList.map(bentoRow).join('') : (btn ? '' : '<div class="empty">この日の予約はありません</div>')}
+    ${btn}`;
+}
+function bentoUpcomingHtml(){
   const today=fmt(new Date());
-  const y=bentoMonth.getFullYear(), m=bentoMonth.getMonth();
-  const start=addDays(bentoMonth, -bentoMonth.getDay());
-  let cells='';
-  for(let k=0;k<42;k++){
-    const d=addDays(start,k), ds=fmt(d);
-    if(k>=35 && d.getMonth()!==m) break;
-    const day=bentoList.filter(b=>b.date===ds);
-    const live=day.filter(b=>b.status!=='キャンセル');
-    const allReq = live.length && live.every(b=>b.status==='キャンセル依頼');
-    const hol=holidays.some(h=>h.date===ds);
-    const cls=['d', d.getMonth()!==m?'out':'', d.getDay()===0?'sun':'', d.getDay()===6?'sat':'', hol?'hol':'', ds===today?'today':'', ds===bentoSel?'sel':''].join(' ');
-    const mark = live.length ? `<div class="bento" style="${allReq?'opacity:.35':''}">🍱${live.length>1?'<span style="font-size:.75em">'+live.length+'</span>':''}</div>` : '';
-    cells += `<div class="${cls}" onclick="bentoPick('${ds}')"><div>${d.getDate()}</div>${mark}</div>`;
-  }
-  const sd=new Date(bentoSel+'T00:00:00');
-  const dayList=bentoList.filter(b=>b.date===bentoSel);
-  const upcoming=bentoList.filter(b=>b.date>=today && b.status!=='キャンセル').sort((a,b)=>a.date.localeCompare(b.date));
-  $('tab-bento').innerHTML = `
-    <div class="card">
-      <div class="cal-head"><button onclick="bentoMove(-1)">‹</button><div class="cal-title">🍱 ${y}年${m+1}月</div><button onclick="bentoMove(1)">›</button></div>
-      <div class="cal">${WD.map(w=>`<div class="dow">${w}</div>`).join('')}${cells}</div>
-      <div class="note" style="margin-top:6px">🍱＝予約あり（薄い🍱はキャンセル依頼中）</div>
-    </div>
-    <div class="card">
-      <h2>${sd.getMonth()+1}月${sd.getDate()}日（${WD[sd.getDay()]}）</h2>
-      ${dayList.length ? dayList.map(bentoRow).join('') : '<div class="empty">この日の予約はありません</div>'}
-      ${!bentoReservable(bentoSel) ? ''
-        : dayList.some(b=>b.status==='予約'||b.status==='注文済み')
-          ? `<button class="btn btn-ghost" style="margin-top:4px;width:100%;padding:8px;font-size:.85em" onclick="openBentoSheet(null,'${bentoSel}')">＋ もう1つ予約する（黒船デーのみ）</button>`
-          : `<button class="btn btn-primary" style="margin-top:4px" onclick="openBentoSheet(null,'${bentoSel}')">🍱 この日に予約する</button>`}
-    </div>
-    <div class="card"><h2>これからの予約</h2>${upcoming.length?upcoming.map(bentoRow).join(''):'<div class="empty">ありません</div>'}
-      <div class="note">注文済みのお弁当を急に食べられなくなったときは、先にご自身で弁当屋さんへキャンセルの連絡をしてから「キャンセル」を押してください。</div></div>`;
+  const up=bentoList.filter(b=>b.date>=today && b.status!=='キャンセル').sort((a,b)=>a.date.localeCompare(b.date));
+  return `<details class="card" ${localStorage.getItem('halo_lite_bento_open')==='1'?'open':''} ontoggle="try{localStorage.setItem('halo_lite_bento_open',this.open?'1':'0')}catch(e){}">
+    <summary style="font-weight:800;font-size:.95em;cursor:pointer">🍱 これからのお弁当（${up.length}件）</summary>
+    <div style="margin-top:8px">${up.length?up.map(bentoRow).join(''):'<div class="empty">ありません</div>'}</div>
+    <div class="note">注文済みのお弁当を急に食べられなくなったときは、先にご自身で弁当屋さんへキャンセルの連絡をしてから「キャンセル」を押してください。</div>
+  </details>`;
 }
 let _bEdit=null, _bMenus=[];
 function nextBizDay(){ let d=addDays(new Date(),1); while(isHoliday(fmt(d))) d=addDays(d,1); return fmt(d); }
@@ -706,7 +685,12 @@ async function bentoSubmit(){
   $('b-go').disabled=true;
   try{
     if(_bEdit) await api('editBentoReservation',{ data:{ recordId:_bEdit.recordId, menu:m.name, rice } });
-    else { await api('saveBentoReservation',{ data:{ date:$('b-date').value, menu:m.name, rice } }); bentoSel=$('b-date').value; bentoMonth=firstOfMonth(new Date(bentoSel+'T00:00:00')); }
+    else {
+      await api('saveBentoReservation',{ data:{ date:$('b-date').value, menu:m.name, rice } });
+      selDate=$('b-date').value;
+      const nm=firstOfMonth(new Date(selDate+'T00:00:00'));
+      if(nm.getTime()!==curMonth.getTime()){ curMonth=nm; await loadEvents(); }
+    }
     closeSheet(); toast(_bEdit?'変更しました':'予約しました'); await loadBento(); renderCal();
   }catch(e){ toast((_bEdit?'変更':'予約')+'できませんでした：'+e.message); $('b-go').disabled=false; }
 }
