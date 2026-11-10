@@ -146,6 +146,9 @@ input,select{font-family:inherit;outline:none}
 /* 在席ボードの「今いる場所」（2026-11-06） */
 .team-mode-btn{min-height:36px;padding:0 14px;border-radius:18px;border:2px solid #272438;background:#141c2c;color:#e6c578;font-size:0.82em;font-weight:700;cursor:pointer}
 .team-mode-btn.back{background:white;color:var(--primary-dark);border-color:var(--primary)}
+/* 在席マップ：場所が決まっていない協力会社の人のボタン（来た日に場所を選ぶ。2026-11-10） */
+.zmap-partners{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 8px;font-size:0.82em;color:var(--text2)}
+.zmap-partners button{min-height:36px;padding:0 12px;border-radius:18px;border:1.5px solid var(--primary);background:var(--primary-light);color:var(--primary-dark);font-weight:700;font-size:1em;cursor:pointer}
 .myplace-card{background:white;border:2px solid var(--primary);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
 .myplace-main{display:flex;align-items:center;gap:12px;flex:1 1 260px;min-width:0}
 .myplace-icon{width:42px;height:42px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:1.3em;flex-shrink:0}
@@ -2213,14 +2216,14 @@ ja:{
 'place.rule.2':'「外出中」は、予定に入れない短い外出のときだけ使ってください。',
 'place.rule.3':'10分以上その場所にいるときは、場所を変更してください。',
 'place.sethome':'この場所を「いつもの場所」にする（毎朝ここから始まる）',
-'place.title.other':'{name} さんの今いる場所を選ぶ','place.sub.other':'協力会社の人の今日の場所は、誰でも変えられます（翌日は元に戻ります）','place.saved.other':'{name} さんの場所を「{place}」にしました','place.cleared.other':'{name} さんの場所を外しました','member.place.change':'📍 場所を変更（今日だけ）',
+'place.title.other':'{name} さんの今いる場所を選ぶ','place.sub.other':'パートナーの方の今日の場所は、誰でも変えられます（翌日は元に戻ります）','place.saved.other':'{name} さんの場所を「{place}」にしました','place.cleared.other':'{name} さんの場所を外しました','member.place.change':'📍 場所を変更（今日だけ）',
 'place.clear':'場所を外す','place.ok':'決定','place.saved':'場所を「{place}」にしました','place.cleared':'場所を外しました',
 'team.place':'📍 場所ごと','place.filter':'場所','place.nobody':'だれもいない',
 'place.sec.away':'社外・お休み','place.sec.unset':'社内・場所未設定','place.sec.otherroom':'そのほかの会議室',
 'place.my.short':'今いる場所','place.change.short':'変更','place.back.short':'戻った',
 // 在席マップ（2026-11-06 段階M1）。マップの中はゲーム風のひらがなの文言
 'team.map.on':'🗺 マップで見る','team.map.off':'📋 いつもの表示に戻る','team.map.title':'在席マップ',
-'map.roster':'■ いま どこに だれが いる','map.unset':'社内（場所未設定）','map.nobody':'だれもいない…','map.now':'げんざいち：','map.you':'あなた',
+'map.roster':'■ いま どこに だれが いる','map.unset':'社内（場所未設定）','map.partner.pick':'パートナーの方が来られたら場所を選ぶ：','map.nobody':'だれもいない…','map.now':'げんざいち：','map.you':'あなた',
 'map.sum.all':'なかま','map.sum.away':'しゃがい','map.sum.rest':'おやすみ','map.people':'{n} にん',
 'map.heading':'◆ なかまたちの せかい','map.help':'＊ キャラクターを えらぶと なかまの じょうほうが みられます。いどうは とびら・ろうか・かいだんを とおります。','map.quest':'なかまたちは それぞれの ばしょで かつやくしている。',
 'map.z.shuccho':'出張中','map.z.rest':'休暇/休み',
@@ -2620,7 +2623,7 @@ vi:{
 'place.sec.away':'Bên ngoài・Nghỉ','place.sec.unset':'Trong công ty・Chưa chọn vị trí','place.sec.otherroom':'Phòng họp khác',
 'place.my.short':'Vị trí hiện tại','place.change.short':'Đổi','place.back.short':'Đã về',
 'team.map.on':'🗺 Xem bản đồ','team.map.off':'📋 Về cách hiển thị thường','team.map.title':'Bản đồ vị trí',
-'map.roster':'■ Ai đang ở đâu','map.unset':'Trong công ty (chưa chọn vị trí)','map.nobody':'Không có ai…','map.now':'Vị trí hiện tại:','map.you':'Bạn',
+'map.roster':'■ Ai đang ở đâu','map.unset':'Trong công ty (chưa chọn vị trí)','map.partner.pick':'Khi người công ty đối tác đến, hãy chọn vị trí:','map.nobody':'Không có ai…','map.now':'Vị trí hiện tại:','map.you':'Bạn',
 'map.sum.all':'Mọi người','map.sum.away':'Bên ngoài','map.sum.rest':'Nghỉ','map.people':'{n} người',
 'map.heading':'◆ Thế giới của mọi người','map.help':'＊ Chọn nhân vật để xem thông tin. Khi di chuyển sẽ đi qua cửa, hành lang và cầu thang.','map.quest':'Mọi người đang làm việc ở nơi của mình.',
 'map.z.shuccho':'Đang công tác','map.z.rest':'Nghỉ phép/Nghỉ',
@@ -3008,7 +3011,7 @@ ne:{
 'place.sec.away':'बाहिर・बिदा','place.sec.unset':'कार्यालयमा・स्थान नछानिएको','place.sec.otherroom':'अन्य बैठक कोठा',
 'place.my.short':'हालको स्थान','place.change.short':'बदल्नुहोस्','place.back.short':'फर्किएँ',
 'team.map.on':'🗺 नक्सामा हेर्नुहोस्','team.map.off':'📋 सामान्य दृश्यमा फर्कनुहोस्','team.map.title':'उपस्थिति नक्सा',
-'map.roster':'■ अहिले को कहाँ छ','map.unset':'कार्यालयमा (स्थान नछानिएको)','map.nobody':'कोही छैन…','map.now':'हालको स्थान:','map.you':'तपाईं',
+'map.roster':'■ अहिले को कहाँ छ','map.unset':'कार्यालयमा (स्थान नछानिएको)','map.partner.pick':'साझेदार कम्पनीका व्यक्ति आएपछि स्थान छान्नुहोस्:','map.nobody':'कोही छैन…','map.now':'हालको स्थान:','map.you':'तपाईं',
 'map.sum.all':'सबै','map.sum.away':'बाहिर','map.sum.rest':'बिदा','map.people':'{n} जना',
 'map.heading':'◆ साथीहरूको संसार','map.help':'＊ पात्र छान्दा जानकारी हेर्न सकिन्छ। सर्दा ढोका, करिडोर र भर्याङ हुँदै जान्छ।','map.quest':'सबै आ-आफ्नो ठाउँमा काम गर्दैछन्।',
 'map.z.shuccho':'व्यापारिक यात्रामा','map.z.rest':'बिदा/आराम',
@@ -6961,14 +6964,28 @@ function renderTeamMap(members){
   // マップの名前は Kintone の名簿（従業員 49・協力会社 1122）の「表示名」（短い名前。氏名だとマップで重なるため。2026-11-10）。
   // 表示名が空の人は氏名
   const mapName=u=>(u&&u.dispName)||(u&&u.name)||'';
-  const unset=[], otherRooms={};
+  const unset=[], otherRooms={}, partnersWaiting=[];
   const list=[];
   members.forEach(m=>{
     const zone=_zmapZone(m);
     if(zone) list.push({id:m.id, name:mapName(m), dept:m.dept||'', zone});
     else if(m.placeText) (otherRooms[m.placeText]=otherRooms[m.placeText]||[]).push(mapName(m)); // PLACES に無い会議室
+    // 協力会社の人は週1くらいしか来ないので、場所が選ばれていない日は「来ていない」として出さない（「社内（場所未設定）」にも入れない）。
+    // 来た日に誰かがマップの上のボタンから今日の場所を選ぶ（翌日は自動で消える）。会議の予定があればその時間は会議室に出る（2026-11-10）
+    else if(m.isPartner) partnersWaiting.push(m);
     else unset.push(mapName(m));
   });
+  let pbar=document.getElementById('team-map-partners');
+  if(!pbar){
+    pbar=document.createElement('div');
+    pbar.id='team-map-partners';
+    pbar.className='zmap-partners';
+    wrap.insertBefore(pbar, frame);
+  }
+  pbar.innerHTML = (partnersWaiting.length && GAS_URL)
+    ? `<span>${esc(t('map.partner.pick'))}</span>`+partnersWaiting.map(m=>`<button type="button" onclick="openPlacePicker('${esc(String(m.id))}')">${esc(mapName(m))}</button>`).join('')
+    : '';
+  pbar.style.display = pbar.innerHTML ? '' : 'none';
   const me=members.find(m=>m.id===currentUser.id);
   const myPlace=!me ? '' : me.placeText || (me.placeId==='out' ? t('place.out')
     : (PLACE_STATUSES.includes(me.baseStatus) ? t('place.unset') : tType(me.status)));
