@@ -6921,13 +6921,16 @@ function renderTeamMap(members){
     frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
     wrap.appendChild(frame);
   }
+  // マップの名前は Kintone 従業員名簿の「表示名」（短い名前。氏名だとマップで重なるため。2026-11-10）。
+  // 表示名が空の人・協力会社の人は氏名
+  const mapName=u=>(u&&u.dispName)||(u&&u.name)||'';
   const unset=[], otherRooms={};
   const list=[];
   members.forEach(m=>{
     const zone=_zmapZone(m);
-    if(zone) list.push({id:m.id, name:m.name, dept:m.dept||'', zone});
-    else if(m.placeText) (otherRooms[m.placeText]=otherRooms[m.placeText]||[]).push(m.name); // PLACES に無い会議室
-    else unset.push(m.name);
+    if(zone) list.push({id:m.id, name:mapName(m), dept:m.dept||'', zone});
+    else if(m.placeText) (otherRooms[m.placeText]=otherRooms[m.placeText]||[]).push(mapName(m)); // PLACES に無い会議室
+    else unset.push(mapName(m));
   });
   const me=members.find(m=>m.id===currentUser.id);
   const myPlace=!me ? '' : me.placeText || (me.placeId==='out' ? t('place.out')
@@ -6940,7 +6943,7 @@ function renderTeamMap(members){
     labels: {
       roster:t('map.roster'), nobody:t('map.nobody'), now:t('map.now'), you:t('map.you'), otherDept:t('team.other'),
       heading:t('map.heading'), help:t('map.help'), quest:t('map.quest'),
-      cmdAsk:t('map.cmd.ask',{name:currentUser.name}), cmdOther:t('map.cmd.other'), pick:t('map.pick'), nowShort:t('map.now.short'),
+      cmdAsk:t('map.cmd.ask',{name:mapName(me)||currentUser.name}), cmdOther:t('map.cmd.other'), pick:t('map.pick'), nowShort:t('map.now.short'),
       moved:t('map.moved'), moving:t('map.moving'),
       summary:{all:t('map.sum.all'), away:t('map.sum.away'), rest:t('map.sum.rest'), people:t('map.people')},
       zones:{shuccho:t('map.z.shuccho'), gaishutsu:t('place.out'), zaitaku:tType('在宅'), rest:t('map.z.rest')},
