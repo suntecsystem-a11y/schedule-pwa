@@ -4754,7 +4754,7 @@ function tkKanbanHtml(){
     if(_tk.done)cols.push({sts:['完了'],sch:null,label:'完了'});
   }else TK_STS.filter(s=>s!=='完了'||_tk.done).forEach(s=>cols.push({sts:[s],nd:false,sch:null,label:s}));
   return '<div id="tk-kanban">'+cols.map(c=>{
-    const isND=x=>x.type==='タスク'&&!x.ed&&x.st!=='完了';   // 期限なしタスク
+    const isND=x=>!x.ed&&x.st!=='完了';   // 期限なしタスク（かんばんに出るのは配下のないもの。種別は問わない：配下のない活動・施策も、日付がなければここに出す）
     const items=all.filter(x=>c.sts.includes(tkEffSt(x))&&(c.nd===undefined||c.nd===isND(x))&&(c.sch===null||tkkIsSched(x)===c.sch)).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
     return '<div class="tk-col"'+(c.nd?' style="border-top:3px solid #78909c"':(c.sch?' style="border-top:3px solid #43a047"':''))+'><h3><span>'+c.label+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
       const late=tkIsLate(x);
