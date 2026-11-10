@@ -10679,10 +10679,12 @@ function bentoRenderDay(){
     // 黒船デーは複数予約あり得るので全件表示（それぞれに変更/キャンセル）
     slot.innerHTML = arr.map((x,i)=>{
       const canEdit = x.status==='予約';
+      // 2026-11-10：注文済みもキャンセル依頼できる（急な欠席で本人が弁当屋さんに連絡したあと、請求から外すため）。締切なし・過ぎた日も可
+      const canCancel = x.status==='予約' || x.status==='注文済み';
       const badge = `<span style="font-size:0.68em;background:#fff;color:${_bentoStColor(x.status)};border:1px solid currentColor;border-radius:20px;padding:1px 8px">${esc(x.status)}</span>`;
-      const actions = canEdit ? `
+      const actions = canCancel ? `
         <div style="display:flex;gap:8px;margin-top:10px">
-          <button style="flex:1;margin:0;padding:7px;font-size:0.8em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;cursor:pointer" onclick="bentoDayEdit(${i})">変更</button>
+          ${canEdit?`<button style="flex:1;margin:0;padding:7px;font-size:0.8em;background:#fff;color:var(--primary);border:1px solid var(--primary);border-radius:8px;cursor:pointer" onclick="bentoDayEdit(${i})">変更</button>`:''}
           <button style="flex:1;margin:0;padding:7px;font-size:0.8em;background:#fff;color:#c62828;border:1px solid #f3c0c0;border-radius:8px;cursor:pointer" onclick="bentoDayCancel(${i})">キャンセル</button>
         </div>` : '';
       return `
@@ -10713,6 +10715,13 @@ function bentoDayEdit(i){
 }
 async function bentoDayCancel(i){
   const x=(_bentoByDate[_mypageSD]||[])[i||0]; if(!x) return;
+  if(x.status==='注文済み'){
+    // 注文済み＝弁当屋さんに注文が出ている。本人が弁当屋さんへキャンセル連絡をしていないと、弁当屋さんから請求が来てしまう
+    if(!confirm(`この弁当はすでに弁当屋さんへ注文済みです。\n\n先に、ご自身で弁当屋さんへキャンセルの連絡をしてください。\n\n弁当屋さんへの連絡は済みましたか？`)){
+      alert('弁当屋さんへキャンセルの連絡をしてから、もう一度「キャンセル」を押してください。');
+      return;
+    }
+  }
   if(!confirm(`${x.date} の「${x.menu}」のキャンセルを依頼します。よろしいですか？（総務に通知されます）`)) return;
   try{
     await api('requestCancelBento', { recordId:x.recordId }, 'キャンセル依頼中…');
