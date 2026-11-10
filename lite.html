@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HALO Lite</title>
+<meta name="theme-color" content="#5c6bc0">
+<link rel="manifest" href="manifest-lite.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="HALO Lite">
+<!--
+  HALO Lite（個人スマホ用の簡易版、2026-11-10）
+  使えるのは「予定（自分の予定の確認・登録）」「お弁当」「在籍ボード（件名なし）・自分の場所と休み」「安否確認」「お知らせ」「通知」だけ。
+  安否確認の一覧・発信・再通知・終了は役職者だけ（Worker の safety.js が役職を確かめる）。
+  守りは Worker 側（schedule-dev/worker/src/lite.js）。ここで機能を足しても、Worker の LITE_ACTIONS に無い処理は断られる。
+  ログイン情報は通常版（index.html の sch_sess）と別の halo_lite_sess に保存する。
+  他人の予定は Worker が「予定あり（時間・参加者・会議室・貸出品の期間だけ）」にして返す（e.busy=true）。
+-->
+<style>
+:root{
+  --primary:#5c6bc0;--primary-dark:#3949ab;--primary-light:#e8eaf6;
+  --bg:#f5f6fa;--surface:#fff;--border:#e0e0e0;--text:#212121;--text2:#757575;--text3:#bdbdbd;
+  --danger:#c62828;--ok:#2e7d32;--warn:#e65100;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:16px;-webkit-text-size-adjust:100%}
+button{font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:16px}
+.hidden{display:none!important}
+/* ログイン */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{background:var(--surface);border-radius:16px;padding:28px 22px;width:100%;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.login-card h1{margin:0 0 4px;font-size:1.4em;color:var(--primary)}
+.login-card p{margin:0 0 18px;font-size:.82em;color:var(--text2);line-height:1.6}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.8em;font-weight:700;color:var(--text2);margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+.btn{display:inline-block;border:none;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer;font-size:.95em}
+.btn-primary{background:var(--primary);color:#fff;width:100%}
+.btn-ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+.btn-danger{background:#fff;color:var(--danger);border:1px solid #f3c0c0}
+.btn:disabled{opacity:.5}
+.err{color:var(--danger);font-size:.85em;margin-top:10px;min-height:1em}
+/* アプリ */
+header{position:sticky;top:0;z-index:50;background:var(--primary);color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between}
+header .title{font-weight:800;font-size:1.05em}
+header .who{font-size:.78em;opacity:.9}
+main{padding:12px 12px 90px;max-width:640px;margin:0 auto}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:none;background:none;padding:9px 0 8px;font-size:.72em;color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+nav button .ic{font-size:1.45em}
+nav button.on{color:var(--primary);font-weight:700}
+.card{background:var(--surface);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card h2{margin:0 0 8px;font-size:.95em}
+/* カレンダー */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.cal-head button{border:none;background:var(--primary-light);color:var(--primary-dark);border-radius:8px;padding:6px 12px;font-size:1em;cursor:pointer}
+.cal-title{font-weight:800}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal .dow{text-align:center;font-size:.7em;color:var(--text2);padding:2px 0}
+.cal .d{min-height:46px;border-radius:8px;background:#fafafa;padding:3px;font-size:.78em;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center}
+.cal .d.out{opacity:.35}
+.cal .d.sun,.cal .d.hol{color:#d32f2f}
+.cal .d.sat{color:#1565c0}
+.cal .d.today{outline:2px solid var(--primary)}
+.cal .d.sel{background:var(--primary-light)}
+.cal .dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:3px}
+.cal .dot{width:7px;height:7px;border-radius:50%}
+.cal .bento{font-size:.85em;line-height:1}
+.ev{border-left:5px solid var(--primary);background:#fafafa;border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer}
+.ev .t{font-weight:700;font-size:.92em}
+.ev .s{font-size:.78em;color:var(--text2);margin-top:2px;line-height:1.5}
+.badge{display:inline-block;font-size:.7em;border-radius:20px;padding:1px 8px;border:1px solid currentColor;margin-left:4px;vertical-align:1px}
+.empty{color:var(--text2);font-size:.85em;padding:8px 2px}
+.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:55;border:none;border-radius:28px;background:var(--primary);color:#fff;font-weight:800;padding:13px 18px;box-shadow:0 4px 14px rgba(0,0,0,.2);font-size:.95em;cursor:pointer}
+/* シート */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sheet-head b{font-size:1.02em}
+.x{font-size:1.5em;color:var(--text2);cursor:pointer;padding:0 6px;border:none;background:none}
+.row2{display:flex;gap:8px}
+.row2>*{flex:1;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--border);border-radius:16px;padding:5px 10px;font-size:.82em;background:#fff;cursor:pointer}
+.chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+.chip.ng{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+.warn{background:#fff3e0;color:#8a4b00;border-radius:8px;padding:8px 10px;font-size:.8em;margin:6px 0;line-height:1.6}
+.note{font-size:.75em;color:var(--text2);line-height:1.6}
+.list-scroll{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:6px}
+.person{display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:.88em;border-bottom:1px solid #f2f2f2}
+.person:last-child{border-bottom:none}
+/* 安否 */
+.safety{background:#fff3e0;border:2px solid #ff9800;border-radius:14px;padding:12px;margin-bottom:12px}
+.safety.done{background:#e8f5e9;border-color:#66bb6a}
+.safety .ttl{font-weight:800;margin-bottom:4px}
+.sbtns{display:flex;gap:8px;margin-top:10px}
+.sbtns button{flex:1;border:none;border-radius:10px;padding:12px 4px;font-weight:800;color:#fff;font-size:.9em}
+.sum{display:flex;gap:6px;margin-top:10px}
+.sum div{flex:1;text-align:center;background:#fff;border-radius:8px;padding:6px 2px;font-size:.72em;color:var(--text2)}
+.sum b{display:block;font-size:1.4em}
+.notice{border-bottom:1px solid #f0f0f0;padding:8px 2px}
+.notice:last-child{border-bottom:none}
+.notice .t{font-weight:700;font-size:.9em}
+.notice .b{font-size:.82em;color:var(--text2);white-space:pre-wrap;margin-top:3px;line-height:1.6}
+.bchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.member{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid #f2f2f2;font-size:.88em}
+.member:last-child{border-bottom:none}
+.member .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.member .pl{font-size:.75em;color:var(--text2);white-space:nowrap}
+.st{font-size:.72em;border-radius:12px;padding:2px 8px;font-weight:700;white-space:nowrap}
+.dept-h{font-size:.78em;font-weight:800;color:var(--text2);margin:10px 0 2px}
+.plist{max-height:180px;overflow:auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:rgba(33,33,33,.92);color:#fff;padding:10px 16px;border-radius:10px;font-size:.88em;z-index:300;max-width:90vw;display:none}
+.loading{position:fixed;inset:0;background:rgba(255,255,255,.55);z-index:200;display:none;align-items:center;justify-content:center;font-weight:700;color:var(--primary-dark)}
+</style>
+</head>
+<body>
+
+<!-- ログイン -->
+<div id="login">
+  <div class="login-card">
+    <h1>HALO Lite</h1>
+    <p>個人のスマホ向けの簡易版です。<br>予定・お弁当・安否確認・お知らせだけ使えます。<br>申請や名簿などは会社の端末の HALO を使ってください。</p>
+    <div class="field"><label>社員番号</label><input id="emp-id" inputmode="numeric" autocomplete="username"></div>
+    <div class="field"><label>PIN</label><input id="emp-pin" type="password" inputmode="numeric" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary" onclick="doLogin()">ログイン</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- アプリ -->
+<div id="app" class="hidden">
+  <header>
+    <div><div class="title">HALO Lite</div><div class="who" id="who"></div></div>
+    <button class="btn" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 10px;font-size:.8em" onclick="reloadAll()">↻ 更新</button>
+  </header>
+  <main>
+    <div id="safety-area"></div>
+    <section id="tab-cal"></section>
+    <section id="tab-bento" class="hidden"></section>
+    <section id="tab-board" class="hidden"></section>
+    <section id="tab-more" class="hidden"></section>
+  </main>
+  <button class="fab" id="fab" onclick="openEventForm()">＋ 予定</button>
+  <nav>
+    <button id="nav-cal" class="on" onclick="switchTab('cal')"><span class="ic">📅</span>予定</button>
+    <button id="nav-bento" onclick="switchTab('bento')"><span class="ic">🍱</span>お弁当</button>
+    <button id="nav-board" onclick="switchTab('board')"><span class="ic">🏢</span>在籍</button>
+    <button id="nav-more" onclick="switchTab('more')"><span class="ic">☰</span>その他</button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loading" id="loading">読み込み中…</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+<script>
+'use strict';
+// ============================================================ 設定（index.html と同じ値）
+const API_URL = 'https://schedule-worker.suntec-halo.workers.dev/';
+const SESS_KEY = 'halo_lite_sess'; // 通常版（sch_sess）とは別
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB87kKVgi-MADbg5vzijiEv5H8jhJpb1mg",
+  authDomain: "schedule-tsuchi0.firebaseapp.com",
+  projectId: "schedule-tsuchi0",
+  storageBucket: "schedule-tsuchi0.firebasestorage.app",
+  messagingSenderId: "469856571712",
+  appId: "1:469856571712:web:8a41974c196994b642aaa5",
+  measurementId: "G-58RVVHY50P"
+};
+const FCM_VAPID_KEY = 'BDlZOWb_0fLREI4cDVXAqNisayAzluFmTDt8dA9yJAsNSCEJWqPUY_zbfHiTsZbogCXo-kfKIk1vvfLn3YLGAzw';
+
+// 予定の決まり（index.html と同じ。変えるときは両方）
+const ROOMS = [
+  {id:'1階会議室', name:'本社1階会議室', until:'2026-11-02'},
+  {id:'2階会議室', name:'本社2階会議室', until:'2026-11-02'},
+  {id:'新棟2階', name:'新棟2階会議室', from:'2026-11-03'},
+  {id:'新棟3階第1会議室（東）', name:'新棟3階第1会議室（東）', from:'2026-11-03'},
+  {id:'新棟3階第2会議室（中央）', name:'新棟3階第2会議室（中央）', from:'2026-11-03'},
+];
+const roomName = id => (ROOMS.find(r=>r.id===id)||{}).name || id || '';
+const roomOpenOn = (r, ds) => (!r.from||ds>=r.from) && (!r.until||ds<=r.until);
+const ROOM_TYPES = ['会議室','打ち合わせ','来社'];
+const ALL_TYPES = ['会議室','打ち合わせ','作業','外出','出張','休暇','休み','在宅','来社','その他'];
+const APPROVAL_TYPES = ['外出','出張','在宅','その他'];
+const MULTIDAY_TYPES = ['出張','休暇','休み','在宅'];
+const TIMED_TYPES = ['会議室','打ち合わせ','外出','来社'];
+const ALLDAY_TOGGLE_TYPES = ['出張','休暇','在宅','外出'];
+const RENTAL_TYPES = ['外出','出張','在宅','その他'];
+const APPROVAL_DEPT_ALIAS = {'事務':'製造','設計':'製造','検査':'製造'};
+const COLOR = {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','作業':'#4dd0e1'};
+const WD = ['日','月','火','水','木','金','土'];
+// 今いる場所（index.html の PLACES と同じ。id は Worker の places.js の PLACE_CODES と同じ。足すときは3か所）
+const PLACES = [
+  {id:'honsha-1f',grp:'honsha',short:'1階'},{id:'honsha-2f-s',grp:'honsha',short:'2階南'},{id:'honsha-2f-n',grp:'honsha',short:'2階北'},
+  {id:'honsha-3f-s',grp:'honsha',short:'3階南'},{id:'honsha-3f-n',grp:'honsha',short:'3階北'},{id:'honsha-soko',grp:'honsha',short:'倉庫'},
+  {id:'shinto-1f',grp:'shinto',short:'1階'},{id:'shinto-2f',grp:'shinto',short:'2階'},
+  {id:'shinto-2f-mtg',grp:'shinto',short:'2階 会議室'},{id:'shinto-3f-mtg1',grp:'shinto',short:'3階 第1会議室（東）'},
+  {id:'shinto-3f-mtg2',grp:'shinto',short:'3階 第2会議室（中央）'},{id:'shinto-senmu',grp:'shinto',short:'3階 専務室'},
+  {id:'ibaraki',grp:'other',short:'茨城工場'},{id:'daikoku',grp:'other',short:'大黒'},
+];
+const PLACE_GRP_NAME = {honsha:'本社', shinto:'新棟'};
+const placeLabel = id => { if(id==='out') return '外出中'; const p=PLACES.find(x=>x.id===id); if(!p) return ''; return PLACE_GRP_NAME[p.grp] ? PLACE_GRP_NAME[p.grp]+' '+p.short : p.short; };
+const STATUS_ORDER = ['在席','会議中','打ち合わせ','来社','外出','出張','在宅','休暇','休み'];
+const STATUS_COLOR = Object.assign({}, COLOR, {'在席':'#66bb6a','会議中':'#9fa8da','休み':'#ff8a65'});
+const isManager = () => !!(me && me.role && me.role!=='一般');
+
+// ============================================================ 状態
+let me = null;            // {id,name,dept,role,...}
+let USERS = [];
+let events = [];          // 表示中の月の予定（自分のもの＋他人の「予定あり」）
+let holidays = [];        // [{date,name,sites}]
+let rental = { masters:[], rentalDetails:{} };
+let bentoList = [];
+let curMonth = firstOfMonth(new Date());
+let selDate = fmt(new Date());
+let tab = 'cal';
+let _loadedRange = '';
+
+// ============================================================ 小道具
+function fmt(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function firstOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function $(id){ return document.getElementById(id); }
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>t.style.display='none',3500); }
+let _loadingN=0;
+function loading(on){ _loadingN+=on?1:-1; if(_loadingN<0)_loadingN=0; $('loading').style.display=_loadingN?'flex':'none'; }
+function saveSess(s){ localStorage.setItem(SESS_KEY, JSON.stringify(s)); }
+function loadSess(){ try{ return JSON.parse(localStorage.getItem(SESS_KEY)); }catch{ return null; } }
+function clearSess(){ localStorage.removeItem(SESS_KEY); }
+const inc = (e,ds) => ds>=(e.startDate||e.date) && ds<=(e.endDate||e.date);
+const isMine = e => !e.busy;
+const userName = id => { const u=USERS.find(x=>String(x.id)===String(id)); return u ? (u.dispName||u.name) : String(id); };
+const isHoliday = ds => { const d=new Date(ds+'T00:00:00'); return d.getDay()===0||d.getDay()===6||holidays.some(h=>h.date===ds); };
+
+// ============================================================ API
+async function api(action, data={}, opt={}){
+  if(!opt.silent) loading(true);
+  try{
+    const sess = loadSess();
+    const body = JSON.stringify(Object.assign({ action, token: sess && sess.token }, data));
+    const res = await fetch(API_URL, { method:'POST', body });
+    const r = await res.json();
+    if(!r.ok){
+      if(r.error==='SESSION_EXPIRED'){ clearSess(); showLogin('ログインの期限が切れました。もう一度ログインしてください。'); }
+      throw new Error(r.error || 'エラーが発生しました');
+    }
+    return r.data;
+  } finally { if(!opt.silent) loading(false); }
+}
+
+// ============================================================ ログイン
+function showLogin(msg){ $('app').classList.add('hidden'); $('login').classList.remove('hidden'); $('login-err').textContent=msg||''; }
+async function doLogin(){
+  const empId=$('emp-id').value.trim(), pin=$('emp-pin').value.trim();
+  if(!empId||!pin){ $('login-err').textContent='社員番号とPINを入れてください'; return; }
+  try{
+    const r = await api('login', { empId, pin, lite:true });
+    if(!r.token || r.token.indexOf('l1.')!==0) throw new Error('簡易版のログインに失敗しました');
+    saveSess({ token:r.token, user:r.user });
+    $('emp-pin').value='';
+    await startApp();
+  }catch(e){
+    $('login-err').textContent = e.message==='LOGIN_LOCKED' ? 'ログインに何度も失敗したため、しばらくロックされています' : e.message;
+  }
+}
+function logout(){
+  if(!confirm('ログアウトしますか？（この端末の通知は届かなくなります）')) return;
+  clearSess(); location.reload();
+}
+
+async function startApp(){
+  const s = loadSess(); if(!s){ showLogin(); return; }
+  me = s.user;
+  $('who').textContent = (me.name||'') + (me.dept ? '（'+me.dept+'）' : '');
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  try{
+    const [users, hol] = await Promise.all([ api('getUsers'), api('getHolidays').catch(()=>[]) ]);
+    USERS = users||[]; holidays = hol||[];
+  }catch(e){ if(e.message!=='SESSION_EXPIRED') toast('読み込みに失敗：'+e.message); return; }
+  if(!bentoVisible()) { $('nav-bento').classList.add('hidden'); }
+  await loadEvents(true);
+  renderCal();
+  loadSafety();
+  api('getRentalMasters',{}, {silent:true}).then(r=>{ rental = r && r.masters ? r : {masters:[],rentalDetails:{}}; }).catch(()=>{});
+  // お弁当の🍱をカレンダーに出すため、一度読む
+  if(bentoVisible()) api('getMyBentoReservations',{}, {silent:true}).then(r=>{ bentoList=(r&&r.reservations)||[]; if(tab==='cal') renderCal(); }).catch(()=>{});
+  setTimeout(()=>initPush(false), 1200);
+}
+async function reloadAll(){
+  _loadedRange=''; await loadEvents(true); renderCal(); loadSafety();
+  if(tab==='bento') loadBento(); if(tab==='board') loadBoard(); if(tab==='more') renderMore();
+}
+
+// ============================================================ タブ
+function switchTab(t){
+  tab=t;
+  ['cal','bento','board','more'].forEach(x=>{ $('tab-'+x).classList.toggle('hidden', x!==t); $('nav-'+x).classList.toggle('on', x===t); });
+  $('fab').classList.toggle('hidden', t!=='cal');
+  if(t==='cal') renderCal();
+  if(t==='bento') loadBento();
+  if(t==='board') loadBoard();
+  if(t==='more') renderMore();
+  window.scrollTo(0,0);
+}
+
+// ============================================================ 予定
+async function loadEvents(force){
+  const s=fmt(curMonth), e=fmt(new Date(curMonth.getFullYear(), curMonth.getMonth()+1, 0));
+  const key=s+'_'+e;
+  if(!force && key===_loadedRange) return;
+  try{ events = await api('getEvents', { rangeStart:s, rangeEnd:e }) || []; _loadedRange=key; }
+  catch(err){ if(err.message!=='SESSION_EXPIRED') toast('予定の読み込みに失敗：'+err.message); }
+}
+async function moveMonth(n){ curMonth=new Date(curMonth.getFullYear(), curMonth.getMonth()+n, 1); await loadEvents(); renderCal(); }
+function pickDate(ds){ selDate=ds; renderCal(); }
+
+function renderCal(){
+  const y=curMonth.getFullYear(), m=curMonth.getMonth();
+  const today=fmt(new Date());
+  const start=addDays(curMonth, -curMonth.getDay());
+  const mine = events.filter(isMine);
+  let cells='';
+  for(let i=0;i<42;i++){
+    const d=addDays(start,i), ds=fmt(d);
+    if(i>=35 && d.getMonth()!==m) break;
+    const evs=mine.filter(e=>inc(e,ds));
+    const hol=holidays.some(h=>h.date===ds);
+    const cls=['d', d.getMonth()!==m?'out':'', d.getDay()===0?'sun':'', d.getDay()===6?'sat':'', hol?'hol':'', ds===today?'today':'', ds===selDate?'sel':''].join(' ');
+    const bentoHere = bentoList.some(b=>b.date===ds && b.status!=='キャンセル');
+    cells += `<div class="${cls}" onclick="pickDate('${ds}')"><div>${d.getDate()}</div>
+      <div class="dots">${evs.slice(0,4).map(e=>`<span class="dot" style="background:${COLOR[e.type]||'#90a4ae'}"></span>`).join('')}${evs.length>4?'<span style="font-size:.7em">+</span>':''}</div>
+      ${bentoHere?'<div class="bento">🍱</div>':''}</div>`;
+  }
+  const dayEvs = mine.filter(e=>inc(e,selDate)).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+  const sd=new Date(selDate+'T00:00:00');
+  const hol=holidays.find(h=>h.date===selDate);
+  $('tab-cal').innerHTML = `
+    <div class="card">
+      <div class="cal-head"><button onclick="moveMonth(-1)">‹</button><div class="cal-title">${y}年${m+1}月</div><button onclick="moveMonth(1)">›</button></div>
+      <div class="cal">${WD.map(w=>`<div class="dow">${w}</div>`).join('')}${cells}</div>
+    </div>
+    <div class="card">
+      <h2>${sd.getMonth()+1}月${sd.getDate()}日（${WD[sd.getDay()]}）${hol?` <span style="color:#d32f2f;font-size:.8em">${esc(hol.name||'休日')}</span>`:''}</h2>
+      ${dayEvs.length ? dayEvs.map(evCard).join('') : '<div class="empty">この日のあなたの予定はありません</div>'}
+      <div class="note" style="margin-top:6px">※ 簡易版では、あなたが登録した予定と、参加者にあなたが入っている予定だけ表示します。</div>
+    </div>`;
+}
+function evTime(e){
+  const ds = (e.startDate&&e.endDate&&e.startDate!==e.endDate) ? `${e.startDate.slice(5).replace('-','/')}〜${e.endDate.slice(5).replace('-','/')}` : '';
+  const tm = e.start ? `${e.start}${e.end?'〜'+e.end:''}` : '終日';
+  return [ds, tm].filter(Boolean).join(' ');
+}
+function evCard(e){
+  const st = e.approvalStatus==='申請中' ? '<span class="badge" style="color:#e65100">申請中</span>' : e.approvalStatus==='否認' ? '<span class="badge" style="color:#c62828">否認</span>' : '';
+  const people = (e.people||[]).map(userName).join('、');
+  return `<div class="ev" style="border-left-color:${COLOR[e.type]||'#90a4ae'}" onclick="openDetail('${esc(e.id)}')">
+    <div class="t">${esc(e.title||e.type)} <span class="badge" style="color:var(--text2)">${esc(e.type)}</span>${st}</div>
+    <div class="s">${esc(evTime(e))}${e.room?' ／ '+esc(roomName(e.room)):''}${people?'<br>👥 '+esc(people):''}</div>
+  </div>`;
+}
+
+function openDetail(id){
+  const e = events.find(x=>x.id===id); if(!e) return;
+  const own = String(e.userId)===String(me.id);
+  const rentals = (e.rentals||[]).map(r=>r.label||r.id||r).join('、');
+  const canReturn = own && rentals && e.rentalStatus==='貸出中';
+  const canExtend = own && rentals && (e.rentalStatus==='貸出中'||e.rentalStatus==='予約中');
+  openSheet(`
+    <div class="sheet-head"><b>${esc(e.title||e.type)}</b><button class="x" onclick="closeSheet()">×</button></div>
+    <div class="note" style="font-size:.85em;color:var(--text)">
+      <div>種類：${esc(e.type)}${e.approvalStatus?'（'+esc(e.approvalStatus)+'）':''}</div>
+      <div>日時：${esc(evTime(e))}</div>
+      ${e.room?`<div>会議室：${esc(roomName(e.room))}</div>`:''}
+      ${(e.people||[]).length?`<div>参加者：${esc((e.people||[]).map(userName).join('、'))}</div>`:''}
+      ${rentals?`<div>貸出：${esc(rentals)}（${esc(e.rentalStart||'')}〜${esc(e.rentalEnd||'')}${e.rentalStatus?'・'+esc(e.rentalStatus):''}）</div>`:''}
+      ${e.remoteReason?`<div>在宅の理由：${esc(e.remoteReason)}</div>`:''}
+      ${e.rejectionReason?`<div style="color:var(--danger)">否認の理由：${esc(e.rejectionReason)}</div>`:''}
+      ${e.memo?`<div style="white-space:pre-wrap;margin-top:4px">メモ：${esc(e.memo)}</div>`:''}
+      ${e.teamsUrl?`<div style="margin-top:6px"><a href="${esc(e.teamsUrl)}" target="_blank" rel="noopener">Teams 会議に参加</a></div>`:''}
+      <div style="margin-top:4px;color:var(--text2)">登録：${esc(userName(e.userId))}</div>
+    </div>
+    ${own ? `<div class="row2" style="margin-top:14px">
+      <button class="btn btn-ghost" onclick="openEventForm('${esc(e.id)}')">編集</button>
+      <button class="btn btn-danger" onclick="deleteEvent('${esc(e.id)}')">削除</button></div>` : '<div class="note" style="margin-top:10px">参加している予定です（変更は登録した人が行います）</div>'}
+    ${canReturn||canExtend ? `<div class="row2" style="margin-top:8px">
+      ${canReturn?`<button class="btn btn-ghost" onclick="returnDevice('${esc(e.id)}')">端末を返却</button>`:''}
+      ${canExtend?`<button class="btn btn-ghost" onclick="extendRental('${esc(e.id)}')">返却日を延長</button>`:''}</div>` : ''}
+  `);
+}
+async function deleteEvent(id){
+  if(!confirm('この予定を削除しますか？')) return;
+  try{ await api('deleteEvent', { eventId:String(id) }); closeSheet(); await loadEvents(true); renderCal(); toast('削除しました'); }
+  catch(e){ toast('削除できませんでした：'+e.message); }
+}
+async function returnDevice(id){
+  if(!confirm('端末を返却しますか？')) return;
+  try{ await api('returnDevice', { eventId:String(id) }); closeSheet(); await loadEvents(true); renderCal(); toast('返却しました'); }
+  catch(e){ toast('返却できませんでした：'+e.message); }
+}
+async function extendRental(id){
+  const e=events.find(x=>x.id===id);
+  const v=prompt('新しい返却予定日（例：2026-12-01）', e&&e.rentalEnd||''); if(!v) return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){ toast('日付は 2026-12-01 の形で入れてください'); return; }
+  try{ await api('extendRental', { eventId:String(id), newEnd:v }); closeSheet(); await loadEvents(true); renderCal(); toast('延長しました'); }
+  catch(err){ toast('延長できませんでした：'+err.message); }
+}
+
+// ---------------------------------------------------------------- 予定の登録・編集
+let F = null; // フォームの状態 { id, people:Set, room, rentals:[] }
+function needsApprover(type){ if(!APPROVAL_TYPES.includes(type)) return false; const r=me.role; return (!r || r==='一般' || (type==='在宅' && r==='主任')); }
+function approverOptions(type){
+  const eff = APPROVAL_DEPT_ALIAS[me.dept]||me.dept||'';
+  return USERS.filter(u=>{
+    if(!u.role||u.role==='一般'||String(u.id)===String(me.id)) return false;
+    if(type==='在宅'&&me.role==='主任') return u.role!=='主任';
+    if(u.role==='主任') return u.dept===eff;
+    return true;
+  }).sort((a,b)=>(a.dept||'').localeCompare(b.dept||'')||(a.name||'').localeCompare(b.name||''));
+}
+
+function openEventForm(id){
+  const e = id ? events.find(x=>x.id===id) : null;
+  if(id && (!e || String(e.userId)!==String(me.id))){ toast('自分が登録した予定だけ編集できます'); return; }
+  F = { id: e?e.id:'', people: new Set(e ? (e.people||[]).map(String) : [String(me.id)]), room: e?e.room||'':'', rentals: e ? (e.rentals||[]).map(r=>typeof r==='string'?{id:r,label:r}:r) : [] };
+  const type = e ? e.type : '会議室';
+  const d0 = e ? (e.startDate||e.date) : selDate;
+  openSheet(`
+    <div class="sheet-head"><b>${e?'予定を編集':'予定を追加'}</b><button class="x" onclick="closeSheet()">×</button></div>
+    <div class="field"><label>種類</label><select id="f-type" onchange="formRender()">${ALL_TYPES.map(t=>`<option ${t===type?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="field"><label>件名</label><input id="f-title" value="${esc(e?e.title:'')}" placeholder="（任意）"></div>
+    <div id="f-allday-wrap" class="field"><label><input type="checkbox" id="f-allday" onchange="formRender()" ${e&&!e.start?'checked':''}> 終日</label></div>
+    <div id="f-single" class="field"><label>日付</label><input type="date" id="f-date" value="${d0}" onchange="formRender()"></div>
+    <div id="f-range" class="row2"><div class="field"><label>開始日</label><input type="date" id="f-sdate" value="${d0}" onchange="formRender()"></div><div class="field"><label>終了日</label><input type="date" id="f-edate" value="${e?(e.endDate||d0):d0}" onchange="formRender()"></div></div>
+    <div id="f-time" class="row2"><div class="field"><label>開始</label><input type="time" id="f-start" step="300" value="${e&&e.start||'10:00'}" onchange="formRender()"></div><div class="field"><label>終了</label><input type="time" id="f-end" step="300" value="${e&&e.end||'11:00'}" onchange="formRender()"></div></div>
+    <div id="f-room-wrap" class="field"><label id="f-room-label">会議室</label><div class="chips" id="f-rooms"></div><div id="f-room-warn"></div></div>
+    <div class="field"><label>参加者</label>
+      <input id="f-psearch" placeholder="名前で探す" oninput="renderPeople()" style="margin-bottom:6px">
+      <div class="list-scroll" id="f-people"></div>
+      <div id="f-pwarn"></div>
+    </div>
+    <div id="f-rental-wrap" class="field"><label id="f-rental-label">貸出する端末（任意）</label>
+      <div class="chips" id="f-rentals"></div>
+      <div class="row2" style="margin-top:8px"><div><label class="note">貸出開始</label><input type="date" id="f-rs" value="${e&&e.rentalStart||d0}" onchange="formRender()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px"></div>
+        <div><label class="note">返却予定</label><input type="date" id="f-re" value="${e&&e.rentalEnd||d0}" onchange="formRender()" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px"></div></div>
+      <input id="f-rpurpose" value="${esc(e&&e.rentalPurpose||'')}" placeholder="使用目的（端末を選んだときは必須）" style="margin-top:8px;width:100%;padding:9px;border:1px solid var(--border);border-radius:8px">
+    </div>
+    <div id="f-remote-wrap" class="field"><label>在宅の理由</label><input id="f-remote" value="${esc(e&&e.remoteReason||'')}"></div>
+    <div id="f-appr-wrap" class="field"><label>承認者</label><select id="f-appr"></select></div>
+    <div class="field"><label>メモ</label><textarea id="f-memo" rows="3">${esc(e&&e.memo||'')}</textarea></div>
+    <button class="btn btn-primary" id="f-save" onclick="saveEvent()">${e?'この内容で更新する':'この内容で登録する'}</button>
+    <div class="note" style="margin-top:8px">※ 繰り返しの予定・社用車の申し込みは、会社の端末の HALO から登録してください。</div>
+  `);
+  formRender();
+  if(e && e.approvedBy) $('f-appr').value = e.approvedBy;
+}
+
+// 種類に合わせて欄を出し分け、空き状況を描き直す（index.html の onTypeChange・saveEvent と同じ決まり）
+const notSelf = ev => !(F && F.id && String(ev.id)===String(F.id));
+function formShape(){
+  const type=$('f-type').value;
+  const isOther=type==='その他';
+  const hasToggle=!isOther&&ALLDAY_TOGGLE_TYPES.includes(type);
+  const allday=hasToggle&&$('f-allday').checked;
+  const useRange=!isOther&&(allday||(hasToggle&&type==='出張'&&!allday)||(!hasToggle&&MULTIDAY_TYPES.includes(type)));
+  const showTime=!isOther&&((!allday&&hasToggle)||(!hasToggle&&TIMED_TYPES.includes(type)));
+  return { type, isOther, hasToggle, allday, useRange, showTime };
+}
+function formDates(){
+  const s=formShape();
+  if(s.isOther) return { date:$('f-rs').value, startDate:$('f-rs').value, endDate:$('f-re').value, start:'', end:'' };
+  const date = s.useRange ? $('f-sdate').value : $('f-date').value;
+  return { date, startDate: s.useRange?$('f-sdate').value:date, endDate: s.useRange?$('f-edate').value:date,
+    start: s.showTime?$('f-start').value:'', end: s.showTime?$('f-end').value:'' };
+}
+function formRender(){
+  const s=formShape();
+  $('f-allday-wrap').classList.toggle('hidden', !s.hasToggle);
+  $('f-single').classList.toggle('hidden', s.isOther || s.useRange);
+  $('f-range').classList.toggle('hidden', s.isOther || !s.useRange);
+  $('f-time').classList.toggle('hidden', !s.showTime);
+  $('f-room-wrap').classList.toggle('hidden', !ROOM_TYPES.includes(s.type));
+  $('f-room-label').textContent = s.type==='会議室' ? '会議室（必須）' : '会議室（任意）';
+  $('f-rental-wrap').classList.toggle('hidden', !RENTAL_TYPES.includes(s.type));
+  $('f-rental-label').textContent = s.isOther ? '貸出する端末（必須）' : '貸出する端末（任意）';
+  $('f-remote-wrap').classList.toggle('hidden', s.type!=='在宅');
+  const na=needsApprover(s.type);
+  $('f-appr-wrap').classList.toggle('hidden', !na);
+  if(na){ const cur=$('f-appr').value; $('f-appr').innerHTML='<option value="">選んでください</option>'+approverOptions(s.type).map(u=>`<option value="${esc(u.id)}">${esc(u.name)}（${esc(u.dept||'')}・${esc(u.role||'')}）</option>`).join(''); if(cur) $('f-appr').value=cur; }
+  renderRooms(); renderPeople(); renderRentals();
+}
+// 他の予定と時間が重なるか（終日はその日全体）
+function overlaps(ev, d){
+  if(ev.approvalStatus==='否認') return false;
+  const days=[]; for(let x=new Date(d.startDate+'T00:00:00'); fmt(x)<= (d.endDate||d.startDate); x=addDays(x,1)) days.push(fmt(x));
+  if(!days.some(ds=>inc(ev,ds))) return false;
+  if(!d.start||!d.end||!ev.start||!ev.end) return true;
+  return d.start < ev.end && d.end > ev.start;
+}
+function renderRooms(){
+  const d=formDates(), s=formShape();
+  if(!ROOM_TYPES.includes(s.type)){ $('f-rooms').innerHTML=''; $('f-room-warn').innerHTML=''; return; }
+  const open=ROOMS.filter(r=>roomOpenOn(r, d.date||selDate));
+  if(F.room && !open.some(r=>r.id===F.room)) F.room='';
+  $('f-rooms').innerHTML = (s.type!=='会議室'?`<span class="chip ${!F.room?'on':''}" onclick="F.room='';renderRooms()">使わない</span>`:'') +
+    open.map(r=>{
+      const busy = events.some(ev=>notSelf(ev) && ev.room===r.id && overlaps(ev,d));
+      return `<span class="chip ${F.room===r.id?'on':''} ${busy&&F.room!==r.id?'ng':''}" onclick="${busy&&F.room!==r.id?'':`F.room='${esc(r.id)}';renderRooms()`}">${esc(r.name)}${busy?'（使用中）':''}</span>`;
+    }).join('');
+  const conflict = F.room && events.some(ev=>notSelf(ev) && ev.room===F.room && overlaps(ev,d));
+  $('f-room-warn').innerHTML = conflict ? '<div class="warn">選んだ会議室はこの時間に使われています</div>' : '';
+}
+function renderPeople(){
+  const q=($('f-psearch').value||'').trim();
+  const list = USERS.filter(u=>!q || (u.name||'').indexOf(q)>=0 || (u.dispName||'').indexOf(q)>=0 || (u.dept||'').indexOf(q)>=0)
+    .sort((a,b)=> (F.people.has(String(b.id))?1:0)-(F.people.has(String(a.id))?1:0) || (a.dept||'').localeCompare(b.dept||''));
+  $('f-people').innerHTML = list.slice(0,200).map(u=>`<label class="person"><input type="checkbox" ${F.people.has(String(u.id))?'checked':''} onchange="togglePerson('${esc(u.id)}',this.checked)"> <span>${esc(u.name)}</span><span class="note">${esc(u.dept||'')}</span></label>`).join('') || '<div class="empty">見つかりません</div>';
+  // 参加者の予定の重なり（他人の予定は「予定あり」の時間だけ分かる）
+  const d=formDates(); const warns=[];
+  if(d.startDate){
+    F.people.forEach(pid=>{
+      const hits=events.filter(ev=>notSelf(ev) && (ev.people||[]).map(String).includes(pid) && overlaps(ev,d));
+      if(hits.length) warns.push(`${esc(userName(pid))}さん：${hits.map(h=>esc(h.start?h.start+'〜'+(h.end||''):'終日')).join('、')} に予定あり`);
+    });
+  }
+  $('f-pwarn').innerHTML = warns.length ? `<div class="warn">${warns.join('<br>')}</div>` : '';
+}
+function togglePerson(id,on){ if(on) F.people.add(String(id)); else F.people.delete(String(id)); renderPeople(); }
+function rentalBusy(did, rs, re){
+  return (rental.rentalDetails[did]||[]).some(x=>!(F.id && String(x.eventId)===String(F.id)) && (x.status==='貸出中'||x.status==='予約中'||x.status==='申請中') && x.rentalStart && rs<= (x.rentalEnd||x.rentalStart) && re>=x.rentalStart);
+}
+function renderRentals(){
+  const s=formShape();
+  if(!RENTAL_TYPES.includes(s.type)){ $('f-rentals').innerHTML=''; return; }
+  const rs=$('f-rs').value, re=$('f-re').value;
+  $('f-rentals').innerHTML = (rental.masters||[]).map(m=>{
+    const label=(m.deviceType||'')+(m.purpose?' '+m.purpose:'');
+    const on=F.rentals.some(r=>String(r.id)===String(m.id));
+    const busy=!on && rs && re && rentalBusy(String(m.id), rs, re);
+    return `<span class="chip ${on?'on':''} ${busy?'ng':''}" onclick="${busy?'':`toggleRental('${esc(m.id)}','${esc(label)}')`}">${esc(label)}${busy?'（貸出中・予約あり）':''}</span>`;
+  }).join('') || '<div class="empty">端末の一覧を読み込めませんでした</div>';
+}
+function toggleRental(id,label){
+  const i=F.rentals.findIndex(r=>String(r.id)===String(id));
+  if(i>=0) F.rentals.splice(i,1); else F.rentals.push({id:String(id),label});
+  renderRentals();
+}
+
+async function saveEvent(){
+  const s=formShape(), d=formDates();
+  if(s.isOther){
+    if(!d.startDate||!d.endDate){ toast('日付を入れてください'); return; }
+    if(d.endDate<d.startDate){ toast('終了日が開始日より前です'); return; }
+    if(!F.rentals.length){ toast('端末を選んでください'); return; }
+  } else {
+    if(!d.date){ toast('日付を入れてください'); return; }
+    if(s.useRange && d.endDate<d.startDate){ toast('終了日が開始日より前です'); return; }
+    if(s.showTime && d.start && d.end && d.end<=d.start && d.startDate===d.endDate){ toast('終了時刻が開始時刻より前です'); return; }
+  }
+  if(s.type==='会議室' && !F.room){ toast('会議室を選んでください'); return; }
+  const useRoom = ROOM_TYPES.includes(s.type) && !!F.room;
+  if(useRoom && events.some(ev=>notSelf(ev) && ev.room===F.room && overlaps(ev,d))){ toast('選んだ会議室はこの時間に使われています'); return; }
+  const isRental = RENTAL_TYPES.includes(s.type);
+  const rs = isRental&&F.rentals.length ? $('f-rs').value : '';
+  const re = isRental&&F.rentals.length ? $('f-re').value : '';
+  if(rs&&re&&re<rs){ toast('返却予定日が貸出開始より前です'); return; }
+  if(isRental&&F.rentals.length&&!$('f-rpurpose').value.trim()){ toast('使用目的を入れてください'); return; }
+  const appr = needsApprover(s.type) ? $('f-appr').value : '';
+  if(needsApprover(s.type) && !appr){ toast('承認者を選んでください'); return; }
+  const ev = {
+    id: F.id || undefined, type: s.type,
+    title: $('f-title').value.trim() || (s.isOther ? F.rentals.map(r=>r.label).join('、') : ''),
+    date: d.date, startDate: d.startDate, endDate: d.endDate, start: d.start, end: d.end,
+    room: ROOM_TYPES.includes(s.type) ? (F.room||null) : null,
+    people: [...F.people],
+    rentals: isRental ? F.rentals.map(r=>({id:r.id,label:r.label})) : [],
+    rentalStart: rs, rentalEnd: re,
+    rentalPurpose: isRental&&F.rentals.length ? $('f-rpurpose').value.trim() : '',
+    remoteReason: s.type==='在宅' ? $('f-remote').value.trim() : '',
+    memo: $('f-memo').value.trim(),
+    userId: me.id, selectedApprover: appr, repeat:'', repeatEnd:'',
+  };
+  $('f-save').disabled=true;
+  try{
+    const r = await api('saveEvent', { event: ev });
+    closeSheet();
+    selDate = d.startDate || selDate;
+    curMonth = firstOfMonth(new Date(selDate+'T00:00:00'));
+    await loadEvents(true); renderCal();
+    toast(r && r.approvalStatus==='申請中' ? '申請しました（承認待ち）' : (F.id ? '更新しました' : '登録しました'));
+    api('getRentalMasters',{}, {silent:true}).then(x=>{ if(x&&x.masters) rental=x; }).catch(()=>{});
+  }catch(e){ toast('保存できませんでした：'+e.message); $('f-save').disabled=false; }
+}
+
+// ============================================================ お弁当
+function bentoVisible(){ return !!(me && String(me.dept||'').indexOf('大黒製造')<0); }
+const BSTC = { '予約':'#1565c0', '注文済み':'#2e7d32', 'キャンセル依頼':'#e65100', 'キャンセル':'#9e9e9e' };
+async function loadBento(){
+  if(!bentoVisible()){ $('tab-bento').innerHTML='<div class="card empty">お弁当の予約は対象外です</div>'; return; }
+  $('tab-bento').innerHTML='<div class="card empty">読み込み中…</div>';
+  try{ const r=await api('getMyBentoReservations',{}, {silent:true}); bentoList = (r&&r.reservations)||[]; }
+  catch(e){ $('tab-bento').innerHTML=`<div class="card empty">読み込みに失敗：${esc(e.message)}</div>`; return; }
+  renderBento();
+}
+function renderBento(){
+  const today=fmt(new Date());
+  const lim=fmt(addDays(new Date(), -45));
+  const upcoming=bentoList.filter(b=>b.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
+  const past=bentoList.filter(b=>b.date<today && b.date>=lim).sort((a,b)=>b.date.localeCompare(a.date));
+  const row=(b)=>{
+    const i=bentoList.indexOf(b);
+    const d=new Date(b.date+'T00:00:00');
+    const canEdit=b.status==='予約';
+    const canCancel=b.status==='予約'||b.status==='注文済み';
+    return `<div class="ev" style="border-left-color:${BSTC[b.status]||'#999'};cursor:default">
+      <div class="t">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${esc(b.menu)}（${esc(b.rice)}）<span class="badge" style="color:${BSTC[b.status]||'#999'}">${esc(b.status)}</span></div>
+      <div class="s">自己負担 ${b.self}円${b.total?' ／ 税込 '+b.total+'円':''}</div>
+      ${canCancel?`<div class="row2" style="margin-top:8px">${canEdit?`<button class="btn btn-ghost" style="padding:7px" onclick="openBentoSheet(${i})">変更</button>`:''}<button class="btn btn-danger" style="padding:7px" onclick="bentoCancel(${i})">キャンセル</button></div>`:''}
+    </div>`;
+  };
+  $('tab-bento').innerHTML = `
+    <button class="btn btn-primary" style="margin-bottom:12px" onclick="openBentoSheet()">🍱 お弁当を予約する</button>
+    <div class="card"><h2>これからの予約</h2>${upcoming.length?upcoming.map(row).join(''):'<div class="empty">ありません</div>'}</div>
+    <div class="card"><h2>最近の予約（45日）</h2>${past.length?past.map(row).join(''):'<div class="empty">ありません</div>'}
+      <div class="note">注文済みのお弁当を急に食べられなくなったときは、先にご自身で弁当屋さんへキャンセルの連絡をしてから「キャンセル」を押してください。</div></div>`;
+}
+let _bEdit=null, _bMenus=[];
+function nextBizDay(){ let d=addDays(new Date(),1); while(isHoliday(fmt(d))) d=addDays(d,1); return fmt(d); }
+function openBentoSheet(i){
+  _bEdit = (i!=null) ? bentoList[i] : null;
+  const dv = _bEdit ? _bEdit.date : nextBizDay();
+  openSheet(`
+    <div class="sheet-head"><b>🍱 ${_bEdit?'お弁当を変更':'お弁当を予約'}</b><button class="x" onclick="closeSheet()">×</button></div>
+    <div class="field"><label>必要日${_bEdit?'（変更できません）':''}</label>
+      <div class="row2"><input type="date" id="b-date" value="${dv}" ${_bEdit?'disabled':''} onchange="bentoMenus()" style="padding:10px;border:1px solid var(--border);border-radius:8px"></div></div>
+    <div id="b-menus" class="note">読み込み中…</div>
+  `);
+  bentoMenus();
+}
+async function bentoMenus(){
+  const date=$('b-date').value, box=$('b-menus');
+  if(!date){ box.textContent='日付を選んでください'; return; }
+  box.textContent='読み込み中…';
+  try{
+    const r=await api('getBentoMenus',{date},{silent:true});
+    _bMenus=r.menus||[];
+    if(r.closed){ box.innerHTML=`<div style="color:var(--danger);font-weight:700">${esc(r.closed)}</div>`; return; }
+    if(!_bMenus.length){ box.textContent='この日は予約できるメニューがありません'; return; }
+    box.innerHTML = (r.isKurofune?'<div style="color:#c2185b;font-weight:700;margin-bottom:6px">🚢 黒船デーです（複数予約できます）</div>':'<div style="margin-bottom:6px">※ 予約できるのは1日1個までです</div>') + `
+      <div class="field"><label>メニュー</label><select id="b-menu" onchange="bentoPrice()"><option value="">選んでください</option>${_bMenus.map((m,i)=>`<option value="${i}">${esc(m.displayName||m.name)}</option>`).join('')}</select></div>
+      <div id="b-rice" class="field"></div>
+      <div id="b-price" style="font-weight:800;color:var(--text);margin:6px 0 12px"></div>
+      <button class="btn btn-primary" id="b-go" onclick="bentoSubmit()">${_bEdit?'この内容に変更する':'この内容で予約する'}</button>`;
+    if(_bEdit){ const si=_bMenus.findIndex(m=>m.name===_bEdit.menu); if(si>=0){ $('b-menu').value=String(si); bentoPrice(_bEdit.rice); } }
+  }catch(e){ box.textContent='メニューを読み込めませんでした：'+e.message; }
+}
+function bentoPrice(riceKeep){
+  const i=$('b-menu').value; if(i===''){ $('b-rice').innerHTML=''; $('b-price').textContent=''; return; }
+  const m=_bMenus[i];
+  const cur = riceKeep || (document.querySelector('input[name=brice]:checked')||{}).value || '並盛';
+  $('b-rice').innerHTML = `<label>ごはん</label><div class="row2" style="margin-top:4px">
+    <label><input type="radio" name="brice" value="並盛" ${cur!=='大盛'?'checked':''} onchange="bentoPrice()"> 並盛</label>
+    ${m.omoriOk?`<label><input type="radio" name="brice" value="大盛" ${cur==='大盛'?'checked':''} onchange="bentoPrice()"> 大盛</label>`:''}</div>`;
+  const rice=(document.querySelector('input[name=brice]:checked')||{}).value||'並盛';
+  const c=(rice==='大盛'&&m.omori)?m.omori:m.nami;
+  $('b-price').textContent = c ? `自己負担 ${c.self}円（税込 ${c.total}円）` : '';
+}
+async function bentoSubmit(){
+  const i=$('b-menu').value; if(i===''){ toast('メニューを選んでください'); return; }
+  const m=_bMenus[i]; const rice=(document.querySelector('input[name=brice]:checked')||{}).value||'並盛';
+  $('b-go').disabled=true;
+  try{
+    if(_bEdit) await api('editBentoReservation',{ data:{ recordId:_bEdit.recordId, menu:m.name, rice } });
+    else await api('saveBentoReservation',{ data:{ date:$('b-date').value, menu:m.name, rice } });
+    closeSheet(); toast(_bEdit?'変更しました':'予約しました'); await loadBento(); renderCal();
+  }catch(e){ toast((_bEdit?'変更':'予約')+'できませんでした：'+e.message); $('b-go').disabled=false; }
+}
+async function bentoCancel(i){
+  const b=bentoList[i]; if(!b) return;
+  if(b.status==='注文済み'){
+    if(!confirm('このお弁当はすでに弁当屋さんへ注文済みです。\n\n先に、ご自身で弁当屋さんへキャンセルの連絡をしてください。\n\n弁当屋さんへの連絡は済みましたか？')){
+      alert('弁当屋さんへキャンセルの連絡をしてから、もう一度「キャンセル」を押してください。'); return;
+    }
+  }
+  if(!confirm(`${b.date} の「${b.menu}」のキャンセルを依頼します。よろしいですか？（総務に通知されます）`)) return;
+  try{ await api('requestCancelBento',{ recordId:b.recordId }); toast('キャンセル依頼を送りました'); await loadBento(); }
+  catch(e){ toast('キャンセル依頼できませんでした：'+e.message); }
+}
+
+// ============================================================ 在籍ボード（件名なし）
+let _board = null, _boardFilter = '';
+async function loadBoard(){
+  if(!_board) $('tab-board').innerHTML='<div class="card empty">読み込み中…</div>';
+  try{ _board = await api('getLiteBoard',{}, {silent:true}); }
+  catch(e){ $('tab-board').innerHTML=`<div class="card empty">読み込みに失敗：${esc(e.message)}</div>`; return; }
+  renderBoard();
+}
+function renderBoard(){
+  if(!_board) return;
+  const mem=_board.members||[];
+  const mine=mem.find(m=>String(m.id)===String(me.id));
+  const counts={}; mem.forEach(m=>counts[m.status]=(counts[m.status]||0)+1);
+  const shown = _boardFilter ? mem.filter(m=>m.status===_boardFilter) : mem;
+  const depts=[...new Set(shown.map(m=>m.dept||'その他'))];
+  const stBadge = st => `<span class="st" style="background:${(STATUS_COLOR[st]||'#90a4ae')}33;color:#333">${esc(st)}</span>`;
+  const d=new Date((_board.date||fmt(new Date()))+'T00:00:00');
+  $('tab-board').innerHTML = `
+    ${mine?`<div class="card"><h2>あなた（${d.getMonth()+1}/${d.getDate()}）</h2>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">${stBadge(mine.status)}<span class="note">${esc(mine.placeId?placeLabel(mine.placeId):'場所：未設定')}</span></div>
+      <div class="row2"><button class="btn btn-ghost" style="padding:9px" onclick="openPlaceSheet()">📍 今いる場所</button>
+        <button class="btn ${mine.rest?'btn-danger':'btn-ghost'}" style="padding:9px" onclick="toggleRest(${mine.rest?'false':'true'})">${mine.rest?'🛌 休みを解除':'🛌 今日は休み'}</button></div>
+      <div class="note" style="margin-top:6px">状態は予定から自動で決まります。予定のない時間は「在席」です。</div></div>`:''}
+    <div class="card"><h2>みんなの状態（今）</h2>
+      <div class="bchips"><span class="chip ${!_boardFilter?'on':''}" onclick="_boardFilter='';renderBoard()">すべて ${mem.length}</span>
+        ${STATUS_ORDER.filter(s=>counts[s]).map(s=>`<span class="chip ${_boardFilter===s?'on':''}" onclick="_boardFilter='${s}';renderBoard()">${esc(s)} ${counts[s]}</span>`).join('')}</div>
+      ${depts.map(dp=>`<div class="dept-h">${esc(dp)}</div>`+shown.filter(m=>(m.dept||'その他')===dp).map(m=>`<div class="member"><span class="nm">${esc(m.name)}</span>${m.placeId?`<span class="pl">📍${esc(placeLabel(m.placeId))}</span>`:''}${stBadge(m.status)}</div>`).join('')).join('') || '<div class="empty">該当する人はいません</div>'}
+      <div class="note" style="margin-top:8px">※ 簡易版では予定の件名（会議名・外出先など）は表示しません。</div></div>`;
+}
+function openPlaceSheet(){
+  const grp = g => PLACES.filter(p=>p.grp===g).map(p=>`<span class="chip" onclick="setMyPlace('${p.id}')">${esc(placeLabel(p.id))}</span>`).join('');
+  openSheet(`
+    <div class="sheet-head"><b>📍 今いる場所</b><button class="x" onclick="closeSheet()">×</button></div>
+    <label class="note" style="display:block;margin-bottom:8px"><input type="checkbox" id="pl-home"> いつもの場所にする（明日以降も、選び直すまでこの場所）</label>
+    <div class="dept-h">本社</div><div class="chips">${grp('honsha')}</div>
+    <div class="dept-h">新棟</div><div class="chips">${grp('shinto')}</div>
+    <div class="dept-h">そのほか</div><div class="chips">${grp('other')}<span class="chip" onclick="setMyPlace('out')">外出中</span></div>
+    <div class="row2" style="margin-top:14px"><button class="btn btn-ghost" onclick="setMyPlace('')">今日は場所なし</button></div>
+  `);
+}
+async function setMyPlace(id){
+  const home=!!($('pl-home')&&$('pl-home').checked);
+  try{ await api('setPlace',{ place:id, setHome:home }); closeSheet(); toast('場所を変えました'); await loadBoard(); }
+  catch(e){ toast('変えられませんでした：'+e.message); }
+}
+async function toggleRest(isRest){
+  if(isRest && !confirm('今日を「休み」にしますか？（在籍ボードに休みと表示されます。今日だけ）')) return;
+  try{ await api('setDailyRest',{ empId:String(me.id), isRest, date:fmt(new Date()) }); toast(isRest?'今日は休みにしました':'休みを解除しました'); await loadBoard(); }
+  catch(e){ toast('切り替えられませんでした：'+e.message); }
+}
+
+// ============================================================ 安否確認
+let _safety=null;
+async function loadSafety(){
+  try{ _safety = await api('getSafetyCheck',{}, {silent:true}); }catch(e){ _safety=null; }
+  renderSafety();
+}
+function renderSafety(){
+  const area=$('safety-area');
+  if(!_safety || !_safety.active){ area.innerHTML=''; return; }
+  const mgr = isManager() ? safetyManagerHtml() : '';
+  const a=_safety.active, my=_safety.myAnswer, s=_safety.summary||{};
+  const icon = a.disasterType==='地震'?'🌏':a.disasterType==='台風'?'🌀':'⚠️';
+  const sent = a.sentAt ? new Date(a.sentAt).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  area.innerHTML = !my ? `<div class="safety">
+      <div class="ttl">${icon} 【安否確認】${esc(a.disasterType)}</div>
+      <div class="note">${esc(sent)} ${esc(a.senderName||'')}より</div>
+      ${a.message?`<div style="font-size:.88em;margin:8px 0">${esc(a.message)}</div>`:''}
+      <div style="font-weight:700;font-size:.9em;margin-top:6px">あなたの安否を回答してください</div>
+      <div class="sbtns">
+        <button style="background:#2e7d32" onclick="answerSafety('無事')">✅ 無事</button>
+        <button style="background:#c62828" onclick="answerSafety('被害あり')">🆘 被害あり</button>
+        <button style="background:#6a1b9a" onclick="answerSafety('その他')">💬 その他</button>
+      </div>
+      <input id="s-note" placeholder="備考（任意）" style="width:100%;margin-top:8px;padding:9px;border:1px solid var(--border);border-radius:8px">
+    </div>${mgr}` : `<div class="safety done">
+      <div class="ttl">${icon} 【安否確認】${esc(a.disasterType)} — 回答済み</div>
+      <div style="font-size:.88em">あなたの回答：<b>${esc(my.answer)}</b>${my.note?' — '+esc(my.note):''}</div>
+      <div class="sum"><div><b style="color:#2e7d32">${s.safe||0}</b>無事</div><div><b style="color:#c62828">${s.damaged||0}</b>被害あり</div><div><b style="color:#6a1b9a">${s.other||0}</b>その他</div><div><b style="color:#e65100">${s.unanswered||0}</b>未回答</div></div>
+    </div>${mgr}`;
+}
+// 役職者だけ：未回答者・被害ありの一覧と、再通知・終了（一覧は Worker が役職者にだけ返す）
+function safetyManagerHtml(){
+  const sd=_safety, a=sd.active, un=sd.unanswered||[], ans=(sd.answers||[]).filter(x=>x.answer!=='無事');
+  const byDept={}; un.forEach(u=>{ (byDept[u.dept||'その他']=byDept[u.dept||'その他']||[]).push(u); });
+  return `<div class="card"><h2>📋 安否確認の状況（役職者）</h2>
+    <div class="dept-h">未回答（${un.length}名）</div>
+    <div class="plist">${Object.keys(byDept).sort().map(d=>`<div class="note" style="font-weight:700;margin-top:4px">${esc(d)}</div><div style="font-size:.85em">${byDept[d].map(u=>esc(u.name)).join('、')}</div>`).join('') || '<div class="empty">全員回答済みです</div>'}</div>
+    <div class="dept-h">被害あり・その他（${ans.length}名）</div>
+    <div class="plist">${ans.map(x=>`<div class="member"><span>${x.answer==='被害あり'?'🆘':'💬'}</span><span class="nm"><b>${esc(x.name)}</b> <span class="note">${esc(x.dept||'')}</span>${x.note?`<br><span class="note">「${esc(x.note)}」</span>`:''}</span></div>`).join('') || '<div class="empty">ありません</div>'}</div>
+    <div class="row2" style="margin-top:10px">${un.length?`<button class="btn btn-ghost" style="padding:9px" onclick="resendSafety()">🔔 未回答者に再通知</button>`:''}
+      <button class="btn btn-danger" style="padding:9px" onclick="closeSafety('${esc(a.id)}')">🛑 安否確認を終了</button></div>
+  </div>`;
+}
+async function resendSafety(){
+  if(!_safety||!_safety.active||!confirm('未回答者にスマホ通知をもう一度送りますか？')) return;
+  try{ const r=await api('resendSafetyNotif',{ safetyId:_safety.active.id }); toast((r&&r.sent!=null?r.sent+'名に':'')+'再通知しました'); }
+  catch(e){ toast('再通知できませんでした：'+e.message); }
+}
+async function closeSafety(id){
+  if(!confirm('安否確認を終了しますか？（全員の画面から回答欄が消えます）')) return;
+  try{ await api('closeSafetyCheck',{ safetyId:id }); toast('安否確認を終了しました'); await loadSafety(); }
+  catch(e){ toast('終了できませんでした：'+e.message); }
+}
+function openSafetySend(){
+  openSheet(`
+    <div class="sheet-head"><b>🚨 安否確認を発信</b><button class="x" onclick="closeSheet()">×</button></div>
+    <div class="field"><label>災害の種類</label><select id="ss-type"><option value="地震">🌏 地震</option><option value="台風">🌀 台風</option><option value="その他">⚠️ その他</option></select></div>
+    <div class="field"><label>メッセージ（任意）</label><textarea id="ss-msg" rows="3" placeholder="例：本日の地震について安否を回答してください"></textarea></div>
+    <div class="warn">全員にスマホ通知が届きます。</div>
+    <button class="btn btn-primary" id="ss-go" onclick="sendSafety()">発信する</button>`);
+}
+async function sendSafety(){
+  if(!confirm('全員に安否確認を発信します。よろしいですか？')) return;
+  $('ss-go').disabled=true;
+  try{ await api('sendSafetyCheck',{ disasterType:$('ss-type').value, message:$('ss-msg').value }); closeSheet(); toast('安否確認を発信しました'); await loadSafety(); }
+  catch(e){ toast('発信できませんでした：'+e.message); $('ss-go').disabled=false; }
+}
+async function answerSafety(answer){
+  if(!_safety||!_safety.active) return;
+  const note=($('s-note')||{}).value||'';
+  try{ await api('answerSafetyCheck',{ safetyId:_safety.active.id, answer, note }); toast('回答しました'); await loadSafety(); }
+  catch(e){ toast('回答できませんでした：'+e.message); }
+}
+
+// ============================================================ その他（お知らせ・通知・ログアウト）
+async function renderMore(){
+  const pushState = !('Notification' in window) ? 'この端末・ブラウザは通知に対応していません（iPhone はホーム画面に追加してから開いてください）'
+    : Notification.permission==='granted' ? (localStorage.getItem('halo_lite_push')==='1' ? 'この端末で通知を受け取れます' : '通知は許可されています（下のボタンで登録し直せます）')
+    : Notification.permission==='denied' ? '通知がブロックされています（端末の設定で許可してください）' : 'まだ通知を受け取る設定をしていません';
+  $('tab-more').innerHTML = `
+    <div class="card"><h2>🔔 通知（この端末）</h2>
+      <div class="note" style="margin-bottom:8px">${esc(pushState)}<br>簡易版に届くのは「お知らせ」と「安否確認」だけです。</div>
+      <button class="btn btn-ghost" style="width:100%" onclick="initPush(true)">通知を受け取る</button></div>
+    ${isManager()?`<div class="card"><h2>🚨 安否確認（役職者）</h2>
+      <div class="note" style="margin-bottom:8px">${_safety&&_safety.active?'安否確認は発信中です。画面の一番上で状況を見られます。':'災害時に、全員へ安否確認を発信できます。'}</div>
+      ${_safety&&_safety.active?'':'<button class="btn btn-danger" style="width:100%" onclick="openSafetySend()">🚨 安否確認を発信</button>'}</div>`:''}
+    <div class="card"><h2>📢 お知らせ</h2><div id="notices" class="empty">読み込み中…</div></div>
+    <div class="card"><h2>アカウント</h2>
+      <div class="note" style="margin-bottom:8px">${esc(me.name||'')}（社員番号 ${esc(me.id)}）でログイン中。ログインは最長8時間で切れます。</div>
+      <button class="btn btn-danger" style="width:100%" onclick="logout()">ログアウト</button></div>
+    <div class="note" style="text-align:center;margin:10px 0">HALO Lite ／ 申請・名簿などは会社の端末の HALO を使ってください</div>`;
+  try{
+    const list = await api('getNotices',{}, {silent:true}) || [];
+    $('notices').innerHTML = list.length ? list.slice(0,20).map(n=>`<div class="notice"><div class="t">${n.importance&&n.importance!=='通常'?'⚠️ ':''}${esc(n.title)}</div><div class="b">${esc(n.body)}</div><div class="note">${esc((n.createdAt||'').slice(0,10))} ${esc(n.postedBy||'')}</div></div>`).join('') : 'お知らせはありません';
+    $('notices').classList.toggle('empty', !list.length);
+  }catch(e){ $('notices').textContent='読み込みに失敗：'+e.message; }
+}
+
+// 通知の登録。宛先は Worker が簡易版用（KV）に保存し、お知らせ・安否確認だけ届く
+let _fcm=null;
+async function initPush(manual){
+  if(!('Notification' in window) || !('serviceWorker' in navigator) || typeof firebase==='undefined'){ if(manual) toast('この端末では通知を使えません'); return; }
+  if(!manual && Notification.permission!=='granted') return; // 自動では許可を聞かない（「その他」のボタンから）
+  if(Notification.permission==='denied'){ if(manual) toast('通知がブロックされています。端末の設定で許可してください'); return; }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    _fcm = _fcm || firebase.messaging();
+    _fcm.onMessage(p=>{ toast('🔔 '+((p.notification&&p.notification.title)||'通知')); if(p.data&&p.data.type==='notice'){ loadSafety(); if(tab==='more') renderMore(); } });
+    const reg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+    if(!reg.active){ await new Promise(res=>{ const sw=reg.installing||reg.waiting; if(!sw){res();return;} sw.addEventListener('statechange',()=>{ if(sw.state==='activated') res(); }); setTimeout(res,10000); }); }
+    const perm = await Notification.requestPermission();
+    if(perm!=='granted'){ if(manual) toast('通知が許可されませんでした'); return; }
+    const token = await _fcm.getToken({ vapidKey:FCM_VAPID_KEY, serviceWorkerRegistration:reg });
+    if(!token){ if(manual) toast('通知の登録に失敗しました'); return; }
+    await api('saveFcmToken',{ fcmToken:token }, {silent:true});
+    localStorage.setItem('halo_lite_push','1');
+    // 通知を押したときに開く画面を「簡易版」にする（firebase-messaging-sw.js が読む）
+    try{ const c=await caches.open('halo-mode'); await c.put('mode', new Response('lite')); }catch(e){}
+    if(manual){ toast('この端末で通知を受け取れるようにしました'); renderMore(); }
+  }catch(e){ if(manual) toast('通知の登録に失敗：'+e.message); }
+}
+
+// ============================================================ シート
+function openSheet(html){
+  closeSheet();
+  const ov=document.createElement('div'); ov.className='ov'; ov.id='ov';
+  ov.onclick=e=>{ if(e.target===ov) closeSheet(); };
+  const sh=document.createElement('div'); sh.className='sheet'; sh.innerHTML=html;
+  ov.appendChild(sh); document.body.appendChild(ov);
+}
+function closeSheet(){ const o=$('ov'); if(o) o.remove(); }
+
+// ============================================================ 起動
+(async function(){
+  const s=loadSess();
+  if(s && s.token && s.token.indexOf('l1.')===0){ startApp(); } else { clearSess(); showLogin(); }
+  // 開いたまま日付をまたいだら今日に合わせる
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && me){ loadSafety(); } });
+})();
+</script>
+</body>
+</html>

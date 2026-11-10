@@ -7197,6 +7197,16 @@ function openMemberDetail(userId){
         }
         <button onclick="closeMemberPopup();openAddModalForUser('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:var(--primary);color:white;font-weight:700;font-size:0.85em">`+t('member.add.event')+`</button>
       </div>`;
+  } else if(String(userId)===String(currentUser.id)){
+    // 自分の「休み」は誰でも切り替えられる（2026-11-10。他人の分は管理者だけ。Worker の setDailyRest も同じ）
+    const isYasumi = yasumiUsers.has(userId);
+    adminEl.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        ${isYasumi
+          ? `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#fbe9e7;color:#ff7043;font-weight:700;font-size:0.85em;border:1.5px solid #ff7043">`+t('member.rest.off')+`</button>`
+          : `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#ff7043;color:white;font-weight:700;font-size:0.85em">`+t('member.rest.on')+`</button>`
+        }
+      </div>`;
   } else {
     adminEl.innerHTML = '';
   }
@@ -7486,7 +7496,12 @@ async function doToggleYasumi(targetUserId){
   if(GAS_URL){
     try {
       await api('setDailyRest', { empId: targetUserId, isRest, date: fmtDate(new Date()) }, '');
-    } catch(e) { /* 無視 */ }
+    } catch(e) {
+      // 保存できなかったら画面も元に戻す（2026-11-10。前は失敗を無視していた）
+      if(isRest){ yasumiUsers.delete(targetUserId); } else { yasumiUsers.add(targetUserId); }
+      renderTeam(); renderDashboard();
+      showToast(t('common.error.toast',{msg:e.message}));
+    }
   }
 }
 
@@ -12251,6 +12266,8 @@ async function initPushNotifications(opts) {
       try {
         await api('saveFcmToken', { fcmToken: token }, '');
         _pushMarkRegistered(); // 設定画面の「この端末で通知を受け取れます」に使う（2026-11-06）
+        // 通知を押したときに開く画面を通常版にする（簡易版 lite.html は 'lite' を書く。firebase-messaging-sw.js が読む。2026-11-10）
+        try { const c = await caches.open('halo-mode'); await c.put('mode', new Response('full')); } catch(e) {}
         if (manual) showToast(t('push.ok'));
       } catch(e) { /* 保存に失敗しても次にログインしたときにやり直される */ }
     } else {

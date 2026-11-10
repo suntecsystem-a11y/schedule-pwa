@@ -68,7 +68,13 @@ self.addEventListener('notificationclick', event => {
         if ('focus' in client) return client.focus();
       }
       // HALO を開いていないときは HALO の画面を開く（前は '/'＝サイトの一番上で 404 だった。2026-11-06）
-      if (clients.openWindow) return clients.openWindow(self.registration.scope);
+      // 簡易版（HALO Lite）で通知を登録した端末は lite.html を開く（2026-11-10。lite.html が caches の halo-mode に 'lite' を書く）
+      if (!clients.openWindow) return;
+      return caches.open('halo-mode')
+        .then(c => c.match('mode'))
+        .then(r => (r ? r.text() : ''))
+        .catch(() => '')
+        .then(mode => clients.openWindow(new URL(mode === 'lite' ? 'lite.html' : './', self.registration.scope).href));
     })
   );
 });
