@@ -839,10 +839,11 @@ body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px
 .tkf-sch-r button,.tkf-sch-f button{border:1px solid #cfd6e0;background:#fff;border-radius:6px;padding:3px 10px;font-size:.9em;cursor:pointer}
 .tkf-sch-free button{border:1px solid #cfd6e0;background:#fff;border-radius:6px;padding:3px 10px;font-size:.84em;cursor:pointer;margin:2px 4px 2px 0}
 #tkk-split{position:absolute;inset:0;display:flex}
-#tkk-left{position:relative;flex:0 0 50%;min-width:0}
+#tkk-left{position:relative;flex:1 1 0;min-width:0;min-height:0}
 #tkk-left #tk-kanban{gap:10px;padding:12px}
-#tkk-left .tk-col{width:220px}
-#tkk-right{flex:1;min-width:0;overflow:auto;border-left:1px solid var(--border);background:#fff}
+#tkk-left .tk-col{width:auto;flex:1 0 190px;max-width:320px}
+#tkk-right{flex:0 0 clamp(380px,38vw,640px);min-width:0;min-height:0;overflow:auto;border-left:1px solid var(--border);background:#fff}
+@media (max-width:1000px){#tkk-split{flex-direction:column}#tkk-left{flex:1 1 50%}#tkk-right{flex:1 1 50%;border-left:0;border-top:1px solid var(--border)}}
 .tkk-bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:3;flex-wrap:wrap}
 .tkk-cal{padding:6px 10px 4px}
 .tkk-grid{display:grid;grid-template-columns:38px repeat(5,minmax(0,1fr))}
