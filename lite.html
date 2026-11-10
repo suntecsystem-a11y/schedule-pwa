@@ -606,33 +606,64 @@ async function loadBento(){
   catch(e){ $('tab-bento').innerHTML=`<div class="card empty">読み込みに失敗：${esc(e.message)}</div>`; return; }
   renderBento();
 }
+// お弁当のカレンダー（2026-11-10）。予約のある日に🍱、日を押すとその日の予約（変更・キャンセル）か「この日に予約する」
+let bentoMonth = firstOfMonth(new Date());
+let bentoSel = fmt(new Date());
+function bentoMove(n){ bentoMonth = new Date(bentoMonth.getFullYear(), bentoMonth.getMonth()+n, 1); renderBento(); }
+function bentoPick(ds){ bentoSel = ds; renderBento(); }
+const bentoReservable = ds => ds > fmt(new Date()) && !isHoliday(ds); // 当日は不可・土日休日は不可（Worker も同じ判定）
+function bentoRow(b){
+  const i=bentoList.indexOf(b);
+  const d=new Date(b.date+'T00:00:00');
+  const canEdit=b.status==='予約';
+  const canCancel=b.status==='予約'||b.status==='注文済み';
+  return `<div class="ev" style="border-left-color:${BSTC[b.status]||'#999'};cursor:default">
+    <div class="t">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${esc(b.menu)}（${esc(b.rice)}）<span class="badge" style="color:${BSTC[b.status]||'#999'}">${esc(b.status)}</span></div>
+    <div class="s">自己負担 ${b.self}円${b.total?' ／ 税込 '+b.total+'円':''}</div>
+    ${canCancel?`<div class="row2" style="margin-top:8px">${canEdit?`<button class="btn btn-ghost" style="padding:7px" onclick="openBentoSheet(${i})">変更</button>`:''}<button class="btn btn-danger" style="padding:7px" onclick="bentoCancel(${i})">キャンセル</button></div>`:''}
+  </div>`;
+}
 function renderBento(){
   const today=fmt(new Date());
-  const lim=fmt(addDays(new Date(), -45));
-  const upcoming=bentoList.filter(b=>b.date>=today).sort((a,b)=>a.date.localeCompare(b.date));
-  const past=bentoList.filter(b=>b.date<today && b.date>=lim).sort((a,b)=>b.date.localeCompare(a.date));
-  const row=(b)=>{
-    const i=bentoList.indexOf(b);
-    const d=new Date(b.date+'T00:00:00');
-    const canEdit=b.status==='予約';
-    const canCancel=b.status==='予約'||b.status==='注文済み';
-    return `<div class="ev" style="border-left-color:${BSTC[b.status]||'#999'};cursor:default">
-      <div class="t">${d.getMonth()+1}/${d.getDate()}（${WD[d.getDay()]}） ${esc(b.menu)}（${esc(b.rice)}）<span class="badge" style="color:${BSTC[b.status]||'#999'}">${esc(b.status)}</span></div>
-      <div class="s">自己負担 ${b.self}円${b.total?' ／ 税込 '+b.total+'円':''}</div>
-      ${canCancel?`<div class="row2" style="margin-top:8px">${canEdit?`<button class="btn btn-ghost" style="padding:7px" onclick="openBentoSheet(${i})">変更</button>`:''}<button class="btn btn-danger" style="padding:7px" onclick="bentoCancel(${i})">キャンセル</button></div>`:''}
-    </div>`;
-  };
+  const y=bentoMonth.getFullYear(), m=bentoMonth.getMonth();
+  const start=addDays(bentoMonth, -bentoMonth.getDay());
+  let cells='';
+  for(let k=0;k<42;k++){
+    const d=addDays(start,k), ds=fmt(d);
+    if(k>=35 && d.getMonth()!==m) break;
+    const day=bentoList.filter(b=>b.date===ds);
+    const live=day.filter(b=>b.status!=='キャンセル');
+    const allReq = live.length && live.every(b=>b.status==='キャンセル依頼');
+    const hol=holidays.some(h=>h.date===ds);
+    const cls=['d', d.getMonth()!==m?'out':'', d.getDay()===0?'sun':'', d.getDay()===6?'sat':'', hol?'hol':'', ds===today?'today':'', ds===bentoSel?'sel':''].join(' ');
+    const mark = live.length ? `<div class="bento" style="${allReq?'opacity:.35':''}">🍱${live.length>1?'<span style="font-size:.75em">'+live.length+'</span>':''}</div>` : '';
+    cells += `<div class="${cls}" onclick="bentoPick('${ds}')"><div>${d.getDate()}</div>${mark}</div>`;
+  }
+  const sd=new Date(bentoSel+'T00:00:00');
+  const dayList=bentoList.filter(b=>b.date===bentoSel);
+  const upcoming=bentoList.filter(b=>b.date>=today && b.status!=='キャンセル').sort((a,b)=>a.date.localeCompare(b.date));
   $('tab-bento').innerHTML = `
-    <button class="btn btn-primary" style="margin-bottom:12px" onclick="openBentoSheet()">🍱 お弁当を予約する</button>
-    <div class="card"><h2>これからの予約</h2>${upcoming.length?upcoming.map(row).join(''):'<div class="empty">ありません</div>'}</div>
-    <div class="card"><h2>最近の予約（45日）</h2>${past.length?past.map(row).join(''):'<div class="empty">ありません</div>'}
+    <div class="card">
+      <div class="cal-head"><button onclick="bentoMove(-1)">‹</button><div class="cal-title">🍱 ${y}年${m+1}月</div><button onclick="bentoMove(1)">›</button></div>
+      <div class="cal">${WD.map(w=>`<div class="dow">${w}</div>`).join('')}${cells}</div>
+      <div class="note" style="margin-top:6px">🍱＝予約あり（薄い🍱はキャンセル依頼中）</div>
+    </div>
+    <div class="card">
+      <h2>${sd.getMonth()+1}月${sd.getDate()}日（${WD[sd.getDay()]}）</h2>
+      ${dayList.length ? dayList.map(bentoRow).join('') : '<div class="empty">この日の予約はありません</div>'}
+      ${!bentoReservable(bentoSel) ? ''
+        : dayList.some(b=>b.status==='予約'||b.status==='注文済み')
+          ? `<button class="btn btn-ghost" style="margin-top:4px;width:100%;padding:8px;font-size:.85em" onclick="openBentoSheet(null,'${bentoSel}')">＋ もう1つ予約する（黒船デーのみ）</button>`
+          : `<button class="btn btn-primary" style="margin-top:4px" onclick="openBentoSheet(null,'${bentoSel}')">🍱 この日に予約する</button>`}
+    </div>
+    <div class="card"><h2>これからの予約</h2>${upcoming.length?upcoming.map(bentoRow).join(''):'<div class="empty">ありません</div>'}
       <div class="note">注文済みのお弁当を急に食べられなくなったときは、先にご自身で弁当屋さんへキャンセルの連絡をしてから「キャンセル」を押してください。</div></div>`;
 }
 let _bEdit=null, _bMenus=[];
 function nextBizDay(){ let d=addDays(new Date(),1); while(isHoliday(fmt(d))) d=addDays(d,1); return fmt(d); }
-function openBentoSheet(i){
+function openBentoSheet(i, presetDate){
   _bEdit = (i!=null) ? bentoList[i] : null;
-  const dv = _bEdit ? _bEdit.date : nextBizDay();
+  const dv = _bEdit ? _bEdit.date : (presetDate || nextBizDay());
   openSheet(`
     <div class="sheet-head"><b>🍱 ${_bEdit?'お弁当を変更':'お弁当を予約'}</b><button class="x" onclick="closeSheet()">×</button></div>
     <div class="field"><label>必要日${_bEdit?'（変更できません）':''}</label>
@@ -675,7 +706,7 @@ async function bentoSubmit(){
   $('b-go').disabled=true;
   try{
     if(_bEdit) await api('editBentoReservation',{ data:{ recordId:_bEdit.recordId, menu:m.name, rice } });
-    else await api('saveBentoReservation',{ data:{ date:$('b-date').value, menu:m.name, rice } });
+    else { await api('saveBentoReservation',{ data:{ date:$('b-date').value, menu:m.name, rice } }); bentoSel=$('b-date').value; bentoMonth=firstOfMonth(new Date(bentoSel+'T00:00:00')); }
     closeSheet(); toast(_bEdit?'変更しました':'予約しました'); await loadBento(); renderCal();
   }catch(e){ toast((_bEdit?'変更':'予約')+'できませんでした：'+e.message); $('b-go').disabled=false; }
 }
