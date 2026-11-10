@@ -2213,6 +2213,7 @@ ja:{
 'place.rule.2':'「外出中」は、予定に入れない短い外出のときだけ使ってください。',
 'place.rule.3':'10分以上その場所にいるときは、場所を変更してください。',
 'place.sethome':'この場所を「いつもの場所」にする（毎朝ここから始まる）',
+'place.title.other':'{name} さんの今いる場所を選ぶ','place.sub.other':'協力会社の人の今日の場所は、誰でも変えられます（翌日は元に戻ります）','place.saved.other':'{name} さんの場所を「{place}」にしました','place.cleared.other':'{name} さんの場所を外しました','member.place.change':'📍 場所を変更（今日だけ）',
 'place.clear':'場所を外す','place.ok':'決定','place.saved':'場所を「{place}」にしました','place.cleared':'場所を外しました',
 'team.place':'📍 場所ごと','place.filter':'場所','place.nobody':'だれもいない',
 'place.sec.away':'社外・お休み','place.sec.unset':'社内・場所未設定','place.sec.otherroom':'そのほかの会議室',
@@ -2613,6 +2614,7 @@ vi:{
 'place.rule.2':'Chỉ dùng "Đang ra ngoài" cho những lần ra ngoài ngắn không đăng ký lịch.',
 'place.rule.3':'Nếu ở một nơi từ 10 phút trở lên, hãy đổi vị trí.',
 'place.sethome':'Đặt nơi này làm "vị trí thường ngày" (mỗi sáng bắt đầu từ đây)',
+'place.title.other':'Chọn vị trí hiện tại của {name}','place.sub.other':'Ai cũng có thể đổi vị trí hôm nay của người công ty đối tác (hôm sau sẽ trở lại như cũ)','place.saved.other':'Đã đổi vị trí của {name} thành "{place}"','place.cleared.other':'Đã bỏ vị trí của {name}','member.place.change':'📍 Đổi vị trí (chỉ hôm nay)',
 'place.clear':'Bỏ vị trí','place.ok':'Xác nhận','place.saved':'Đã đổi vị trí thành "{place}"','place.cleared':'Đã bỏ vị trí',
 'team.place':'📍 Theo vị trí','place.filter':'Vị trí','place.nobody':'Không có ai',
 'place.sec.away':'Bên ngoài・Nghỉ','place.sec.unset':'Trong công ty・Chưa chọn vị trí','place.sec.otherroom':'Phòng họp khác',
@@ -3000,6 +3002,7 @@ ne:{
 'place.rule.2':'"बाहिर गएको" तालिकामा नराखिने छोटो बाहिर जाँदा मात्र प्रयोग गर्नुहोस्।',
 'place.rule.3':'कुनै ठाउँमा १० मिनेट वा बढी बस्दा स्थान बदल्नुहोस्।',
 'place.sethome':'यो स्थानलाई "सामान्य स्थान" बनाउनुहोस् (हरेक बिहान यहीँबाट सुरु)',
+'place.title.other':'{name} को अहिलेको स्थान छान्नुहोस्','place.sub.other':'साझेदार कम्पनीका व्यक्तिको आजको स्थान जो कोहीले बदल्न सक्छ (भोलि पहिलेकै जस्तो हुन्छ)','place.saved.other':'{name} को स्थान "{place}" मा बदलियो','place.cleared.other':'{name} को स्थान हटाइयो','member.place.change':'📍 स्थान बदल्नुहोस् (आज मात्र)',
 'place.clear':'स्थान हटाउनुहोस्','place.ok':'पक्का गर्नुहोस्','place.saved':'स्थान "{place}" मा बदलियो','place.cleared':'स्थान हटाइयो',
 'team.place':'📍 स्थान अनुसार','place.filter':'स्थान','place.nobody':'कोही छैन',
 'place.sec.away':'बाहिर・बिदा','place.sec.unset':'कार्यालयमा・स्थान नछानिएको','place.sec.otherroom':'अन्य बैठक कोठा',
@@ -6752,8 +6755,11 @@ function renderHomeMyPlace(){
   </section>`;
   wrap.style.display='';
 }
-function openPlacePicker(){
-  _placeSel=placeOf(currentUser.id);
+// target を渡すと、協力会社（パートナー）の人の「今日の場所」を選ぶ窓になる（2026-11-10。誰でも変えられる。いつもの場所は選ばせない）
+let _placeTarget=null;
+function openPlacePicker(target){
+  _placeTarget=(target && String(target)!==String(currentUser.id)) ? String(target) : null;
+  _placeSel=placeOf(_placeTarget||currentUser.id);
   const content=document.getElementById('place-modal-content');
   if(content) content.innerHTML='';
   renderPlacePicker();
@@ -6768,31 +6774,40 @@ function renderPlacePicker(){
     const sel=_placeSel===p.id;
     return `<button type="button" class="place-opt${p.id==='out'?' out':''}${sel?' sel':''}" aria-pressed="${sel}" onclick="pickPlace('${p.id}')">${sel?'✓ ':''}${esc(label)}</button>`;
   }).join('')+`</div>`;
-  el.innerHTML=`<div class="modal-title" style="margin-bottom:4px">${esc(t('place.title'))}</div>
-    <div style="font-size:0.78em;color:var(--text2)">${esc(t('place.sub'))}</div>
-    ${grp('honsha',PLACE_GRP_NAME.honsha)}${grp('shinto',PLACE_GRP_NAME.shinto)}${grp('other',t('place.grp.other'))}
-    <div class="place-rules"><div>${esc(t('place.rule.1'))}</div><div>${esc(t('place.rule.2'))}</div><div style="font-weight:700">${esc(t('place.rule.3'))}</div></div>
-    <label style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:0.85em;margin-top:8px;cursor:pointer">
+  const other=_placeTarget ? USERS.find(u=>String(u.id)===_placeTarget) : null;
+  const otherName=other ? (other.dispName||other.name) : '';
+  // ほかの人（パートナー）の分は「いつもの場所にする」を出さない
+  const homeBox=other ? '' : `<label style="display:flex;align-items:center;gap:10px;min-height:44px;font-size:0.85em;margin-top:8px;cursor:pointer">
       <input type="checkbox" id="place-sethome" ${homeChecked?'checked':''} ${_placeSel==='out'?'disabled':''} style="width:20px;height:20px;accent-color:var(--primary);flex-shrink:0">
       <span>${esc(t('place.sethome'))}</span>
-    </label>
+    </label>`;
+  el.innerHTML=`<div class="modal-title" style="margin-bottom:4px">${esc(other ? t('place.title.other',{name:otherName}) : t('place.title'))}</div>
+    <div style="font-size:0.78em;color:var(--text2)">${esc(other ? t('place.sub.other') : t('place.sub'))}</div>
+    ${grp('honsha',PLACE_GRP_NAME.honsha)}${grp('shinto',PLACE_GRP_NAME.shinto)}${grp('other',t('place.grp.other'))}
+    <div class="place-rules"><div>${esc(t('place.rule.1'))}</div><div>${esc(t('place.rule.2'))}</div><div style="font-weight:700">${esc(t('place.rule.3'))}</div></div>
+    ${homeBox}
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button type="button" class="myplace-btn" style="flex:1;min-height:48px" onclick="savePlace('',document.getElementById('place-sethome').checked)">${esc(t('place.clear'))}</button>
-      <button type="button" class="myplace-btn primary" style="flex:2;min-height:48px" ${_placeSel?'':'disabled'} onclick="savePlace(_placeSel,document.getElementById('place-sethome').checked)">${esc(t('place.ok'))}</button>
+      <button type="button" class="myplace-btn" style="flex:1;min-height:48px" onclick="savePlace('',!!document.getElementById('place-sethome')?.checked,_placeTarget)">${esc(t('place.clear'))}</button>
+      <button type="button" class="myplace-btn primary" style="flex:2;min-height:48px" ${_placeSel?'':'disabled'} onclick="savePlace(_placeSel,!!document.getElementById('place-sethome')?.checked,_placeTarget)">${esc(t('place.ok'))}</button>
     </div>`;
 }
-async function savePlace(id, setHome){
+// target はパートナーの人の社員番号（自分の分は省く）。ほかの人の分は今日の場所だけ（Worker も同じ判定）
+async function savePlace(id, setHome, target){
+  const other=(target && String(target)!==String(currentUser.id)) ? USERS.find(u=>String(u.id)===String(target)) : null;
   const before=placeOf(currentUser.id);
   try {
-    const res=await api('setPlace',{place:id,setHome:!!setHome});
+    const res=await api('setPlace', other ? {place:id,setHome:false,target:String(other.id)} : {place:id,setHome:!!setHome});
     placeToday=res.today||{}; placeHome=res.home||{}; _placesAt=Date.now();
-    if(id==='out' && before && before!=='out'){
+    if(!other && id==='out' && before && before!=='out'){
       try { localStorage.setItem('halo_place_prev',JSON.stringify({date:fmtDate(new Date()),id:before})); } catch(e) {}
     }
     closeModal('place-modal-backdrop');
     renderTeam();
     renderHomeMyPlace();
-    showToast(id ? t('place.saved',{place:placeLabel(id)}) : t('place.cleared'));
+    const otherName=other ? (other.dispName||other.name) : '';
+    showToast(other
+      ? (id ? t('place.saved.other',{name:otherName,place:placeLabel(id)}) : t('place.cleared.other',{name:otherName}))
+      : (id ? t('place.saved',{place:placeLabel(id)}) : t('place.cleared')));
   } catch(e) {
     if(e.name!=='AbortError') showToast(t('common.error.toast',{msg:e.message}));
   }
@@ -6807,7 +6822,8 @@ function renderTeam(){
   renderMyPlace(teamStatusNow(currentUser, ds, nowMins).baseStatus);
   _syncTeamView();
   if (teamMode === 'map') {
-    renderTeamMap(USERS.filter(u=>!u.isPartner&&!u.isTest).map(u=>({...u, ...teamStatusNow(u, ds, nowMins)})));
+    // マップにはパートナー（協力会社）の人も出す（2026-11-10。いつもの表示・部署ごと・場所ごとは今までどおり出さない）
+    renderTeamMap(USERS.filter(u=>!u.isTest).map(u=>({...u, ...teamStatusNow(u, ds, nowMins)})));
     return;
   }
   if (teamView === 'dept') { renderTeamDeptView(); return; }
@@ -6942,8 +6958,8 @@ function renderTeamMap(members){
     frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
     wrap.appendChild(frame);
   }
-  // マップの名前は Kintone 従業員名簿の「表示名」（短い名前。氏名だとマップで重なるため。2026-11-10）。
-  // 表示名が空の人・協力会社の人は氏名
+  // マップの名前は Kintone の名簿（従業員 49・協力会社 1122）の「表示名」（短い名前。氏名だとマップで重なるため。2026-11-10）。
+  // 表示名が空の人は氏名
   const mapName=u=>(u&&u.dispName)||(u&&u.name)||'';
   const unset=[], otherRooms={};
   const list=[];
@@ -7209,6 +7225,10 @@ function openMemberDetail(userId){
       </div>`;
   } else {
     adminEl.innerHTML = '';
+  }
+  // 協力会社（パートナー）の人の今日の場所は、誰でも変えられる（2026-11-10。マップで押したときなど）
+  if(u.isPartner && String(userId)!==String(currentUser.id) && GAS_URL){
+    adminEl.innerHTML += `<div style="margin-top:8px"><button onclick="closeMemberPopup();openPlacePicker('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.85em;border:1.5px solid var(--primary)">${esc(t('member.place.change'))}</button></div>`;
   }
   document.getElementById('member-popup').style.display = 'flex';
 }
