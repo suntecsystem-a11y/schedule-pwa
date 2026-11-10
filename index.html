@@ -147,7 +147,7 @@ input,select{font-family:inherit;outline:none}
 .team-mode-btn{min-height:36px;padding:0 14px;border-radius:18px;border:2px solid #272438;background:#141c2c;color:#e6c578;font-size:0.82em;font-weight:700;cursor:pointer}
 .team-mode-btn.back{background:white;color:var(--primary-dark);border-color:var(--primary)}
 /* 在席マップ：場所が決まっていない協力会社の人のボタン（来た日に場所を選ぶ。2026-11-10） */
-.zmap-partners{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 8px;font-size:0.82em;color:var(--text2)}
+.zmap-partners{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:10px 0 0;font-size:0.82em;color:var(--text2)}
 .zmap-partners button{min-height:36px;padding:0 12px;border-radius:18px;border:1.5px solid var(--primary);background:var(--primary-light);color:var(--primary-dark);font-weight:700;font-size:1em;cursor:pointer}
 .myplace-card{background:white;border:2px solid var(--primary);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
 .myplace-main{display:flex;align-items:center;gap:12px;flex:1 1 260px;min-width:0}
@@ -6980,7 +6980,7 @@ function renderTeamMap(members){
     pbar=document.createElement('div');
     pbar.id='team-map-partners';
     pbar.className='zmap-partners';
-    wrap.insertBefore(pbar, frame);
+    wrap.appendChild(pbar); // マップの下（2026-11-10 ユーザー判断で上から移した）
   }
   pbar.innerHTML = (partnersWaiting.length && GAS_URL)
     ? `<span>${esc(t('map.partner.pick'))}</span>`+partnersWaiting.map(m=>`<button type="button" onclick="openPlacePicker('${esc(String(m.id))}')">${esc(mapName(m))}</button>`).join('')
