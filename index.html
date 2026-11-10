@@ -4356,9 +4356,17 @@ function tkShort(name){
   const p=String(name||'').trim().split(/[\s　]+/).filter(Boolean);
   return p.length>=2?p[0][0]+p[1][0]:String(name||'').trim().slice(0,2);
 }
+// 名前の表示：従業員名簿の「表示名」（苗字など短い名前）。表示名が空の人・協力会社の人は、氏名（略称が要る所は tkShort）。保存・絞り込みに使う値は氏名のまま
+let _tkDispSrc=null,_tkDispMap={};
+function tkDisp(name,short){
+  const n=String(name==null?'':name).trim();
+  if(!n)return '';
+  if(_tkDispSrc!==USERS){_tkDispSrc=USERS;_tkDispMap={};(USERS||[]).forEach(u=>{if(u&&u.dispName&&u.name)_tkDispMap[String(u.name).replace(/[\s　]/g,'')]=u.dispName;});}
+  return _tkDispMap[n.replace(/[\s　]/g,'')]||(short?tkShort(n):n);
+}
 function tkAv(name,short){
   if(!name)return '';
-  return short?'<span class="tk-ab" title="'+tkEsc(name)+'">'+tkEsc(tkShort(name))+'</span>':tkEsc(name);
+  return short?'<span class="tk-ab" title="'+tkEsc(name)+'">'+tkEsc(tkDisp(name,true))+'</span>':tkEsc(tkDisp(name));
 }
 function renderTasksTab(){
   if(!_tk.loaded&&!_tk.error){tkLoad();return;}
@@ -4461,11 +4469,11 @@ function tkSearch(v){
 }
 function tkWhoPicker(people){
   const w=(_tk.whos=(_tk.whos||[]).filter(n=>people.includes(n)));
-  const lbl=!w.length?'全員':(w.length===1?w[0]:w[0]+' 他'+(w.length-1)+'名');
+  const lbl=!w.length?'全員':(w.length===1?tkDisp(w[0]):tkDisp(w[0])+' 他'+(w.length-1)+'名');
   let h='<span class="tk-ms"><button type="button" class="tk-btn'+(w.length?' on':'')+'" onclick="tkWhoToggle()">担当者：'+tkEsc(lbl)+' ▾</button>';
   if(_tk.whoOpen){
     h+='<div class="tk-ms-pop"><div class="tk-ms-top"><span>複数選べます</span><a onclick="tkWhoClear()">クリア</a></div><div class="tk-ms-list" id="tk-ms-list">'
-      +people.map(p=>'<label><input type="checkbox" '+(w.includes(p)?'checked ':'')+'onchange="tkWhoPick(this.dataset.n,this.checked)" data-n="'+tkEsc(p)+'"> '+tkEsc(p)+'</label>').join('')+'</div></div>';
+      +people.map(p=>'<label><input type="checkbox" '+(w.includes(p)?'checked ':'')+'onchange="tkWhoPick(this.dataset.n,this.checked)" data-n="'+tkEsc(p)+'"> '+tkEsc(tkDisp(p))+'</label>').join('')+'</div></div>';
   }
   return h+'</span>';
 }
@@ -4522,7 +4530,7 @@ function tkRender(keepScroll){
   else if(_tk.view==='gantt')body=tkGanttHtml();
   else if(_tk.view==='kanban')body=tkkSplitHtml();
   else body=tkDashHtml();
-  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(_tk.me):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():(isTeam?tkTeamBar():(isTodo?tkTodoBar():bar)))+'<div id="tk-view">'+body+'</div></div>';
+  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(tkDisp(_tk.me)):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():(isTeam?tkTeamBar():(isTodo?tkTodoBar():bar)))+'<div id="tk-view">'+body+'</div></div>';
   tkFit();
   if(isPol)tkPolicyAfter(keepScroll,psl,pst);
   const nd=document.getElementById('tk-dash');if(nd&&keepScroll)nd.scrollTop=dst;
@@ -4720,7 +4728,7 @@ function tkGanttHtml(){
     const holdShown=x.hold&&x.st!=='完了';
     const holdTag=holdShown?'<span class="tk-tag hold'+(x.st==='保留'?'':' inh')+'" title="'+(x.st==='保留'?'保留中':'上位が保留のため、保留として扱っています')+'">保留</span>':'';
     const stc=holdShown?holdTag:(x.ch.length?'<span style="color:var(--text2);font-size:.85em">'+x.cnt+'件</span>':'<span class="tk-tag" style="background:'+(late?'var(--red)':(TK_SCOL[x.st]||'#9e9e9e'))+'">'+(late?'超過':tkEsc(x.st))+'</span>');
-    const whoTxt=x.ch.length?'':tkAv(x.who,true)+(x.co.length?'<span class="tk-co" title="共同：'+tkEsc(x.co.join('、'))+'">+'+x.co.length+'</span>':'');
+    const whoTxt=x.ch.length?'':tkAv(x.who,true)+(x.co.length?'<span class="tk-co" title="共同：'+tkEsc(x.co.map(c=>tkDisp(c)).join('、'))+'">+'+x.co.length+'</span>':'');
     let bar='';
     if(x.sd){
       const left=tkDiff(R.start,x.sd)*dayW,w=(tkDiff(x.sd,x.ed)+1)*dayW;
@@ -5042,7 +5050,7 @@ function tkTeamHtml(){
   const T=_tk.team;if(!T||!T.loaded)return '<div class="tk-empty">集計しています…</div>';
   const t=T.totals,E=tkEsc;
   const link=(id,title)=>'<a onclick="tkfOpenEdit(\''+id+'\')">'+E(title)+'</a>';
-  const who=n=>n?E(n):'<span style="color:var(--text2)">担当者なし</span>';
+  const who=n=>n?E(tkDisp(n)):'<span style="color:var(--text2)">担当者なし</span>';
   const card=(l,v,s,c)=>'<div class="tkd-card"><div class="tkd-l">'+l+'</div><div class="tkd-v"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="tkd-s">'+s+'</div></div>';
   const mem=T.rows.filter(r=>!r.unassigned).length;
   const cal=T.calendarReady;
@@ -5061,7 +5069,7 @@ function tkTeamHtml(){
     +'</div>';
   const pill=(v,warn)=>v?'<span class="tkd-p'+(warn?' w':'')+'">'+v+'</span>':'<span style="color:var(--text2)">0</span>';
   const bar=p=>{const c=p>100?'#d03b3b':p<70?'#f0b429':'#2a78d6';return '<div class="tkd-bar"><i><b style="width:'+Math.min(p,100)+'%;background:'+c+'"></b></i><span>'+p+'%</span></div>';};
-  const mrows=T.rows.map(r=>'<tr><td>'+(r.unassigned?'<span style="color:var(--text2)">担当者なし</span>':E(r.name))+'</td>'
+  const mrows=T.rows.map(r=>'<tr><td>'+(r.unassigned?'<span style="color:var(--text2)">担当者なし</span>':E(tkDisp(r.name)))+'</td>'
     +'<td>'+(r.unassigned?'-':(cal?bar(r.load):'-'))+'</td>'
     +'<td>'+(cal?tkHr(r.doneMin)+' <span style="color:var(--text2)">/ '+tkHr(r.planMin)+'</span>':'-')+'</td>'
     +'<td><b>'+r.done+'</b></td><td>'+tkPct(r.sameDayRate)+'</td>'
@@ -5074,7 +5082,7 @@ function tkTeamHtml(){
   const hmax=T.period==='month'?2400:480;
   const hm=cal?'<div class="tkd-box"><div class="tkd-h"><b>'+(T.period==='month'?'週ごとの予定時間（時間）':'日ごとの予定時間（時間）')+'</b><span>濃いほど多い（同じ時間に重ねた予定は1回分）。薄い日は、予定を動かした日かもしれません</span></div><div class="tkd-x"><table class="tkd-hm"><thead><tr><th></th>'
     +T.labels.map(l=>'<th>'+tkMd(l)+(T.period==='month'?'〜':'')+'</th>').join('')+'<th>合計</th></tr></thead><tbody>'
-    +T.rows.filter(r=>!r.unassigned).map(r=>'<tr><th style="text-align:left">'+E(r.name)+'</th>'+r.plan.map(v=>{const a=Math.min(v/hmax,1);return '<td style="background:rgba(42,120,214,'+(0.08+a*0.8).toFixed(2)+');color:'+(a>0.55?'#fff':'#1d3557')+'">'+(v?Math.round(v/6)/10:'')+'</td>';}).join('')+'<td style="font-weight:700">'+tkHr(r.planMin)+'</td></tr>').join('')
+    +T.rows.filter(r=>!r.unassigned).map(r=>'<tr><th style="text-align:left">'+E(tkDisp(r.name))+'</th>'+r.plan.map(v=>{const a=Math.min(v/hmax,1);return '<td style="background:rgba(42,120,214,'+(0.08+a*0.8).toFixed(2)+');color:'+(a>0.55?'#fff':'#1d3557')+'">'+(v?Math.round(v/6)/10:'')+'</td>';}).join('')+'<td style="font-weight:700">'+tkHr(r.planMin)+'</td></tr>').join('')
     +'</tbody></table></div></div>':'';
   const coach='<div class="tkd-box"><div class="tkd-h"><b>完了の記録（振り返り用）</b><span>この期間に完了したもののうち、遅れて完了・終了日と違う日に完了・入力が遅れたもの</span></div>'
     +tkTeamTbl(['担当','タスク','期限（当初→現在）','完了日','記録した日','メモ'],L.coach.map(x=>{
