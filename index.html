@@ -4770,7 +4770,7 @@ const TK_DASH_CARDS=[
   ['notStartedSoon','開始3営業日','タスク','var(--blue)','開始3営業日前・未着手タスク']
 ];   // Todoは専用の「TODO」タブへ移した
 function tkDashSel(k){_tk.dashSel=k;tkRender(true);}
-// ===== TODOタブ（レコード種別「Todo」。日付や親を持たない「やれたらいいね」。担当者本人だけに見える） =====
+// ===== TODOタブ（レコード種別「Todo」。日付や親を持たない「やれたらいいね」。見える範囲は、親のないタスクと同じ：本人・上長・役員） =====
 function tkTodoBar(){
   const people=[...new Set(tkPeople().concat((_tk.todos||[]).map(t=>t.who).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'ja'));
   const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">すべて</button></div>':'';
@@ -4788,7 +4788,7 @@ function tkTodoHtml(){
   const items=all.filter(t=>hit(t)&&tkWhoOK({who:t.who,co:[]})&&(!_tk.st||t.st===_tk.st)&&(_tk.done||t.st!=='完了'))
     .map(t=>({id:t.id,type:'タスク',title:t.title,who:t.who,st:t.st,start:'',end:t.end||'',p:t.st==='完了'?100:0,parent:'',ch:[],hold:false,co:[]}));
   const list=tkDashFlat(items);
-  return '<div id="tk-dash"><div class="tkt-add"><input type="text" id="tkt-new" placeholder="TODOを入力して Enter（自分だけに表示されます）" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();tkTodoAdd()}">'
+  return '<div id="tk-dash"><div class="tkt-add"><input type="text" id="tkt-new" placeholder="TODOを入力して Enter（見えるのは、本人・同じ部署の上長・役員です）" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();tkTodoAdd()}">'
     +'<input type="date" id="tkt-end" title="期限（任意）"><button class="tk-btn tk-new" onclick="tkTodoAdd()">＋ 追加</button></div>'
     +'<div class="tk-dp" style="margin-bottom:12px"><h4>TODO <small>'+items.length+'件</small></h4>'+(list||'<div class="ds">'+(all.length?'該当なし':'TODOはまだありません')+'</div>')+'</div></div>';
 }
