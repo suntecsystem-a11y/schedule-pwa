@@ -607,7 +607,11 @@ async function loadBento(){
   if(tab==='cal') renderCal();
 }
 // 予定のタブの「選んだ日」の欄に出すお弁当（2026-11-10、予定とお弁当を1つのタブに）
-const bentoReservable = ds => ds > fmt(new Date()) && !isHoliday(ds); // 当日は不可・土日休日は不可（Worker も同じ判定）
+// お弁当を頼めない日＝土日と、休日マスタ（231）で対象拠点に本社か茨城が入っている日（Worker の isBentoHoliday と同じ）。
+// 祝日でも「大黒」だけの休み（11/3・11/23 など）は本社・茨城は出勤日なので頼める（2026-11-10）
+const bentoClosed = ds => { const d=new Date(ds+'T00:00:00'); if(d.getDay()===0||d.getDay()===6) return true;
+  return holidays.some(h=>h.date===ds && /本社|茨城/.test([].concat(h.sites||[]).join(','))); };
+const bentoReservable = ds => ds > fmt(new Date()) && !bentoClosed(ds); // 当日は不可
 function bentoRow(b){
   const i=bentoList.indexOf(b);
   const d=new Date(b.date+'T00:00:00');
@@ -639,7 +643,7 @@ function bentoUpcomingHtml(){
   </details>`;
 }
 let _bEdit=null, _bMenus=[];
-function nextBizDay(){ let d=addDays(new Date(),1); while(isHoliday(fmt(d))) d=addDays(d,1); return fmt(d); }
+function nextBizDay(){ let d=addDays(new Date(),1); while(bentoClosed(fmt(d))) d=addDays(d,1); return fmt(d); }
 function openBentoSheet(i, presetDate){
   _bEdit = (i!=null) ? bentoList[i] : null;
   const dv = _bEdit ? _bEdit.date : (presetDate || nextBizDay());

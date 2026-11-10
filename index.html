@@ -10729,7 +10729,9 @@ function bentoRenderDay(){
   // 未予約：予約可能な平日のみボタンを出す
   const d=new Date(ds+'T00:00:00');
   const dow=d.getDay();
-  const isHol = !!(holidays.find(h=>h.date===ds) || jpNationalHolidays(d.getFullYear()).get(ds));
+  // 頼めない日は Worker（isBentoHoliday）と同じ：土日と、休日マスタ（231）で対象拠点に本社か茨城が入っている日。
+  // 前は国民の祝日も外していたが、11/3・11/23 などは「大黒」だけの休みで本社・茨城は出勤日なので頼める（2026-11-10）
+  const isHol = (allHolidays||[]).some(h=>h.date===ds && /本社|茨城/.test([].concat(h.sites||[]).join(',')));
   const today=fmtDate(new Date());
   const reservable = ds>today && dow!==0 && dow!==6 && !isHol; // 当日は予約不可（翌営業日以降）
   slot.innerHTML = reservable ? `
