@@ -843,8 +843,9 @@ body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px
 #tkk-left{position:relative;flex:1 1 0;min-width:0;min-height:0}
 #tkk-left #tk-kanban{gap:10px;padding:12px}
 #tkk-left .tk-col{width:auto;flex:1 0 190px;max-width:320px}
-#tkk-right{flex:0 0 clamp(380px,38vw,640px);min-width:0;min-height:0;overflow:auto;border-left:1px solid var(--border);background:#fff}
-@media (max-width:1000px){#tkk-split{flex-direction:column}#tkk-left{flex:1 1 50%}#tkk-right{flex:1 1 50%;border-left:0;border-top:1px solid var(--border)}}
+#tkk-rs{flex:0 0 7px;cursor:col-resize;background:transparent;position:relative;z-index:4;margin-left:-3px;margin-right:-4px}#tkk-rs:hover,#tkk-rs.on{background:rgba(42,120,214,.35)}
+#tkk-right{flex:0 0 clamp(440px,48vw,900px);min-width:0;min-height:0;overflow:auto;border-left:1px solid var(--border);background:#fff}
+@media (max-width:1000px){#tkk-split{flex-direction:column}#tkk-rs{display:none}#tkk-left{flex:1 1 50%}#tkk-right{flex:1 1 50%!important;border-left:0;border-top:1px solid var(--border)}}
 .tkk-bar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#fff;z-index:3;flex-wrap:wrap}
 .tkk-cal{padding:6px 10px 4px}
 .tkk-grid{display:grid;grid-template-columns:38px repeat(5,minmax(0,1fr))}
@@ -4747,13 +4748,15 @@ function tkKanbanHtml(){
   const all=_tk.nodes.filter(n=>!n.ch.length&&tkVisible(n));
   const split=!!(_tk.ks&&_tk.ks.loaded);   // 予定の読み込みが済んだら、「予定なし／予定済み」の2列（未着手と進行中は列を分けず、進行中はカードに印を付ける）。完了は「完了タスク表示」のときだけ
   const cols=[];
+  cols.push({sts:['未着手','進行中'],nd:true,sch:null,label:'期限なしタスク'});   // 一番左：終了日のないタスク（予定の有無にかかわらず、ここに出す）
   if(split){
-    cols.push({sts:['未着手','進行中'],sch:false,label:'予定なし'});cols.push({sts:['未着手','進行中'],sch:true,label:'予定済み'});
+    cols.push({sts:['未着手','進行中'],nd:false,sch:false,label:'予定なし'});cols.push({sts:['未着手','進行中'],nd:false,sch:true,label:'予定済み'});
     if(_tk.done)cols.push({sts:['完了'],sch:null,label:'完了'});
-  }else TK_STS.filter(s=>s!=='完了'||_tk.done).forEach(s=>cols.push({sts:[s],sch:null,label:s}));
+  }else TK_STS.filter(s=>s!=='完了'||_tk.done).forEach(s=>cols.push({sts:[s],nd:false,sch:null,label:s}));
   return '<div id="tk-kanban">'+cols.map(c=>{
-    const items=all.filter(x=>c.sts.includes(tkEffSt(x))&&(c.sch===null||tkkIsSched(x)===c.sch)).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
-    return '<div class="tk-col"'+(c.sch?' style="border-top:3px solid #43a047"':'')+'><h3><span>'+c.label+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
+    const isND=x=>x.type==='タスク'&&!x.ed&&x.st!=='完了';   // 期限なしタスク
+    const items=all.filter(x=>c.sts.includes(tkEffSt(x))&&(c.nd===undefined||c.nd===isND(x))&&(c.sch===null||tkkIsSched(x)===c.sch)).sort((a,b)=>(a.ed?+a.ed:1e15)-(b.ed?+b.ed:1e15));
+    return '<div class="tk-col"'+(c.nd?' style="border-top:3px solid #78909c"':(c.sch?' style="border-top:3px solid #43a047"':''))+'><h3><span>'+c.label+'</span><em>'+items.length+'</em></h3>'+items.map(x=>{
       const late=tkIsLate(x);
       return '<div class="tk-card" data-id="'+x.id+'"'+tkkDragAttr(x)+' style="border-left-color:'+tkBarColor(x)+'"><div class="p">'+tkEsc(tkPath(x))+'</div><div class="t">'+(x.st==='進行中'?'<span class="tk-prg">進行中</span>':'')+tkEsc(x.title)+'</div>'
         +'<div class="tk-pbar"><i style="width:'+x.p+'%"></i></div><div class="f'+(late?' late':'')+'"><span>'+tkAv(x.who)+tkkBadge(x)+'</span><span>'+(late?'<b>期限超過</b> ':'')+(x.ed?'期限 '+tkFmt(x.ed):'期限なし')+'</span></div></div>';
@@ -5214,6 +5217,15 @@ let _tkkDrag=null;
 function tkkS(){if(!_tk.kc)_tk.kc={ws:tkkWeekStart(new Date()),events:null,loading:false};return _tk.kc;}
 function tkkWeekStart(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return tkIso(x);}
 function tkkOn(){return window.innerWidth>=900;}
+// カレンダーの幅：つかんで変えられる。この端末に覚えておく
+function tkkRW(){let v=0;try{v=parseInt(localStorage.getItem('tkkRW'))||0;}catch(e){}return v>=320?v:0;}
+(function(){
+  let drag=null;
+  document.addEventListener('mousedown',e=>{const rs=e.target&&e.target.id==='tkk-rs'?e.target:null;if(!rs)return;e.preventDefault();drag={rs:rs};rs.classList.add('on');document.body.style.userSelect='none';});
+  document.addEventListener('mousemove',e=>{if(!drag)return;const sp=document.getElementById('tkk-split'),r=document.getElementById('tkk-right');if(!sp||!r)return;const b=sp.getBoundingClientRect();let w=Math.round(b.right-e.clientX);w=Math.max(320,Math.min(w,b.width-300));r.style.flex='0 0 '+w+'px';drag.w=w;});
+  document.addEventListener('mouseup',()=>{if(!drag)return;drag.rs.classList.remove('on');document.body.style.userSelect='';if(drag.w){try{localStorage.setItem('tkkRW',String(drag.w));}catch(e){}}drag=null;});
+  document.addEventListener('dblclick',e=>{if(e.target&&e.target.id==='tkk-rs'){try{localStorage.removeItem('tkkRW');}catch(x){}const r=document.getElementById('tkk-right');if(r)r.style.flex='';}});
+})();
 function tkkMin(t){const m=/^(\d{1,2}):(\d{2})$/.exec(t||'');return m?(+m[1])*60+(+m[2]):null;}
 function tkkHm(m){return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');}
 function tkkTaskId(e){const m=/^タスク#(\d+)/.exec(e.memo||'');return m?m[1]:'';}
@@ -5262,7 +5274,7 @@ function tkkSplitHtml(){
   if(!tkkOn())return tkKanbanHtml();
   const kc=tkkS();
   if(!kc.events&&!kc.loading)setTimeout(tkkLoad,0);
-  return '<div id="tkk-split"><div id="tkk-left">'+tkKanbanHtml()+'</div><div id="tkk-right">'+tkkCalHtml()+'</div></div>';
+  return '<div id="tkk-split"><div id="tkk-left">'+tkKanbanHtml()+'</div><div id="tkk-rs" title="ドラッグで、カレンダーの幅を変えられます（ダブルクリックで元に戻す）"></div><div id="tkk-right"'+(tkkRW()?' style="flex:0 0 '+tkkRW()+'px"':'')+'>'+tkkCalHtml()+'</div></div>';
 }
 // 枠の並べ方は、カレンダーの週表示（renderWeek）と同じ（重なる予定は横に並べる）
 function tkkLayout(evs){
@@ -5808,7 +5820,7 @@ function tkManualHtml(){
     +'<ul><li><b>状態</b>：未着手／進行中／完了。タスクを完了にすると進捗は100%になります。止めておくタスクは、終了日を空にして「期限なしタスク」にします。</li><li><b>担当者・メンバー</b>：従業員名簿（社内の人と外部パートナー）の氏名から選びます。メンバーは「見られる人」を増やす設定で、編集権限は付きません。</li><li><b>非公開</b>：チェックすると、そのレコードと配下は担当者・共同担当者・メンバーだけに表示されます（管理者・役員・上長にも見えません）。</li><li><b>＋ タスクを追加／コピー</b>：配下の追加、内容を引き継いだ新規作成。</li><li><b>削除</b>：権限のある人にだけ表示されます。実際には消さず、一覧・ガント・方針ツリーなどから見えなくなります（必要になったら、システム部門がkintoneで元に戻せます）。配下があるレコードは削除できません。</li><li>土日を日付に入れて保存すると確認が出ます。</li></ul>');
   h+=sec('tree','7. 方針ツリー','<p>会社の方針から日々の活動までのつながり（基本方針→事業グループ→事業→事業カテゴリ→施策→施策方針→活動）を一望できます。</p>'+f6+f7
     +'<ul><li><b>ツリー表示／表形式</b>：表形式では、KPI・目標・実績・達成率も1行ずつ見られます。</li><li><b>横表示／縦表示</b>：ツリーの向き。</li><li><b>＋／－</b>：枝の開閉。最初は施策までを表示、「すべて展開」で活動まで開きます。</li><li><b>対象年度</b>：KPIの年度で絞り込み。</li><li>施策・活動のノードをクリックすると内容を開けます（上位の階層は管理者のみ編集可）。</li><li>管理者・役員は、上位の階層とKPIをすべて表示します。施策・活動は、役員は全体、管理者はほかの人と同じ条件で見える範囲だけです。一般の社員は、自分が見られる施策・活動と、その上の階層の名称だけが表示されます（上位のKPIは見えません）。</li></ul>');
-  h+=sec('kd','8. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：「予定なし」「予定済み」の2列にカードが並びます（右にカレンダーが出ない狭い画面では、未着手／進行中の列になります）。進行中のカードには「進行中」の印が付きます。完了の列は、「完了タスク表示」にチェックを入れたときだけ出ます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、「完了タスク表示」にチェックを入れたときだけ、一覧にも件数にも含めます（初期は含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
+  h+=sec('kd','8. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：一番左の「期限なしタスク」（終了日のないタスク）と、「予定なし」「予定済み」の列にカードが並びます（右にカレンダーが出ない狭い画面では、未着手／進行中の列になります）。右のカレンダーの幅は、境目をつかんで変えられます（ダブルクリックで元の幅）。進行中のカードには「進行中」の印が付きます。完了の列は、「完了タスク表示」にチェックを入れたときだけ出ます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、「完了タスク表示」にチェックを入れたときだけ、一覧にも件数にも含めます（初期は含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
   h+=sec('rules','9. 期限なし・完了・超過の扱い','<ul><li><b>期限なしタスク</b>：終了日を空にしたタスクです（「保留」の状態は廃止しました）。超過・遅延・「終了3営業日」には含まれません。ガントには棒が出ません。</li><li><b>完了した施策</b>：「完了施策表示」にチェックしない限り、配下ごと非表示になります。</li><li><b>完了したタスク</b>：「完了タスク表示」にチェックしたときだけ表示します。</li><li><b>超過</b>：終了日を過ぎて、完了していないタスクは、赤で「超過」と表示されます。</li></ul>');
   h+=sec('perm','10. 見える範囲と編集できる範囲','<table class="mn-tb"><thead><tr><th></th><th>見える</th><th>編集・追加</th></tr></thead><tbody>'
     +'<tr><td>管理者（永野・畑村）</td><td>施策・活動・タスクは、ほかの人と同じ条件（担当・メンバー・上長）で見える範囲だけ。上位の階層（基本方針〜施策方針）とKPIは常に見える</td><td>見える範囲はすべて編集可。施策以上の登録・構造の変更ができる</td></tr>'
