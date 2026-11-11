@@ -9728,7 +9728,8 @@ function renderCleaning() {
     return;
   }
   if (c.empty) {
-    area.innerHTML = box(`<div style="font-size:0.88em;color:var(--text2)">${c.firstDate ? `当番表は ${_clnMD(c.firstDate)} の週から表示されます。` : '当番表は、まだ登録されていません。'}</div>`);
+    area.innerHTML = box(`<div style="font-size:0.88em;color:var(--text2)">${c.firstDate ? `当番表は ${_clnMD(c.firstDate)} の週から表示されます。` : '当番表は、まだ登録されていません。'}</div>
+      <button onclick="openCleaningSample()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:1em;cursor:pointer">📋 チェックシートを見る（見本）</button>`);
     return;
   }
   const ti = c.todayInfo;
@@ -9772,6 +9773,9 @@ function renderCleaning() {
       <div style="font-size:1em;font-weight:700">${dutyText}${mine}</div>${checkLine}`;
     btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:1em;cursor:pointer">📋 チェックシートを開く</button>`;
   }
+  if (!btn) {
+    btn = `<button onclick="openCleaningSample()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:1em;cursor:pointer">📋 チェックシートを見る（見本）</button>`;
+  }
   const todayBox = `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg)">${todayBlock}</div>`;
 
   // ③ 次の自分の当番日
@@ -9786,18 +9790,18 @@ function renderCleaning() {
 
   // ④ 週ごとにめくる当番表
   const arrow = (label, onclick, disabled) => `<button onclick="${onclick}" ${disabled ? 'disabled' : ''} aria-label="${label === '◀' ? '前の週' : '次の週'}" style="width:44px;height:40px;border-radius:10px;border:1.5px solid ${disabled ? 'var(--border)' : 'var(--primary)'};background:${disabled ? 'var(--bg)' : 'white'};color:${disabled ? 'var(--text3)' : 'var(--primary)'};font-weight:700;font-size:1.05em;cursor:${disabled ? 'default' : 'pointer'};flex-shrink:0">${label}</button>`;
-  const rows = sel.days.map(r => {
+  const cols = sel.days.map(r => {
     const isToday = r.date === c.today;
     const isHoliday = r.kind === '会社休み';
     const isFri = r.kind === '金曜全員';
-    const duty = isHoliday ? '会社休み' : isFri ? '後半組の全員で全部の場所' : r.duty;
-    const bg = r.mine ? '#fff3e0' : isToday ? 'var(--primary-light)' : 'transparent';
-    const border = r.mine ? 'border-left:4px solid #e65100;' : 'border-left:4px solid transparent;';
-    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid var(--border);background:${bg};${border}">
-      <span style="width:74px;flex-shrink:0;font-size:0.92em;font-weight:700;white-space:nowrap">${_clnMD(r.date)}<span style="font-weight:400;color:var(--text2)"> ${esc(r.wd)}</span></span>
-      <span style="flex:1;min-width:0;font-size:0.95em;word-break:break-word;${isHoliday ? 'color:var(--text2)' : ''}">${esc(duty)}</span>
-      ${r.mine ? '<span style="flex-shrink:0;padding:2px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.72em">あなた</span>' : ''}
-      ${isToday && !r.mine ? '<span style="flex-shrink:0;font-size:0.72em;font-weight:700;color:var(--primary)">今日</span>' : ''}
+    const names = isHoliday ? ['会社休み'] : isFri ? ['後半組', '全員'] : String(r.duty || '').split('・');
+    const bg = r.mine ? '#fff3e0' : isToday ? 'var(--primary-light)' : 'white';
+    const bd = r.mine ? '2px solid #e65100' : isToday ? '2px solid var(--primary)' : '1px solid var(--border)';
+    return `<div style="min-width:0;padding:8px 3px;border-radius:10px;background:${bg};border:${bd};text-align:center">
+      <div style="font-size:0.9em;font-weight:700;white-space:nowrap">${_clnMD(r.date)}</div>
+      <div style="font-size:0.78em;color:var(--text2);margin-bottom:6px">${esc(r.wd)}${isToday ? '・今日' : ''}</div>
+      <div style="font-size:0.82em;line-height:1.55;overflow-wrap:anywhere;${isHoliday ? 'color:var(--text2)' : ''}">${names.map(n => `<div>${esc(n)}</div>`).join('')}</div>
+      ${r.mine ? '<div style="margin-top:6px"><span style="padding:1px 7px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.68em">あなた</span></div>' : ''}
     </div>`;
   }).join('');
   const lab = labelOf(sel);
@@ -9810,11 +9814,26 @@ function renderCleaning() {
       </div>
       ${arrow('▶', 'clnWeek(1)', selIdx >= weeks.length - 1)}
     </div>
-    <div style="border-top:1px solid var(--border)">${rows}</div>
+    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px">${cols}</div>
+    <div style="font-size:0.72em;color:var(--text2);margin-top:6px">金曜は、後半組の全員で全部の場所を掃除します。</div>
     ${sel.start !== c.thisMon && weeks.some(w => w.start === c.thisMon) ? `<div style="text-align:center;margin-top:8px"><button onclick="clnWeek(0)" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">今週にもどる</button></div>` : ''}
   </div>`;
 
   area.innerHTML = box(`${lunchBlock}${todayBox}${nextLine}${weekBlock}${btn}`);
+}
+
+const CLN_SAMPLE_DAILY = ['食堂のゴミ捨て（袋を替え、新棟裏のゴミ置き場へ）', 'ポットの水補給', '食堂のテーブル・椅子の拭き掃除', 'スリッパの消毒・消臭'];
+const CLN_SAMPLE_FRIDAY = ['玄関（靴箱・外・中）、1階の床', '食堂のシンク', '男性トイレ', '女性トイレ', '2階の窓', '階段（1階〜2階、2階〜3階）', '3階会議室', '2階会議室', '床・廊下（各階）'];
+function openCleaningSample() {
+  const li = (s) => `<div style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid var(--border);font-size:0.92em"><span style="width:20px;height:20px;border:2px solid var(--border);border-radius:4px;flex-shrink:0"></span><span>${esc(s)}</span></div>`;
+  openDrModal(`
+    <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">📋 掃除チェックシート（見本）</div>
+    <div style="font-size:0.82em;color:var(--text2);margin-bottom:10px">今日は当番表がないため、見本を表示しています。当番表のある日には、チェックを入れて保存できます。</div>
+    <div style="font-size:0.85em;font-weight:700;margin:6px 0 2px">毎日の4か所</div>
+    <div style="border-top:1px solid var(--border)">${CLN_SAMPLE_DAILY.map(li).join('')}</div>
+    <div style="font-size:0.85em;font-weight:700;margin:14px 0 2px">金曜は、上の4か所に加えて</div>
+    <div style="border-top:1px solid var(--border)">${CLN_SAMPLE_FRIDAY.map(li).join('')}</div>
+    <button onclick="closeDrModal()" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>`);
 }
 
 async function openCleaningCheck(date) {
