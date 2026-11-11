@@ -1119,6 +1119,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <div id="kot-link-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
     <!-- 今日の課題（朝の確認）・日報 -->
     <div id="issue-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
+    <!-- 今週の昼休みグループ・今日の掃除当番・掃除チェックシート（2026-11-11。新棟） -->
+    <div id="cleaning-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
     <!-- 今いる場所（在席ボードの「今いる場所」を小さく。2026-11-06 段階3） -->
     <div id="home-myplace-wrap" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"><div id="home-myplace"></div></div>
     <!-- お知らせエリア -->
@@ -3961,7 +3963,7 @@ function showApp(opts){
     switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   }
   renderAll();
-  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink()]);
+  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink(), loadCleaning()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
@@ -9661,6 +9663,155 @@ function renderKotLink() {
   if (!_kotUrl) { area.style.display = 'none'; area.innerHTML = ''; return; }
   area.style.display = '';
   area.innerHTML = `<a href="${esc(_kotUrl)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:var(--radius);background:white;box-shadow:var(--shadow);color:var(--primary-dark);font-weight:700;font-size:0.95em;text-decoration:none;border-left:4px solid var(--primary)">${t('kot.open')}<span style="font-size:0.8em;color:var(--text2)">↗</span></a>`;
+}
+
+// ============================================================
+// 新棟：今週の昼休みグループ・今日の掃除当番・掃除チェックシート（2026-11-11）
+//   Worker: getCleaningHome / getCleaningCheck / saveCleaningCheck / confirmCleaningCheck（cleaning.js）
+//   当番表は Kintone app1143（総務が直せる）、チェック記録は app1144。決まりは新棟施設利用ガイド 5章・7章
+// ============================================================
+let _clnData = null;
+let _clnCur = null;
+
+async function loadCleaning() {
+  const area = document.getElementById('cleaning-area');
+  if (!area) return;
+  try {
+    _clnData = await api('getCleaningHome', {}, '', { quiet: true });
+  } catch(e) {
+    _clnData = null;
+  }
+  renderCleaning();
+}
+
+function _clnMD(ymd) {
+  const p = String(ymd || '').split('-');
+  return p.length === 3 ? `${+p[1]}/${+p[2]}` : '';
+}
+
+function renderCleaning() {
+  const area = document.getElementById('cleaning-area');
+  if (!area) return;
+  const c = _clnData;
+  if (!c || !c.active) { area.style.display = 'none'; area.innerHTML = ''; return; }
+  const ti = c.todayInfo;
+
+  const lunchLine = c.lunch
+    ? `<div style="font-size:0.9em"><span style="color:var(--text2)">今週の昼休み：</span><strong style="color:var(--primary-dark)">${esc(c.lunch.label)}（${esc(c.lunch.time)}）</strong><span style="color:var(--text2);font-size:0.85em">　${esc(c.myGroup)}グループ</span></div>`
+    : `<div style="font-size:0.85em;color:var(--text2)">今週の昼休み：グループの設定がありません</div>`;
+
+  let todayLine = '';
+  let checkLine = '';
+  let btn = '';
+  if (!ti) {
+    todayLine = `<div style="font-size:0.85em;color:var(--text2)">今日は当番表がありません</div>`;
+  } else if (ti.kind === '会社休み') {
+    todayLine = `<div style="font-size:0.85em;color:var(--text2)">今日は会社の休みです</div>`;
+  } else {
+    const mine = ti.iAmDuty
+      ? `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#fff3e0;color:#e65100;font-weight:700;font-size:0.8em">あなたが当番です</span>` : '';
+    todayLine = ti.kind === '金曜全員'
+      ? `<div style="font-size:0.9em"><span style="color:var(--text2)">今日の掃除（13:30〜）：</span><strong>後半組の全員で全部の場所</strong>${mine}</div>`
+      : `<div style="font-size:0.9em"><span style="color:var(--text2)">今日の掃除当番（13:30〜）：</span><strong>${esc(ti.duty)}</strong>${mine}</div>`;
+    const ck = ti.check;
+    if (ck) {
+      const st = ck.confName
+        ? `<span style="color:#2e7d32;font-weight:700">✅ 総務確認済み（${esc(ck.confName)}）</span>`
+        : ck.done > 0
+          ? `<span style="color:#f57c00;font-weight:700">${ck.done}/${ck.total} 記入済み（${esc(ck.byName)} ${_drTime(ck.at)}）</span>`
+          : `<span style="color:#e53935;font-weight:700">まだ記入されていません</span>`;
+      checkLine = `<div style="font-size:0.82em;margin-top:4px">チェックシート：${st}</div>`;
+    }
+    btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">📋 チェックシートを開く</button>`;
+  }
+
+  const kindIcon = (k) => (k === '会社休み' ? '🛌' : k === '金曜全員' ? '🧹' : '🧽');
+  const weekRows = (c.week || []).map(r => {
+    const isToday = r.date === c.today;
+    const duty = r.kind === '会社休み' ? '会社休み' : r.kind === '金曜全員' ? '後半組の全員で全部' : r.duty;
+    return `<div style="display:flex;gap:8px;padding:4px 6px;border-radius:6px;font-size:0.8em;${isToday ? 'background:var(--primary-light);font-weight:700' : ''}">
+      <span style="width:52px;color:var(--text2)">${_clnMD(r.date)}（${esc(r.wd)}）</span>
+      <span style="flex:1;min-width:0;word-break:break-word">${kindIcon(r.kind)} ${esc(duty)}</span>
+      ${r.mine ? '<span style="color:#e65100;font-weight:700">★</span>' : ''}
+    </div>`;
+  }).join('');
+
+  area.style.display = '';
+  area.innerHTML = `
+    <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #26a69a">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">🏢 新棟：昼休み・掃除当番</span>
+        <span style="font-size:0.75em;color:var(--text2)">今週：前半＝${esc(c.front)}／後半＝${esc(c.back)}グループ</span>
+      </div>
+      ${lunchLine}
+      <div style="margin-top:6px">${todayLine}${checkLine}</div>
+      <details style="margin-top:8px"><summary style="font-size:0.8em;color:var(--primary);cursor:pointer;font-weight:700">今週の当番表</summary><div style="margin-top:6px">${weekRows}</div></details>
+      ${btn}
+    </div>`;
+}
+
+async function openCleaningCheck(date) {
+  let r;
+  try {
+    r = await api('getCleaningCheck', { date: date || undefined }, t('common.loading'));
+  } catch(e) { showToast(e.message); return; }
+  _clnCur = r;
+  const doneAll = r.items.every(it => r.results[it.id]);
+  const rows = r.items.map(it => `
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" id="cln-${it.id}" ${r.results[it.id] ? 'checked' : ''} style="width:20px;height:20px;flex-shrink:0">
+      <span style="font-size:0.92em">${esc(it.label)}</span>
+    </label>`).join('');
+  const status = r.confName
+    ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#e8f5e9;color:#2e7d32;font-size:0.85em;font-weight:700">✅ 総務確認済み（${esc(r.confName)} ${_drTime(r.confAt)}）</div>`
+    : r.byName
+      ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.85em;font-weight:700">記入：${esc(r.byName)}（${_drTime(r.at)}）　総務の確認待ち</div>`
+      : '';
+  const confirmBtn = (r.canConfirm && r.byName && !r.confName)
+    ? `<button onclick="doConfirmCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;cursor:pointer">✅ 総務として確認した</button>` : '';
+  const kindLabel = r.kind === '金曜全員' ? '金曜：後半組の全員で全部の場所' : '毎日の4か所';
+  openDrModal(`
+    <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">📋 掃除チェックシート</div>
+    <div style="font-size:0.82em;color:var(--text2);margin-bottom:8px">${_clnMD(r.date)}（${esc(r.wd)}）／${esc(kindLabel)}${r.kind === '毎日' ? '／当番：' + esc(r.duty) : ''}</div>
+    <div style="border-top:1px solid var(--border)">${rows}</div>
+    <textarea id="cln-memo" placeholder="メモ（できなかった所・気づいたこと）" maxlength="500" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;min-height:60px">${esc(r.memo || '')}</textarea>
+    ${status}
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button onclick="clnToggleAll()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;cursor:pointer">${doneAll ? 'すべて外す' : 'すべてチェック'}</button>
+      <button onclick="doSaveCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;cursor:pointer">保存</button>
+      ${confirmBtn}
+      <button onclick="closeDrModal()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>
+    </div>`, { lock: true });
+}
+
+function clnToggleAll() {
+  if (!_clnCur) return;
+  const boxes = _clnCur.items.map(it => document.getElementById('cln-' + it.id)).filter(Boolean);
+  const allOn = boxes.every(b => b.checked);
+  boxes.forEach(b => { b.checked = !allOn; });
+}
+
+async function doSaveCleaning() {
+  if (!_clnCur) return;
+  const results = {};
+  _clnCur.items.forEach(it => { const b = document.getElementById('cln-' + it.id); results[it.id] = !!(b && b.checked); });
+  const memo = (document.getElementById('cln-memo') || {}).value || '';
+  try {
+    const res = await api('saveCleaningCheck', { date: _clnCur.date, results, memo }, '保存中...');
+    closeDrModal();
+    showToast(`保存しました（${res.done}/${res.total}）`);
+    loadCleaning();
+  } catch(e) { showToast(e.message); }
+}
+
+async function doConfirmCleaning() {
+  if (!_clnCur) return;
+  try {
+    await api('confirmCleaningCheck', { date: _clnCur.date }, '確認中...');
+    showToast('総務の確認を記録しました');
+    openCleaningCheck(_clnCur.date);
+    loadCleaning();
+  } catch(e) { showToast(e.message); }
 }
 
 // ---- デモモード用の模擬データ（GAS_URL未設定時のみ使用） ----
