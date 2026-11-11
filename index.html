@@ -9742,13 +9742,27 @@ function renderCleaning() {
   const selIdx = weeks.findIndex(w => w.start === _clnSel);
   const labelOf = (w) => (w.start === c.thisMon ? '今週' : w.start === nextMon ? '来週' : w.start < c.thisMon ? '過去' : '');
 
-  // ① 自分の昼休み（今週・来週）
-  const lw = [weeks.find(w => w.start === c.thisMon), weeks.find(w => w.start === nextMon)].filter(Boolean);
-  const chip = (w) => `<div style="flex:1;min-width:130px;padding:8px 10px;border-radius:10px;background:var(--primary-light)">
-      <div style="font-size:0.72em;color:var(--text2)">${w.start === c.thisMon ? '今週' : '来週'}（${_clnMD(w.start)}〜）の昼休み</div>
-      <div style="font-size:1em;font-weight:700;color:var(--primary-dark)">${w.lunch ? esc(w.lunch.label) + '　' + esc(w.lunch.time) : '未設定'}</div>
+  // ① 自分の昼休み（今週・来週）と、グループを見るボタン
+  const wThis = weeks.find(w => w.start === c.thisMon);
+  const wNext = weeks.find(w => w.start === nextMon);
+  const chip = (label, start, w) => {
+    if (w) {
+      return `<div style="flex:1;min-width:150px;padding:10px 12px;border-radius:10px;background:var(--primary-light)">
+        <div style="font-size:0.75em;color:var(--text2)">${label}（${_clnMD(start)}〜）</div>
+        <div style="font-size:1.1em;font-weight:700;color:var(--primary-dark)">${w.lunch ? esc(w.lunch.label) + '　' + esc(w.lunch.time) : '未設定'}</div>
+        ${w.myGroup ? `<div style="font-size:0.72em;color:var(--text2)">あなたは ${esc(w.myGroup)}グループ</div>` : ''}
+      </div>`;
+    }
+    const before = c.firstDate && start < c.firstDate;
+    return `<div style="flex:1;min-width:150px;padding:10px 12px;border-radius:10px;background:var(--bg)">
+        <div style="font-size:0.75em;color:var(--text2)">${label}（${_clnMD(start)}〜）</div>
+        <div style="font-size:0.9em;color:var(--text2)">${before ? `2交代は ${_clnMD(c.firstDate)} から` : '当番表がありません'}</div>
+      </div>`;
+  };
+  const lunchBlock = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:stretch">
+      ${chip('今週', c.thisMon, wThis)}${chip('来週', nextMon, wNext)}
+      <button onclick="openCleaningGroups()" style="flex-shrink:0;min-width:120px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.9em;cursor:pointer">👥 グループを見る</button>
     </div>`;
-  const lunchBlock = `<div style="display:flex;gap:8px;flex-wrap:wrap">${lw.map(chip).join('')}</div>`;
 
   // ② 今日
   let todayBlock = '';
@@ -9851,7 +9865,11 @@ function renderCleaning() {
       ${arrow('▶', 'clnWeek(1)', selIdx >= weeks.length - 1)}
     </div>
     ${grid}
-    <div style="font-size:0.72em;color:var(--text2);margin-top:6px">月曜は、その週の後半組の全員（在宅の人を除く）で、全部の場所を掃除します。火〜金は、曜日ごとの当番です。「チェック」の印の人が、その日のチェック係です（チェックシートに記入します）。</div>
+    <div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--bg);font-size:0.8em;line-height:1.9;color:var(--text)">
+      <div><strong>月曜</strong>　後半組の全員で、全部の場所を掃除（在宅の人を除く）</div>
+      <div><strong>火〜金</strong>　曜日ごとの当番3名。1名がチェック係、2名が掃除</div>
+      <div><span style="padding:1px 7px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.8em">チェック</span>　チェック係。掃除はせず、指示・最終チェック・完了を行う</div>
+    </div>
     ${sel.start !== c.thisMon && weeks.some(w => w.start === c.thisMon) ? `<div style="text-align:center;margin-top:8px"><button onclick="clnWeek(0)" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">今週にもどる</button></div>` : ''}
   </div>`;
 
@@ -9945,6 +9963,32 @@ async function openCleaningCheck(date) {
       ${confirmBtn}
       <button onclick="closeDrModal()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>
     </div>`, { lock: true });
+}
+
+// 昼休みのグループ（誰が前半組・後半組か）を見る
+function openCleaningGroups() {
+  const c = _clnData;
+  if (!c || !c.groups) return;
+  const nextMon = _clnAdd(c.thisMon, 7);
+  const ws = [c.weeks.find(w => w.start === c.thisMon), c.weeks.find(w => w.start === nextMon)].filter(Boolean);
+  const SLOT = { front: '前半　12:00〜12:50', back: '後半　12:40〜13:30' };
+  const names = (g) => (c.groups[g] || []).map(m => `<span style="display:inline-block;margin:3px 6px 3px 0;padding:3px 10px;border-radius:14px;background:${m.mine ? '#e65100' : 'var(--bg)'};color:${m.mine ? 'white' : 'var(--text)'};font-weight:${m.mine ? 700 : 400};font-size:0.88em">${esc(m.disp)}</span>`).join('');
+  const row = (w, which) => {
+    const g = which === 'front' ? w.front : w.back;
+    const mine = (c.groups[g] || []).some(m => m.mine);
+    return `<div style="margin-top:8px;padding:10px 12px;border-radius:10px;border:2px solid ${mine ? '#e65100' : 'var(--border)'};background:${mine ? '#fff3e0' : 'white'}">
+      <div style="font-weight:700;font-size:0.95em">${SLOT[which]}　<span style="color:var(--text2);font-weight:400;font-size:0.85em">${esc(g)}グループ</span>${mine ? '<span style="margin-left:8px;padding:1px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.72em">あなた</span>' : ''}</div>
+      <div style="margin-top:4px">${names(g)}</div>
+    </div>`;
+  };
+  const blocks = ws.length
+    ? ws.map(w => `<div style="margin-top:14px"><div style="font-weight:700">${w.start === c.thisMon ? '今週' : '来週'}（${_clnMD(w.start)}〜${_clnMD(_clnAdd(w.start, 4))}）</div>${row(w, 'front')}${row(w, 'back')}</div>`).join('')
+    : '<div style="margin-top:14px;color:var(--text2);font-size:0.9em">今週・来週の当番表がありません。</div>';
+  openDrModal(`
+    <div style="font-size:1.05em;font-weight:700;margin-bottom:2px">👥 昼休みのグループ</div>
+    <div style="font-size:0.8em;color:var(--text2)">前半と後半は、毎週入れ替わります（11/16の週は、Aが前半・Bが後半）。</div>
+    ${blocks}
+    <button onclick="closeDrModal()" style="width:100%;margin-top:16px;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>`);
 }
 
 // マニュアル（SharePoint の動画・資料）を新しいタブで開く。https のリンクだけ
