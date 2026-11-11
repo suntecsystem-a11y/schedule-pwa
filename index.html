@@ -1152,7 +1152,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <div id="notice-home-list"></div>
     </div>
     <!-- 今週の昼休みグループ・今日の掃除当番・掃除チェックシート（2026-11-11。新棟。お知らせの下） -->
-    <div id="cleaning-area" style="display:none;max-width:900px;margin:0 auto;padding:8px 12px 0"></div>
+    <div id="cleaning-area" style="display:none;padding:8px 0 0"></div>
     <div id="home-content"></div>
   </div>
 
@@ -9758,7 +9758,7 @@ function renderCleaning() {
   } else {
     const mine = ti.iAmDuty
       ? `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.78em">あなたが当番</span>` : '';
-    const dutyText = ti.kind === '金曜全員' ? '後半組の全員で、全部の場所' : esc(ti.duty);
+    const dutyText = ti.kind === '金曜全員' ? '後半組の全員で、全部の場所' : esc(ti.dutyDisp || ti.duty);
     const ck = ti.check;
     let checkLine = '';
     if (ck) {
@@ -9790,20 +9790,34 @@ function renderCleaning() {
 
   // ④ 週ごとにめくる当番表
   const arrow = (label, onclick, disabled) => `<button onclick="${onclick}" ${disabled ? 'disabled' : ''} aria-label="${label === '◀' ? '前の週' : '次の週'}" style="width:44px;height:40px;border-radius:10px;border:1.5px solid ${disabled ? 'var(--border)' : 'var(--primary)'};background:${disabled ? 'var(--bg)' : 'white'};color:${disabled ? 'var(--text3)' : 'var(--primary)'};font-weight:700;font-size:1.05em;cursor:${disabled ? 'default' : 'pointer'};flex-shrink:0">${label}</button>`;
-  const cols = sel.days.map(r => {
+  const GRID = 'minmax(84px,1.1fr) repeat(5,minmax(0,1fr))';
+  const hcell = (r) => {
     const isToday = r.date === c.today;
     const isHoliday = r.kind === '会社休み';
-    const isFri = r.kind === '金曜全員';
-    const names = isHoliday ? ['会社休み'] : isFri ? ['後半組', '全員'] : String(r.duty || '').split('・');
-    const bg = r.mine ? '#fff3e0' : isToday ? 'var(--primary-light)' : 'white';
-    const bd = r.mine ? '2px solid #e65100' : isToday ? '2px solid var(--primary)' : '1px solid var(--border)';
-    return `<div style="min-width:0;padding:8px 3px;border-radius:10px;background:${bg};border:${bd};text-align:center">
-      <div style="font-size:0.9em;font-weight:700;white-space:nowrap">${_clnMD(r.date)}</div>
-      <div style="font-size:0.78em;color:var(--text2);margin-bottom:6px">${esc(r.wd)}${isToday ? '・今日' : ''}</div>
-      <div style="font-size:0.82em;line-height:1.55;overflow-wrap:anywhere;${isHoliday ? 'color:var(--text2)' : ''}">${names.map(n => `<div>${esc(n)}</div>`).join('')}</div>
-      ${r.mine ? '<div style="margin-top:6px"><span style="padding:1px 7px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.68em">あなた</span></div>' : ''}
+    const bg = isToday ? 'var(--primary-light)' : 'var(--bg)';
+    return `<div style="padding:8px 4px;background:${bg};text-align:center;border-left:1px solid var(--border);${isToday ? 'border-bottom:3px solid var(--primary);' : ''}">
+      <div style="font-size:0.95em;font-weight:700;white-space:nowrap">${_clnMD(r.date)}</div>
+      <div style="font-size:0.78em;color:var(--text2)">${esc(r.wd)}${isToday ? '・今日' : ''}</div>
+      ${isHoliday
+        ? '<div style="margin-top:4px;font-size:0.72em;color:var(--text2)">会社休み</div>'
+        : `<button onclick="openCleaningCheck('${r.date}')" style="margin-top:4px;padding:4px 6px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.72em;cursor:pointer;white-space:nowrap">📋 チェックシート</button>`}
     </div>`;
-  }).join('');
+  };
+  const prow = (p) => {
+    const cells = sel.days.map(r => {
+      const isToday = r.date === c.today;
+      let inner = '';
+      if (r.kind === '会社休み') inner = '<span style="color:var(--text3)">―</span>';
+      else if (r.kind === '金曜全員') inner = '<span style="font-size:0.78em;color:var(--primary-dark);font-weight:700">全員</span>';
+      else if ((r.names || []).includes(p.name)) inner = `<span style="padding:2px 10px;border-radius:10px;background:${p.mine ? '#e65100' : '#26a69a'};color:white;font-weight:700;font-size:0.78em">当番</span>`;
+      return `<div style="padding:9px 4px;text-align:center;border-left:1px solid var(--border);border-top:1px solid var(--border);${isToday ? 'background:var(--primary-light);' : ''}">${inner}</div>`;
+    }).join('');
+    return `<div style="padding:9px 8px;border-top:1px solid var(--border);font-size:0.95em;font-weight:700;${p.mine ? 'background:#fff3e0;border-left:4px solid #e65100;' : 'border-left:4px solid transparent;'}">${esc(p.disp)}${p.mine ? '<span style="margin-left:6px;padding:1px 7px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.68em">あなた</span>' : ''}</div>${cells}`;
+  };
+  const grid = `<div style="overflow-x:auto"><div style="display:grid;grid-template-columns:${GRID};border:1px solid var(--border);border-radius:10px;overflow:hidden;min-width:480px">
+    <div style="padding:8px;background:var(--bg);font-size:0.8em;font-weight:700;color:var(--text2);display:flex;align-items:center">氏名</div>${sel.days.map(hcell).join('')}
+    ${(sel.people || []).map(prow).join('')}
+  </div></div>`;
   const lab = labelOf(sel);
   const weekBlock = `<div style="margin-top:14px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -9814,8 +9828,8 @@ function renderCleaning() {
       </div>
       ${arrow('▶', 'clnWeek(1)', selIdx >= weeks.length - 1)}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px">${cols}</div>
-    <div style="font-size:0.72em;color:var(--text2);margin-top:6px">金曜は、後半組の全員で全部の場所を掃除します。</div>
+    ${grid}
+    <div style="font-size:0.72em;color:var(--text2);margin-top:6px">金曜は、その週の後半組の全員（在宅の人を除く）で、全部の場所を掃除します。</div>
     ${sel.start !== c.thisMon && weeks.some(w => w.start === c.thisMon) ? `<div style="text-align:center;margin-top:8px"><button onclick="clnWeek(0)" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">今週にもどる</button></div>` : ''}
   </div>`;
 
@@ -9843,9 +9857,10 @@ async function openCleaningCheck(date) {
   } catch(e) { showToast(e.message); return; }
   _clnCur = r;
   const doneAll = r.items.every(it => r.results[it.id]);
+  const future = !!(_clnData && _clnData.today && r.date > _clnData.today); // これからの日は見るだけ（保存できるのは当日から）
   const rows = r.items.map(it => `
     <label style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer">
-      <input type="checkbox" id="cln-${it.id}" ${r.results[it.id] ? 'checked' : ''} style="width:20px;height:20px;flex-shrink:0">
+      <input type="checkbox" id="cln-${it.id}" ${r.results[it.id] ? 'checked' : ''} ${future ? 'disabled' : ''} style="width:20px;height:20px;flex-shrink:0">
       <span style="font-size:0.92em">${esc(it.label)}</span>
     </label>`).join('');
   const status = r.confName
@@ -9853,18 +9868,19 @@ async function openCleaningCheck(date) {
     : r.byName
       ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.85em;font-weight:700">記入：${esc(r.byName)}（${_drTime(r.at)}）　総務の確認待ち</div>`
       : '';
-  const confirmBtn = (r.canConfirm && r.byName && !r.confName)
+  const confirmBtn = (!future && r.canConfirm && r.byName && !r.confName)
     ? `<button onclick="doConfirmCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;cursor:pointer">✅ 総務として確認した</button>` : '';
   const kindLabel = r.kind === '金曜全員' ? '金曜：後半組の全員で全部の場所' : '毎日の4か所';
   openDrModal(`
     <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">📋 掃除チェックシート</div>
-    <div style="font-size:0.82em;color:var(--text2);margin-bottom:8px">${_clnMD(r.date)}（${esc(r.wd)}）／${esc(kindLabel)}${r.kind === '毎日' ? '／当番：' + esc(r.duty) : ''}</div>
+    <div style="font-size:0.82em;color:var(--text2);margin-bottom:8px">${_clnMD(r.date)}（${esc(r.wd)}）／${esc(kindLabel)}${r.kind === '毎日' ? '／当番：' + esc(r.dutyDisp || r.duty) : ''}</div>
+    ${future ? '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.82em;font-weight:700">これからの日です。項目を見るだけで、記入・保存は当日からできます。</div>' : ''}
     <div style="border-top:1px solid var(--border)">${rows}</div>
     <textarea id="cln-memo" placeholder="メモ（できなかった所・気づいたこと）" maxlength="500" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;min-height:60px">${esc(r.memo || '')}</textarea>
     ${status}
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button onclick="clnToggleAll()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;cursor:pointer">${doneAll ? 'すべて外す' : 'すべてチェック'}</button>
-      <button onclick="doSaveCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;cursor:pointer">保存</button>
+      ${future ? '' : `<button onclick="clnToggleAll()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;cursor:pointer">${doneAll ? 'すべて外す' : 'すべてチェック'}</button>
+      <button onclick="doSaveCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;cursor:pointer">保存</button>`}
       ${confirmBtn}
       <button onclick="closeDrModal()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>
     </div>`, { lock: true });
