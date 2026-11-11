@@ -9675,6 +9675,7 @@ let _clnData = null;
 let _clnCur = null;
 
 let _clnError = false;
+let _clnSel = ''; // 今開いている週の月曜（週ごとにめくる）
 
 async function loadCleaning() {
   const area = document.getElementById('cleaning-area');
@@ -9692,6 +9693,23 @@ async function loadCleaning() {
 function _clnMD(ymd) {
   const p = String(ymd || '').split('-');
   return p.length === 3 ? `${+p[1]}/${+p[2]}` : '';
+}
+function _clnAdd(ymd, days) {
+  const [y, m, d] = String(ymd).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+// 表示する週を前後に動かす（delta=-1 前の週、+1 次の週、0 今週）
+function clnWeek(delta) {
+  const c = _clnData;
+  if (!c || !c.weeks || !c.weeks.length) return;
+  if (delta === 0) {
+    _clnSel = (c.weeks.find(w => w.start >= c.thisMon) || c.weeks[c.weeks.length - 1]).start;
+  } else {
+    const i = c.weeks.findIndex(w => w.start === _clnSel);
+    const j = Math.max(0, Math.min(c.weeks.length - 1, (i < 0 ? 0 : i) + delta));
+    _clnSel = c.weeks[j].start;
+  }
+  renderCleaning();
 }
 
 // カードは常に出す（当番表がない週・読み込めないときも、理由を書く）
@@ -9717,10 +9735,16 @@ function renderCleaning() {
   }
   const ti = c.todayInfo;
   const weeks = c.weeks || [];
+  const nextMon = _clnAdd(c.thisMon, 7);
+  if (!weeks.some(w => w.start === _clnSel)) _clnSel = (weeks.find(w => w.start >= c.thisMon) || weeks[weeks.length - 1]).start;
+  const sel = weeks.find(w => w.start === _clnSel);
+  const selIdx = weeks.findIndex(w => w.start === _clnSel);
+  const labelOf = (w) => (w.start === c.thisMon ? '今週' : w.start === nextMon ? '来週' : w.start < c.thisMon ? '先週以前' : `${_clnMD(w.start)}の週`);
 
   // 昼休み：今週・来週
-  const lunchLine = `<div style="font-size:0.9em"><span style="color:var(--text2)">昼休み：</span>` + weeks.map(w =>
-    `${esc(w.label)}＝<strong style="color:var(--primary-dark)">${w.lunch ? esc(w.lunch.label) + '（' + esc(w.lunch.time) + '）' : '未設定'}</strong>${w.myGroup ? `<span style="color:var(--text2);font-size:0.8em">（${esc(w.myGroup)}グループ）</span>` : ''}`
+  const lw = [weeks.find(w => w.start === c.thisMon), weeks.find(w => w.start === nextMon)].filter(Boolean);
+  const lunchLine = `<div style="font-size:0.9em"><span style="color:var(--text2)">昼休み：</span>` + lw.map(w =>
+    `${w.start === c.thisMon ? '今週' : '来週'}＝<strong style="color:var(--primary-dark)">${w.lunch ? esc(w.lunch.label) + '（' + esc(w.lunch.time) + '）' : '未設定'}</strong>${w.myGroup ? `<span style="color:var(--text2);font-size:0.8em">（${esc(w.myGroup)}グループ）</span>` : ''}`
   ).join('<span style="color:var(--text3)">　／　</span>') + `</div>`;
 
   // 今日
@@ -9759,29 +9783,36 @@ function renderCleaning() {
     nextLine = `<div style="font-size:0.82em;margin-top:6px;color:var(--text2)">あなたの当番は、登録されている期間にはありません</div>`;
   }
 
-  // 今週・来週の当番表（常に表示）
+  // 週ごとにめくる当番表
   const kindIcon = (k) => (k === '会社休み' ? '🛌' : k === '金曜全員' ? '🧹' : '🧽');
-  const weekBlocks = weeks.map(w => {
-    const rows = w.days.map(r => {
-      const isToday = r.date === c.today;
-      const duty = r.kind === '会社休み' ? '会社休み' : r.kind === '金曜全員' ? '後半組の全員で全部' : r.duty;
-      return `<div style="display:flex;gap:8px;padding:4px 6px;border-radius:6px;font-size:0.8em;${isToday ? 'background:var(--primary-light);font-weight:700' : ''}">
-        <span style="width:56px;color:var(--text2);flex-shrink:0">${_clnMD(r.date)}（${esc(r.wd)}）</span>
-        <span style="flex:1;min-width:0;word-break:break-word">${kindIcon(r.kind)} ${esc(duty)}</span>
-        ${r.mine ? '<span style="color:#e65100;font-weight:700">★</span>' : ''}
-      </div>`;
-    }).join('');
-    return `<div style="margin-top:10px">
-      <div style="display:flex;justify-content:space-between;font-size:0.78em;font-weight:700;color:var(--text2);padding:0 6px 3px;border-bottom:1px solid var(--border)">
-        <span>${esc(w.label)}（${_clnMD(w.start)}〜）</span><span>前半＝${esc(w.front)}／後半＝${esc(w.back)}グループ</span>
-      </div>${rows}</div>`;
+  const navBtn = (label, onclick, disabled) => `<button onclick="${onclick}" ${disabled ? 'disabled' : ''} style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:${disabled ? 'var(--bg)' : 'white'};color:${disabled ? 'var(--text3)' : 'var(--primary)'};font-weight:700;font-size:0.8em;cursor:${disabled ? 'default' : 'pointer'};white-space:nowrap">${label}</button>`;
+  const rows = sel.days.map(r => {
+    const isToday = r.date === c.today;
+    const duty = r.kind === '会社休み' ? '会社休み' : r.kind === '金曜全員' ? '後半組の全員で全部' : r.duty;
+    return `<div style="display:flex;gap:8px;padding:4px 6px;border-radius:6px;font-size:0.8em;${isToday ? 'background:var(--primary-light);font-weight:700' : ''}">
+      <span style="width:56px;color:var(--text2);flex-shrink:0">${_clnMD(r.date)}（${esc(r.wd)}）</span>
+      <span style="flex:1;min-width:0;word-break:break-word">${kindIcon(r.kind)} ${esc(duty)}</span>
+      ${r.mine ? '<span style="color:#e65100;font-weight:700">★</span>' : ''}
+    </div>`;
   }).join('');
+  const lunchSel = sel.lunch ? `あなた＝${esc(sel.lunch.label)}（${esc(sel.lunch.time)}）` : '';
+  const weekBlock = `<div style="margin-top:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
+      ${navBtn('◀ 前の週', 'clnWeek(-1)', selIdx <= 0)}
+      <div style="text-align:center;font-size:0.82em;font-weight:700;color:var(--text)">${esc(labelOf(sel))}（${_clnMD(sel.start)}〜${_clnMD(_clnAdd(sel.start, 4))}）</div>
+      ${navBtn('次の週 ▶', 'clnWeek(1)', selIdx >= weeks.length - 1)}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.75em;color:var(--text2);padding:0 6px 3px;border-bottom:1px solid var(--border)">
+      <span>前半＝${esc(sel.front)}／後半＝${esc(sel.back)}グループ</span><span>${lunchSel}</span>
+    </div>${rows}
+    ${sel.start !== c.thisMon && weeks.some(w => w.start >= c.thisMon) ? `<div style="text-align:center;margin-top:6px"><button onclick="clnWeek(0)" style="padding:4px 12px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.78em;cursor:pointer">今週にもどる</button></div>` : ''}
+  </div>`;
 
   area.innerHTML = box(`
     ${lunchLine}
     <div style="margin-top:6px">${todayLine}${checkLine}</div>
     ${nextLine}
-    ${weekBlocks}
+    ${weekBlock}
     ${btn}`);
 }
 
