@@ -9683,6 +9683,8 @@ let _clnSel = ''; // 今開いている週の月曜（週ごとにめくる）
 async function loadCleaning() {
   const area = document.getElementById('cleaning-area');
   if (!area) return;
+  // まだリリース前：永野（社員番号81）の画面にだけ出す。全社に出すときは、この3行を外す
+  if (!currentUser || String(currentUser.id) !== '81') { area.innerHTML = ''; return; }
   try {
     _clnData = await api('getCleaningHome', {}, '', { quiet: true });
     _clnError = false;
