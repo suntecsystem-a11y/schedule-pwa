@@ -9763,14 +9763,14 @@ function renderCleaning() {
     let checkLine = '';
     if (ck) {
       const st = ck.confName
-        ? `<span style="color:#2e7d32;font-weight:700">✅ 総務確認済み（${esc(ck.confName)}）</span>`
+        ? `<span style="color:#2e7d32;font-weight:700">✅ 完了（${esc(ck.confName)}）</span>`
         : ck.done > 0
-          ? `<span style="color:#f57c00;font-weight:700">${ck.done}/${ck.total} 記入済み（${esc(ck.byName)} ${_drTime(ck.at)}）</span>`
+          ? `<span style="color:#f57c00;font-weight:700">${ck.done}/${ck.total} 記入済み（${esc(ck.byName)} ${_drTime(ck.at)}）・まだ完了ではありません</span>`
           : `<span style="color:#e53935;font-weight:700">まだ記入されていません</span>`;
       checkLine = `<div style="font-size:0.85em;margin-top:4px">チェックシート：${st}</div>`;
     }
     const chk = ti.checkerDisp
-      ? `<div style="font-size:0.88em;margin-top:4px"><span style="color:var(--text2)">今日のチェック係：</span><strong style="color:#1e88e5">${esc(ti.checkerDisp)}</strong>${ti.iAmChecker ? '<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.78em">あなたがチェック係</span>' : ''}</div>` : '';
+      ? `<div style="font-size:0.88em;margin-top:4px"><span style="color:var(--text2)">今日のチェック係：</span><strong style="color:#1e88e5">${esc(ti.checkerDisp)}</strong>${ti.iAmChecker ? '<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.78em">あなたがチェック係</span>' : ''}</div>${ti.iAmChecker ? '<div style="font-size:0.78em;color:#1565c0;margin-top:3px">全員に、誰がどこを掃除するか指示し、最後にチェックして「完了」にします。</div>' : ''}` : '';
     todayBlock = `<div style="font-size:0.75em;color:var(--text2)">今日の掃除（13:30〜）</div>
       <div style="font-size:1em;font-weight:700">${dutyText}${mine}</div>${chk}${checkLine}`;
     btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:1em;cursor:pointer">${ti.canEdit === false ? '📋 チェックシートを見る' : '📋 チェックシートを開く'}</button>`;
@@ -9870,36 +9870,69 @@ function openCleaningSample() {
     <button onclick="closeDrModal()" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>`);
 }
 
+let _clnAssign = {};
+
+// 各場所の担当（誰がどこを掃除するか）。チェック係は選べる、ほかの人は見るだけ
+function clnWhoHtml(id, readonly) {
+  const r = _clnCur; if (!r) return '';
+  const cleaners = r.cleaners || [];
+  const sel = _clnAssign[id] || [];
+  if (readonly) {
+    const names = sel.map(n => (cleaners.find(c => c.name === n) || {}).disp || n);
+    return names.length ? `<span style="font-size:0.8em;color:var(--text2)">担当：</span><strong style="font-size:0.85em;color:#e65100">${esc(names.join('・'))}</strong>` : '';
+  }
+  if (!cleaners.length) return '';
+  return `<span style="font-size:0.78em;color:var(--text2);margin-right:4px">担当：</span>` + cleaners.map(c => {
+    const on = sel.includes(c.name);
+    return `<button type="button" onclick="clnToggleWho('${id}','${esc(c.name).replace(/'/g, '&#39;')}')" style="margin:2px 4px 2px 0;padding:4px 10px;border-radius:14px;border:1.5px solid ${on ? '#e65100' : 'var(--border)'};background:${on ? '#e65100' : 'white'};color:${on ? 'white' : 'var(--text2)'};font-weight:700;font-size:0.8em;cursor:pointer">${esc(c.disp)}</button>`;
+  }).join('');
+}
+function clnToggleWho(id, name) {
+  const a = _clnAssign[id] || (_clnAssign[id] = []);
+  const i = a.indexOf(name);
+  if (i >= 0) a.splice(i, 1); else a.push(name);
+  const el = document.getElementById('cln-who-' + id);
+  if (el) el.innerHTML = clnWhoHtml(id, false);
+}
+
 async function openCleaningCheck(date) {
   let r;
   try {
     r = await api('getCleaningCheck', { date: date || undefined }, t('common.loading'));
   } catch(e) { showToast(e.message); return; }
   _clnCur = r;
+  _clnAssign = JSON.parse(JSON.stringify(r.assign || {}));
   const doneAll = r.items.every(it => r.results[it.id]);
   const future = !!(_clnData && _clnData.today && r.date > _clnData.today); // これからの日は見るだけ（保存できるのは当日から）
-  const notChecker = r.canEdit === false; // チェック係でない人は見るだけ（総務・管理者は代わりに記入できる）
+  const notChecker = r.canEdit === false; // チェック係でない人は見るだけ（休みのときは総務・管理者が代わる）
   const readonly = future || notChecker;
   const rows = r.items.map(it => `
-    <label style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer">
-      <input type="checkbox" id="cln-${it.id}" ${r.results[it.id] ? 'checked' : ''} ${readonly ? 'disabled' : ''} style="width:20px;height:20px;flex-shrink:0">
-      <span style="font-size:0.92em">${esc(it.label)}</span>
-    </label>`).join('');
+    <div style="padding:10px 8px;border-bottom:1px solid var(--border)">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="cln-${it.id}" ${r.results[it.id] ? 'checked' : ''} ${readonly ? 'disabled' : ''} style="width:20px;height:20px;flex-shrink:0">
+        <span style="font-size:0.92em;font-weight:700">${esc(it.label)}</span>
+      </label>
+      <div id="cln-who-${it.id}" style="margin:4px 0 0 30px">${clnWhoHtml(it.id, readonly)}</div>
+    </div>`).join('');
   const status = r.confName
-    ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#e8f5e9;color:#2e7d32;font-size:0.85em;font-weight:700">✅ 総務確認済み（${esc(r.confName)} ${_drTime(r.confAt)}）</div>`
+    ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#e8f5e9;color:#2e7d32;font-size:0.85em;font-weight:700">✅ 完了（${esc(r.confName)} ${_drTime(r.confAt)}）</div>`
     : r.byName
-      ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.85em;font-weight:700">記入：${esc(r.byName)}（${_drTime(r.at)}）　総務の確認待ち</div>`
+      ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.85em;font-weight:700">記入：${esc(r.byName)}（${_drTime(r.at)}）　まだ完了ではありません</div>`
       : '';
   const confirmBtn = (!readonly && r.canConfirm && r.byName && !r.confName)
-    ? `<button onclick="doConfirmCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;cursor:pointer">✅ 総務として確認した</button>` : '';
+    ? `<button onclick="doConfirmCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;cursor:pointer">✅ 完了にする</button>` : '';
   const kindLabel = r.kind === '金曜全員' ? '金曜：後半組の全員で全部の場所' : '毎日の4か所';
+  const guide = !readonly
+    ? `<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;line-height:1.6"><strong>チェック係の仕事</strong><br>① 全員に、誰がどこを掃除するか指示する（各場所の「担当」を選んで保存）<br>② 掃除が終わったら、最終チェックをする（できた場所にチェック）<br>③ 「完了にする」を押す</div>`
+    : '';
   openDrModal(`
     <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">📋 掃除チェックシート</div>
     <div style="font-size:0.82em;color:var(--text2);margin-bottom:8px">${_clnMD(r.date)}（${esc(r.wd)}）／${esc(kindLabel)}${r.kind === '毎日' ? '／当番：' + esc(r.dutyDisp || r.duty) : ''}${r.checkerDisp ? '／チェック係：' + esc(r.checkerDisp) : ''}</div>
-    ${notChecker && !future ? '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;font-weight:700">記入できるのは、この日のチェック係（' + esc(r.checkerDisp || '') + '）です。ここでは見るだけです。</div>' : ''}
+    ${guide}
+    ${notChecker && !future ? '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;font-weight:700">この日のチェック係（' + esc(r.checkerDisp || '') + '）が、掃除の分担を指示し、最終チェックして完了にします。ここでは見るだけです。</div>' : ''}
     ${future ? '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.82em;font-weight:700">これからの日です。項目を見るだけで、記入・保存は当日からできます。</div>' : ''}
     <div style="border-top:1px solid var(--border)">${rows}</div>
-    <textarea id="cln-memo" placeholder="メモ（できなかった所・気づいたこと）" maxlength="500" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;min-height:60px">${esc(r.memo || '')}</textarea>
+    <textarea id="cln-memo" ${readonly ? 'disabled' : ''} placeholder="メモ（できなかった所・気づいたこと）" maxlength="500" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;min-height:60px">${esc(r.memo || '')}</textarea>
     ${status}
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
       ${readonly ? '' : `<button onclick="clnToggleAll()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;cursor:pointer">${doneAll ? 'すべて外す' : 'すべてチェック'}</button>
@@ -9922,7 +9955,7 @@ async function doSaveCleaning() {
   _clnCur.items.forEach(it => { const b = document.getElementById('cln-' + it.id); results[it.id] = !!(b && b.checked); });
   const memo = (document.getElementById('cln-memo') || {}).value || '';
   try {
-    const res = await api('saveCleaningCheck', { date: _clnCur.date, results, memo }, '保存中...');
+    const res = await api('saveCleaningCheck', { date: _clnCur.date, results, memo, assign: _clnAssign }, '保存中...');
     closeDrModal();
     showToast(`保存しました（${res.done}/${res.total}）`);
     loadCleaning();
@@ -9932,8 +9965,8 @@ async function doSaveCleaning() {
 async function doConfirmCleaning() {
   if (!_clnCur) return;
   try {
-    await api('confirmCleaningCheck', { date: _clnCur.date }, '確認中...');
-    showToast('総務の確認を記録しました');
+    await api('confirmCleaningCheck', { date: _clnCur.date }, '完了にしています...');
+    showToast('完了にしました');
     openCleaningCheck(_clnCur.date);
     loadCleaning();
   } catch(e) { showToast(e.message); }
