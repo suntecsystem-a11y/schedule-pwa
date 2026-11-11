@@ -9797,7 +9797,7 @@ function renderCleaning() {
   const hcell = (r, i) => {
     const isToday = r.date === c.today;
     const isHoliday = r.kind === '会社休み';
-    return `<div style="padding:8px 4px;background:${isToday ? 'var(--primary-light)' : 'var(--bg)'};text-align:center;${i ? 'border-left:1px solid var(--border);' : ''}${isToday ? 'border-bottom:3px solid var(--primary);' : ''}">
+    return `<div style="grid-column:${i + 1};grid-row:1;padding:8px 4px;background:${isToday ? 'var(--primary-light)' : 'var(--bg)'};text-align:center;${i ? 'border-left:1px solid var(--border);' : ''}${isToday ? 'border-bottom:3px solid var(--primary);' : ''}">
       <div style="font-size:0.95em;font-weight:700;white-space:nowrap">${_clnMD(r.date)}</div>
       <div style="font-size:0.78em;color:var(--text2)">${esc(r.wd)}${isToday ? '・今日' : ''}</div>
       ${isHoliday
@@ -9807,26 +9807,34 @@ function renderCleaning() {
   };
   const bodyCell = (r, i, k) => {
     const isToday = r.date === c.today;
-    const base = `padding:10px 4px;text-align:center;border-top:1px solid var(--border);${i ? 'border-left:1px solid var(--border);' : ''}`;
+    const pos = `grid-column:${i + 1};grid-row:${k + 2};`;
+    const base = `${pos}position:relative;padding:10px 4px;text-align:center;border-top:1px solid var(--border);${i ? 'border-left:1px solid var(--border);' : ''}`;
     let inner = '', st = isToday ? 'background:var(--primary-light);' : '';
     if (r.kind === '会社休み') {
       inner = k === 0 ? '<span style="color:var(--text3)">会社休み</span>' : '';
-    } else if (r.kind === '金曜全員') {
-      if (r.mine) st = 'background:#fff3e0;';
-      inner = k === 0 ? '<span style="font-weight:700;color:var(--primary-dark)">後半組</span>' : k === 1 ? '<span style="font-weight:700;color:var(--primary-dark)">全員</span>' : '';
     } else {
       const n = (r.names || [])[k];
       if (n) {
         const mine = !!mineMap[n];
-        inner = `<span style="font-size:0.98em;font-weight:700">${esc(dispMap[n] || n)}</span>${mine ? '<span style="margin-left:4px;padding:1px 6px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.66em">あなた</span>' : ''}`;
+        // 名前は中央、「あなた」は右はし
+        inner = `<span style="font-size:0.98em;font-weight:700">${esc(dispMap[n] || n)}</span>${mine ? '<span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:1px 6px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.66em;white-space:nowrap">あなた</span>' : ''}`;
         if (mine) st = 'background:#fff3e0;';
       }
     }
     return `<div style="${base}${st}">${inner}</div>`;
   };
+  // 金曜は、名前の行を全部つなげた1つのセルに「後半組全員」を中央に
+  const friCell = (r, i) => {
+    const isToday = r.date === c.today;
+    const bg = r.mine ? 'background:#fff3e0;' : isToday ? 'background:var(--primary-light);' : '';
+    return `<div style="grid-column:${i + 1};grid-row:2 / span ${maxN};position:relative;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--border);${i ? 'border-left:1px solid var(--border);' : ''}${bg}">
+      <span style="font-size:1.05em;font-weight:700;color:var(--primary-dark)">後半組全員</span>
+      ${r.mine ? '<span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:1px 6px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.66em;white-space:nowrap">あなた</span>' : ''}
+    </div>`;
+  };
   const grid = `<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden">
     ${sel.days.map((r, i) => hcell(r, i)).join('')}
-    ${Array.from({ length: maxN }, (_, k) => sel.days.map((r, i) => bodyCell(r, i, k)).join('')).join('')}
+    ${sel.days.map((r, i) => (r.kind === '金曜全員' ? friCell(r, i) : Array.from({ length: maxN }, (_, k) => bodyCell(r, i, k)).join(''))).join('')}
   </div>`;
   const lab = labelOf(sel);
   const weekBlock = `<div style="margin-top:14px">
