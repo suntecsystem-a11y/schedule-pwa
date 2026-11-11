@@ -9674,6 +9674,8 @@ function renderKotLink() {
 let _clnData = null;
 let _clnCur = null;
 
+// 全員で掃除する日（月曜）。前は金曜で「金曜全員」と呼んでいた値も同じに扱う
+const _clnIsAll = (k) => k === '全員清掃' || k === '金曜全員';
 let _clnError = false;
 let _clnSel = ''; // 今開いている週の月曜（週ごとにめくる）
 
@@ -9758,7 +9760,7 @@ function renderCleaning() {
   } else {
     const mine = ti.iAmDuty
       ? `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.78em">あなたが当番</span>` : '';
-    const dutyText = ti.kind === '金曜全員' ? '後半組の全員で、全部の場所' : esc(ti.dutyDisp || ti.duty);
+    const dutyText = _clnIsAll(ti.kind) ? '後半組の全員で、全部の場所' : esc(ti.dutyDisp || ti.duty);
     const ck = ti.check;
     let checkLine = '';
     if (ck) {
@@ -9785,7 +9787,7 @@ function renderCleaning() {
   if (c.nextDuty) {
     const nd = c.nextDuty;
     const label = nd.date === c.today ? '今日' : `${_clnMD(nd.date)}（${esc(nd.wd)}）`;
-    nextLine = `<div style="font-size:0.92em;margin-top:10px"><span style="color:var(--text2)">次のあなたの当番：</span><strong style="color:#e65100;font-size:1.05em">${label}</strong>${nd.kind === '金曜全員' ? '<span style="color:var(--text2);font-size:0.85em">（金曜・全員）</span>' : ''}</div>`;
+    nextLine = `<div style="font-size:0.92em;margin-top:10px"><span style="color:var(--text2)">次のあなたの当番：</span><strong style="color:#e65100;font-size:1.05em">${label}</strong>${_clnIsAll(nd.kind) ? '<span style="color:var(--text2);font-size:0.85em">（全員で掃除）</span>' : ''}</div>`;
   } else {
     nextLine = `<div style="font-size:0.85em;margin-top:10px;color:var(--text2)">あなたの当番は、登録されている期間にはありません</div>`;
   }
@@ -9825,7 +9827,7 @@ function renderCleaning() {
     }
     return `<div style="${base}${st}">${inner}</div>`;
   };
-  // 金曜は、名前の行を全部つなげた1つのセルに「後半組全員」を中央に
+  // 全員で掃除する日（月曜）は、名前の行を全部つなげた1つのセルに「後半組全員」を中央に
   const friCell = (r, i) => {
     const isToday = r.date === c.today;
     const bg = r.mine ? 'background:#fff3e0;' : isToday ? 'background:var(--primary-light);' : '';
@@ -9836,7 +9838,7 @@ function renderCleaning() {
   };
   const grid = `<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden">
     ${sel.days.map((r, i) => hcell(r, i)).join('')}
-    ${sel.days.map((r, i) => (r.kind === '金曜全員' ? friCell(r, i) : Array.from({ length: maxN }, (_, k) => bodyCell(r, i, k)).join(''))).join('')}
+    ${sel.days.map((r, i) => (_clnIsAll(r.kind) ? friCell(r, i) : Array.from({ length: maxN }, (_, k) => bodyCell(r, i, k)).join(''))).join('')}
   </div>`;
   const lab = labelOf(sel);
   const weekBlock = `<div style="margin-top:14px">
@@ -9849,7 +9851,7 @@ function renderCleaning() {
       ${arrow('▶', 'clnWeek(1)', selIdx >= weeks.length - 1)}
     </div>
     ${grid}
-    <div style="font-size:0.72em;color:var(--text2);margin-top:6px">金曜は、その週の後半組の全員（在宅の人を除く）で、全部の場所を掃除します。「チェック」の印の人が、その日のチェック係です（チェックシートに記入します）。</div>
+    <div style="font-size:0.72em;color:var(--text2);margin-top:6px">月曜は、その週の後半組の全員（在宅の人を除く）で、全部の場所を掃除します。火〜金は、曜日ごとの当番です。「チェック」の印の人が、その日のチェック係です（チェックシートに記入します）。</div>
     ${sel.start !== c.thisMon && weeks.some(w => w.start === c.thisMon) ? `<div style="text-align:center;margin-top:8px"><button onclick="clnWeek(0)" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">今週にもどる</button></div>` : ''}
   </div>`;
 
@@ -9865,7 +9867,7 @@ function openCleaningSample() {
     <div style="font-size:0.82em;color:var(--text2);margin-bottom:10px">今日は当番表がないため、見本を表示しています。当番表のある日には、チェックを入れて保存できます。</div>
     <div style="font-size:0.85em;font-weight:700;margin:6px 0 2px">毎日の4か所</div>
     <div style="border-top:1px solid var(--border)">${CLN_SAMPLE_DAILY.map(li).join('')}</div>
-    <div style="font-size:0.85em;font-weight:700;margin:14px 0 2px">金曜は、上の4か所に加えて</div>
+    <div style="font-size:0.85em;font-weight:700;margin:14px 0 2px">全員で掃除する日（月曜）は、上の4か所に加えて</div>
     <div style="border-top:1px solid var(--border)">${CLN_SAMPLE_FRIDAY.map(li).join('')}</div>
     <button onclick="closeDrModal()" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>`);
 }
@@ -9924,7 +9926,7 @@ async function openCleaningCheck(date) {
       : '';
   const confirmBtn = (!readonly && r.canConfirm && r.byName && !r.confName)
     ? `<button onclick="doConfirmCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;cursor:pointer">✅ 完了にする</button>` : '';
-  const kindLabel = r.kind === '金曜全員' ? '金曜：後半組の全員で全部の場所' : '毎日の4か所';
+  const kindLabel = _clnIsAll(r.kind) ? '全員で掃除：後半組の全員で全部の場所' : '毎日の4か所';
   const guide = !readonly
     ? `<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;line-height:1.6"><strong>チェック係の仕事</strong><br>① 全員に、誰がどこを掃除するか指示する（各場所の「担当」を選んで保存）<br>② 掃除が終わったら、最終チェックをする（できた場所にチェック）<br>③ 「完了にする」を押す</div>`
     : '';
