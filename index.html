@@ -9933,7 +9933,7 @@ async function openCleaningCheck(date) {
           <input type="checkbox" id="cln-${it.id}" ${r.results[it.id] ? 'checked' : ''} ${readonly ? 'disabled' : ''} style="width:20px;height:20px;flex-shrink:0">
           <span style="font-size:0.92em;font-weight:700">${esc(it.label)}</span>
         </label>
-        ${it.manual ? `<button type="button" onclick="clnOpenManual('${it.id}')" style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer;white-space:nowrap">📖 マニュアル</button>` : ''}
+        ${(it.manual || it.howto) ? `<button type="button" onclick="clnOpenManual('${it.id}')" style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer;white-space:nowrap">📖 マニュアル</button>` : ''}
       </div>
       <div id="cln-who-${it.id}" style="margin:4px 0 0 30px">${clnWhoHtml(it.id, readonly)}</div>
     </div>`).join('');
@@ -9991,12 +9991,36 @@ function openCleaningGroups() {
     <button onclick="closeDrModal()" style="width:100%;margin-top:16px;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>`);
 }
 
-// マニュアル（SharePoint の動画・資料）を新しいタブで開く。https のリンクだけ
+// マニュアルを開く。文章（道具・手順・注意）を画面の上に重ねて出す。動画のリンクがあれば「動画を見る」も出す（https のリンクだけ）
 function clnOpenManual(id) {
   const it = (_clnCur && _clnCur.items || []).find(x => x.id === id);
-  const url = it && it.manual;
-  if (!url || !/^https:\/\//.test(url)) { showToast('マニュアルが登録されていません'); return; }
-  window.open(url, '_blank', 'noopener');
+  if (!it) return;
+  const h = it.howto;
+  const url = it.manual && /^https:\/\//.test(it.manual) ? it.manual : '';
+  if (!h) {
+    if (!url) { showToast('マニュアルが登録されていません'); return; }
+    window.open(url, '_blank', 'noopener');
+    return;
+  }
+  const sec = (title, inner) => inner ? `<div style="margin-top:14px"><div style="font-size:0.82em;font-weight:700;color:var(--text2);margin-bottom:4px">${title}</div>${inner}</div>` : '';
+  const tools = (h.tools || []).length ? sec('🧰 道具', `<div style="display:flex;flex-wrap:wrap;gap:6px">${h.tools.map(x => `<span style="padding:3px 10px;border-radius:12px;background:var(--bg);font-size:0.86em">${esc(x)}</span>`).join('')}</div>`) : '';
+  const steps = sec('📝 手順', `<ol style="margin:0;padding-left:0;list-style:none">${(h.steps || []).map((s, i) => `<li style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--primary);color:white;font-weight:700;font-size:0.8em;display:flex;align-items:center;justify-content:center">${i + 1}</span><span style="font-size:0.92em;line-height:1.55">${esc(s)}</span></li>`).join('')}</ol>`);
+  const notes = (h.notes || []).length ? sec('⚠ 注意', `<ul style="margin:0;padding-left:18px;font-size:0.86em;line-height:1.7;color:var(--text)">${h.notes.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`) : '';
+  const video = url ? `<button type="button" onclick="window.open('${esc(url).replace(/'/g, '&#39;')}','_blank','noopener')" style="width:100%;margin-top:14px;padding:12px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">▶ 動画を見る</button>` : '';
+  let ov = document.getElementById('cln-manual-ov');
+  if (!ov) { ov = document.createElement('div'); ov.id = 'cln-manual-ov'; document.body.appendChild(ov); }
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1100;display:flex;align-items:center;justify-content:center';
+  ov.onclick = (e) => { if (e.target === ov) clnCloseManual(); };
+  ov.innerHTML = `<div style="background:white;border-radius:16px;padding:18px 20px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="font-size:1.05em;font-weight:700">📖 ${esc(h.title || it.label)}</div>
+    ${video}${tools}${steps}${notes}
+    <div style="margin-top:12px;font-size:0.72em;color:var(--text3)">このマニュアルは案です。違う所や足りない所は、永野に伝えてください。</div>
+    <button type="button" onclick="clnCloseManual()" style="width:100%;margin-top:12px;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>
+  </div>`;
+}
+function clnCloseManual() {
+  const ov = document.getElementById('cln-manual-ov');
+  if (ov) ov.remove();
 }
 
 function clnToggleAll() {
