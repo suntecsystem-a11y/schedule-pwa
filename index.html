@@ -9718,19 +9718,17 @@ function renderCleaning() {
   if (!area) return;
   const c = _clnData;
   const box = (inner) => `
-    <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #26a69a">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">🏢 新棟：昼休み・掃除当番</span>
-      </div>
+    <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid #26a69a">
+      <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:10px">🏢 新棟：昼休み・掃除当番</div>
       ${inner}
     </div>`;
   area.style.display = '';
   if (!c) {
-    area.innerHTML = box(`<div style="font-size:0.85em;color:var(--text2)">${_clnError ? '当番表を読み込めませんでした。画面を再読み込みしてください。' : '読み込み中...'}</div>`);
+    area.innerHTML = box(`<div style="font-size:0.88em;color:var(--text2)">${_clnError ? '当番表を読み込めませんでした。画面を再読み込みしてください。' : '読み込み中...'}</div>`);
     return;
   }
   if (c.empty) {
-    area.innerHTML = box(`<div style="font-size:0.85em;color:var(--text2)">${c.firstDate ? `当番表は ${_clnMD(c.firstDate)} の週から表示されます。` : '当番表は、まだ登録されていません。'}</div>`);
+    area.innerHTML = box(`<div style="font-size:0.88em;color:var(--text2)">${c.firstDate ? `当番表は ${_clnMD(c.firstDate)} の週から表示されます。` : '当番表は、まだ登録されていません。'}</div>`);
     return;
   }
   const ti = c.todayInfo;
@@ -9739,81 +9737,84 @@ function renderCleaning() {
   if (!weeks.some(w => w.start === _clnSel)) _clnSel = (weeks.find(w => w.start >= c.thisMon) || weeks[weeks.length - 1]).start;
   const sel = weeks.find(w => w.start === _clnSel);
   const selIdx = weeks.findIndex(w => w.start === _clnSel);
-  const labelOf = (w) => (w.start === c.thisMon ? '今週' : w.start === nextMon ? '来週' : w.start < c.thisMon ? '先週以前' : `${_clnMD(w.start)}の週`);
+  const labelOf = (w) => (w.start === c.thisMon ? '今週' : w.start === nextMon ? '来週' : w.start < c.thisMon ? '過去' : '');
 
-  // 昼休み：今週・来週
+  // ① 自分の昼休み（今週・来週）
   const lw = [weeks.find(w => w.start === c.thisMon), weeks.find(w => w.start === nextMon)].filter(Boolean);
-  const lunchLine = `<div style="font-size:0.9em"><span style="color:var(--text2)">昼休み：</span>` + lw.map(w =>
-    `${w.start === c.thisMon ? '今週' : '来週'}＝<strong style="color:var(--primary-dark)">${w.lunch ? esc(w.lunch.label) + '（' + esc(w.lunch.time) + '）' : '未設定'}</strong>${w.myGroup ? `<span style="color:var(--text2);font-size:0.8em">（${esc(w.myGroup)}グループ）</span>` : ''}`
-  ).join('<span style="color:var(--text3)">　／　</span>') + `</div>`;
+  const chip = (w) => `<div style="flex:1;min-width:130px;padding:8px 10px;border-radius:10px;background:var(--primary-light)">
+      <div style="font-size:0.72em;color:var(--text2)">${w.start === c.thisMon ? '今週' : '来週'}（${_clnMD(w.start)}〜）の昼休み</div>
+      <div style="font-size:1em;font-weight:700;color:var(--primary-dark)">${w.lunch ? esc(w.lunch.label) + '　' + esc(w.lunch.time) : '未設定'}</div>
+    </div>`;
+  const lunchBlock = `<div style="display:flex;gap:8px;flex-wrap:wrap">${lw.map(chip).join('')}</div>`;
 
-  // 今日
-  let todayLine = '';
-  let checkLine = '';
+  // ② 今日
+  let todayBlock = '';
   let btn = '';
   if (!ti) {
-    todayLine = `<div style="font-size:0.85em;color:var(--text2)">今日は当番表がありません（土日など）</div>`;
+    todayBlock = `<div style="font-size:0.88em;color:var(--text2)">今日は当番表がありません</div>`;
   } else if (ti.kind === '会社休み') {
-    todayLine = `<div style="font-size:0.85em;color:var(--text2)">今日は会社の休みです</div>`;
+    todayBlock = `<div style="font-size:0.88em;color:var(--text2)">今日は会社の休みです</div>`;
   } else {
     const mine = ti.iAmDuty
-      ? `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#fff3e0;color:#e65100;font-weight:700;font-size:0.8em">あなたが当番です</span>` : '';
-    todayLine = ti.kind === '金曜全員'
-      ? `<div style="font-size:0.9em"><span style="color:var(--text2)">今日の掃除（13:30〜）：</span><strong>後半組の全員で全部の場所</strong>${mine}</div>`
-      : `<div style="font-size:0.9em"><span style="color:var(--text2)">今日の掃除当番（13:30〜）：</span><strong>${esc(ti.duty)}</strong>${mine}</div>`;
+      ? `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.78em">あなたが当番</span>` : '';
+    const dutyText = ti.kind === '金曜全員' ? '後半組の全員で、全部の場所' : esc(ti.duty);
     const ck = ti.check;
+    let checkLine = '';
     if (ck) {
       const st = ck.confName
         ? `<span style="color:#2e7d32;font-weight:700">✅ 総務確認済み（${esc(ck.confName)}）</span>`
         : ck.done > 0
           ? `<span style="color:#f57c00;font-weight:700">${ck.done}/${ck.total} 記入済み（${esc(ck.byName)} ${_drTime(ck.at)}）</span>`
           : `<span style="color:#e53935;font-weight:700">まだ記入されていません</span>`;
-      checkLine = `<div style="font-size:0.82em;margin-top:4px">チェックシート：${st}</div>`;
+      checkLine = `<div style="font-size:0.85em;margin-top:4px">チェックシート：${st}</div>`;
     }
-    btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">📋 チェックシートを開く</button>`;
+    todayBlock = `<div style="font-size:0.75em;color:var(--text2)">今日の掃除（13:30〜）</div>
+      <div style="font-size:1em;font-weight:700">${dutyText}${mine}</div>${checkLine}`;
+    btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:1em;cursor:pointer">📋 チェックシートを開く</button>`;
   }
+  const todayBox = `<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg)">${todayBlock}</div>`;
 
-  // 次の自分の当番日
+  // ③ 次の自分の当番日
   let nextLine = '';
   if (c.nextDuty) {
     const nd = c.nextDuty;
     const label = nd.date === c.today ? '今日' : `${_clnMD(nd.date)}（${esc(nd.wd)}）`;
-    nextLine = `<div style="font-size:0.85em;margin-top:6px"><span style="color:var(--text2)">次のあなたの当番：</span><strong style="color:#e65100">${label}</strong>${nd.kind === '金曜全員' ? '<span style="color:var(--text2)">（金曜・全員）</span>' : ''}</div>`;
+    nextLine = `<div style="font-size:0.92em;margin-top:10px"><span style="color:var(--text2)">次のあなたの当番：</span><strong style="color:#e65100;font-size:1.05em">${label}</strong>${nd.kind === '金曜全員' ? '<span style="color:var(--text2);font-size:0.85em">（金曜・全員）</span>' : ''}</div>`;
   } else {
-    nextLine = `<div style="font-size:0.82em;margin-top:6px;color:var(--text2)">あなたの当番は、登録されている期間にはありません</div>`;
+    nextLine = `<div style="font-size:0.85em;margin-top:10px;color:var(--text2)">あなたの当番は、登録されている期間にはありません</div>`;
   }
 
-  // 週ごとにめくる当番表
-  const kindIcon = (k) => (k === '会社休み' ? '🛌' : k === '金曜全員' ? '🧹' : '🧽');
-  const navBtn = (label, onclick, disabled) => `<button onclick="${onclick}" ${disabled ? 'disabled' : ''} style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:${disabled ? 'var(--bg)' : 'white'};color:${disabled ? 'var(--text3)' : 'var(--primary)'};font-weight:700;font-size:0.8em;cursor:${disabled ? 'default' : 'pointer'};white-space:nowrap">${label}</button>`;
+  // ④ 週ごとにめくる当番表
+  const arrow = (label, onclick, disabled) => `<button onclick="${onclick}" ${disabled ? 'disabled' : ''} aria-label="${label === '◀' ? '前の週' : '次の週'}" style="width:44px;height:40px;border-radius:10px;border:1.5px solid ${disabled ? 'var(--border)' : 'var(--primary)'};background:${disabled ? 'var(--bg)' : 'white'};color:${disabled ? 'var(--text3)' : 'var(--primary)'};font-weight:700;font-size:1.05em;cursor:${disabled ? 'default' : 'pointer'};flex-shrink:0">${label}</button>`;
   const rows = sel.days.map(r => {
     const isToday = r.date === c.today;
-    const duty = r.kind === '会社休み' ? '会社休み' : r.kind === '金曜全員' ? '後半組の全員で全部' : r.duty;
-    return `<div style="display:flex;gap:8px;padding:4px 6px;border-radius:6px;font-size:0.8em;${isToday ? 'background:var(--primary-light);font-weight:700' : ''}">
-      <span style="width:56px;color:var(--text2);flex-shrink:0">${_clnMD(r.date)}（${esc(r.wd)}）</span>
-      <span style="flex:1;min-width:0;word-break:break-word">${kindIcon(r.kind)} ${esc(duty)}</span>
-      ${r.mine ? '<span style="color:#e65100;font-weight:700">★</span>' : ''}
+    const isHoliday = r.kind === '会社休み';
+    const isFri = r.kind === '金曜全員';
+    const duty = isHoliday ? '会社休み' : isFri ? '後半組の全員で全部の場所' : r.duty;
+    const bg = r.mine ? '#fff3e0' : isToday ? 'var(--primary-light)' : 'transparent';
+    const border = r.mine ? 'border-left:4px solid #e65100;' : 'border-left:4px solid transparent;';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid var(--border);background:${bg};${border}">
+      <span style="width:74px;flex-shrink:0;font-size:0.92em;font-weight:700;white-space:nowrap">${_clnMD(r.date)}<span style="font-weight:400;color:var(--text2)"> ${esc(r.wd)}</span></span>
+      <span style="flex:1;min-width:0;font-size:0.95em;word-break:break-word;${isHoliday ? 'color:var(--text2)' : ''}">${esc(duty)}</span>
+      ${r.mine ? '<span style="flex-shrink:0;padding:2px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.72em">あなた</span>' : ''}
+      ${isToday && !r.mine ? '<span style="flex-shrink:0;font-size:0.72em;font-weight:700;color:var(--primary)">今日</span>' : ''}
     </div>`;
   }).join('');
-  const lunchSel = sel.lunch ? `あなた＝${esc(sel.lunch.label)}（${esc(sel.lunch.time)}）` : '';
-  const weekBlock = `<div style="margin-top:12px">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:4px">
-      ${navBtn('◀ 前の週', 'clnWeek(-1)', selIdx <= 0)}
-      <div style="text-align:center;font-size:0.82em;font-weight:700;color:var(--text)">${esc(labelOf(sel))}（${_clnMD(sel.start)}〜${_clnMD(_clnAdd(sel.start, 4))}）</div>
-      ${navBtn('次の週 ▶', 'clnWeek(1)', selIdx >= weeks.length - 1)}
+  const lab = labelOf(sel);
+  const weekBlock = `<div style="margin-top:14px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      ${arrow('◀', 'clnWeek(-1)', selIdx <= 0)}
+      <div style="flex:1;text-align:center">
+        <div style="font-size:1em;font-weight:700">${_clnMD(sel.start)} 〜 ${_clnMD(_clnAdd(sel.start, 4))}${lab ? `<span style="margin-left:6px;font-size:0.8em;color:var(--primary)">（${lab}）</span>` : ''}</div>
+        <div style="font-size:0.78em;color:var(--text2);margin-top:2px">前半＝${esc(sel.front)}グループ　後半＝${esc(sel.back)}グループ${sel.lunch ? '　／　あなた：' + esc(sel.lunch.label) : ''}</div>
+      </div>
+      ${arrow('▶', 'clnWeek(1)', selIdx >= weeks.length - 1)}
     </div>
-    <div style="display:flex;justify-content:space-between;font-size:0.75em;color:var(--text2);padding:0 6px 3px;border-bottom:1px solid var(--border)">
-      <span>前半＝${esc(sel.front)}／後半＝${esc(sel.back)}グループ</span><span>${lunchSel}</span>
-    </div>${rows}
-    ${sel.start !== c.thisMon && weeks.some(w => w.start >= c.thisMon) ? `<div style="text-align:center;margin-top:6px"><button onclick="clnWeek(0)" style="padding:4px 12px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.78em;cursor:pointer">今週にもどる</button></div>` : ''}
+    <div style="border-top:1px solid var(--border)">${rows}</div>
+    ${sel.start !== c.thisMon && weeks.some(w => w.start === c.thisMon) ? `<div style="text-align:center;margin-top:8px"><button onclick="clnWeek(0)" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">今週にもどる</button></div>` : ''}
   </div>`;
 
-  area.innerHTML = box(`
-    ${lunchLine}
-    <div style="margin-top:6px">${todayLine}${checkLine}</div>
-    ${nextLine}
-    ${weekBlock}
-    ${btn}`);
+  area.innerHTML = box(`${lunchBlock}${todayBox}${nextLine}${weekBlock}${btn}`);
 }
 
 async function openCleaningCheck(date) {
