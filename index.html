@@ -9673,13 +9673,17 @@ function renderKotLink() {
 let _clnData = null;
 let _clnCur = null;
 
+let _clnError = false;
+
 async function loadCleaning() {
   const area = document.getElementById('cleaning-area');
   if (!area) return;
   try {
     _clnData = await api('getCleaningHome', {}, '', { quiet: true });
+    _clnError = false;
   } catch(e) {
     _clnData = null;
+    _clnError = true;
   }
   renderCleaning();
 }
@@ -9689,22 +9693,41 @@ function _clnMD(ymd) {
   return p.length === 3 ? `${+p[1]}/${+p[2]}` : '';
 }
 
+// カードは常に出す（当番表がない週・読み込めないときも、理由を書く）
 function renderCleaning() {
   const area = document.getElementById('cleaning-area');
   if (!area) return;
   const c = _clnData;
-  if (!c || !c.active) { area.style.display = 'none'; area.innerHTML = ''; return; }
+  const box = (inner) => `
+    <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #26a69a">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">🏢 新棟：昼休み・掃除当番</span>
+      </div>
+      ${inner}
+    </div>`;
+  area.style.display = '';
+  if (!c) {
+    area.innerHTML = box(`<div style="font-size:0.85em;color:var(--text2)">${_clnError ? '当番表を読み込めませんでした。画面を再読み込みしてください。' : '読み込み中...'}</div>`);
+    return;
+  }
+  if (c.empty) {
+    area.innerHTML = box(`<div style="font-size:0.85em;color:var(--text2)">${c.firstDate ? `当番表は ${_clnMD(c.firstDate)} の週から表示されます。` : '当番表は、まだ登録されていません。'}</div>`);
+    return;
+  }
   const ti = c.todayInfo;
+  const weeks = c.weeks || [];
 
-  const lunchLine = c.lunch
-    ? `<div style="font-size:0.9em"><span style="color:var(--text2)">今週の昼休み：</span><strong style="color:var(--primary-dark)">${esc(c.lunch.label)}（${esc(c.lunch.time)}）</strong><span style="color:var(--text2);font-size:0.85em">　${esc(c.myGroup)}グループ</span></div>`
-    : `<div style="font-size:0.85em;color:var(--text2)">今週の昼休み：グループの設定がありません</div>`;
+  // 昼休み：今週・来週
+  const lunchLine = `<div style="font-size:0.9em"><span style="color:var(--text2)">昼休み：</span>` + weeks.map(w =>
+    `${esc(w.label)}＝<strong style="color:var(--primary-dark)">${w.lunch ? esc(w.lunch.label) + '（' + esc(w.lunch.time) + '）' : '未設定'}</strong>${w.myGroup ? `<span style="color:var(--text2);font-size:0.8em">（${esc(w.myGroup)}グループ）</span>` : ''}`
+  ).join('<span style="color:var(--text3)">　／　</span>') + `</div>`;
 
+  // 今日
   let todayLine = '';
   let checkLine = '';
   let btn = '';
   if (!ti) {
-    todayLine = `<div style="font-size:0.85em;color:var(--text2)">今日は当番表がありません</div>`;
+    todayLine = `<div style="font-size:0.85em;color:var(--text2)">今日は当番表がありません（土日など）</div>`;
   } else if (ti.kind === '会社休み') {
     todayLine = `<div style="font-size:0.85em;color:var(--text2)">今日は会社の休みです</div>`;
   } else {
@@ -9725,29 +9748,40 @@ function renderCleaning() {
     btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">📋 チェックシートを開く</button>`;
   }
 
+  // 次の自分の当番日
+  let nextLine = '';
+  if (c.nextDuty) {
+    const nd = c.nextDuty;
+    const label = nd.date === c.today ? '今日' : `${_clnMD(nd.date)}（${esc(nd.wd)}）`;
+    nextLine = `<div style="font-size:0.85em;margin-top:6px"><span style="color:var(--text2)">次のあなたの当番：</span><strong style="color:#e65100">${label}</strong>${nd.kind === '金曜全員' ? '<span style="color:var(--text2)">（金曜・全員）</span>' : ''}</div>`;
+  } else {
+    nextLine = `<div style="font-size:0.82em;margin-top:6px;color:var(--text2)">あなたの当番は、登録されている期間にはありません</div>`;
+  }
+
+  // 今週・来週の当番表（常に表示）
   const kindIcon = (k) => (k === '会社休み' ? '🛌' : k === '金曜全員' ? '🧹' : '🧽');
-  const weekRows = (c.week || []).map(r => {
-    const isToday = r.date === c.today;
-    const duty = r.kind === '会社休み' ? '会社休み' : r.kind === '金曜全員' ? '後半組の全員で全部' : r.duty;
-    return `<div style="display:flex;gap:8px;padding:4px 6px;border-radius:6px;font-size:0.8em;${isToday ? 'background:var(--primary-light);font-weight:700' : ''}">
-      <span style="width:52px;color:var(--text2)">${_clnMD(r.date)}（${esc(r.wd)}）</span>
-      <span style="flex:1;min-width:0;word-break:break-word">${kindIcon(r.kind)} ${esc(duty)}</span>
-      ${r.mine ? '<span style="color:#e65100;font-weight:700">★</span>' : ''}
-    </div>`;
+  const weekBlocks = weeks.map(w => {
+    const rows = w.days.map(r => {
+      const isToday = r.date === c.today;
+      const duty = r.kind === '会社休み' ? '会社休み' : r.kind === '金曜全員' ? '後半組の全員で全部' : r.duty;
+      return `<div style="display:flex;gap:8px;padding:4px 6px;border-radius:6px;font-size:0.8em;${isToday ? 'background:var(--primary-light);font-weight:700' : ''}">
+        <span style="width:56px;color:var(--text2);flex-shrink:0">${_clnMD(r.date)}（${esc(r.wd)}）</span>
+        <span style="flex:1;min-width:0;word-break:break-word">${kindIcon(r.kind)} ${esc(duty)}</span>
+        ${r.mine ? '<span style="color:#e65100;font-weight:700">★</span>' : ''}
+      </div>`;
+    }).join('');
+    return `<div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;font-size:0.78em;font-weight:700;color:var(--text2);padding:0 6px 3px;border-bottom:1px solid var(--border)">
+        <span>${esc(w.label)}（${_clnMD(w.start)}〜）</span><span>前半＝${esc(w.front)}／後半＝${esc(w.back)}グループ</span>
+      </div>${rows}</div>`;
   }).join('');
 
-  area.style.display = '';
-  area.innerHTML = `
-    <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #26a69a">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:0.82em;font-weight:700;color:var(--text2)">🏢 新棟：昼休み・掃除当番</span>
-        <span style="font-size:0.75em;color:var(--text2)">今週：前半＝${esc(c.front)}／後半＝${esc(c.back)}グループ</span>
-      </div>
-      ${lunchLine}
-      <div style="margin-top:6px">${todayLine}${checkLine}</div>
-      <details style="margin-top:8px"><summary style="font-size:0.8em;color:var(--primary);cursor:pointer;font-weight:700">今週の当番表</summary><div style="margin-top:6px">${weekRows}</div></details>
-      ${btn}
-    </div>`;
+  area.innerHTML = box(`
+    ${lunchLine}
+    <div style="margin-top:6px">${todayLine}${checkLine}</div>
+    ${nextLine}
+    ${weekBlocks}
+    ${btn}`);
 }
 
 async function openCleaningCheck(date) {
