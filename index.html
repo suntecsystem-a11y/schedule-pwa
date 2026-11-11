@@ -9963,6 +9963,9 @@ async function openCleaningCheck(date) {
       ${confirmBtn}
       <button onclick="closeDrModal()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>
     </div>`, { lock: true });
+  // チェックシートは大きく表示（閉じるときに closeDrModal が元の大きさに戻す）
+  const b = document.getElementById('dr-modal-body');
+  b.style.maxWidth = 'min(820px, 96vw)'; b.style.width = '96%'; b.style.maxHeight = '92vh'; b.style.fontSize = '1.15em';
 }
 
 // 昼休みのグループ（誰が前半組・後半組か）を見る
@@ -10011,7 +10014,7 @@ function clnOpenManual(id) {
   if (!ov) { ov = document.createElement('div'); ov.id = 'cln-manual-ov'; document.body.appendChild(ov); }
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1100;display:flex;align-items:center;justify-content:center';
   ov.onclick = (e) => { if (e.target === ov) clnCloseManual(); };
-  ov.innerHTML = `<div style="background:white;border-radius:16px;padding:18px 20px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+  ov.innerHTML = `<div style="background:white;border-radius:16px;padding:22px 26px;width:96%;max-width:min(820px,96vw);max-height:92vh;font-size:1.15em;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)">
     <div style="font-size:1.05em;font-weight:700">📖 ${esc(h.title || it.label)}</div>
     ${video}${tools}${steps}${notes}
     <div style="margin-top:12px;font-size:0.72em;color:var(--text3)">このマニュアルは案です。違う所や足りない所は、永野に伝えてください。</div>
