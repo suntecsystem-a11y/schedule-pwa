@@ -664,7 +664,8 @@ input,select{font-family:inherit;outline:none}
 .inc-badge.st-new{background:#ede7f6;color:#4527a0}
 .inc-detail-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:16px}
 .inc-detail-modal.open{display:flex}
-.inc-detail-card{background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.inc-detail-card{background:var(--surface);border-radius:16px;max-width:min(820px,96vw);width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+@media(min-width:900px){#dr-modal-body{font-size:1.1em}.inc-detail-card{font-size:1.1em}}
 .inc-prevention{margin-top:8px;padding:8px 10px;background:#e8f5e9;border-radius:8px;font-size:0.78em;color:#2e7d32;line-height:1.5}
 .inc-filter-chip{padding:5px 10px;border-radius:16px;font-size:0.73em;font-weight:600;background:var(--bg2);color:var(--text2);border:1px solid var(--border);cursor:pointer;transition:all .2s;white-space:nowrap}
 .inc-filter-chip:hover{border-color:var(--primary-light)}
@@ -1296,7 +1297,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 
   <!-- 投稿モーダル -->
   <div id="notice-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
-    <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:480px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:min(680px,92vw);box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <h3 style="margin:0 0 16px;font-size:1em;font-weight:700" id="notice-modal-title">お知らせを投稿</h3>
       <div style="margin-bottom:12px">
         <label id="notice-importance-label" style="font-size:0.82em;font-weight:600;color:var(--text2)">重要度</label>
@@ -1323,12 +1324,12 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 
   <!-- 日報入力／課題確認状況モーダル（中身はJSで描画） -->
   <div id="dr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this&&!this.dataset.lock)closeDrModal()">
-    <div id="dr-modal-body" style="background:white;border-radius:16px;padding:20px;width:92%;max-width:560px;max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)"></div>
+    <div id="dr-modal-body" style="background:white;border-radius:16px;padding:20px;width:92%;max-width:min(900px,96vw);max-height:88vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.2)"></div>
   </div>
 
   <!-- 安否確認 発信モーダル -->
   <div id="safety-send-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
-    <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:420px;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+    <div style="background:white;border-radius:16px;padding:24px;width:90%;max-width:min(620px,92vw);box-shadow:0 8px 32px rgba(0,0,0,.2)">
       <h3 style="margin:0 0 16px;font-size:1em;font-weight:700">🚨 安否確認を発信</h3>
       <div style="margin-bottom:12px">
         <label style="font-size:0.82em;font-weight:600;color:var(--text2)">災害種別</label>
@@ -9030,7 +9031,7 @@ function openDrModal(html, { lock = false } = {}) {
 function closeDrModal() {
   document.getElementById('dr-modal').style.display = 'none';
   const b = document.getElementById('dr-modal-body');
-  b.style.maxWidth = '560px';  // 週次フィードバックで広げた幅を元に戻す
+  b.style.maxWidth = 'min(900px,96vw)';  // 週次フィードバックで広げた幅を元に戻す
   b.style.width = '92%'; b.style.maxHeight = '88vh'; b.style.fontSize = '';   // bigDrModal で大きくした分も元に戻す
 }
 function widenDrModal() { document.getElementById('dr-modal-body').style.maxWidth = 'min(1000px, 96vw)'; }
@@ -11201,7 +11202,7 @@ function openBentoSheet(editCtx){
   ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:3000;display:flex;align-items:flex-end;justify-content:center';
   ov.onclick=(e)=>{ if(e.target===ov) closeBentoSheet(); };
   const pane=document.createElement('div');
-  pane.style.cssText='background:#fff;width:100%;max-width:520px;max-height:85vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px';
+  pane.style.cssText='background:#fff;width:100%;max-width:min(760px,96vw);max-height:85vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px';
   const dateVal = isEdit ? _bentoEdit.date : (presetDate || _bentoDefaultDate());
   pane.innerHTML=`
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
