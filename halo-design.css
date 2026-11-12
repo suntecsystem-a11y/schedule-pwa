@@ -31,7 +31,7 @@ body.hn.hn-ic-ok .hn-ic{display:inline-block;font-size:1.12em;line-height:1;vert
 body.hn.hn-ic-ok .hn-dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;vertical-align:.02em}
 
 /* ---------- ロゴ「光の輪」（brand/*.svg。HAL＋太陽の光がにじむ輪） ---------- */
-.hn-logo img{display:block;height:1.8em;width:auto}
+.hn-logo img{display:block;height:2.2em;width:auto;margin:-.3em 0}
 
 /* ---------- 上部バー（緑・ロゴ） ---------- */
 body.hn .topbar{background:var(--primary);box-shadow:none;gap:12px}
@@ -196,5 +196,5 @@ body.hn [style*="border-left:4px solid #f57c00"]{border-left-color:var(--orange)
 body.hn #login-screen{background:linear-gradient(135deg,var(--hn-heroA),var(--hn-heroB))}
 body.hn .login-card{border-radius:24px}
 body.hn .login-logo .hn-logo{display:flex;justify-content:center;font-size:30px;margin-bottom:10px}
-body.hn .login-logo .hn-logo img{height:1.9em}
+body.hn .login-logo .hn-logo img{height:2.2em}
 body.hn .login-logo .icon{display:none}
