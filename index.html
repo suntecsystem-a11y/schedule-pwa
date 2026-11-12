@@ -10043,8 +10043,8 @@ function renderCleaning() {
   area.innerHTML = box(`${lunchBlock}${todayBox}${nextLine}${weekBlock}${btn}`);
 }
 
-const CLN_SAMPLE_DAILY = ['食堂のゴミ捨て（袋を替え、新棟裏のゴミ置き場へ）', 'ポットの水補給', '食堂のテーブル・椅子の拭き掃除', 'スリッパの消毒・消臭', '飲み物の在庫確認', '紙コップの補充確認'];
-const CLN_SAMPLE_FRIDAY = ['玄関（靴箱・外・中）と外階段', '食堂のシンク', '男性トイレ', '女性トイレ', '2階の窓', '階段（2階〜3階）と廊下', '3階会議室', '2階会議室'];
+const CLN_SAMPLE_DAILY = ['食堂のゴミ捨て（袋を替え、新棟裏のゴミ置き場へ）', 'ポットの水補給', '食堂のテーブル・椅子の拭き掃除', 'スリッパの消毒・消臭', '飲み物の在庫確認', '紙コップ・お箸の補充確認'];
+const CLN_SAMPLE_FRIDAY = ['玄関（2階の内外）、外階段、1階玄関先', '食堂のシンク', '男性トイレ', '女性トイレ', '2階の窓', '階段（2階〜3階）と廊下', '3階会議室', '2階会議室'];
 function openCleaningSample() {
   const li = (s) => `<div style="display:flex;align-items:center;gap:10px;padding:9px 8px;border-bottom:1px solid var(--border);font-size:0.92em"><span style="width:20px;height:20px;border:2px solid var(--border);border-radius:4px;flex-shrink:0"></span><span>${esc(s)}</span></div>`;
   openDrModal(`
