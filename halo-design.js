@@ -226,9 +226,50 @@
     expandSidebar();
     // ログインのたびに元の処理（restoreSidebarState）がたたんだ状態を戻すので、それも「開く」に置き換える
     if (typeof restoreSidebarState === 'function') window.restoreSidebarState = expandSidebar;
+    hideInquiry();
+    addHomeHead();
     applyStatusColors();
     scan(document.body);
     mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+
+  // ---------- 2段階目（11/12）：問い合わせを隠す ----------
+  // 左メニュー・上のタブは CSS で隠す。スマホの「その他」シートは MORE_TABS から外す（準備中で押せない項目）
+  function hideInquiry() {
+    try {
+      if (typeof MORE_TABS !== 'undefined' && Array.isArray(MORE_TABS)) {
+        const i = MORE_TABS.indexOf('inquiry');
+        if (i >= 0) MORE_TABS.splice(i, 1);
+      }
+    } catch (e) { /* 隠せなくても動く */ }
+  }
+
+  // ---------- 2段階目：ホームの見出しと挨拶（タブレット・PC。採用案の「ホーム／こんにちは、○○さん・日付」） ----------
+  const HELLO = { ja: 'こんにちは、{n}さん', vi: 'Xin chào, {n}', ne: 'नमस्ते, {n}' };
+  const LOCALE = { ja: 'ja-JP', vi: 'vi-VN', ne: 'ne-NP' };
+  function addHomeHead() {
+    const home = document.getElementById('tab-home');
+    if (!home || home.querySelector('.hn-page-head')) return;
+    home.insertAdjacentHTML('afterbegin', '<div class="hn-page-head"><h1 class="hn-page-title"></h1><p class="hn-page-hello"></p></div>');
+    updateHomeHead();
+    const user = document.getElementById('topbar-user');
+    if (user) new MutationObserver(updateHomeHead).observe(user, { childList: true, characterData: true, subtree: true });
+    setInterval(updateHomeHead, 60 * 1000); // 日付が変わったとき用
+  }
+  function updateHomeHead() {
+    const head = document.querySelector('#tab-home .hn-page-head');
+    if (!head) return;
+    const lang = (typeof currentLang !== 'undefined' && HELLO[currentLang]) ? currentLang : 'ja';
+    const label = document.querySelector('.sidebar-btn[data-tab="home"] .sidebar-label');
+    head.querySelector('.hn-page-title').textContent = (label && label.textContent.trim()) || 'ホーム';
+    const full = (typeof currentUser !== 'undefined' && currentUser && currentUser.name) || (document.getElementById('topbar-user') || {}).textContent || '';
+    const name = String(full).trim().split(/[\s　]+/)[0];
+    let date = '';
+    try {
+      date = new Intl.DateTimeFormat(LOCALE[lang], { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
+      if (lang === 'ja') date = date.replace(/\((.)\)/, '（$1）').replace(/^(.*日)(.)$/, '$1（$2）');
+    } catch (e) { date = ''; }
+    head.querySelector('.hn-page-hello').textContent = (name ? HELLO[lang].replace('{n}', name) : '') + (name && date ? '・' : '') + date;
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

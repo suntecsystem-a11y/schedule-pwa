@@ -99,6 +99,30 @@ body.hn #sidebar-today .st-title{color:var(--hn-eb);letter-spacing:.16em}
 body.hn #sidebar-today .st-item{background:var(--surface-1);color:var(--text)}
 body.hn #sidebar-today .st-empty{color:var(--text2)}
 
+/* ---------- 2段階目（11/12）：問い合わせを隠す（左メニューの並びは今までどおり） ---------- */
+body.hn .sidebar-btn[data-tab="inquiry"],body.hn .tab-btn[data-tab="inquiry"]{display:none!important}
+
+/* ---------- 2段階目：タブレット横向き（600〜899px）＝アイコンだけの細い左メニュー＋細めの上部バー ---------- */
+@media(min-width:600px) and (max-width:899px){
+  body.hn.app-active .topbar{height:48px;padding:0 14px}
+  body.hn.app-active #app{padding-top:48px}
+  body.hn #sidebar{top:48px}
+  body.hn #sidebar.visible{width:64px}
+  body.hn.app-active #app{margin-left:64px}
+  body.hn .sidebar-short{display:none}
+  body.hn .sidebar-btn{min-height:48px;padding:0;margin:3px 8px;width:48px;justify-content:center}
+  body.hn .sidebar-icon .hn-ic{font-size:1.4rem}
+  body.hn .hn-logo{font-size:13px}
+}
+
+/* ---------- 2段階目：ホームの見出しと挨拶（タブレット・PC） ---------- */
+.hn-page-head{display:none}
+@media(min-width:600px){
+  body.hn .hn-page-head{display:block;max-width:900px;margin:0 auto;padding:18px 12px 0}
+  body.hn .hn-page-title{font-size:1.5em;font-weight:700;color:var(--text);letter-spacing:.02em;line-height:1.3}
+  body.hn .hn-page-hello{margin-top:4px;font-size:.88em;color:var(--text2)}
+}
+
 /* ---------- スマホの下部メニュー ---------- */
 body.hn #bottom-nav{background:rgba(255,255,255,.97);border-top:1px solid var(--border);box-shadow:none}
 body.hn .bn-icon{filter:none;opacity:1;color:var(--text2)}
