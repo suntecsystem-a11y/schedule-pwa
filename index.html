@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -1154,6 +1154,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     </div>
     <!-- 今週の昼休みグループ・今日の掃除当番・掃除チェックシート（2026-11-11。新棟。お知らせの下） -->
     <div id="cleaning-area" style="display:none;padding:8px 0 0"></div>
+    <!-- ごみ捨て当番（燃えるごみ・プラ。2026-11-12。リリース前なので永野の画面だけ） -->
+    <div id="trash-area" style="display:none;padding:8px 0 0"></div>
     <div id="home-content"></div>
   </div>
 
@@ -3965,7 +3967,7 @@ function showApp(opts){
     switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   }
   renderAll();
-  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink(), loadCleaning()]);
+  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink(), loadCleaning(), loadTrash()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
@@ -9680,6 +9682,39 @@ const _clnIsAll = (k) => k === '全員清掃' || k === '金曜全員';
 let _clnError = false;
 let _clnSel = ''; // 今開いている週の月曜（週ごとにめくる）
 
+// ---- ごみ捨て当番（燃えるごみ・プラ）。週ごとにグループで回す。リリース前：永野（社員番号81）の画面にだけ出す
+async function loadTrash() {
+  const area = document.getElementById('trash-area');
+  if (!area) return;
+  if (!currentUser || String(currentUser.id) !== '81') { area.innerHTML = ''; area.style.display = 'none'; return; }
+  let d = null;
+  try { d = await api('getTrashDuty', {}, '', { quiet: true }); } catch(e) { d = null; }
+  if (!d || !d.active) { area.innerHTML = ''; area.style.display = 'none'; return; }
+  const md = (ymd) => { const p = String(ymd).split('-'); return `${+p[1]}/${+p[2]}`; };
+  const names = (w) => w.members.map(m => m.mine ? `<b style="color:var(--primary-dark)">${esc(m.disp)}</b>` : esc(m.disp)).join('、');
+  const nextMon = _clnAdd(d.thisMon, 7);
+  const cur = d.weeks.find(w => w.start === d.thisMon) || null;
+  const nxt = d.weeks.find(w => w.start === nextMon) || null;
+  const chip = (label, w, start) => w
+    ? `<div style="flex:1;min-width:150px;padding:10px 12px;border-radius:10px;background:${w.mine ? 'var(--primary-light)' : 'var(--bg)'}">
+         <div style="font-size:0.75em;color:var(--text2)">${label}（${md(start)}〜）</div>
+         <div style="font-size:1.05em;font-weight:700;color:var(--primary-dark)">${esc(w.group)}${w.mine ? '　← あなた' : ''}</div>
+         <div style="font-size:0.78em;color:var(--text2);margin-top:2px">${names(w)}</div>
+       </div>`
+    : `<div style="flex:1;min-width:150px;padding:10px 12px;border-radius:10px;background:var(--bg)">
+         <div style="font-size:0.75em;color:var(--text2)">${label}（${md(start)}〜）</div>
+         <div style="font-size:0.9em;color:var(--text2)">${d.thisMon < d.startsAt ? md(d.startsAt) + ' の週から' : '当番表がありません'}</div>
+       </div>`;
+  const rows = d.weeks.map(w => `<div style="padding:6px 0;border-top:1px solid var(--border,#eee);font-size:0.85em"><b>${md(w.start)}〜</b>　${esc(w.group)}<div style="font-size:0.9em;color:var(--text2)">${names(w)}</div></div>`).join('');
+  area.style.display = '';
+  area.innerHTML = `
+    <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid #8d6e63">
+      <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:4px">🗑 ごみ捨て当番（燃えるごみ・プラ）</div>
+      <div style="font-size:0.75em;color:var(--text2);margin-bottom:10px">その週の当番グループが、ストック置き場（新棟裏）のごみを、決まった日に捨てます（燃えるごみ：火・金／プラ：木）。</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${chip('今週', cur, d.thisMon)}${chip('来週', nxt, nextMon)}</div>
+      <details style="margin-top:10px"><summary style="cursor:pointer;font-size:0.85em;color:var(--primary)">6週の順番を見る</summary>${rows}</details>
+    </div>`;
+}
 async function loadCleaning() {
   const area = document.getElementById('cleaning-area');
   if (!area) return;
