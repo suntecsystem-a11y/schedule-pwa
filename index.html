@@ -1027,10 +1027,10 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=3">
+<link rel="stylesheet" href="halo-design.css?v=4">
 </head>
 <body>
-<script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}</script>
+<script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
 
 <!-- ローディング -->
 <div id="loading">
@@ -2399,6 +2399,7 @@ ja:{
 'push.default.title':'通知','push.not.granted':'プッシュ通知が許可されませんでした',
 'push.init.error':'⚠️ 通知初期化エラー: {msg}',
 'settings.push':'🔔 通知（この端末）',
+'settings.grp.display':'表示','settings.grp.notify':'通知','settings.grp.schedule':'予定','settings.grp.account':'アカウント','settings.fontsize':'🔤 文字の大きさ','settings.fs.n':'標準','settings.fs.l':'大きめ','settings.fs.xl':'特大','settings.fs.sample':'この大きさで表示されます','my.sec.notice':'お知らせ','my.sec.schedule':'自分の予定','my.sec.other':'その他',
 'push.st.ok':'✅ この端末で通知を受け取れます','push.st.notreg':'⚠️ 通知は許可されていますが、この端末はまだ登録されていません',
 'push.st.default':'⚠️ 通知がまだ許可されていません','push.st.denied':'⛔ 通知がブロックされています',
 'push.st.ios':'iPhone・iPad は、Safari の共有ボタン（□↑）→「ホーム画面に追加」で追加し、ホーム画面のアイコンから開くと通知を受け取れます',
@@ -2787,6 +2788,7 @@ vi:{
 'push.default.title':'Thông báo','push.not.granted':'Push chưa được cho phép',
 'push.init.error':'⚠️ Lỗi khởi tạo thông báo: {msg}',
 'settings.push':'🔔 Thông báo (thiết bị này)',
+'settings.grp.display':'Hiển thị','settings.grp.notify':'Thông báo','settings.grp.schedule':'Lịch','settings.grp.account':'Tài khoản','settings.fontsize':'🔤 Cỡ chữ','settings.fs.n':'Chuẩn','settings.fs.l':'Lớn','settings.fs.xl':'Rất lớn','settings.fs.sample':'Chữ sẽ hiển thị cỡ này','my.sec.notice':'Thông báo','my.sec.schedule':'Lịch của tôi','my.sec.other':'Khác',
 'push.st.ok':'✅ Thiết bị này có thể nhận thông báo','push.st.notreg':'⚠️ Đã cho phép thông báo nhưng thiết bị này chưa được đăng ký',
 'push.st.default':'⚠️ Chưa cho phép thông báo','push.st.denied':'⛔ Thông báo đang bị chặn',
 'push.st.ios':'iPhone・iPad: nhấn nút Chia sẻ (□↑) trong Safari →「Thêm vào MH chính」, rồi mở từ biểu tượng trên màn hình chính để nhận thông báo',
@@ -3175,6 +3177,7 @@ ne:{
 'push.default.title':'सूचना','push.not.granted':'Push सूचना अनुमति दिइएन',
 'push.init.error':'⚠️ सूचना प्रारम्भ त्रुटि: {msg}',
 'settings.push':'🔔 सूचना (यो उपकरण)',
+'settings.grp.display':'प्रदर्शन','settings.grp.notify':'सूचना','settings.grp.schedule':'तालिका','settings.grp.account':'खाता','settings.fontsize':'🔤 अक्षरको आकार','settings.fs.n':'सामान्य','settings.fs.l':'ठूलो','settings.fs.xl':'धेरै ठूलो','settings.fs.sample':'यो आकारमा देखिन्छ','my.sec.notice':'सूचना','my.sec.schedule':'मेरो तालिका','my.sec.other':'अन्य',
 'push.st.ok':'✅ यो उपकरणमा सूचना प्राप्त गर्न सकिन्छ','push.st.notreg':'⚠️ सूचना अनुमति छ, तर यो उपकरण अझै दर्ता भएको छैन',
 'push.st.default':'⚠️ सूचना अझै अनुमति दिइएको छैन','push.st.denied':'⛔ सूचना ब्लक गरिएको छ',
 'push.st.ios':'iPhone・iPad: Safari को सेयर बटन (□↑) →「Add to Home Screen」थिच्नुहोस्, अनि होम स्क्रिनको आइकनबाट खोल्दा सूचना आउँछ',
@@ -10718,7 +10721,22 @@ function renderMyPage() {
   // バッジ更新
   updateNotifBadge(approvalNotifs.length + pendingApprovals.length + applyRequests.length + overdueRentals.length + todokeNotifs.length);
 
+  // 2026-11-12 新デザイン 3a：お知らせ（通知カード）があるときだけ見出しを出す
+  const _hasMyNotice = overdueRentals.length || todokeNotifs.length || applyRequests.length || pendingApprovals.length
+    || approvalNotifs.some(n=>n.type==='approved'||n.type==='rejected') || pendingNotifs.length;
   document.getElementById('mypage-content').innerHTML = `
+    <!-- 自分のカード（新デザイン 3a：一番上に。iPhone の設定の Apple ID のカードの形） -->
+    <div class="ios-group ios-me-wrap" style="margin-bottom:12px">
+      <div class="ios-me">
+        <div class="ios-av">${esc(initials)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="ios-name">${esc(currentUser.name)}</div>
+          <div class="ios-sub">${esc(currentUser.dept||'')}　${t('my.empId')} ${esc(currentUser.id)}</div>
+        </div>
+      </div>
+    </div>
+    ${_hasMyNotice ? `<div class="ios-head">${t('my.sec.notice')}</div>` : ''}
+
     <!-- 返却期限超過の通知 -->
     ${overdueRentals.length ? `
     <div class="notif-item" style="background:linear-gradient(135deg,#ffebee,#fff5f5);border-color:#ef9a9a;margin-bottom:12px">
@@ -10862,14 +10880,7 @@ function renderMyPage() {
       }).join('')}
     </div>` : ''}
 
-    <!-- プロフィールカード -->
-    <div style="background:white;border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--primary);color:white;font-size:1.1em;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${esc(initials)}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:1em;font-weight:700">${esc(currentUser.name)}</div>
-        <div style="font-size:0.78em;color:var(--text2);margin-top:2px">${esc(currentUser.dept||'')}　${t('my.empId')} ${esc(currentUser.id)}</div>
-      </div>
-    </div>
+    <div class="ios-head">${t('my.sec.schedule')}</div>
 
     ${_bentoVisible() ? `
     <!-- 弁当予約（大黒製造 以外の全員に表示） -->
@@ -11020,12 +11031,11 @@ function renderMyPage() {
         `<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">${t('my.car.none')}</div>`}
     </div>` : ''}
 
-    <!-- 利用ルール -->
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
-      <div style="font-size:0.72em;color:var(--text2);font-weight:700;letter-spacing:.05em;margin-bottom:6px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="this.parentElement.querySelector('.rules-body').style.display=this.parentElement.querySelector('.rules-body').style.display==='none'?'block':'none';this.querySelector('.rules-arrow').textContent=this.parentElement.querySelector('.rules-body').style.display==='none'?'▶':'▼'">
-        <span>${t('my.rules')}</span><span class="rules-arrow" style="font-size:0.9em">▶</span>
-      </div>
-      <div class="rules-body" style="display:none;font-size:0.82em;color:var(--text);line-height:1.7">
+    <!-- その他（新デザイン 3a：iPhone の設定と同じ行の形。押すと下に開く） -->
+    <div class="ios-head">${t('my.sec.other')}</div>
+    <div class="ios-group" style="margin-bottom:12px">
+      <button type="button" class="ios-row ios-link" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.classList.toggle('open')"><span class="ios-label">${t('my.rules')}</span><span class="ios-chev"></span></button>
+      <div class="rules-body ios-fold" style="display:none;font-size:0.82em;color:var(--text);line-height:1.7">
 
         <div style="font-weight:700;color:var(--primary);margin:12px 0 6px;font-size:0.9em">${t('rules.schedule.title')}</div>
         <ul style="margin:0;padding-left:1.2em">
@@ -11076,13 +11086,9 @@ function renderMyPage() {
           <li>${t('rules.account.1')}</li>
           <li>${t('rules.account.2')}</li>
         </ul>
-
       </div>
-    </div>
-
-    <!-- 意見箱 -->
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid var(--primary)">
-      <div style="font-size:0.9em;font-weight:700;color:var(--primary);margin-bottom:3px">${t('fb.title')}</div>
+      <button type="button" class="ios-row ios-link" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.classList.toggle('open')"><span class="ios-label">${t('fb.title')}</span><span class="ios-chev"></span></button>
+      <div class="ios-fold" style="display:none">
       <div style="font-size:0.76em;color:var(--text2);margin-bottom:10px">${t('fb.desc')}</div>
       <select id="fb-category" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.85em;font-family:inherit;background:white;color:var(--text);margin-bottom:8px">
         <option value="改善案">${t('fb.cat.improve')}</option>
@@ -11094,6 +11100,8 @@ function renderMyPage() {
         <input type="checkbox" id="fb-anon" style="width:16px;height:16px">${t('fb.anon')}
       </label>
       <button class="btn-primary" style="width:100%;padding:9px;font-size:0.85em" onclick="submitFeedback()">${t('fb.submit')}</button>
+      </div>
+      <button type="button" class="ios-row ios-link" onclick="switchTab('settings')"><span class="ios-label">${t('settings.title')}</span><span class="ios-chev"></span></button>
     </div>
   `;
   if(_bentoVisible()) initBentoSection();
@@ -11463,27 +11471,52 @@ function renderSettings() {
     {id:'vi',label:t('settings.lang.vi')},
     {id:'ne',label:t('settings.lang.ne')},
   ];
-  const radio = (sel) => `<span style="width:16px;height:16px;border-radius:50%;border:2px solid ${sel?'var(--primary)':'#bbb'};display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;vertical-align:middle">${sel?'<span style="width:8px;height:8px;border-radius:50%;background:var(--primary)"></span>':''}</span>`;
-  const card = (title, content) => `<div class="settings-card" style="background:white;border-radius:var(--radius);box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:10px"><div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div style="font-weight:600;font-size:0.88em">${title}</div><div style="display:flex;gap:6px;flex-wrap:wrap">${content}</div></div></div>`;
+  // 2026-11-12 新デザイン 3a：iPhone の「設定」と同じ、見出し＋白い角丸のグループ（見た目は halo-design.css の .ios-*）
+  const seg = (items, cur, fn) => `<div class="ios-seg">${items.map(i =>
+    `<button type="button" class="${cur===i.id?'on':''}" onclick="${fn}('${i.id}')">${i.label}</button>`).join('')}</div>`;
+  const fonts = [{id:'n',label:t('settings.fs.n')},{id:'l',label:t('settings.fs.l')},{id:'xl',label:t('settings.fs.xl')}];
+  const curFont = localStorage.getItem('sch_font_size') || 'n';
   el.innerHTML = `
-    <div style="max-width:480px;margin:0 auto">
-      <h2 style="font-size:1.05em;font-weight:700;margin:0 0 16px;display:flex;align-items:center;gap:8px">${t('settings.title')}</h2>
-      ${card(t('settings.lang'), langs.map(l => {
-        const sel=currentLang===l.id;
-        return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="applyLanguage('${l.id}')">${radio(sel)} ${l.label}</label>`;
-      }).join(''))}
-      ${card(t('settings.push'), pushSettingsHtml())}
-      ${card(t('settings.holiday'), sites.map(s => {
-        const sel=siteFilter===s.id;
-        return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="changeSiteFilter('${s.id}')">${radio(sel)} ${s.label}</label>`;
-      }).join(''))}
-      ${card(t('settings.color'), colorModes.map(m => {
-        const sel=colorMode===m.id;
-        const pal=COLOR_PALETTES[m.id];
-        const dots=['会議室','外出','出張','休暇','在宅'].map(k=>`<span style="width:10px;height:10px;border-radius:3px;background:${pal[k]};display:inline-block"></span>`).join('');
-        return `<label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:0.84em;padding:4px 10px;border-radius:6px;border:1px solid ${sel?'var(--primary)':'#ddd'};background:${sel?'rgba(92,107,192,.08)':'transparent'}" onclick="applyColorMode('${m.id}')">${radio(sel)} <span>${m.label}</span> <span style="display:inline-flex;gap:2px;margin-left:2px">${dots}</span></label>`;
-      }).join(''))}
+    <div class="ios-page">
+      <h2 class="ios-title">${t('settings.title')}</h2>
+
+      <div class="ios-head">${t('settings.grp.display')}</div>
+      <div class="ios-group">
+        <div class="ios-row ios-row-col"><div class="ios-label">${t('settings.lang')}</div>${seg(langs, currentLang, 'applyLanguage')}</div>
+        <div class="ios-row ios-row-col"><div class="ios-label">${t('settings.fontsize')}</div>${seg(fonts, curFont, 'applyFontSize')}
+          <div class="ios-note">${t('settings.fs.sample')}</div></div>
+        <div class="ios-row ios-row-col"><div class="ios-label">${t('settings.color')}</div>
+          <div class="ios-list">${colorModes.map(m => {
+            const sel=colorMode===m.id;
+            const pal=COLOR_PALETTES[m.id];
+            const dots=['会議室','外出','出張','休暇','在宅'].map(k=>`<span style="width:10px;height:10px;border-radius:3px;background:${pal[k]};display:inline-block"></span>`).join('');
+            return `<button type="button" class="ios-check${sel?' on':''}" onclick="applyColorMode('${m.id}')"><span>${m.label}</span><span class="ios-dots">${dots}</span><span class="ios-tick">${sel?'✓':''}</span></button>`;
+          }).join('')}</div></div>
+      </div>
+
+      <div class="ios-head">${t('settings.grp.notify')}</div>
+      <div class="ios-group">
+        <div class="ios-row ios-row-col"><div class="ios-label">${t('settings.push')}</div><div>${pushSettingsHtml()}</div></div>
+      </div>
+
+      <div class="ios-head">${t('settings.grp.schedule')}</div>
+      <div class="ios-group">
+        <div class="ios-row ios-row-col"><div class="ios-label">${t('settings.holiday')}</div>${seg(sites, siteFilter, 'changeSiteFilter')}</div>
+      </div>
+
+      <div class="ios-head">${t('settings.grp.account')}</div>
+      <div class="ios-group">
+        <div class="ios-row"><div class="ios-label">${esc(currentUser?.name||'')}</div><div class="ios-value">${t('my.empId')} ${esc(currentUser?.id||'')}</div></div>
+        <button type="button" class="ios-row ios-danger" onclick="doLogout()">${t('nav.logout')}</button>
+      </div>
     </div>`;
+}
+// 文字の大きさ（設定）。n=標準 l=大きめ xl=特大。読み込み時は <body> 直後の1行で同じ値を当てている
+function applyFontSize(size){
+  const px = {l:'17.5px', xl:'19px'}[size] || '';
+  try { if (px) localStorage.setItem('sch_font_size', size); else localStorage.removeItem('sch_font_size'); } catch(e) {}
+  document.body.style.fontSize = px;
+  renderSettings();
 }
 
 // ===== 通知システム =====
@@ -12779,6 +12812,6 @@ async function initPushNotifications(opts) {
 })();
 </script>
 <script src="peer-memo.js"></script>
-<script src="halo-design.js?v=3"></script>
+<script src="halo-design.js?v=4"></script>
 </body>
 </html>

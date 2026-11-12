@@ -222,3 +222,42 @@ body.hn .login-card{border-radius:24px}
 body.hn .login-logo .hn-logo{display:flex;justify-content:center;font-size:30px;margin-bottom:10px}
 body.hn .login-logo .hn-logo img{height:2.2em}
 body.hn .login-logo .icon{display:none}
+
+/* =====================================================================
+   3段階目 3a（11/12）：マイページ・設定を iPhone の「設定」と同じ形に
+   見出し（灰色の小さな字）＋白い角丸のグループ＋細い線で区切った行。
+   index.html の renderSettings / renderMyPage が .ios-* を使う（.hn が無くても崩れないよう、ここは body.hn で絞らない）
+   ===================================================================== */
+.ios-page{max-width:560px;margin:0 auto}
+.ios-title{font-size:1.5em;font-weight:700;margin:4px 4px 12px;letter-spacing:.02em}
+.ios-head{font-size:.74em;font-weight:600;color:var(--text2);letter-spacing:.06em;margin:18px 16px 6px}
+.ios-group{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:6px}
+.ios-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:10px 16px;background:transparent;
+  color:var(--text);font-size:.92em;text-align:left;border:none;border-top:1px solid var(--border)}
+.ios-group>.ios-row:first-child{border-top:none}
+.ios-row-col{flex-direction:column;align-items:stretch;gap:8px}
+button.ios-row{cursor:pointer}
+button.ios-row:hover,.ios-link:hover{background:var(--surface-1)}
+.ios-label{font-weight:600}
+.ios-value{color:var(--text2);font-size:.88em}
+.ios-note{font-size:.78em;color:var(--text2)}
+.ios-danger{justify-content:center;color:var(--red);font-weight:700}
+.ios-chev::after{content:'›';color:var(--text3);font-size:1.3em;line-height:1;margin-left:6px}
+.ios-seg{display:flex;flex-wrap:wrap;gap:3px;background:var(--surface-1);border-radius:12px;padding:3px}
+.ios-seg button{flex:1;min-width:max-content;padding:7px 10px;border-radius:9px;background:transparent;color:var(--text2);font-size:.86em;font-weight:600}
+.ios-seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.ios-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.ios-check{display:flex;align-items:center;gap:8px;padding:10px 12px;background:transparent;color:var(--text);font-size:.88em;text-align:left;border-top:1px solid var(--border)}
+.ios-check:first-child{border-top:none}
+.ios-check .ios-dots{display:inline-flex;gap:2px;margin-left:auto}
+.ios-check .ios-tick{width:1.2em;text-align:right;color:var(--primary);font-weight:700}
+.ios-check.on{font-weight:700}
+/* マイページ：いちばん上の自分のカード（iPhone の Apple ID のカード） */
+.ios-me{display:flex;align-items:center;gap:14px;padding:16px}
+.ios-me .ios-av{width:56px;height:56px;border-radius:50%;background:var(--hn-tint,var(--primary-light));color:var(--primary);font-size:1.4em;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ios-me .ios-name{font-size:1.15em;font-weight:700}
+.ios-me .ios-sub{font-size:.8em;color:var(--text2);margin-top:3px}
+.ios-fold{padding:4px 16px 14px;border-top:1px solid var(--border)}
+.ios-link .ios-chev::after{display:inline-block;transition:transform .15s}
+.ios-link.open .ios-chev::after{transform:rotate(90deg)}
