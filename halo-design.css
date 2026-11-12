@@ -1,0 +1,200 @@
+/* =====================================================================
+   HALO 新デザイン 1段階目（見た目の差し替え・2026-11-12）
+   元：Downloads/HALO_採用デザイン案.html（10/28 採用案）。下書きは schedule-dev/review/halo-new.css。
+   ・body に .hn が付いているときだけ効く（index.html の <body> 直後で付ける）。
+     困ったときは localStorage に halo_old_design=1 を入れると、その端末だけ前の見た目に戻る。
+   ・絵文字は、線のアイコン（Tabler Icons）が読み込めたとき（body.hn-ic-ok）だけ隠す。
+   ・画面の並びや機能は変えない。
+   ===================================================================== */
+
+/* ---------- 色・形・文字（変数を差し替えるだけで画面の大半が変わる） ---------- */
+body.hn{
+  --primary:#3F5F55;--primary-dark:#344945;--primary-light:#E3EEE4;
+  --bg:#F7F5F1;--surface:#FFFFFF;--surface-1:#F3F0E8;--surface-2:#FFFFFF;
+  --border:#E3DDD0;--text:#25302D;--text2:#6E7773;--text3:#A9AEA9;
+  --red:#C2715A;--green:#5E9C76;--orange:#C08A55;--blue:#6A8FA8;--purple:#8C80B0;
+  --radius:16px;--shadow:0 1px 2px rgba(70,95,85,.06);
+  --hn-tint:#C6D8C2;--hn-beige:#DCD1BD;--hn-sun:#EFE8C4;--hn-eb:#7E6846;
+  --hn-heroA:#4F7566;--hn-heroB:#99B9A4;--hn-head:#F5F7F5;
+  font-family:'Geist','Noto Sans JP',sans-serif;
+  font-feature-settings:'palt';font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  /* 画面上部に太陽の光をうっすら */
+  background:var(--bg) linear-gradient(180deg,rgba(239,232,196,.55),rgba(239,232,196,0) 280px) no-repeat;
+}
+body.hn button,body.hn input,body.hn select,body.hn textarea{font-family:inherit;letter-spacing:inherit}
+body.hn strong,body.hn b{font-weight:600}
+
+/* ---------- 絵文字 ⇔ 線のアイコン（halo-new.js が両方を入れて、ここで出し分け） ---------- */
+.hn-ic,.hn-logo,.hn-dot{display:none}
+body.hn.hn-ic-ok .hn-emoji{display:none}
+body.hn.hn-ic-ok .hn-ic{display:inline-block;font-size:1.12em;line-height:1;vertical-align:-.12em}
+body.hn.hn-ic-ok .hn-dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;vertical-align:.02em}
+
+/* ---------- ロゴ「光の輪」（brand/*.svg。HAL＋太陽の光がにじむ輪） ---------- */
+.hn-logo img{display:block;height:1.8em;width:auto}
+
+/* ---------- 上部バー（緑・ロゴ） ---------- */
+body.hn .topbar{background:var(--primary);box-shadow:none;gap:12px}
+body.hn .topbar-title{display:none}
+body.hn .topbar .hn-logo{display:inline-flex;align-items:center;gap:12px;flex:1;font-size:15px;min-width:0}
+body.hn .topbar .hn-sub{font-size:11px;font-weight:500;letter-spacing:.08em;opacity:.8;white-space:nowrap}
+body.hn .topbar-user{font-size:.76em;opacity:.9}
+body.hn .btn-logout{background:transparent;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:5px 13px;font-weight:600}
+
+/* タブレット・PC：緑の上部バーを横幅いっぱいに出し、その下に左メニュー */
+@media(min-width:600px){
+  body.hn.app-active .topbar{display:flex;position:fixed;left:0;right:0;top:0;height:56px;padding:0 20px;z-index:210}
+  body.hn.app-active #app{padding-top:56px}
+  body.hn #sidebar{top:56px}
+}
+/* 上部バーの右：お知らせのベル＋自分の丸アイコン（押すとマイページ・設定・ログアウト）。タブレット・PC だけ。
+   採用案どおり、名前・ログアウトは上部バーと左メニューから外す。スマホは今までどおり「名前＋ログアウト」 */
+.hn-actions{display:none}
+@media(min-width:600px){
+  body.hn .topbar-user,body.hn .topbar .btn-logout{display:none}
+  body.hn .hn-actions{display:flex;align-items:center;gap:10px;position:relative}
+  body.hn .sidebar-footer{display:none!important}
+}
+body.hn .hn-bell{position:relative;width:36px;height:36px;border-radius:999px;background:transparent;color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+body.hn .hn-bell:hover{background-color:rgba(255,255,255,.14)}
+body.hn .hn-avatar:hover,body.hn .hn-actions.open .hn-avatar{box-shadow:0 0 0 3px rgba(255,255,255,.55)}
+body.hn .hn-bell .ti{display:inline-block}
+body.hn .hn-bell-badge{position:absolute;top:2px;right:0;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--red);color:#fff;
+  font-size:10px;font-weight:700;line-height:16px;text-align:center}
+body.hn .hn-avatar{width:32px;height:32px;border-radius:999px;background:var(--hn-tint);color:var(--primary);font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+body.hn .hn-menu{display:none;position:absolute;right:0;top:44px;min-width:200px;background:var(--surface);color:var(--text);border:1px solid var(--border);
+  border-radius:16px;padding:6px;box-shadow:0 10px 30px rgba(37,48,45,.16);z-index:300}
+body.hn .hn-actions.open .hn-menu{display:block}
+body.hn .hn-menu-who{display:block;padding:8px 12px 10px;font-size:.85em;font-weight:700;border-bottom:1px solid var(--border);margin-bottom:4px}
+body.hn .hn-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:10px;background:transparent;color:var(--text);font-size:.88em;text-align:left}
+body.hn .hn-menu button:hover{background:var(--surface-1)}
+body.hn .hn-menu button .ti{font-size:17px;color:var(--text2);display:inline-block}
+body.hn .hn-menu .hn-menu-out{color:var(--red)}
+body.hn .hn-menu .hn-menu-out .ti{color:var(--red)}
+/* 採用案の左メニューには見出し（ロゴ・たたむボタン）が無い */
+body.hn .sidebar-header{display:none!important}
+
+/* ---------- 左メニュー（白地・選んでいる所は淡い緑） ---------- */
+body.hn #sidebar{background:var(--surface);border-right:1px solid var(--border)}
+body.hn .sidebar-header{border-bottom:1px solid var(--border);padding:10px 12px}
+body.hn .sidebar-logo-icon,body.hn .sidebar-logo-text{display:none!important}
+@media(max-width:899px){body.hn .sidebar-header{display:none}}
+body.hn .sidebar-collapse-btn{background:var(--surface-1);color:var(--text2)}
+body.hn .sidebar-collapse-btn:hover{background:var(--hn-tint);color:var(--primary)}
+body.hn .sidebar-nav{scrollbar-color:var(--border) transparent}
+body.hn .sidebar-btn{color:var(--text);font-weight:500;border-left:none;border-radius:12px;margin:2px 8px;width:calc(100% - 16px)}
+body.hn .sidebar-btn:hover{color:var(--text);background:var(--surface-1)}
+body.hn .sidebar-btn.active{color:var(--primary);font-weight:700;background:color-mix(in srgb,var(--hn-tint) 55%,#fff)}
+body.hn .sidebar-btn.admin-side{color:var(--orange)}
+body.hn .sidebar-icon .hn-ic{font-size:1.25rem;vertical-align:middle}
+@media(min-width:900px){body.hn .sidebar-btn{padding:10px 0 10px 12px}}
+@media(min-width:900px){body.hn #sidebar.visible.collapsed .sidebar-btn{padding:10px 0;justify-content:center}}
+body.hn .sidebar-footer{border-top:1px solid var(--border)}
+body.hn .sidebar-avatar{background:var(--hn-tint);color:var(--primary)}
+body.hn .sidebar-user-name{color:var(--text)}
+body.hn .sidebar-logout-btn{background:var(--surface-1);color:var(--text);border-radius:999px}
+body.hn #sidebar-today{display:none!important} /* 採用案の左メニューはタブだけ */
+body.hn #sidebar-today .st-title{color:var(--hn-eb);letter-spacing:.16em}
+body.hn #sidebar-today .st-item{background:var(--surface-1);color:var(--text)}
+body.hn #sidebar-today .st-empty{color:var(--text2)}
+
+/* ---------- スマホの下部メニュー ---------- */
+body.hn #bottom-nav{background:rgba(255,255,255,.97);border-top:1px solid var(--border);box-shadow:none}
+body.hn .bn-icon{filter:none;opacity:1;color:var(--text2)}
+body.hn .bn-icon .hn-ic{font-size:1.45rem}
+body.hn .bn-btn.active .bn-icon{color:var(--primary)}
+body.hn .bn-add{box-shadow:0 4px 12px rgba(63,95,85,.35)}
+body.hn #more-sheet{border-radius:24px 24px 0 0}
+body.hn .more-tile{background:var(--surface);border:1px solid var(--border);border-radius:16px}
+body.hn .more-tile .mt-icon .hn-ic{font-size:1.6rem;color:var(--primary)}
+body.hn .more-tile.active{background:color-mix(in srgb,var(--hn-tint) 55%,#fff);border-color:var(--hn-tint)}
+
+/* ---------- カード：影をやめて細い線＋角16px ---------- */
+body.hn .dash-card,body.hn .event-card,body.hn .filter-bar,body.hn .room-now-widget,body.hn .member-card,
+body.hn .admin-user-card,body.hn .el-card,body.hn .month-grid,body.hn .week-grid,
+body.hn [style*="box-shadow:var(--shadow)"]{border:1px solid var(--border);box-shadow:none}
+body.hn .event-card{border-left:4px solid var(--primary)}
+body.hn .event-card:hover{box-shadow:0 4px 14px rgba(70,95,85,.08)}
+body.hn .modal{border-radius:24px 24px 0 0}
+@media(min-width:600px){body.hn .modal{border-radius:24px}}
+
+/* 見出し（ホームのカードは社内ポータル型の見出し帯。英字の小さなラベルは halo-new.js が付ける） */
+body.hn .hn-title{color:var(--primary)!important;font-weight:700}
+body.hn span.hn-title{display:inline-block}
+body.hn .hn-title[data-eb]::before{content:attr(data-eb);display:block;font-family:'Geist',sans-serif;font-size:9px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--hn-eb);line-height:1.3;margin-bottom:2px}
+body.hn .hn-head{margin:-12px -12px 10px!important;padding:8px 14px!important;background:var(--hn-head);border-bottom:1px solid var(--border);
+  border-radius:16px 16px 0 0;font-size:.8em!important}
+
+/* ---------- ボタン・切替・入力欄 ---------- */
+body.hn .btn-primary,body.hn .btn-outline,body.hn .btn-danger,body.hn .btn-login,body.hn .safety-send-btn,
+body.hn .safety-action-btn,body.hn .safety-answer-btn{border-radius:999px}
+body.hn .btn-primary:hover{opacity:1;background:var(--primary-dark)}
+body.hn .btn-outline{border-width:1.5px}
+body.hn button[style*="border-radius:8px"],body.hn button[style*="border-radius:6px"],
+body.hn button[style*="border-radius:20px"],body.hn button[style*="border-radius:16px"],
+body.hn button[style*="border-radius:10px"],body.hn button[style*="border-radius:12px"]{border-radius:999px!important}
+body.hn button[style*="border:1.5px solid"]{border-width:1px!important}
+/* 横に並べて幅を分け合うボタンは、文字が2行になることがあるので角丸に留める */
+body.hn button[style*="flex:1"]{border-radius:14px!important}
+body.hn .view-switcher{background:#EDE8DD;border-radius:14px;padding:3px}
+body.hn .view-btn{border-radius:11px;color:var(--text2)}
+body.hn .view-btn:hover:not(.active){background:rgba(255,255,255,.5)}
+body.hn .view-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+body.hn .team-vbtn{border-radius:999px;border-width:1px}
+body.hn .nav-arrow{background:var(--surface);border:1px solid var(--border);color:var(--text)}
+body.hn .today-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:999px}
+body.hn .filter-chip{border-width:1px;border-radius:999px}
+body.hn .people-chip,body.hn .people-group-chip{border-width:1px;border-radius:999px}
+body.hn .room-card{border-width:1.5px;border-radius:14px}
+body.hn .form-row input,body.hn .form-row select,body.hn .form-row textarea,body.hn .form-group input,body.hn .admin-search{border-width:1px;border-radius:12px}
+body.hn .toast{background:#25302D;border-radius:999px}
+body.hn .fab{box-shadow:0 4px 14px rgba(63,95,85,.4)}
+body.hn .view-btn.active,body.hn .team-vbtn.active{box-shadow:none}
+
+/* ---------- 予定の種別バッジ（彩度を落とした色） ---------- */
+body.hn .status-badge{border-radius:999px;font-weight:600}
+body.hn .status-外出{background:#F4EADF;color:#8A5F32}
+body.hn .status-出張{background:#E4EEE7;color:#4B7258}
+body.hn .status-休暇{background:#F3E4E9;color:#8C4F63}
+body.hn .status-在宅{background:#E1EEEE;color:#3F7275}
+body.hn .status-打ち合わせ{background:#EAE7F1;color:#5F5488}
+body.hn .status-会議室,body.hn .status-会議中{background:#E3EBF1;color:#45667D}
+body.hn .status-休み{background:#F4E5DF;color:#8E4F3C}
+body.hn .status-在席{background:#E4EFE7;color:#3F7556}
+body.hn .status-来社{background:#F4E6E1;color:#8E5545}
+
+/* ---------- お知らせ・バナー ---------- */
+body.hn .notif-item{background:#F2F6F1;border:1px solid var(--hn-tint)}
+body.hn .notif-item-title{color:var(--primary)}
+body.hn .notif-dismiss{border-color:var(--hn-tint);color:var(--primary);border-radius:999px}
+body.hn .notif-badge{background:var(--red)}
+body.hn .car-banner-item{background:#F6EDE0;border:1px solid #E6CFAE}
+body.hn .car-banner-name{color:#8A5F32}
+body.hn .room-avail-chip.free{background:#E4EFE7;color:#3F7556}
+body.hn .room-avail-chip.busy{background:#F6E6E1;color:#A4533F}
+
+/* ---------- 画面に直接書かれている色（青・赤・緑など）を新しい色に寄せる ---------- */
+body.hn [style*="background:#e53935"]{background:var(--red)!important}
+body.hn [style*=";color:#e53935"],body.hn [style^="color:#e53935"]{color:var(--red)!important}
+body.hn [style*=";color:#c62828"],body.hn [style^="color:#c62828"]{color:#A4533F!important}
+body.hn [style*="background:#ffebee"],body.hn [style*="background:#fff0f0"],body.hn [style*="background:#fff5f5"]{background:#F6E6E1!important}
+body.hn [style*="background:#5c6bc0"]{background:var(--primary)!important}
+body.hn [style*=";color:#5c6bc0"],body.hn [style^="color:#5c6bc0"]{color:var(--primary)!important}
+body.hn [style*="background:#3949ab"]{background:var(--primary-dark)!important}
+body.hn [style*="background:#e8eaf6"],body.hn [style*="background:#e3f2fd"]{background:var(--primary-light)!important}
+body.hn [style*=";color:#1565c0"],body.hn [style^="color:#1565c0"]{color:#45667D!important}
+body.hn [style*=";color:#2e7d32"],body.hn [style^="color:#2e7d32"]{color:#3F7556!important}
+body.hn [style*="background:#e8f5e9"]{background:#E4EFE7!important}
+body.hn [style*="background:#43a047"],body.hn [style*="background:#4caf50"],body.hn [style*="background:#2e7d32"]{background:var(--green)!important}
+body.hn [style*=";color:#e65100"],body.hn [style^="color:#e65100"]{color:#8A5F32!important}
+body.hn [style*="background:#fff3e0"],body.hn [style*="background:#fff8e1"]{background:#F6EDE0!important}
+body.hn [style*="border-left:4px solid #f57c00"]{border-left-color:var(--orange)!important}
+
+/* ---------- ログイン画面 ---------- */
+body.hn #login-screen{background:linear-gradient(135deg,var(--hn-heroA),var(--hn-heroB))}
+body.hn .login-card{border-radius:24px}
+body.hn .login-logo .hn-logo{display:flex;justify-content:center;font-size:30px;margin-bottom:10px}
+body.hn .login-logo .hn-logo img{height:1.9em}
+body.hn .login-logo .icon{display:none}
