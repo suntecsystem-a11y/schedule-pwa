@@ -1027,7 +1027,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=5">
+<link rel="stylesheet" href="halo-design.css?v=6">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -1121,15 +1121,22 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 
   <!-- ホーム -->
   <div class="content" id="tab-home">
-    <!-- 安否確認エリア -->
+    <!-- 今いる場所＋KING OF TIME（2026-11-12 新デザイン 3c：見出しのすぐ下に1行で） -->
+    <div id="home-status-row" class="home-status-row">
+      <!-- 今いる場所（在席ボードの「今いる場所」を小さく。2026-11-06 段階3） -->
+      <div id="home-myplace-wrap" style="display:none"><div id="home-myplace"></div></div>
+      <!-- KING OF TIME（本人のKOTリンク） -->
+      <div id="kot-link-area" style="display:none"></div>
+    </div>
+    <!-- 安否確認エリア（発信中で未回答のときは一番上に） -->
     <div id="safety-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
-    <!-- KING OF TIME（本人のKOTリンク） -->
-    <div id="kot-link-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
+    <!-- 次の予定（2026-11-12 新デザイン 3c。renderHomeNext） -->
+    <div id="home-next-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
     <!-- 今日の課題（朝の確認）・日報 -->
     <div id="issue-check-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
+    <!-- あなたのやること（2026-11-12 新デザイン 3c。renderHomeTodo。1件も無いときは出さない） -->
+    <div id="home-todo-area" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"></div>
 
-    <!-- 今いる場所（在席ボードの「今いる場所」を小さく。2026-11-06 段階3） -->
-    <div id="home-myplace-wrap" style="display:none;max-width:900px;margin:0 auto;padding:12px 12px 0"><div id="home-myplace"></div></div>
     <!-- お知らせエリア -->
     <div style="max-width:900px;margin:0 auto;padding:12px 12px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px" id="home-top-grid">
       <!-- 今日の自分の予定 -->
@@ -2315,7 +2322,7 @@ ja:{
 'notice.title.label':'タイトル','notice.title.ph':'タイトルを入力',
 'notice.body':'本文','notice.body.ph':'本文を入力',
 'notice.post.btn':'投稿','notice.none':'お知らせはありません',
-'notice.f.all':'すべて','notice.f.unread':'未確認','notice.f.imp':'重要','notice.confirm':'確認しました','notice.confirmed':'確認済み','notice.confirm.hint':'最後まで読むと押せます','notice.confirm.count':'確認済み {n}人','notice.more':'すべて表示（{n}件）','notice.less':'少なく表示','notice.f.empty':'該当するお知らせはありません','notice.f.hidden':'非表示','notice.hide':'非表示にする','notice.unhide':'表示に戻す','notice.hidden.badge':'非表示中','notice.hide.confirm':'このお知らせを非表示にしますか？（だれの画面にも出なくなります。記録は Kintone に残ります）','notice.hidden.done':'非表示にしました','notice.unhidden.done':'表示に戻しました',
+'notice.f.all':'すべて','notice.f.unread':'未確認','notice.f.imp':'重要','notice.confirm':'確認しました','notice.confirmed':'確認済み','notice.confirm.hint':'最後まで読むと押せます','notice.confirm.count':'確認済み {n}人','notice.more':'すべて表示（{n}件）','notice.less':'少なく表示','home.next':'次の予定','home.next.none':'このあとの予定はありません','home.next.now':'進行中・〜{end}','home.next.hm':'あと{h}時間{m}分','home.next.m':'あと{m}分','home.next.tomorrow':'明日','home.next.allday':'終日','home.next.cal':'カレンダー','home.todo':'あなたのやること','home.todo.approve':'承認待ちが{n}件あります','home.todo.overdue':'端末の返却期限が過ぎています（{n}件）','home.todo.notice':'未確認の重要なお知らせがあります（{n}件）','home.todo.clean':'今日はあなたの掃除当番です','notice.f.empty':'該当するお知らせはありません','notice.f.hidden':'非表示','notice.hide':'非表示にする','notice.unhide':'表示に戻す','notice.hidden.badge':'非表示中','notice.hide.confirm':'このお知らせを非表示にしますか？（だれの画面にも出なくなります。記録は Kintone に残ります）','notice.hidden.done':'非表示にしました','notice.unhidden.done':'表示に戻しました',
 'notice.title.required':'タイトルを入力してください','notice.body.required':'本文を入力してください',
 'notice.posted':'お知らせを投稿しました','notice.updated.msg':'お知らせを更新しました',
 'notice.delete.confirm':'このお知らせを削除しますか？','notice.deleted':'削除しました',
@@ -2712,7 +2719,7 @@ vi:{
 'notice.title.label':'Tiêu đề','notice.title.ph':'Nhập tiêu đề',
 'notice.body':'Nội dung','notice.body.ph':'Nhập nội dung',
 'notice.post.btn':'Đăng','notice.none':'Không có thông báo',
-'notice.f.all':'Tất cả','notice.f.unread':'Chưa xác nhận','notice.f.imp':'Quan trọng','notice.confirm':'Đã xác nhận','notice.confirmed':'Đã xác nhận','notice.confirm.hint':'Đọc đến cuối để bấm','notice.confirm.count':'Đã xác nhận {n} người','notice.more':'Xem tất cả ({n})','notice.less':'Thu gọn','notice.f.empty':'Không có thông báo phù hợp','notice.f.hidden':'Đã ẩn','notice.hide':'Ẩn','notice.unhide':'Hiện lại','notice.hidden.badge':'Đang ẩn','notice.hide.confirm':'Ẩn thông báo này? (Sẽ không hiện với ai nữa. Bản ghi vẫn lưu trên Kintone)','notice.hidden.done':'Đã ẩn','notice.unhidden.done':'Đã hiện lại',
+'notice.f.all':'Tất cả','notice.f.unread':'Chưa xác nhận','notice.f.imp':'Quan trọng','notice.confirm':'Đã xác nhận','notice.confirmed':'Đã xác nhận','notice.confirm.hint':'Đọc đến cuối để bấm','notice.confirm.count':'Đã xác nhận {n} người','notice.more':'Xem tất cả ({n})','notice.less':'Thu gọn','home.next':'Lịch tiếp theo','home.next.none':'Không còn lịch nào sau đây','home.next.now':'Đang diễn ra・đến {end}','home.next.hm':'Còn {h} giờ {m} phút','home.next.m':'Còn {m} phút','home.next.tomorrow':'Ngày mai','home.next.allday':'Cả ngày','home.next.cal':'Lịch','home.todo':'Việc cần làm','home.todo.approve':'Có {n} mục chờ duyệt','home.todo.overdue':'Đã quá hạn trả thiết bị ({n})','home.todo.notice':'Có thông báo quan trọng chưa xác nhận ({n})','home.todo.clean':'Hôm nay bạn trực dọn dẹp','notice.f.empty':'Không có thông báo phù hợp','notice.f.hidden':'Đã ẩn','notice.hide':'Ẩn','notice.unhide':'Hiện lại','notice.hidden.badge':'Đang ẩn','notice.hide.confirm':'Ẩn thông báo này? (Sẽ không hiện với ai nữa. Bản ghi vẫn lưu trên Kintone)','notice.hidden.done':'Đã ẩn','notice.unhidden.done':'Đã hiện lại',
 'notice.title.required':'Vui lòng nhập tiêu đề','notice.body.required':'Vui lòng nhập nội dung',
 'notice.posted':'Đã đăng thông báo','notice.updated.msg':'Đã cập nhật thông báo',
 'notice.delete.confirm':'Xóa thông báo này?','notice.deleted':'Đã xóa',
@@ -3102,7 +3109,7 @@ ne:{
 'notice.title.label':'शीर्षक','notice.title.ph':'शीर्षक लेख्नुहोस्',
 'notice.body':'विवरण','notice.body.ph':'विवरण लेख्नुहोस्',
 'notice.post.btn':'पोस्ट','notice.none':'सूचना छैन',
-'notice.f.all':'सबै','notice.f.unread':'पुष्टि नगरिएको','notice.f.imp':'महत्त्वपूर्ण','notice.confirm':'पुष्टि गरें','notice.confirmed':'पुष्टि भयो','notice.confirm.hint':'अन्त्यसम्म पढेपछि थिच्न सकिन्छ','notice.confirm.count':'पुष्टि गर्ने {n} जना','notice.more':'सबै हेर्नुहोस् ({n})','notice.less':'कम देखाउनुहोस्','notice.f.empty':'मिल्ने सूचना छैन','notice.f.hidden':'लुकाइएको','notice.hide':'लुकाउनुहोस्','notice.unhide':'फेरि देखाउनुहोस्','notice.hidden.badge':'लुकाइएको','notice.hide.confirm':'यो सूचना लुकाउने? (कसैलाई देखिँदैन। अभिलेख Kintone मा रहन्छ)','notice.hidden.done':'लुकाइयो','notice.unhidden.done':'फेरि देखाइयो',
+'notice.f.all':'सबै','notice.f.unread':'पुष्टि नगरिएको','notice.f.imp':'महत्त्वपूर्ण','notice.confirm':'पुष्टि गरें','notice.confirmed':'पुष्टि भयो','notice.confirm.hint':'अन्त्यसम्म पढेपछि थिच्न सकिन्छ','notice.confirm.count':'पुष्टि गर्ने {n} जना','notice.more':'सबै हेर्नुहोस् ({n})','notice.less':'कम देखाउनुहोस्','home.next':'अर्को तालिका','home.next.none':'यसपछि कुनै तालिका छैन','home.next.now':'चलिरहेको・{end} सम्म','home.next.hm':'{h} घण्टा {m} मिनेट बाँकी','home.next.m':'{m} मिनेट बाँकी','home.next.tomorrow':'भोलि','home.next.allday':'दिनभर','home.next.cal':'क्यालेन्डर','home.todo':'तपाईंले गर्नुपर्ने','home.todo.approve':'स्वीकृतिको लागि {n} वटा छन्','home.todo.overdue':'उपकरण फिर्ताको म्याद नाघ्यो ({n})','home.todo.notice':'पुष्टि नगरिएको महत्त्वपूर्ण सूचना ({n})','home.todo.clean':'आज तपाईंको सरसफाइ पालो हो','notice.f.empty':'मिल्ने सूचना छैन','notice.f.hidden':'लुकाइएको','notice.hide':'लुकाउनुहोस्','notice.unhide':'फेरि देखाउनुहोस्','notice.hidden.badge':'लुकाइएको','notice.hide.confirm':'यो सूचना लुकाउने? (कसैलाई देखिँदैन। अभिलेख Kintone मा रहन्छ)','notice.hidden.done':'लुकाइयो','notice.unhidden.done':'फेरि देखाइयो',
 'notice.title.required':'शीर्षक लेख्नुहोस्','notice.body.required':'विवरण लेख्नुहोस्',
 'notice.posted':'सूचना पोस्ट भयो','notice.updated.msg':'सूचना अपडेट भयो',
 'notice.delete.confirm':'यो सूचना मेट्ने?','notice.deleted':'मेटियो',
@@ -7274,6 +7281,7 @@ function closeMemberPopup(){ document.getElementById('member-popup').style.displ
 function renderHomeDayWidgets(){
   if (!currentUser) return;
   renderHomeMyPlace();
+  renderHomeNext(); renderHomeTodo(); // 2026-11-12 新デザイン 3c
   const today = fmtDate(new Date());
   const now = new Date();
   const hNow = now.getHours() + now.getMinutes()/60;
@@ -7385,6 +7393,95 @@ function renderHomeDayWidgets(){
     }
   }
   */
+}
+
+// ===== ホームの「次の予定」と「あなたのやること」（2026-11-12 新デザイン 3c）=====
+// 次の予定：今日これから（進行中を含む）の自分の予定。今日もう無ければ、2週間先までで一番近い予定
+function renderHomeNext() {
+  const el = document.getElementById('home-next-area');
+  if (!el || !currentUser) return;
+  const now = new Date();
+  const today = fmtDate(now);
+  const hm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  const mine = e => e.type !== 'その他' && e.approvalStatus !== '否認' && _isUserInEvent(e, currentUser.id);
+  let ev = null, day = today, inProgress = false;
+  const todays = events.filter(e => mine(e) && eventIncludesDate(e, today) && e.start)
+    .sort((a, b) => a.start.localeCompare(b.start));
+  ev = todays.find(e => (e.end || e.start) > hm) || null;
+  if (ev) inProgress = ev.start <= hm;
+  if (!ev) {
+    for (let i = 1; i <= 14 && !ev; i++) {
+      const d = new Date(now); d.setDate(d.getDate() + i);
+      const ds = fmtDate(d);
+      const list = events.filter(e => mine(e) && eventIncludesDate(e, ds))
+        .sort((a, b) => (a.start || '00:00').localeCompare(b.start || '00:00'));
+      if (list.length) { ev = list[0]; day = ds; }
+    }
+  }
+  el.style.display = '';
+  if (!ev) {
+    el.innerHTML = `<div class="hn-next hn-next-empty"><div class="hn-next-eb">UP NEXT</div>
+      <div class="hn-next-when">${t('home.next')}</div><div class="hn-next-title">${t('home.next.none')}</div></div>`;
+    return;
+  }
+  let when;
+  if (day === today) {
+    if (inProgress) {
+      when = t('home.next.now', {end: ev.end || ''});
+    } else {
+      const [h, m] = ev.start.split(':').map(Number);
+      const mins = Math.max(0, h * 60 + m - (now.getHours() * 60 + now.getMinutes()));
+      when = mins >= 60 ? t('home.next.hm', {h: Math.floor(mins / 60), m: mins % 60}) : t('home.next.m', {m: mins});
+    }
+  } else {
+    const d = new Date(day + 'T00:00:00');
+    const tmr = new Date(now); tmr.setDate(tmr.getDate() + 1);
+    when = day === fmtDate(tmr) ? t('home.next.tomorrow')
+      : t('cal.day.title', {month: d.getMonth() + 1, day: d.getDate(), dow: tDow((d.getDay() + 6) % 7)});
+  }
+  const time = ev.start ? `${ev.start}${ev.end ? '〜' + ev.end : ''}` : t('home.next.allday');
+  const sub = [tType(ev.type), ev.room ? roomName(ev.room) : ''].filter(Boolean).join('・');
+  el.innerHTML = `
+    <div class="hn-next" role="button" tabindex="0" onclick="openDetail('${ev.id}')" onkeydown="if(event.key==='Enter')openDetail('${ev.id}')">
+      <div class="hn-next-top"><span class="hn-next-eb">UP NEXT</span><span class="hn-next-lab">${t('home.next')}</span>
+        <button type="button" class="hn-next-cal" onclick="event.stopPropagation();switchTab('calendar')">${t('home.next.cal')} ›</button></div>
+      <div class="hn-next-when">${esc(when)}</div>
+      <div class="hn-next-title"><span class="hn-next-time">${esc(time)}</span> ${esc(ev.title || tType(ev.type))}</div>
+      ${sub ? `<div class="hn-next-sub">${esc(sub)}</div>` : ''}
+    </div>`;
+}
+
+// 「あと○分」を1分ごとに進める（ホームを開いているときだけ）
+setInterval(() => { if (typeof _currentTab !== 'undefined' && _currentTab === 'home' && currentUser) renderHomeNext(); }, 60 * 1000);
+
+// あなたのやること：やることがあると知らせて、押すとその場所へ移る入口（中身はマイページ・お知らせ・掃除当番のカード）
+function renderHomeTodo() {
+  const el = document.getElementById('home-todo-area');
+  if (!el || !currentUser) return;
+  const items = [];
+  try {
+    const pa = getPendingApprovals();
+    if (pa.length) items.push({ ic: '✅', text: t('home.todo.approve', {n: pa.length}), go: "switchTab('mypage')" });
+  } catch (e) { /* 予定がまだ無いときなど */ }
+  try {
+    const od = getOverdueRentals();
+    if (od.length) items.push({ ic: '⚠', text: t('home.todo.overdue', {n: od.length}), go: "switchTab('mypage')", warn: true });
+  } catch (e) { /* なし */ }
+  if (typeof _notices !== 'undefined' && Array.isArray(_notices)) {
+    const imp = _notices.filter(n => !n.hidden && _noticeIsImp(n) && !_noticeConfirmedByMe(n));
+    if (imp.length) items.push({ ic: '📢', text: t('home.todo.notice', {n: imp.length}),
+      go: imp.length === 1 ? `openNoticeDetail('${imp[0].id}')` : "setNoticeFilter('unread');document.getElementById('notice-home-wrap').scrollIntoView({behavior:'smooth',block:'start'})" });
+  }
+  if (typeof _clnData !== 'undefined' && _clnData && _clnData.todayInfo && _clnData.todayInfo.iAmDuty) {
+    items.push({ ic: '🧹', text: t('home.todo.clean'), go: "document.getElementById('cleaning-area').scrollIntoView({behavior:'smooth',block:'start'})" });
+  }
+  if (!items.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="hn-todo">
+      <div class="hn-todo-head"><span class="hn-next-eb">TO DO</span><span class="hn-todo-title">${t('home.todo')}</span><span class="hn-todo-n">${items.length}</span></div>
+      ${items.map(i => `<button type="button" class="hn-todo-row${i.warn ? ' warn' : ''}" onclick="${i.go}"><span class="hn-todo-ic">${i.ic}</span><span class="hn-todo-text">${esc(i.text)}</span><span class="nt-chev">›</span></button>`).join('')}
+    </div>`;
 }
 
 function renderHome(){
@@ -10442,6 +10539,7 @@ function _noticeImpBadge(n) {
 function renderNotices() {
   const list = document.getElementById('notice-home-list');
   if (!list) return;
+  renderHomeTodo(); // 未確認の重要なお知らせの数を「あなたのやること」にも反映（3c）
   if (!_notices.length) {
     // 管理者は投稿できるのでエリアを残す、一般は非表示
     if (currentUser?.isAdmin) {
@@ -12923,6 +13021,6 @@ async function initPushNotifications(opts) {
 })();
 </script>
 <script src="peer-memo.js"></script>
-<script src="halo-design.js?v=5"></script>
+<script src="halo-design.js?v=6"></script>
 </body>
 </html>

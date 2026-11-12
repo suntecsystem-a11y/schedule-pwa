@@ -308,3 +308,39 @@ button.ios-row:hover,.ios-link:hover{background:var(--surface-1)}
 .nt-ok.done{background:var(--surface-1);color:var(--green);opacity:1}
 .nt-hint{font-size:.74em;color:var(--text2);text-align:center;margin-top:6px}
 .nt-hid{background:var(--text3)}
+
+/* =====================================================================
+   3段階目 3c（11/12）：ホーム（今いる場所＋KING OF TIME の1行・次の予定・あなたのやること）
+   index.html の renderHomeNext / renderHomeTodo が .hn-next / .hn-todo を使う
+   ===================================================================== */
+.home-status-row{max-width:900px;margin:0 auto;padding:12px 12px 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.home-status-row:not(:has(> div:not([style*="display:none"]))){display:none}
+/* KING OF TIME は小さなピル型のボタンに（中身は index.html の loadKotLink が描く大きなボタン） */
+.home-status-row #kot-link-area a{padding:8px 14px!important;border-radius:999px!important;border:1px solid var(--border)!important;border-left:1px solid var(--border)!important;
+  box-shadow:none!important;font-size:.82em!important;min-height:44px;box-sizing:border-box}
+/* 次の予定：深緑→セージのグラデーションに、右上から太陽の光 */
+.hn-next{position:relative;overflow:hidden;border-radius:20px;padding:16px 18px;color:#fff;cursor:pointer;
+  background:radial-gradient(circle at 92% 0%,rgba(239,232,196,.55),rgba(239,232,196,0) 45%),linear-gradient(135deg,var(--hn-heroA,#4F7566),var(--hn-heroB,#99B9A4))}
+.hn-next:focus-visible{outline:3px solid var(--hn-sun,#EFE8C4);outline-offset:2px}
+.hn-next-top{display:flex;align-items:center;gap:8px}
+.hn-next-eb{font-family:'Geist',sans-serif;font-size:10px;font-weight:600;letter-spacing:.16em;opacity:.85}
+.hn-next-lab{font-size:.8em;font-weight:700;opacity:.95}
+.hn-next-cal{margin-left:auto;background:rgba(255,255,255,.18);color:#fff;border-radius:999px;padding:4px 12px;font-size:.78em;font-weight:600}
+.hn-next-when{margin-top:10px;font-size:.88em;font-weight:600;opacity:.95}
+.hn-next-title{margin-top:2px;font-size:1.35em;font-weight:700;line-height:1.35;word-break:break-word}
+.hn-next-time{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.hn-next-sub{margin-top:6px;font-size:.8em;opacity:.9}
+.hn-next-empty{cursor:default}
+.hn-next-empty .hn-next-title{font-size:1em;opacity:.95}
+/* あなたのやること */
+.hn-todo{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.hn-todo-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--hn-head,#F5F7F5);border-bottom:1px solid var(--border)}
+.hn-todo-head .hn-next-eb{color:var(--hn-eb,#7E6846)}
+.hn-todo-title{font-size:.88em;font-weight:700;color:var(--primary)}
+.hn-todo-n{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font-size:.72em;font-weight:700;line-height:20px;text-align:center}
+.hn-todo-row{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:10px 14px;background:transparent;border:none;border-top:1px solid var(--border);text-align:left;color:var(--text);font-size:.9em;cursor:pointer}
+.hn-todo-row:first-of-type{border-top:none}
+.hn-todo-row:hover{background:var(--surface-1)}
+.hn-todo-row.warn{color:var(--red);font-weight:600}
+.hn-todo-ic{width:1.4em;text-align:center;flex-shrink:0}
+.hn-todo-text{flex:1;min-width:0}
