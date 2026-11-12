@@ -344,3 +344,35 @@ button.ios-row:hover,.ios-link:hover{background:var(--surface-1)}
 .hn-todo-row.warn{color:var(--red);font-weight:600}
 .hn-todo-ic{width:1.4em;text-align:center;flex-shrink:0}
 .hn-todo-text{flex:1;min-width:0}
+
+/* =====================================================================
+   3段階目 3d（11/12）：在席ボード（ふつうの表示）＝部署ごとの折りたたみ＋1人1行の一覧
+   index.html の renderTeam が .tm-* を使う
+   ===================================================================== */
+.tm-dept{margin-bottom:14px}
+.tm-head{display:flex;align-items:center;gap:8px;width:100%;padding:6px 4px;background:transparent;border:none;color:var(--text2);font-size:.82em;font-weight:700;text-align:left;cursor:pointer}
+.tm-chev{display:inline-block;font-size:1.3em;line-height:1;transform:rotate(90deg);transition:transform .15s;color:var(--text3)}
+.tm-dept.closed .tm-chev{transform:none}
+.tm-dname{color:var(--text)}
+.tm-dept.closed .tm-list{display:none}
+.tm-list{display:grid;grid-template-columns:minmax(0,1fr);background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-top:4px}
+@media(min-width:700px){.tm-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1280px){.tm-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tm-row{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 12px;background:transparent;border:none;border-top:1px solid var(--border);text-align:left;color:var(--text);cursor:pointer;min-width:0}
+.tm-row:hover{background:var(--surface-1)}
+.tm-list>.tm-row:first-child{border-top:none}
+@media(min-width:700px){.tm-list>.tm-row:nth-child(2){border-top:none}}
+@media(min-width:1280px){.tm-list>.tm-row:nth-child(3){border-top:none}}
+.tm-av{position:relative;width:34px;height:34px;border-radius:50%;background:var(--hn-tint,var(--primary-light));color:var(--primary);font-size:.88em;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tm-dot{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;border:2px solid var(--surface)}
+.tm-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.tm-l1{display:flex;align-items:center;gap:6px;min-width:0}
+.tm-name{font-size:.9em;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm-st{font-size:.7em!important;flex-shrink:0}
+.tm-l2{font-size:.74em;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm-sep{opacity:.6}
+.tm-unset{color:var(--text3)}
+/* 在席ボードの表示の切り替え（在席ボード／部署ごと／場所ごと）がスマホで2行に折れないように */
+body.hn .team-vbtn{white-space:nowrap}
+@media(max-width:599px){body.hn .team-vbtn{padding-left:10px;padding-right:10px;font-size:.8em}}
