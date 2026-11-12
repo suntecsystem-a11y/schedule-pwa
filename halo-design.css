@@ -261,3 +261,50 @@ button.ios-row:hover,.ios-link:hover{background:var(--surface-1)}
 .ios-fold{padding:4px 16px 14px;border-top:1px solid var(--border)}
 .ios-link .ios-chev::after{display:inline-block;transition:transform .15s}
 .ios-link.open .ios-chev::after{transform:rotate(90deg)}
+
+/* =====================================================================
+   3段階目 3b（11/12）：お知らせ（一覧＋開いた画面）
+   index.html の renderNotices / openNoticeDetail が .nt-* を使う（.hn が無くても崩れないよう body.hn で絞らない）
+   ===================================================================== */
+.nt-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.nt-chip{padding:5px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.8em;font-weight:600}
+.nt-chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.nt-count{display:inline-block;min-width:18px;padding:0 5px;border-radius:999px;background:var(--red);color:#fff;font-size:.85em;line-height:18px;text-align:center;margin-left:2px}
+.nt-chip.on .nt-count{background:#fff;color:var(--primary)}
+.nt-list{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.nt-row{display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:transparent;border:none;border-top:1px solid var(--border);text-align:left;color:var(--text);cursor:pointer}
+.nt-row:first-child{border-top:none}
+.nt-row:hover{background:var(--surface-1)}
+.nt-row.nt-pin{background:color-mix(in srgb,var(--hn-sun,#fff8e1) 45%,#fff)}
+.nt-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0}
+.nt-dot.off{background:transparent}
+.nt-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nt-title{font-size:.92em;font-weight:600;line-height:1.45;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.nt-date{font-size:.74em;color:var(--text2)}
+.nt-chev{color:var(--text3);font-size:1.3em;line-height:1}
+.nt-imp{display:inline-block;font-size:.72em;font-weight:700;padding:1px 8px;border-radius:999px;margin-right:6px;vertical-align:.1em;color:#fff}
+.nt-urgent{background:var(--red)}
+.nt-important{background:var(--orange)}
+.nt-empty{padding:14px;font-size:.85em;color:var(--text2);text-align:center}
+.nt-more{display:block;margin:8px auto 0;padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.8em;font-weight:600}
+/* 開いた画面：スマホは下からのシート、タブレット・PC は真ん中 */
+.nt-ov{position:fixed;inset:0;z-index:1200;background:rgba(37,48,45,.45);display:none;align-items:flex-end;justify-content:center}
+.nt-sheet{background:var(--surface);width:100%;max-height:88vh;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:600px){.nt-ov{align-items:center}.nt-sheet{max-width:620px;border-radius:24px;max-height:82vh}}
+.nt-head{display:flex;gap:10px;align-items:flex-start;padding:18px 18px 10px;border-bottom:1px solid var(--border)}
+.nt-meta{font-size:.78em;color:var(--text2);display:flex;align-items:center;gap:4px;margin-bottom:4px}
+.nt-d-title{font-size:1.1em;font-weight:700;line-height:1.45;margin:0}
+.nt-x{width:34px;height:34px;border-radius:999px;background:var(--surface-1);color:var(--text2);font-size:1.3em;line-height:1;flex-shrink:0}
+.nt-body{flex:1;overflow-y:auto;padding:14px 18px;font-size:.92em;line-height:1.8}
+.nt-body p{margin:0;white-space:pre-wrap;word-break:break-word}
+.nt-admin{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.nt-admin button{padding:5px 14px;border-radius:999px;border:1px solid var(--border);background:var(--surface);font-size:.8em}
+.nt-admin .nt-del{border-color:var(--red);color:var(--red)}
+.nt-foot{padding:12px 18px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);background:var(--surface)}
+.nt-who{font-size:.78em;color:var(--text2);margin-bottom:8px}
+.nt-names{margin-top:4px;color:var(--text);line-height:1.6}
+.nt-ok{display:block;width:100%;padding:12px;border-radius:999px;background:var(--primary);color:#fff;font-weight:700;font-size:.95em}
+.nt-ok:disabled{opacity:.4;cursor:not-allowed}
+.nt-ok.done{background:var(--surface-1);color:var(--green);opacity:1}
+.nt-hint{font-size:.74em;color:var(--text2);text-align:center;margin-top:6px}
+.nt-hid{background:var(--text3)}

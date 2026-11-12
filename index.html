@@ -1027,7 +1027,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=4">
+<link rel="stylesheet" href="halo-design.css?v=5">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -2315,6 +2315,7 @@ ja:{
 'notice.title.label':'タイトル','notice.title.ph':'タイトルを入力',
 'notice.body':'本文','notice.body.ph':'本文を入力',
 'notice.post.btn':'投稿','notice.none':'お知らせはありません',
+'notice.f.all':'すべて','notice.f.unread':'未確認','notice.f.imp':'重要','notice.confirm':'確認しました','notice.confirmed':'確認済み','notice.confirm.hint':'最後まで読むと押せます','notice.confirm.count':'確認済み {n}人','notice.more':'すべて表示（{n}件）','notice.less':'少なく表示','notice.f.empty':'該当するお知らせはありません','notice.f.hidden':'非表示','notice.hide':'非表示にする','notice.unhide':'表示に戻す','notice.hidden.badge':'非表示中','notice.hide.confirm':'このお知らせを非表示にしますか？（だれの画面にも出なくなります。記録は Kintone に残ります）','notice.hidden.done':'非表示にしました','notice.unhidden.done':'表示に戻しました',
 'notice.title.required':'タイトルを入力してください','notice.body.required':'本文を入力してください',
 'notice.posted':'お知らせを投稿しました','notice.updated.msg':'お知らせを更新しました',
 'notice.delete.confirm':'このお知らせを削除しますか？','notice.deleted':'削除しました',
@@ -2711,6 +2712,7 @@ vi:{
 'notice.title.label':'Tiêu đề','notice.title.ph':'Nhập tiêu đề',
 'notice.body':'Nội dung','notice.body.ph':'Nhập nội dung',
 'notice.post.btn':'Đăng','notice.none':'Không có thông báo',
+'notice.f.all':'Tất cả','notice.f.unread':'Chưa xác nhận','notice.f.imp':'Quan trọng','notice.confirm':'Đã xác nhận','notice.confirmed':'Đã xác nhận','notice.confirm.hint':'Đọc đến cuối để bấm','notice.confirm.count':'Đã xác nhận {n} người','notice.more':'Xem tất cả ({n})','notice.less':'Thu gọn','notice.f.empty':'Không có thông báo phù hợp','notice.f.hidden':'Đã ẩn','notice.hide':'Ẩn','notice.unhide':'Hiện lại','notice.hidden.badge':'Đang ẩn','notice.hide.confirm':'Ẩn thông báo này? (Sẽ không hiện với ai nữa. Bản ghi vẫn lưu trên Kintone)','notice.hidden.done':'Đã ẩn','notice.unhidden.done':'Đã hiện lại',
 'notice.title.required':'Vui lòng nhập tiêu đề','notice.body.required':'Vui lòng nhập nội dung',
 'notice.posted':'Đã đăng thông báo','notice.updated.msg':'Đã cập nhật thông báo',
 'notice.delete.confirm':'Xóa thông báo này?','notice.deleted':'Đã xóa',
@@ -3100,6 +3102,7 @@ ne:{
 'notice.title.label':'शीर्षक','notice.title.ph':'शीर्षक लेख्नुहोस्',
 'notice.body':'विवरण','notice.body.ph':'विवरण लेख्नुहोस्',
 'notice.post.btn':'पोस्ट','notice.none':'सूचना छैन',
+'notice.f.all':'सबै','notice.f.unread':'पुष्टि नगरिएको','notice.f.imp':'महत्त्वपूर्ण','notice.confirm':'पुष्टि गरें','notice.confirmed':'पुष्टि भयो','notice.confirm.hint':'अन्त्यसम्म पढेपछि थिच्न सकिन्छ','notice.confirm.count':'पुष्टि गर्ने {n} जना','notice.more':'सबै हेर्नुहोस् ({n})','notice.less':'कम देखाउनुहोस्','notice.f.empty':'मिल्ने सूचना छैन','notice.f.hidden':'लुकाइएको','notice.hide':'लुकाउनुहोस्','notice.unhide':'फेरि देखाउनुहोस्','notice.hidden.badge':'लुकाइएको','notice.hide.confirm':'यो सूचना लुकाउने? (कसैलाई देखिँदैन। अभिलेख Kintone मा रहन्छ)','notice.hidden.done':'लुकाइयो','notice.unhidden.done':'फेरि देखाइयो',
 'notice.title.required':'शीर्षक लेख्नुहोस्','notice.body.required':'विवरण लेख्नुहोस्',
 'notice.posted':'सूचना पोस्ट भयो','notice.updated.msg':'सूचना अपडेट भयो',
 'notice.delete.confirm':'यो सूचना मेट्ने?','notice.deleted':'मेटियो',
@@ -10413,9 +10416,29 @@ function _markNoticesAsSeen() {
   if(!_notices.length) return;
   const ids = _notices.map(n => n.id);
   localStorage.setItem('seen_notice_ids', JSON.stringify(ids));
-  _updateNoticeBadge(0);
+  // 2026-11-12 新デザイン 3b：バッジは「自分が確認していない数」。ホームから移っても消さない
+  _updateNoticeBadge(_noticeUnread().length);
 }
 
+// ===== お知らせ（2026-11-12 新デザイン 3b）=====
+// 一覧はタイトル・日付・重要度・未確認の印だけ。本文は開いた画面で読み、最後まで読むと「確認しました」が押せる。
+// 確認した人は Kintone 1115 のテーブル confirms に記録（Worker の confirmNotice）。confirms が無い（古い Worker）ときは端末の既読で代わりにする
+let _noticeFilter = 'all';      // all / unread / imp
+let _noticeShowAll = false;     // ホームで6件目以降も出すか
+const NOTICE_HOME_MAX = 5;
+const _noticeIsImp = n => n.importance === '緊急' || n.importance === '重要';
+// お知らせの数（未確認）を数えるとき・ベルの数字は、非表示を除く
+const _noticeUnread = () => _notices.filter(n => !n.hidden && !_noticeConfirmedByMe(n));
+function _noticeConfirmedByMe(n) {
+  if (!currentUser) return false;
+  if (Array.isArray(n.confirms)) return n.confirms.some(c => String(c.empId) === String(currentUser.id));
+  return _getSeenNoticeIds().has(n.id);
+}
+function _noticeImpBadge(n) {
+  if (n.importance === '緊急') return `<span class="nt-imp nt-urgent">${t('notice.urgent')}</span>`;
+  if (n.importance === '重要') return `<span class="nt-imp nt-important">${t('notice.important')}</span>`;
+  return '';
+}
 function renderNotices() {
   const list = document.getElementById('notice-home-list');
   if (!list) return;
@@ -10430,35 +10453,123 @@ function renderNotices() {
     return;
   }
   document.getElementById('notice-home-wrap').style.display = 'block';
-  // 未読カウントをバッジに反映（既読化は他タブ移動時）
-  const seen = _getSeenNoticeIds();
-  const unread = _notices.filter(n => !seen.has(n.id)).length;
-  _updateNoticeBadge(unread);
-  const IMPORTANCE_STYLE = {
-    '緊急': { bg:'#ffebee', border:'#e53935', badge:t('notice.urgent'), badgeBg:'#e53935' },
-    '重要': { bg:'#fff8e1', border:'#fb8c00', badge:t('notice.important'), badgeBg:'#fb8c00' },
-    '通常': { bg:'white',   border:'var(--border)', badge:'', badgeBg:'' },
-  };
-  list.innerHTML = _notices.map(n => {
-    const s = IMPORTANCE_STYLE[n.importance] || IMPORTANCE_STYLE['通常'];
-    const impBadge = s.badge ? `<span style="font-size:0.75em;padding:2px 8px;border-radius:10px;background:${s.badgeBg};color:white;font-weight:700">${s.badge}</span>` : '';
-    const newBadge = !seen.has(n.id) ? `<span style="font-size:0.72em;padding:2px 7px;border-radius:10px;background:#e53935;color:white;font-weight:700">NEW</span>` : '';
-    const date = n.createdAt ? n.createdAt.slice(0,10) : '';
-    const adminBtns = currentUser?.isAdmin ? `
-      <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
-        <button onclick="openNoticeModal('${n.id}')" style="font-size:0.78em;padding:4px 12px;border-radius:8px;border:1.5px solid var(--border);background:white;cursor:pointer">${t('common.edit')}</button>
-        <button onclick="deleteNoticeConfirm('${n.id}')" style="font-size:0.78em;padding:4px 12px;border-radius:8px;border:1.5px solid #e53935;color:#e53935;background:white;cursor:pointer">${t('common.delete')}</button>
-      </div>` : '';
-    return `<div style="background:${s.bg};border:1.5px solid ${s.border};border-radius:12px;padding:14px 16px;margin-bottom:12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-        ${newBadge}${impBadge}
-        <span style="font-weight:700;font-size:0.95em;flex:1">${_escHtml(n.title)}</span>
-        <span style="font-size:0.75em;color:var(--text2)">${date}</span>
+  // 非表示にしたお知らせは Worker から届かない。念のため画面でも外す
+  const shown = _notices.filter(n => !n.hidden);
+  const unread = shown.filter(n => !_noticeConfirmedByMe(n));
+  _updateNoticeBadge(unread.length);
+  // 緊急 → 重要 → それ以外。同じ重さの中は新しい順（_notices は新しい順で届く）
+  const rank = n => n.importance === '緊急' ? 0 : n.importance === '重要' ? 1 : 2;
+  let items = shown.slice().sort((a, b) => rank(a) - rank(b));
+  if (_noticeFilter === 'unread') items = items.filter(n => !_noticeConfirmedByMe(n));
+  if (_noticeFilter === 'imp') items = items.filter(_noticeIsImp);
+  const total = items.length;
+  if (!_noticeShowAll) items = items.slice(0, NOTICE_HOME_MAX);
+  const chip = (id, label) => `<button type="button" class="nt-chip${_noticeFilter === id ? ' on' : ''}" onclick="setNoticeFilter('${id}')">${label}</button>`;
+  list.innerHTML = `
+    <div class="nt-chips">${chip('all', t('notice.f.all'))}${chip('unread', t('notice.f.unread') + (unread.length ? ` <span class="nt-count">${unread.length}</span>` : ''))}${chip('imp', t('notice.f.imp'))}</div>
+    <div class="nt-list">
+      ${items.length ? items.map(n => {
+        const mine = _noticeConfirmedByMe(n);
+        const date = n.createdAt ? n.createdAt.slice(0, 10).replace(/-/g, '/') : '';
+        return `<button type="button" class="nt-row${_noticeIsImp(n) ? ' nt-pin' : ''}" onclick="openNoticeDetail('${n.id}')">
+          <span class="nt-dot${mine ? ' off' : ''}" title="${mine ? t('notice.confirmed') : t('notice.f.unread')}"></span>
+          <span class="nt-main"><span class="nt-title">${_noticeImpBadge(n)}${_escHtml(n.title)}</span><span class="nt-date">${date}</span></span>
+          <span class="nt-chev">›</span>
+        </button>`;
+      }).join('') : `<div class="nt-empty">${t('notice.f.empty')}</div>`}
+    </div>
+    ${total > NOTICE_HOME_MAX ? `<button type="button" class="nt-more" onclick="toggleNoticeAll()">${_noticeShowAll ? t('notice.less') : t('notice.more', {n: total})}</button>` : ''}`;
+}
+function setNoticeFilter(f) { _noticeFilter = f; _noticeShowAll = false; renderNotices(); }
+function toggleNoticeAll() { _noticeShowAll = !_noticeShowAll; renderNotices(); }
+
+// お知らせを開いた画面。下に「確認しました」を固定し、本文を最後まで読んだら押せる
+function openNoticeDetail(id) {
+  const n = _notices.find(x => x.id === id);
+  if (!n) return;
+  let ov = document.getElementById('notice-detail');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'notice-detail';
+    ov.className = 'nt-ov';
+    ov.addEventListener('click', e => { if (e.target === ov) closeNoticeDetail(); });
+    document.body.appendChild(ov);
+  }
+  const date = n.createdAt ? n.createdAt.slice(0, 10).replace(/-/g, '/') : '';
+  const mine = _noticeConfirmedByMe(n);
+  const confirms = Array.isArray(n.confirms) ? n.confirms : null;
+  const adminBtns = currentUser?.isAdmin ? `
+    <div class="nt-admin">
+      <button type="button" onclick="closeNoticeDetail();openNoticeModal('${n.id}')">${t('common.edit')}</button>
+      <button type="button" class="nt-del" onclick="setNoticeHiddenNow('${n.id}', true)">${t('notice.hide')}</button>
+    </div>` : '';
+  // 確認した人数はだれでも見える。名前の一覧は管理者だけ
+  const who = confirms ? `<div class="nt-who">${t('notice.confirm.count', {n: confirms.length})}${currentUser?.isAdmin && confirms.length
+    ? `<div class="nt-names">${confirms.map(c => _escHtml(c.name || c.empId)).join('、')}</div>` : ''}</div>` : '';
+  ov.innerHTML = `
+    <div class="nt-sheet" role="dialog" aria-modal="true" aria-labelledby="nt-d-title">
+      <div class="nt-head">
+        <div style="flex:1;min-width:0">
+          <div class="nt-meta">${_noticeImpBadge(n)}<span>${date}</span></div>
+          <h3 id="nt-d-title" class="nt-d-title">${_escHtml(n.title)}</h3>
+        </div>
+        <button type="button" class="nt-x" aria-label="${t('common.close')}" onclick="closeNoticeDetail()">×</button>
       </div>
-      <p style="font-size:0.88em;line-height:1.7;margin:0;white-space:pre-wrap">${_linkify(_escHtml(n.body))}</p>
-      ${adminBtns}
+      <div class="nt-body" id="nt-d-body"><p>${_linkify(_escHtml(n.body))}</p>${adminBtns}</div>
+      <div class="nt-foot">
+        ${who}
+        ${mine
+          ? `<button type="button" class="nt-ok done" disabled>✓ ${t('notice.confirmed')}</button>`
+          : `<button type="button" class="nt-ok" id="nt-d-ok" disabled onclick="confirmNoticeNow('${n.id}')">${t('notice.confirm')}</button>
+             <div class="nt-hint" id="nt-d-hint">${t('notice.confirm.hint')}</div>`}
+      </div>
     </div>`;
-  }).join('');
+  ov.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  const body = document.getElementById('nt-d-body');
+  const ok = document.getElementById('nt-d-ok');
+  if (body && ok) {
+    const check = () => {
+      if (body.scrollTop + body.clientHeight >= body.scrollHeight - 8) {
+        ok.disabled = false;
+        const h = document.getElementById('nt-d-hint'); if (h) h.style.visibility = 'hidden';
+      }
+    };
+    body.addEventListener('scroll', check, { passive: true });
+    requestAnimationFrame(check); // 短いお知らせは開いた時点で最後まで見えている
+  }
+}
+// 非表示にする・表示に戻す（管理者だけ。2026-11-12。削除の代わり。レコードは Kintone に残る）
+async function setNoticeHiddenNow(id, hidden) {
+  if (hidden && !confirm(t('notice.hide.confirm'))) return;
+  try {
+    await api('setNoticeHidden', { noticeId: id, hidden }, '');
+    if (hidden) _notices = _notices.filter(x => x.id !== id); // 非表示にしたら、管理者の画面からも消す
+    closeNoticeDetail();
+    renderNotices();
+    showToast(hidden ? t('notice.hidden.done') : t('notice.unhidden.done'));
+  } catch (e) {
+    showToast(t('inq.error', {msg: e.message}));
+  }
+}
+function closeNoticeDetail() {
+  const ov = document.getElementById('notice-detail');
+  if (ov) ov.style.display = 'none';
+  document.body.style.overflow = '';
+}
+async function confirmNoticeNow(id) {
+  const ok = document.getElementById('nt-d-ok');
+  if (ok) { ok.disabled = true; ok.textContent = t('common.loading'); }
+  try {
+    const res = await api('confirmNotice', { noticeId: id }, '');
+    const n = _notices.find(x => x.id === id);
+    if (n && res && Array.isArray(res.confirms)) n.confirms = res.confirms;
+    renderNotices();
+    openNoticeDetail(id); // 「確認済み」に描き直す
+  } catch (e) {
+    if (ok) { ok.disabled = false; ok.textContent = t('notice.confirm'); }
+    showToast(t('inq.error', {msg: e.message}));
+  }
 }
 
 function openNoticeModal(editId) {
@@ -12812,6 +12923,6 @@ async function initPushNotifications(opts) {
 })();
 </script>
 <script src="peer-memo.js"></script>
-<script src="halo-design.js?v=4"></script>
+<script src="halo-design.js?v=5"></script>
 </body>
 </html>
