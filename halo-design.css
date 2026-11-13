@@ -376,3 +376,97 @@ button.ios-row:hover,.ios-link:hover{background:var(--surface-1)}
 /* 在席ボードの表示の切り替え（在席ボード／部署ごと／場所ごと）がスマホで2行に折れないように */
 body.hn .team-vbtn{white-space:nowrap}
 @media(max-width:599px){body.hn .team-vbtn{padding-left:10px;padding-right:10px;font-size:.8em}}
+
+/* =====================================================================
+   3段階目 3e-1（11/12）：設備予約（会議室＋端末）
+   index.html の #tab-rooms（renderFacility / renderFacMine）が .fac-* を使う
+   ===================================================================== */
+.fac-title{font-size:1.5em;font-weight:700;margin:4px 2px 12px;letter-spacing:.02em}
+.fac-mine{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:12px}
+.fac-mine-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--hn-head,#F5F7F5);border-bottom:1px solid var(--border)}
+.fac-mine-head .hn-next-eb{color:var(--hn-eb,#7E6846)}
+.fac-mine-title{font-size:.88em;font-weight:700;color:var(--primary)}
+.fac-row{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:10px 14px;background:transparent;border:none;border-top:1px solid var(--border);text-align:left;color:var(--text)}
+.fac-mine-head+.fac-row{border-top:none}
+button.fac-row{cursor:pointer}
+button.fac-row:hover{background:var(--surface-1)}
+.fac-ic{width:1.6em;text-align:center;flex-shrink:0;font-size:1.05em}
+.fac-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.fac-l1{font-size:.9em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fac-l2{font-size:.76em;color:var(--text2);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fac-st{font-size:.78em;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--surface-1);color:var(--text2);margin-left:4px}
+.fac-left{font-weight:700;color:var(--primary)}
+.fac-dev.over .fac-left{color:var(--red)}
+.fac-btns{display:flex;gap:6px;flex-shrink:0}
+.fac-btn{padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:.78em;font-weight:600}
+.fac-btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.fac-dev.over .fac-btn.primary{background:var(--red);border-color:var(--red)}
+.fac-empty{padding:14px;font-size:.85em;color:var(--text2);text-align:center}
+.fac-switch{display:flex;gap:3px;background:var(--surface-1);border-radius:14px;padding:3px;margin-bottom:12px}
+.fac-switch button{flex:1;padding:8px 10px;border-radius:11px;background:transparent;color:var(--text2);font-size:.86em;font-weight:600}
+.fac-switch button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.fac-sec{margin-bottom:18px}
+.fac-sec-head{font-size:.74em;font-weight:600;color:var(--text2);letter-spacing:.06em;margin:4px 4px 8px}
+@media(max-width:599px){.fac-btns{flex-direction:column}}
+/* 設備予約の「車」（準備中） */
+.fac-prep-tag{display:inline-block;margin-left:4px;font-size:.72em;font-weight:600;padding:0 6px;border-radius:999px;background:var(--hn-beige,#eee);color:var(--hn-eb,#7E6846);vertical-align:.1em}
+.fac-prep{background:var(--surface);border:1px dashed var(--border);border-radius:16px;padding:22px 16px;text-align:center;color:var(--text2);font-size:.9em;line-height:1.7}
+@media(max-width:599px){.fac-switch button{padding:8px 4px;font-size:.8em}.fac-prep-tag{display:block;margin:2px auto 0;width:max-content}}
+
+/* =====================================================================
+   3段階目 3e-2（11/13）：設備予約を採用案の形に（日付送り＋「今すぐ使える」「空き状況」の2枚）
+   ===================================================================== */
+.fac-datenav{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 12px}
+.fac-date{font-weight:700;font-size:1em;min-width:9em;text-align:center}
+.fac-cols{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+@media(min-width:900px){.fac-cols{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}}
+.fac-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.fac-card-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:10px 14px;background:var(--hn-head,#F5F7F5);border-bottom:1px solid var(--border)}
+.fac-card-head .hn-next-eb{color:var(--hn-eb,#7E6846);flex-basis:100%}
+.fac-card-title{font-size:.9em;font-weight:700;color:var(--text)}
+.fac-whens{display:flex;gap:4px;margin-left:auto}
+.fac-when{padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:.74em;font-weight:600}
+.fac-when.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.fac-av-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--border)}
+.fac-card-head+.fac-av-row{border-top:none}
+.fac-tile{width:36px;height:36px;border-radius:12px;background:color-mix(in srgb,var(--hn-tint,#C6D8C2) 45%,#fff);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)}
+.fac-go{padding:6px 14px;border-radius:999px;background:var(--primary);color:#fff;font-size:.8em;font-weight:700;flex-shrink:0}
+/* 空き状況：会議室の時間の表 */
+.fg-body{padding:10px 14px 12px;overflow-x:auto}
+.fg-sub{font-size:.74em;font-weight:600;color:var(--text2);letter-spacing:.06em;margin:4px 0 6px}
+.fg-block+.fg-block{margin-top:14px}
+.fg-row{display:flex;align-items:stretch;min-height:40px;border-top:1px solid var(--border);min-width:420px}
+.fg-row.fg-hours{border-top:none;min-height:20px}
+.fg-name{width:7.5em;flex-shrink:0;font-size:.8em;font-weight:600;padding:6px 6px 6px 0;line-height:1.3;display:flex;flex-direction:column;justify-content:center}
+.fg-name small{font-weight:400;color:var(--text2);font-size:.85em}
+.fg-track{position:relative;flex:1;cursor:pointer}
+.fg-hours .fg-track{cursor:default}
+.fg-hours .fg-track span{position:absolute;top:2px;transform:translateX(-50%);font-size:.7em;color:var(--text2)}
+.fg-row:not(.fg-hours) .fg-track:hover{background:color-mix(in srgb,var(--hn-tint,#C6D8C2) 25%,transparent)}
+.fg-bar{position:absolute;top:7px;bottom:7px;border-radius:6px;background:var(--surface-1);border-left:3px solid var(--primary);color:var(--text);font-size:.7em;padding:0 4px;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.fg-now{position:absolute;top:0;bottom:0;width:2px;background:var(--red);pointer-events:none}
+.fg-hint{font-size:.74em;color:var(--text2);margin-top:8px}
+/* 空き状況：端末の7日の表 */
+.fd-row{display:flex;align-items:stretch;min-height:38px;border-top:1px solid var(--border);min-width:0}
+.fd-row.fd-head{border-top:none;min-height:28px}
+.fd-cell{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.74em;color:var(--text2);background:transparent;border:none;min-width:0}
+.fd-cell small{font-size:.85em}
+.fd-cell.free{color:var(--green);font-weight:700;cursor:pointer;border-radius:8px}
+.fd-cell.free:hover{background:color-mix(in srgb,var(--hn-tint,#C6D8C2) 35%,transparent)}
+.fd-cell.busy{color:var(--text3)}
+/* 設備予約：端末を種別ごとにたたむ（11/13） */
+button.fac-grp{width:100%;background:transparent;border:none;border-top:1px solid var(--border);text-align:left;color:var(--text);cursor:pointer}
+button.fac-grp:hover:not(:disabled){background:var(--surface-1)}
+button.fac-grp:disabled{cursor:default;opacity:.75}
+.fac-cnt{font-size:.8em;font-weight:700;color:var(--green);flex-shrink:0}
+.fac-none{font-size:.76em;color:var(--text3);flex-shrink:0}
+.fac-chev{display:inline-block;color:var(--text3);font-size:1.25em;line-height:1;transition:transform .15s;flex-shrink:0}
+.fac-grp.open .fac-chev,.fd-grp.open .fac-chev{transform:rotate(90deg)}
+.fac-sub-row{background:var(--surface-1);padding-left:60px}
+.fac-sub-row .fac-l1{font-weight:500}
+button.fd-grp{width:100%;background:transparent;border:none;border-top:1px solid var(--border);text-align:left;color:var(--text);cursor:pointer;padding:0}
+button.fd-grp:hover{background:var(--surface-1)}
+.fd-gname{display:flex;align-items:center;gap:4px}
+.fd-grp .fd-cell.free{font-weight:700}
+.fd-item{background:var(--surface-1)}
+.fd-item .fg-name{padding-left:18px;font-weight:500}

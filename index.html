@@ -1027,7 +1027,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=7">
+<link rel="stylesheet" href="halo-design.css?v=10">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -1077,8 +1077,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span><span class="sidebar-short">申請</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
     <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span><span class="sidebar-short">会議室</span></button>
-    <button class="sidebar-btn" data-tab="devices" data-tip="端末" onclick="switchTab('devices',this)"><span class="sidebar-icon">📱</span><span class="sidebar-label">端末</span><span class="sidebar-short">端末</span></button>
-    <button class="sidebar-btn" data-tab="cars" data-tip="車予約" onclick="switchTab('cars',this)" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">車</span></button>
+    <button class="sidebar-btn" data-tab="devices" data-tip="端末" style="display:none" onclick="switchTab('devices',this)"><span class="sidebar-icon">📱</span><span class="sidebar-label">端末</span><span class="sidebar-short">端末</span></button>
+    <button class="sidebar-btn" data-tab="cars" data-tip="車予約" onclick="switchTab('cars',this)" disabled style="display:none;opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">🚗</span><span class="sidebar-label">車予約 <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">車</span></button>
     <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">問い合わせ</span></button>
     <button class="sidebar-btn" data-tab="tasks" data-tip="タスク" onclick="switchTab('tasks',this)"><span class="sidebar-icon">✅</span><span class="sidebar-label">タスク</span><span class="sidebar-short">タスク</span></button>
     <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span><span class="sidebar-short">eラーニング</span></button>
@@ -1108,8 +1108,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="tab-btn" data-tab="apply" onclick="switchTab('apply',this)">📋 申請</button>
     <button class="tab-btn" data-tab="mypage" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms',this)">🏢 会議室</button>
-    <button class="tab-btn" data-tab="devices" onclick="switchTab('devices',this)">📱 端末</button>
-    <button class="tab-btn" data-tab="cars" onclick="switchTab('cars',this)" disabled style="opacity:0.4;cursor:not-allowed">🚗 車</button>
+    <button class="tab-btn" data-tab="devices" style="display:none" onclick="switchTab('devices',this)">📱 端末</button>
+    <button class="tab-btn" data-tab="cars" onclick="switchTab('cars',this)" disabled style="display:none;opacity:0.4;cursor:not-allowed">🚗 車</button>
     <button class="tab-btn" data-tab="inquiry" disabled style="opacity:0.4;cursor:not-allowed">💬 問い合わせ</button>
     <button class="tab-btn" data-tab="tasks" onclick="switchTab('tasks',this)">✅ タスク</button>
     <button class="tab-btn" data-tab="elearning" id="elearning-tab-btn" onclick="switchTab('elearning',this)" style="display:none">📚 eラーニング</button>
@@ -1217,6 +1217,27 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 
   <!-- 会議室 -->
   <div class="content" id="tab-rooms" style="display:none">
+    <!-- 設備予約（2026-11-12 新デザイン 3e-1）：会議室と端末を1つのタブに。①自分の予約・借りている物 → 切り替え → 予約表 -->
+    <h2 class="fac-title" id="fac-title">設備予約</h2>
+    <div id="fac-mine"></div>
+    <div class="fac-switch" id="fac-switch">
+      <button type="button" data-fac="device" onclick="setFacFilter('device')">端末</button>
+      <button type="button" data-fac="car" onclick="setFacFilter('car')">車</button>
+    </div>
+    <!-- 採用案の形（3e-2）：日付送り → 左「今すぐ使える」＋右「空き状況」 -->
+    <div id="fac-main-area">
+      <div class="fac-datenav">
+        <button type="button" class="nav-arrow" onclick="facNav(-1)" aria-label="前の日">‹</button>
+        <span class="fac-date" id="fac-date"></span>
+        <button type="button" class="today-btn" onclick="facToday()" id="fac-today">今日</button>
+        <button type="button" class="nav-arrow" onclick="facNav(1)" aria-label="次の日">›</button>
+      </div>
+      <div class="fac-cols"><div id="fac-avail"></div><div id="fac-grid"></div></div>
+    </div>
+    <!-- 前の会議室・端末の画面（今は出さない。描く処理が使うので残す） -->
+    <div id="fac-legacy" style="display:none">
+    <section id="fac-room-sec" class="fac-sec">
+    <div class="fac-sec-head" id="fac-room-head">会議室</div>
     <!-- 今の空き会議室クイック確認 -->
     <div class="room-now-widget">
       <div style="font-size:0.75em;font-weight:700;color:var(--text2);margin-bottom:8px" id="room-now-label">🕐 今の空き状況</div>
@@ -1234,6 +1255,51 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <button class="btn-primary" onclick="openRoomBookingModal()" style="font-size:0.85em;padding:9px 18px">＋ 会議室を予約</button>
     </div>
     <div id="room-timeline"></div>
+    </section>
+    </div>
+    <!-- 車（前の「車予約」タブの中身をここへ。準備中：使える人（CAR_ALLOWED_IDS）にだけ中身、ほかの人は「準備中」。3e-1） -->
+    <section id="fac-car-sec" class="fac-sec">
+    <div class="fac-sec-head" id="fac-car-head">車</div>
+    <div id="fac-car-prep" class="fac-prep">車の予約は準備中です</div>
+    <div id="fac-car-body">
+    <div id="car-in-use-banner" style="display:none"></div>
+    <div style="display:flex;justify-content:center;align-items:center;padding:8px 16px 4px;gap:10px">
+      <div>
+        <button class="car-vbtn active" data-carv="month" onclick="switchCarView('month',this)">月</button>
+        <button class="car-vbtn" data-carv="day" onclick="switchCarView('day',this)">日</button>
+      </div>
+      <button onclick="loadCarData({force:true}).then(()=>renderCarView())"
+        style="font-size:0.75em;color:var(--text2);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer"
+        title="最新データに更新">🔄 更新</button>
+    </div>
+    <div class="cal-nav">
+      <button class="nav-arrow" onclick="navCarDate(-1)">‹</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="cal-nav-title" id="car-date-title"></span>
+        <button class="today-btn" onclick="carGoToday()">今日</button>
+      </div>
+      <button class="nav-arrow" onclick="navCarDate(1)">›</button>
+    </div>
+    <div id="car-calendar"></div>
+    <div id="car-timeline" style="display:none"></div>
+    </div>
+    </section>
+    <!-- 端末（前の「端末」タブの中身をここへ。3e-1。月の表は今は出さない） -->
+    <div id="fac-legacy2" style="display:none">
+    <section id="fac-device-sec" class="fac-sec">
+    <div class="fac-sec-head" id="fac-device-head">端末</div>
+    <div class="cal-nav">
+      <button class="nav-arrow" onclick="navDeviceMonth(-1)">‹</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="cal-nav-title" id="device-month-title"></span>
+        <button class="today-btn" onclick="goDeviceToday()" id="device-today-btn">今日</button>
+      </div>
+      <button class="nav-arrow" onclick="navDeviceMonth(1)">›</button>
+    </div>
+    <div id="device-legend" style="display:flex;gap:10px;justify-content:center;padding:0 16px 8px;flex-wrap:wrap"></div>
+    <div id="device-calendar"></div>
+    </section>
+    </div>
   </div>
 
   <!-- チーム -->
@@ -1262,42 +1328,12 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   </div>
 
   <!-- 端末 -->
-  <div class="content" id="tab-devices" style="display:none">
-    <div class="cal-nav">
-      <button class="nav-arrow" onclick="navDeviceMonth(-1)">‹</button>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="cal-nav-title" id="device-month-title"></span>
-        <button class="today-btn" onclick="goDeviceToday()" id="device-today-btn">今日</button>
-      </div>
-      <button class="nav-arrow" onclick="navDeviceMonth(1)">›</button>
-    </div>
-    <div id="device-legend" style="display:flex;gap:10px;justify-content:center;padding:0 16px 8px;flex-wrap:wrap"></div>
-    <div id="device-calendar"></div>
-  </div>
+  <!-- 中身は「設備予約」（tab-rooms）に移した（2026-11-12 3e-1）。switchTab('devices') は設備予約の端末に切り替わる -->
+  <div class="content" id="tab-devices" style="display:none"></div>
 
   <!-- 車 -->
-  <div class="content" id="tab-cars" style="display:none">
-    <div id="car-in-use-banner" style="display:none"></div>
-    <div style="display:flex;justify-content:center;align-items:center;padding:8px 16px 4px;gap:10px">
-      <div>
-        <button class="car-vbtn active" data-carv="month" onclick="switchCarView('month',this)">月</button>
-        <button class="car-vbtn" data-carv="day" onclick="switchCarView('day',this)">日</button>
-      </div>
-      <button onclick="loadCarData({force:true}).then(()=>renderCarView())"
-        style="font-size:0.75em;color:var(--text2);background:none;border:1px solid var(--border);border-radius:8px;padding:5px 10px;cursor:pointer"
-        title="最新データに更新">🔄 更新</button>
-    </div>
-    <div class="cal-nav">
-      <button class="nav-arrow" onclick="navCarDate(-1)">‹</button>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="cal-nav-title" id="car-date-title"></span>
-        <button class="today-btn" onclick="carGoToday()">今日</button>
-      </div>
-      <button class="nav-arrow" onclick="navCarDate(1)">›</button>
-    </div>
-    <div id="car-calendar"></div>
-    <div id="car-timeline" style="display:none"></div>
-  </div>
+  <!-- 中身は「設備予約」（tab-rooms）の車に移した（2026-11-13 3e-1）。switchTab('cars') は設備予約の車に切り替わる -->
+  <div class="content" id="tab-cars" style="display:none"></div>
 
   <!-- 問い合わせ -->
   <!-- お知らせ掲示板（ホームタブ内に移動） -->
@@ -2154,7 +2190,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','nav.rooms':'会議室','nav.team':'在席ボード',
+'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席ボード',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -2569,7 +2605,7 @@ vi:{
 'dr.err.empty':'Chưa có nội dung',
 'dr.sending':'Đang gửi...',
 'dr.saved':'Đã ghi Kaizen Step',
-'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
+'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
@@ -2959,7 +2995,7 @@ ne:{
 'dr.err.empty':'केही लेखिएको छैन',
 'dr.sending':'पठाउँदै...',
 'dr.saved':'Kaizen Step रेकर्ड गरियो',
-'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
+'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
@@ -3286,7 +3322,7 @@ const NAV_META={
   team:{e:'👥',k:'nav.team',s:'nav.team.short'},
   apply:{e:'📋',k:'nav.apply',s:'nav.apply'},
   mypage:{e:'👤',k:'nav.mypage',s:'nav.mypage'},
-  rooms:{e:'🏢',k:'nav.rooms',s:'nav.rooms'},
+  rooms:{e:'🏢',k:'nav.facility',s:'nav.facility.short'}, // 2026-11-12 3e-1：会議室＋端末＝設備予約
   devices:{e:'📱',k:'nav.devices',s:'nav.devices.short'},
   cars:{e:'🚗',k:'nav.cars',s:'nav.cars.short',get prep(){return !carAllowed();}},
   inquiry:{e:'💬',k:'nav.inquiry',s:'nav.inquiry',prep:true},
@@ -3299,7 +3335,7 @@ const NAV_META={
 const CAR_ALLOWED_IDS=['90'];
 function carAllowed(){return !!(currentUser&&CAR_ALLOWED_IDS.includes(String(currentUser.id)));}
 const BOTTOM_TABS=['home','calendar','team'];
-const MORE_TABS=['apply','mypage','rooms','devices','cars','inquiry','tasks','elearning','settings','admin'];
+const MORE_TABS=['apply','mypage','rooms','inquiry','tasks','elearning','settings','admin'];
 let _currentTab='home';
 let _moreNotifCount=0;
 function _applyNavLabels(){
@@ -6049,6 +6085,8 @@ document.addEventListener('pointerup',e=>{
   tkfNewFromRow(dg.id,tkDs(tkAddDays(_tk.range.start,lo)),tkDs(tkAddDays(_tk.range.start,hi)));
 });
 function switchTab(tab, btn){
+  if(tab==='devices'){ _facFilter='device'; tab='rooms'; } // 端末は設備予約の中（3e-1）
+  if(tab==='cars'){ _facFilter='car'; tab='rooms'; }       // 車も設備予約の中（準備中。3e-1）
   if(tab==='tasks'&&!tkAllowed())return;
   if(tab==='cars'&&!carAllowed())return;
   ['home','calendar','tasks','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
@@ -6062,7 +6100,7 @@ function switchTab(tab, btn){
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); loadPlaces().then(()=>{ if(_currentTab==='home') renderHomeMyPlace(); }); }
   else                { _markNoticesAsSeen(); }
   if(tab==='tasks')   renderTasksTab();
-  if(tab==='rooms')   renderRoomTimeline();
+  if(tab==='rooms')   { renderRoomTimeline(); renderFacility(); try{ renderDevices(); }catch(e){} loadEvents().then(()=>{ if(_currentTab==='rooms'){ renderDevices(); renderFacMine(); renderFacAvail(); renderFacGrid(); } }); loadRentalMasters().then(()=>{ if(_currentTab==='rooms'){ renderFacAvail(); renderFacGrid(); } }).catch(()=>{}); _facLoadCar(); }
   if(tab==='team')    { _teamLastActive=Date.now(); renderTeam(); loadPlaces().then(()=>{ if(_currentTab==='team') renderTeam(); }); _teamAutoStart(); }
   else                _teamAutoStop();
   if(tab==='devices') { loadEvents().then(()=>renderDevices()); }
@@ -6512,6 +6550,245 @@ function openRoomBookingModal(roomId, startTime, endTime){
   if(endTime)   document.getElementById('ev-end').value=endTime;
   if(roomId){ selectedRoom=roomId; renderRoomPicker(); }
 }
+// ===== 設備予約（2026-11-12 新デザイン 3e-1）：会議室と端末を1つのタブに =====
+// 切り替え（すべて／会議室／端末）は端末ごとに覚える。予約の保存は今までどおり予定の登録の窓
+// 2026-11-13：会議室は設備予約から外した（会議室の予約は予定の登録の窓から）。切り替えは 端末／車 だけ
+let _facFilter = (() => { try { return localStorage.getItem('halo_fac_filter') === 'car' ? 'car' : 'device'; } catch (e) { return 'device'; } })();
+function setFacFilter(f) {
+  _facFilter = f;
+  try { localStorage.setItem('halo_fac_filter', f); } catch (e) {}
+  renderFacility();
+}
+function renderFacility() {
+  const sw = document.getElementById('fac-switch');
+  if (!sw) return;
+  sw.querySelectorAll('button[data-fac]').forEach(b => {
+    b.classList.toggle('on', b.dataset.fac === _facFilter);
+    b.textContent = t('fac.' + b.dataset.fac);
+  });
+  const ttl = document.getElementById('fac-title'); if (ttl) ttl.textContent = t('fac.title');
+  const rh = document.getElementById('fac-room-head'); if (rh) rh.textContent = t('fac.room');
+  const dh = document.getElementById('fac-device-head'); if (dh) dh.textContent = t('fac.device');
+  const ch = document.getElementById('fac-car-head'); if (ch) ch.textContent = t('fac.car');
+  // 車は準備中：切り替えのボタンに「準備中」を添える。中身は使える人（CAR_ALLOWED_IDS）にだけ出し、ほかの人には「準備中」の案内
+  const carBtn = sw.querySelector('button[data-fac="car"]');
+  if (carBtn) carBtn.innerHTML = esc(t('fac.car')) + `<span class="fac-prep-tag">${esc(t('nav.preparing').replace(/[（）()]/g,''))}</span>`;
+  const room = document.getElementById('fac-room-sec'), dev = document.getElementById('fac-device-sec'), car = document.getElementById('fac-car-sec');
+  if (room) room.style.display = (_facFilter === 'all' || _facFilter === 'room') ? '' : 'none';
+  if (dev) dev.style.display = (_facFilter === 'all' || _facFilter === 'device') ? '' : 'none';
+  // 車は「車」を選んだときだけ（「すべて」には入れない。準備中のため）
+  if (car) car.style.display = _facFilter === 'car' ? '' : 'none';
+  const ok = typeof carAllowed === 'function' && carAllowed();
+  const prep = document.getElementById('fac-car-prep'), body = document.getElementById('fac-car-body');
+  if (prep) { prep.style.display = ok ? 'none' : ''; prep.textContent = t('fac.car.prep'); }
+  if (body) body.style.display = ok ? '' : 'none';
+  // 「すべて」のときだけ、会議室・端末の見出しを出す
+  [rh, dh, ch].forEach(h => { if (h) h.style.display = _facFilter === 'all' ? '' : 'none'; });
+  const main = document.getElementById('fac-main-area'); if (main) main.style.display = _facFilter === 'car' ? 'none' : '';
+  const td = document.getElementById('fac-today'); if (td) td.textContent = t('common.today');
+  renderFacMine();
+  renderFacAvail();
+  renderFacGrid();
+  _facLoadCar();
+}
+// 車を選んだときだけ、使える人は車の予約を読み込んで描く
+function _facLoadCar() {
+  if (_facFilter !== 'car' || typeof carAllowed !== 'function' || !carAllowed()) return;
+  loadCarData().then(() => { if (_currentTab === 'rooms' && _facFilter === 'car') { renderCarView(); renderCarInUseBanner(); } });
+}
+// ① 自分の予約・借りている物：これからの自分の会議室の予約（5件まで）と、借りている・借りる予定の端末
+function renderFacMine() {
+  const el = document.getElementById('fac-mine');
+  if (!el || !currentUser) return;
+  const today = fmtDate(new Date());
+  const hm = String(new Date().getHours()).padStart(2, '0') + ':' + String(new Date().getMinutes()).padStart(2, '0');
+  const showRoom = false, showDev = true; // 会議室は設備予約から外した（2026-11-13）
+  const rooms = !showRoom ? [] : events.filter(e => usesRoom(e) && e.approvalStatus !== '否認' && _isUserInEvent(e, currentUser.id)
+      && ((e.endDate || e.date || e.startDate || '') > today || ((e.endDate || e.date || e.startDate || '') === today && (e.end || '99:99') > hm)))
+    .sort((a, b) => ((a.date || a.startDate || '') + (a.start || '')).localeCompare((b.date || b.startDate || '') + (b.start || ''))).slice(0, 5);
+  const devs = !showDev ? [] : events.filter(e => e.approvalStatus !== '否認' && e.userId === currentUser.id && (e.rentals || []).length > 0 && e.rentalStatus && e.rentalStatus !== '返却済');
+  const md = ds => { if (!ds) return ''; const d = new Date(ds + 'T00:00:00'); return `${d.getMonth() + 1}/${d.getDate()}(${tDow((d.getDay() + 6) % 7)})`; };
+  const rows = [];
+  rooms.forEach(e => {
+    rows.push(`<button type="button" class="fac-row" onclick="openDetail('${e.id}')">
+      <span class="fac-ic">🏢</span>
+      <span class="fac-main"><span class="fac-l1">${esc(roomName(e.room))}</span>
+        <span class="fac-l2">${md(e.date || e.startDate)} ${e.start ? esc(e.start + '〜' + (e.end || '')) : ''}${e.title ? '・' + esc(e.title) : ''}</span></span>
+      <span class="nt-chev">›</span></button>`);
+  });
+  devs.forEach(e => {
+    const names = (e.rentals || []).map(r => typeof r === 'string' ? r : r.label).join('、');
+    const lent = e.rentalStatus === '貸出中';
+    let left = '';
+    if (lent && e.rentalEnd) {
+      const diff = Math.round((new Date(e.rentalEnd + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+      left = diff > 0 ? t('fac.left', {n: diff}) : diff === 0 ? t('fac.today') : t('fac.over', {n: -diff});
+    }
+    const over = lent && e.rentalEnd && e.rentalEnd < today;
+    const canExtend = lent || e.rentalStatus === '予約中';
+    rows.push(`<div class="fac-row fac-dev${over ? ' over' : ''}">
+      <span class="fac-ic">📱</span>
+      <span class="fac-main"><span class="fac-l1">${esc(names)} <span class="fac-st">${esc(e.rentalStatus)}</span></span>
+        <span class="fac-l2">${md(e.rentalStart)} 〜 ${md(e.rentalEnd)}${left ? `<span class="fac-left">${esc(left)}</span>` : ''}</span></span>
+      <span class="fac-btns">
+        ${canExtend ? `<button type="button" class="fac-btn" onclick="openExtendModal('${e.id}','${e.rentalEnd || ''}')">${t('my.rental.extend')}</button>` : ''}
+        ${lent ? `<button type="button" class="fac-btn primary" onclick="returnDevice('${e.id}')">${t('my.rental.return')}</button>` : ''}
+      </span></div>`);
+  });
+  el.innerHTML = `<div class="fac-mine">
+    <div class="fac-mine-head"><span class="hn-next-eb">MY BOOKINGS</span><span class="fac-mine-title">${t('fac.mine')}</span></div>
+    ${rows.length ? rows.join('') : `<div class="fac-empty">${t('fac.mine.none')}</div>`}
+  </div>`;
+}
+
+// ===== 設備予約：採用案の形（2026-11-13 3e-2）=====
+// 日付送り → 左「今すぐ使える」（AVAILABLE NOW）＋右「空き状況」（AVAILABILITY）の2枚。
+// 会議室は時間の表（空いている所を押すと予約）、端末は7日分の表（空いている日を押すと借りる）
+let _facWhen = 'now';   // now / 1h / tmr（今すぐ／1時間後／明日）
+const FAC_H0 = 8, FAC_H1 = 20; // 会議室の表の時間帯（8時〜20時）
+const _facHM = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const _facMin = hm => { const [h, m] = String(hm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
+function facNav(d) { roomDate = addDays(roomDate, d); _facWhen = 'day'; renderFacAvail(); renderFacGrid(); }
+function facToday() { roomDate = new Date(); _facWhen = 'now'; renderFacAvail(); renderFacGrid(); }
+function setFacWhen(w) {
+  _facWhen = w;
+  roomDate = w === 'tmr' ? addDays(new Date(), 1) : new Date();
+  renderFacAvail(); renderFacGrid();
+}
+// その日・その会議室の予約（否認は除く）
+function _facRoomEvs(roomId, ds) {
+  return events.filter(e => usesRoom(e) && e.room === roomId && e.approvalStatus !== '否認' && eventIncludesDate(e, ds) && e.start)
+    .sort((a, b) => a.start.localeCompare(b.start));
+}
+// その日に端末が空いているか（申請中・予約中・貸出中の期間と重なれば使えない）
+function _facDevFree(mid, ds) {
+  const busy = (rentalDetails[mid] || []).some(d => d.rentalStart && d.rentalEnd && d.status !== '返却済' && ds >= d.rentalStart && ds <= d.rentalEnd);
+  if (busy) return false;
+  if (ds === fmtDate(new Date()) && rentedDeviceIds.includes(mid)) return false;
+  return true;
+}
+// 端末は種別ごとにまとめて、押した種別だけ開く（台数が多いため。2026-11-13）
+const _facDevOpen = new Set();   // 'a:種別'＝今すぐ使える、'g:種別'＝空き状況
+function toggleFacDevGroup(key) { if (_facDevOpen.has(key)) _facDevOpen.delete(key); else _facDevOpen.add(key); renderFacAvail(); renderFacGrid(); }
+function _facDevGroups() {
+  const map = new Map();
+  rentalMasters.forEach(m => { const k = m.deviceType || t('team.other'); if (!map.has(k)) map.set(k, []); map.get(k).push(m); });
+  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ja'));
+}
+const _facDevIcon = k => /PC|パソコン|ノート|laptop/i.test(k) ? '💻' : '📱';
+// 端末を「借りる」：予定の登録の窓を、種別「その他」・その端末を選んだ状態で開く
+function openFacRent(mid, ds) {
+  openAddModal(ds);
+  const ty = document.getElementById('ev-type');
+  if (ty) { ty.value = 'その他'; onTypeChange(); }
+  const rs = document.getElementById('ev-rental-start'), re = document.getElementById('ev-rental-end');
+  if (rs) rs.value = ds; if (re) re.value = ds;
+  if (!selectedRentals.some(r => String(r.id) === String(mid))) toggleRentalItem(String(mid));
+  updateRentalSummary();
+}
+// 左：今すぐ使える（選んだ時間に空いている会議室・その日に空いている端末）
+function renderFacAvail() {
+  const el = document.getElementById('fac-avail');
+  if (!el || !currentUser) return;
+  const ds = fmtDate(roomDate);
+  const today = fmtDate(new Date());
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  let baseMin = FAC_H0 * 60 + 60; // 明日・ほかの日は 9:00 を基準に
+  if (ds === today) baseMin = _facWhen === '1h' ? nowMin + 60 : nowMin;
+  const showRoom = _facFilter === 'all' || _facFilter === 'room';
+  const showDev = _facFilter === 'all' || _facFilter === 'device';
+  const rows = [];
+  if (showRoom) {
+    roomsOn(ds).forEach(r => {
+      const evs = _facRoomEvs(r.id, ds);
+      if (evs.some(e => _facMin(e.start) <= baseMin && baseMin < _facMin(e.end || e.start))) return; // その時間は使用中
+      const next = evs.find(e => _facMin(e.start) > baseMin);
+      const until = next ? t('fac.free.until', {t: next.start}) : (evs.length ? t('fac.free.rest') : t('fac.free.all'));
+      const st = Math.ceil(baseMin / 30) * 30, en = Math.min(st + 60, next ? _facMin(next.start) : st + 60);
+      rows.push(`<div class="fac-av-row"><span class="fac-tile">🏢</span>
+        <span class="fac-main"><span class="fac-l1">${esc(r.name)}</span><span class="fac-l2">${t('fac.cap', {n: r.capacity || '-'})}・${esc(until)}</span></span>
+        <button type="button" class="fac-go" onclick="roomDate=new Date('${ds}T00:00:00');openRoomBookingModal('${esc(r.id)}','${_facHM(st)}','${_facHM(en)}')">${t('fac.book')}</button></div>`);
+    });
+  }
+  if (showDev) {
+    _facDevGroups().forEach(([k, list]) => {
+      const free = list.filter(m => _facDevFree(String(m.id), ds));
+      const key = 'a:' + k, open = _facDevOpen.has(key) && free.length > 0;
+      rows.push(`<button type="button" class="fac-av-row fac-grp${open ? ' open' : ''}" aria-expanded="${open}" ${free.length ? `data-key="${esc(key)}" onclick="toggleFacDevGroup(this.dataset.key)"` : 'disabled'}>
+        <span class="fac-tile">${_facDevIcon(k)}</span>
+        <span class="fac-main"><span class="fac-l1">${esc(k)}</span><span class="fac-l2">${t('fac.grp.free', {n: list.length, f: free.length})}</span></span>
+        ${free.length ? `<span class="fac-cnt">${t('fac.grp.cnt', {n: free.length})}</span><span class="fac-chev">›</span>` : `<span class="fac-none">${t('fac.grp.none')}</span>`}</button>`);
+      if (open) free.forEach(m => {
+        rows.push(`<div class="fac-av-row fac-sub-row"><span class="fac-main"><span class="fac-l1">${esc(m.purpose || '')}</span></span>
+          <button type="button" class="fac-go" onclick="openFacRent('${esc(String(m.id))}','${ds}')">${t('fac.rent')}</button></div>`);
+      });
+    });
+  }
+  const chip = (w, label) => `<button type="button" class="fac-when${_facWhen === w ? ' on' : ''}" onclick="setFacWhen('${w}')">${label}</button>`;
+  const title = ds === today && _facWhen !== 'day' ? t('fac.avail') : t('fac.avail.day');
+  el.innerHTML = `<div class="fac-card">
+    <div class="fac-card-head"><span class="hn-next-eb">AVAILABLE NOW</span><span class="fac-card-title">${title}</span>
+      <span class="fac-whens">${chip('now', t('common.today'))}${chip('tmr', t('fac.when.tmr'))}</span></div>
+    ${rows.length ? rows.join('') : `<div class="fac-empty">${t('fac.none')}</div>`}
+  </div>`;
+  const dt = document.getElementById('fac-date'); if (dt) {
+    const d = roomDate; dt.textContent = t('cal.day.title', {month: d.getMonth() + 1, day: d.getDate(), dow: tDow((d.getDay() + 6) % 7)});
+  }
+}
+// 右：空き状況（会議室＝時間の表、端末＝7日分の表）
+function renderFacGrid() {
+  const el = document.getElementById('fac-grid');
+  if (!el || !currentUser) return;
+  const ds = fmtDate(roomDate);
+  const today = fmtDate(new Date());
+  const span = (FAC_H1 - FAC_H0) * 60;
+  const pct = m => Math.max(0, Math.min(100, (m - FAC_H0 * 60) / span * 100));
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const parts = [];
+  if (_facFilter === 'all' || _facFilter === 'room') {
+    const hours = Array.from({length: FAC_H1 - FAC_H0 + 1}, (_, i) => FAC_H0 + i);
+    const head = `<div class="fg-row fg-hours"><span class="fg-name"></span><span class="fg-track">${hours.map(h => `<span style="left:${pct(h * 60)}%">${h}</span>`).join('')}</span></div>`;
+    const rows = roomsOn(ds, true).map(r => {
+      const bars = _facRoomEvs(r.id, ds).map(e => {
+        const s = _facMin(e.start), en = _facMin(e.end || e.start);
+        return `<button type="button" class="fg-bar" style="left:${pct(s)}%;width:${Math.max(2, pct(en) - pct(s))}%" title="${esc(e.start + '〜' + (e.end || '') + ' ' + (e.title || ''))}" onclick="event.stopPropagation();openDetail('${e.id}')">${esc(e.title || tType(e.type))}</button>`;
+      }).join('');
+      return `<div class="fg-row"><span class="fg-name">${esc(r.name)}<small>${t('fac.cap', {n: r.capacity || '-'})}</small></span>
+        <span class="fg-track" onclick="facGridBook(event,'${esc(r.id)}','${ds}')">${bars}${ds === today && nowMin >= FAC_H0 * 60 && nowMin <= FAC_H1 * 60 ? `<span class="fg-now" style="left:${pct(nowMin)}%"></span>` : ''}</span></div>`;
+    }).join('');
+    parts.push(`<div class="fg-block">${_facFilter === 'all' ? `<div class="fg-sub">${t('fac.room')}</div>` : ''}${head}${rows}</div>`);
+  }
+  if (_facFilter === 'all' || _facFilter === 'device') {
+    const days = Array.from({length: 7}, (_, i) => fmtDate(addDays(roomDate, i)));
+    const head = `<div class="fd-row fd-head"><span class="fg-name"></span>${days.map(d => { const x = new Date(d + 'T00:00:00'); return `<span class="fd-cell">${x.getMonth() + 1}/${x.getDate()}<small>${tDow((x.getDay() + 6) % 7)}</small></span>`; }).join('')}</div>`;
+    const rows = _facDevGroups().map(([k, list]) => {
+      const key = 'g:' + k, open = _facDevOpen.has(key);
+      const head = `<button type="button" class="fd-row fd-grp${open ? ' open' : ''}" aria-expanded="${open}" data-key="${esc(key)}" onclick="toggleFacDevGroup(this.dataset.key)">
+        <span class="fg-name"><span class="fd-gname"><span class="fac-chev">›</span>${esc(k)}</span><small>${t('fac.grp.total', {n: list.length})}</small></span>${days.map(d => {
+          const f = list.filter(m => _facDevFree(String(m.id), d)).length;
+          return `<span class="fd-cell${f ? ' free' : ' busy'}">${f ? t('fac.grp.cnt', {n: f}) : '—'}</span>`;
+        }).join('')}</button>`;
+      if (!open) return head;
+      return head + list.map(m => `<div class="fd-row fd-item"><span class="fg-name">${esc(m.purpose || '')}</span>${days.map(d => {
+        const free = _facDevFree(String(m.id), d);
+        return free ? `<button type="button" class="fd-cell free" title="${t('fac.rent')}" onclick="openFacRent('${esc(String(m.id))}','${d}')">○</button>` : `<span class="fd-cell busy">—</span>`;
+      }).join('')}</div>`).join('');
+    }).join('');
+    parts.push(`<div class="fg-block">${_facFilter === 'all' ? `<div class="fg-sub">${t('fac.device')}</div>` : ''}${rentalMasters.length ? head + rows : `<div class="fac-empty">${t('devices.empty')}</div>`}</div>`);
+  }
+  el.innerHTML = `<div class="fac-card">
+    <div class="fac-card-head"><span class="hn-next-eb">AVAILABILITY</span><span class="fac-card-title">${t('fac.grid')}</span></div>
+    <div class="fg-body">${parts.join('')}<div class="fg-hint">${t('fac.grid.hint')}</div></div>
+  </div>`;
+}
+// 時間の表の空いている所を押したら、その時刻から1時間で予約の窓を開く
+function facGridBook(ev, roomId, ds) {
+  const r = ev.currentTarget.getBoundingClientRect();
+  const m = FAC_H0 * 60 + Math.floor(((ev.clientX - r.left) / r.width) * (FAC_H1 - FAC_H0) * 2) * 30;
+  roomDate = new Date(ds + 'T00:00:00');
+  openRoomBookingModal(roomId, _facHM(m), _facHM(Math.min(m + 60, FAC_H1 * 60)));
+}
+
 // ===== 空き会議室クイック確認 =====
 function renderRoomAvailabilityNow(){
   const now = new Date();
@@ -7782,6 +8059,7 @@ async function returnDevice(eventId){
     await api('returnDevice', {eventId}, t('common.saving'));
     await Promise.all([loadEvents({force:true}), loadRentalMasters()]);
     renderMyPage();
+    if(_currentTab==='rooms'){ renderFacMine(); renderDevices(); } // 設備予約から返却したとき（3e-1）
     showToast('返却しました');
   } catch(e){ showToast(t('common.error.toast',{msg:e.message})); }
 }
@@ -7812,6 +8090,7 @@ async function doExtendRental(){
     closeModal('extend-modal-backdrop');
     await Promise.all([loadEvents({force:true}), loadRentalMasters()]);
     renderMyPage();
+    if(_currentTab==='rooms'){ renderFacMine(); renderDevices(); } // 設備予約から延長したとき（3e-1）
     showToast(t('my.rental.extend.done',{from:res.oldEnd||_extendOldEnd, to:res.newEnd||newEnd}));
   } catch(e){ showToast(t('common.error.toast',{msg:e.message})); }
 }
@@ -13145,6 +13424,6 @@ async function initPushNotifications(opts) {
 })();
 </script>
 <script src="peer-memo.js"></script>
-<script src="halo-design.js?v=7"></script>
+<script src="halo-design.js?v=10"></script>
 </body>
 </html>
