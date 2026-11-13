@@ -9947,16 +9947,16 @@ function renderCleaning() {
     if (ck) {
       const st = ck.confName
         ? `<span style="color:#2e7d32;font-weight:700">✅ 完了（${esc(ck.confName)}）</span>`
-        : ck.done > 0
-          ? `<span style="color:#f57c00;font-weight:700">${ck.done}/${ck.total} 記入済み（${esc(ck.byName)} ${_drTime(ck.at)}）・まだ完了ではありません</span>`
+        : (ck.done > 0 || ck.cleaned > 0)
+          ? `<span style="color:#f57c00;font-weight:700">掃除済み ${ck.cleaned || 0}/${ck.total}・確認済み ${ck.done}/${ck.total}・まだ完了ではありません</span>`
           : `<span style="color:#e53935;font-weight:700">まだ記入されていません</span>`;
       checkLine = `<div style="font-size:0.85em;margin-top:4px">チェックシート：${st}</div>`;
     }
     const chk = ti.checkerDisp
-      ? `<div style="font-size:0.88em;margin-top:4px"><span style="color:var(--text2)">今日のチェック係：</span><strong style="color:#1e88e5">${esc(ti.checkerDisp)}</strong>${ti.iAmChecker ? '<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.78em">あなたがチェック係</span>' : ''}</div>${ti.iAmChecker ? '<div style="font-size:0.78em;color:#1565c0;margin-top:3px">全員に、誰がどこを掃除するか指示し、最後にチェックして「完了」にします。</div>' : ''}` : '';
+      ? `<div style="font-size:0.88em;margin-top:4px"><span style="color:var(--text2)">今日のチェック係：</span><strong style="color:#1e88e5">${esc(ti.checkerDisp)}</strong>${ti.iAmChecker ? '<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.78em">あなたがチェック係</span>' : ''}</div>${ti.iAmChecker ? '<div style="font-size:0.78em;color:#1565c0;margin-top:3px">全員に、誰がどこを掃除するか指示し、掃除した場所を確認して「完了」にします。</div>' : ''}` : '';
     todayBlock = `<div style="font-size:0.75em;color:var(--text2)">今日の掃除（13:30〜）</div>
       <div style="font-size:1em;font-weight:700">${dutyText}${mine}</div>${chk}${checkLine}`;
-    btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:1em;cursor:pointer">${ti.canEdit === false ? '📋 チェックシートを見る' : '📋 チェックシートを開く'}</button>`;
+    btn = `<button onclick="openCleaningCheck()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:1em;cursor:pointer">${(ti.canEdit === false && !ti.iAmDuty) ? '📋 チェックシートを見る' : '📋 チェックシートを開く'}</button>`;
   }
   if (!btn) {
     btn = `<button onclick="openCleaningSample()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:1em;cursor:pointer">📋 チェックシートを見る（見本）</button>`;
@@ -10057,16 +10057,28 @@ function openCleaningSample() {
     <button onclick="closeDrModal()" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>`);
 }
 
-let _clnAssign = {};
+let _clnAssign = {}; // _clnCur.assign と同じ物（互換のため残す）
+let _clnPoll = null;   // 5秒おきの読み直し（チェックシートを開いている間だけ動く）
+let _clnBusy = 0;      // 保存・「掃除した」の送信中の数（送信中は読み直しで上書きしない）
+let _clnQueue = Promise.resolve();
+let _clnSig = '';
+const _clnNorm = s => String(s || '').replace(/[\s　]/g, '');
+const _clnDisp = (by) => { const c = ((_clnCur && _clnCur.cleaners) || []).find(x => _clnNorm(by).startsWith(_clnNorm(x.name))); return c ? c.disp : by; };
+const _clnMine = (id) => { const r = _clnCur; return !!(r && r.myName && ((r.assign || {})[id] || []).includes(r.myName)); };
+// 「掃除した」を付け外しできるか：自分の担当の場所（チェック係は代わりにも）。確認済み・完了後・これからの日は不可
+const _clnCanMark = (id) => { const r = _clnCur; return !!r && !r.future && !r.confName && !r.results[id] && (_clnMine(id) || !!r.canEdit); };
 
 // 各場所の担当（誰がどこを掃除するか）。チェック係は選べる、ほかの人は見るだけ
-function clnWhoHtml(id, readonly) {
+function clnWhoHtml(id) {
   const r = _clnCur; if (!r) return '';
   const cleaners = r.cleaners || [];
-  const sel = _clnAssign[id] || [];
-  if (readonly) {
+  const sel = (r.assign || {})[id] || [];
+  const editable = !!r.canEdit && !r.future;
+  if (!editable) {
     const names = sel.map(n => (cleaners.find(c => c.name === n) || {}).disp || n);
-    return names.length ? `<span style="font-size:0.8em;color:var(--text2)">担当：</span><strong style="font-size:0.85em;color:#e65100">${esc(names.join('・'))}</strong>` : '';
+    return names.length
+      ? `<span style="font-size:0.8em;color:var(--text2)">担当：</span><strong style="font-size:0.85em;color:#e65100">${esc(names.join('・'))}</strong>`
+      : '<span style="font-size:0.78em;color:var(--text3)">担当：まだ決まっていません</span>';
   }
   if (!cleaners.length) return '';
   return `<span style="font-size:0.78em;color:var(--text2);margin-right:4px">担当：</span>` + cleaners.map(c => {
@@ -10074,65 +10086,175 @@ function clnWhoHtml(id, readonly) {
     return `<button type="button" onclick="clnToggleWho('${id}','${esc(c.name).replace(/'/g, '&#39;')}')" style="margin:2px 4px 2px 0;padding:4px 10px;border-radius:14px;border:1.5px solid ${on ? '#e65100' : 'var(--border)'};background:${on ? '#e65100' : 'white'};color:${on ? 'white' : 'var(--text2)'};font-weight:700;font-size:0.8em;cursor:pointer">${esc(c.disp)}</button>`;
   }).join('');
 }
+
+// 1つの場所の行。担当者は「掃除した」、チェック係は「確認OK」を付ける
+function clnRowHtml(it) {
+  const r = _clnCur;
+  const mine = _clnMine(it.id);
+  const cl = (r.cleaned || {})[it.id];
+  const ver = !!r.results[it.id];
+  const canMark = _clnCanMark(it.id);
+  const canVerify = !r.future && !!r.canEdit && !!cl;
+  const btn = (on, enabled, label, onclick) => `<button type="button" ${enabled ? `onclick="${onclick}"` : 'disabled'} style="padding:9px 14px;border-radius:10px;border:1.5px solid ${on ? '#2e7d32' : 'var(--border)'};background:${on ? '#2e7d32' : 'white'};color:${on ? 'white' : (enabled ? 'var(--text)' : 'var(--text3)')};font-weight:700;font-size:0.85em;cursor:${enabled ? 'pointer' : 'default'};opacity:${enabled || on ? 1 : 0.55}">${on ? '✅' : '☐'} ${label}</button>`;
+  const markBtn = (canMark || cl) ? btn(!!cl, canMark, '掃除した', `clnMark('${it.id}',${!cl})`) : '';
+  const clInfo = cl ? `<span style="font-size:0.76em;color:var(--text2)">${esc(_clnDisp(cl.by))} ${_drTime(cl.at)}${cl.proxy ? '（チェック係が記入）' : ''}</span>` : '';
+  const verCell = r.canEdit
+    ? btn(ver, canVerify, '確認OK', `clnVerify('${it.id}',${!ver})`)
+    : (ver ? '<span style="font-size:0.82em;font-weight:700;color:#2e7d32">✅ チェック係が確認</span>' : (cl ? '<span style="font-size:0.8em;color:var(--text3)">確認待ち</span>' : ''));
+  return `
+    <div style="padding:10px 8px;border-bottom:1px solid var(--border);${mine ? 'background:#fff3e0;border-left:4px solid #e65100;' : ''}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;min-width:0;font-size:0.92em;font-weight:700">${esc(it.label)}${mine ? '<span style="margin-left:8px;padding:1px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.72em;white-space:nowrap">あなたの担当</span>' : ''}</div>
+        ${(it.manual || it.howto) ? `<button type="button" onclick="clnOpenManual('${it.id}')" style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer;white-space:nowrap">📖 マニュアル</button>` : ''}
+      </div>
+      <div style="margin:4px 0 0 0">${clnWhoHtml(it.id)}</div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">${markBtn}${clInfo}${(markBtn || clInfo) && verCell ? '<span style="color:var(--text3)">→</span>' : ''}${verCell}</div>
+    </div>`;
+}
+
+function clnStatusHtml() {
+  const r = _clnCur; if (!r) return '';
+  if (r.confName) return `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#e8f5e9;color:#2e7d32;font-size:0.85em;font-weight:700">✅ 完了（${esc(r.confName)} ${_drTime(r.confAt)}）</div>`;
+  const n = r.items.length;
+  const nc = r.items.filter(it => (r.cleaned || {})[it.id]).length;
+  const nv = r.items.filter(it => r.results[it.id]).length;
+  return `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.85em;font-weight:700">掃除済み ${nc}/${n}　確認済み ${nv}/${n}　まだ完了ではありません</div>`;
+}
+
+// 画面の中身を、いまの状態（_clnCur）で描き直す。force＝同じ内容でも描き直す
+function clnRender(force) {
+  const r = _clnCur; if (!r) return;
+  const rows = document.getElementById('cln-rows'); if (!rows) return;
+  const sig = JSON.stringify([r.results, r.assign, r.cleaned, r.confName, r.confAt, r.byName]);
+  if (!force && sig === _clnSig) return;
+  _clnSig = sig;
+  rows.innerHTML = r.items.map(clnRowHtml).join('');
+  const st = document.getElementById('cln-status'); if (st) st.innerHTML = clnStatusHtml();
+  const cf = document.getElementById('cln-confirm');
+  if (cf) cf.innerHTML = (!r.future && r.canConfirm && r.byName && !r.confName)
+    ? `<button onclick="doConfirmCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;cursor:pointer;width:100%">✅ 完了にする</button>` : '';
+}
+
+// サーバーから返った最新の内容を取り込む（メモは、入力中なら書き換えない）
+function clnApply(st) {
+  const r = _clnCur; if (!r || !st) return;
+  r.results = st.results || {}; r.assign = st.assign || {}; r.cleaned = st.cleaned || {};
+  r.byName = st.byName || ''; r.at = st.at || ''; r.confName = st.confName || ''; r.confAt = st.confAt || '';
+  _clnAssign = r.assign;
+  const m = document.getElementById('cln-memo');
+  if (m && document.activeElement !== m && m.value !== (st.memo || '')) { m.value = st.memo || ''; }
+  if (document.activeElement !== m) r.memo = st.memo || '';
+  clnRender();
+}
+
+// 送るものを1つずつ順番に送る（続けて押しても、順番どおりに反映される）
+function clnQueue(fn) {
+  _clnBusy++;
+  _clnQueue = _clnQueue.then(fn).catch(async e => {
+    showToast(e.message || '保存できませんでした');
+    try { clnApply(await api('getCleaningStatus', { date: _clnCur.date }, null, { quiet: true })); } catch (e2) { /* 次の読み直しで直る */ }
+  }).finally(() => { _clnBusy--; });
+}
+
+// チェック係の保存（担当・確認・メモ）。押すたびに自動で保存する
+async function clnSaveAuto() {
+  const r = _clnCur; if (!r) return;
+  const memo = (document.getElementById('cln-memo') || {}).value || '';
+  const res = await api('saveCleaningCheck', { date: r.date, results: r.results, memo, assign: r.assign }, null, { quiet: true });
+  clnApply(res.status);
+}
+
 function clnToggleWho(id, name) {
-  const a = _clnAssign[id] || (_clnAssign[id] = []);
+  const r = _clnCur; if (!r || !r.canEdit || r.future) return;
+  const a = r.assign[id] || (r.assign[id] = []);
   const i = a.indexOf(name);
   if (i >= 0) a.splice(i, 1); else a.push(name);
-  const el = document.getElementById('cln-who-' + id);
-  if (el) el.innerHTML = clnWhoHtml(id, false);
+  if (!a.length) delete r.assign[id];
+  // 担当を変えた場所は「掃除した」「確認」を外す（サーバーも同じ）
+  delete r.cleaned[id]; r.results[id] = false;
+  clnRender(true);
+  clnQueue(clnSaveAuto);
 }
+
+function clnMark(id, val) {
+  const r = _clnCur; if (!r || !_clnCanMark(id)) return;
+  if (val) r.cleaned[id] = { by: (currentUser && currentUser.name) || '', at: new Date().toISOString(), proxy: !_clnMine(id) }; else delete r.cleaned[id];
+  clnRender(true);
+  clnQueue(async () => {
+    const res = await api('markCleaned', { date: r.date, item: id, value: !!val }, null, { quiet: true });
+    clnApply(res.status);
+  });
+}
+
+function clnVerify(id, val) {
+  const r = _clnCur; if (!r || !r.canEdit || r.future || !r.cleaned[id]) return;
+  r.results[id] = !!val;
+  clnRender(true);
+  clnQueue(clnSaveAuto);
+}
+
+function clnSaveMemo() {
+  const r = _clnCur; if (!r || !r.canEdit || r.future) return;
+  if (((document.getElementById('cln-memo') || {}).value || '') === (r.memo || '')) return;
+  r.memo = (document.getElementById('cln-memo') || {}).value || '';
+  clnQueue(clnSaveAuto);
+}
+
+// 5秒おきの読み直し：チェックシートを開いている間だけ。画面が裏に回っている間は止める
+function clnStartPoll() { clnStopPoll(); _clnPoll = setInterval(clnPollTick, 5000); }
+function clnStopPoll() { if (_clnPoll) { clearInterval(_clnPoll); _clnPoll = null; } }
+async function clnPollTick() {
+  const m = document.getElementById('dr-modal');
+  if (!_clnCur || !document.getElementById('cln-rows') || !m || m.style.display === 'none') { clnStopPoll(); return; }
+  if (document.hidden || _clnBusy > 0) return;
+  try {
+    const st = await api('getCleaningStatus', { date: _clnCur.date }, null, { quiet: true });
+    if (_clnBusy > 0 || !document.getElementById('cln-rows')) return;
+    clnApply(st);
+  } catch (e) { /* 通信できないときは、次の読み直しを待つ */ }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && _clnPoll) clnPollTick(); });
+
+function clnClose() { clnStopPoll(); closeDrModal(); loadCleaning(); }
 
 async function openCleaningCheck(date) {
   let r;
   try {
     r = await api('getCleaningCheck', { date: date || undefined }, t('common.loading'));
   } catch(e) { showToast(e.message); return; }
+  r.cleaned = r.cleaned || {}; r.results = r.results || {}; r.assign = r.assign || {};
+  r.future = !!(_clnData && _clnData.today && r.date > _clnData.today); // これからの日は見るだけ（保存できるのは当日から）
   _clnCur = r;
-  _clnAssign = JSON.parse(JSON.stringify(r.assign || {}));
-  const doneAll = r.items.every(it => r.results[it.id]);
-  const future = !!(_clnData && _clnData.today && r.date > _clnData.today); // これからの日は見るだけ（保存できるのは当日から）
-  const notChecker = r.canEdit === false; // チェック係でない人は見るだけ（休みのときは総務・管理者が代わる）
-  const readonly = future || notChecker;
-  const rows = r.items.map(it => `
-    <div style="padding:10px 8px;border-bottom:1px solid var(--border)">
-      <div style="display:flex;align-items:center;gap:8px">
-        <label style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer">
-          <input type="checkbox" id="cln-${it.id}" ${r.results[it.id] ? 'checked' : ''} ${readonly ? 'disabled' : ''} style="width:20px;height:20px;flex-shrink:0">
-          <span style="font-size:0.92em;font-weight:700">${esc(it.label)}</span>
-        </label>
-        ${(it.manual || it.howto) ? `<button type="button" onclick="clnOpenManual('${it.id}')" style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer;white-space:nowrap">📖 マニュアル</button>` : ''}
-      </div>
-      <div id="cln-who-${it.id}" style="margin:4px 0 0 30px">${clnWhoHtml(it.id, readonly)}</div>
-    </div>`).join('');
-  const status = r.confName
-    ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#e8f5e9;color:#2e7d32;font-size:0.85em;font-weight:700">✅ 完了（${esc(r.confName)} ${_drTime(r.confAt)}）</div>`
-    : r.byName
-      ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.85em;font-weight:700">記入：${esc(r.byName)}（${_drTime(r.at)}）　まだ完了ではありません</div>`
-      : '';
-  const confirmBtn = (!readonly && r.canConfirm && r.byName && !r.confName)
-    ? `<button onclick="doConfirmCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;cursor:pointer">✅ 完了にする</button>` : '';
+  _clnAssign = r.assign;
+  _clnBusy = 0; _clnQueue = Promise.resolve(); _clnSig = '';
+  const mineAny = r.items.some(it => _clnMine(it.id));
   const kindLabel = _clnIsAll(r.kind) ? '全員で掃除：後半組の全員で全部の場所' : '毎日の6か所';
-  const guide = !readonly
-    ? `<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;line-height:1.6"><strong>チェック係の仕事</strong><br>① 全員に、誰がどこを掃除するか指示する（各場所の「担当」を選んで保存）<br>② 掃除が終わったら、最終チェックをする（できた場所にチェック）<br>③ 「完了にする」を押す</div>`
-    : '';
+  let guide = '';
+  if (r.future) {
+    guide = '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.82em;font-weight:700">これからの日です。項目を見るだけで、記入・保存は当日からできます。</div>';
+  } else if (r.canEdit) {
+    guide = `<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;line-height:1.6"><strong>チェック係の仕事</strong>（押すと、自動で保存されます）<br>① 各場所の「担当」を選んで、誰がどこを掃除するか指示する<br>② 担当者が「掃除した」を押したら、きれいか見に行って「確認OK」を押す<br>③ すべて確認できたら「完了にする」を押す</div>`;
+  } else if (mineAny) {
+    guide = '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fff3e0;color:#e65100;font-size:0.84em;font-weight:700;line-height:1.6">オレンジの行が、あなたの担当です。掃除が終わったら、その行の「掃除した」を押してください。<br><span style="font-weight:400">そのあと、チェック係が見に行って、確認します。</span></div>';
+  } else {
+    guide = '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;font-weight:700">この日のチェック係（' + esc(r.checkerDisp || '') + '）が、掃除の担当を指示し、最終チェックして完了にします。担当が決まると、あなたの行が出ます。ここでは見るだけです。</div>';
+  }
   openDrModal(`
     <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">📋 掃除チェックシート</div>
     <div style="font-size:0.82em;color:var(--text2);margin-bottom:8px">${_clnMD(r.date)}（${esc(r.wd)}）／${esc(kindLabel)}${r.kind === '毎日' ? '／当番：' + esc(r.dutyDisp || r.duty) : ''}${r.checkerDisp ? '／チェック係：' + esc(r.checkerDisp) : ''}</div>
     ${guide}
-    ${notChecker && !future ? '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#e3f2fd;color:#1565c0;font-size:0.82em;font-weight:700">この日のチェック係（' + esc(r.checkerDisp || '') + '）が、掃除の分担を指示し、最終チェックして完了にします。ここでは見るだけです。</div>' : ''}
-    ${future ? '<div style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:#fff8e1;color:#f57c00;font-size:0.82em;font-weight:700">これからの日です。項目を見るだけで、記入・保存は当日からできます。</div>' : ''}
-    <div style="border-top:1px solid var(--border)">${rows}</div>
-    <textarea id="cln-memo" ${readonly ? 'disabled' : ''} placeholder="メモ（できなかった所・気づいたこと）" maxlength="500" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;min-height:60px">${esc(r.memo || '')}</textarea>
-    ${status}
+    <div id="cln-rows" style="border-top:1px solid var(--border)"></div>
+    <textarea id="cln-memo" ${(r.canEdit && !r.future) ? '' : 'disabled'} onblur="clnSaveMemo()" placeholder="メモ（できなかった所・気づいたこと）" maxlength="500" style="width:100%;box-sizing:border-box;margin-top:10px;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;min-height:60px">${esc(r.memo || '')}</textarea>
+    <div id="cln-status"></div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      ${readonly ? '' : `<button onclick="clnToggleAll()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;cursor:pointer">${doneAll ? 'すべて外す' : 'すべてチェック'}</button>
-      <button onclick="doSaveCleaning()" style="flex:1;padding:11px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;cursor:pointer">保存</button>`}
-      ${confirmBtn}
-      <button onclick="closeDrModal()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>
+      <span id="cln-confirm" style="flex:1;min-width:140px"></span>
+      <button onclick="clnClose()" style="padding:11px 12px;border-radius:10px;border:1.5px solid var(--border);background:white;color:var(--text2);font-weight:700;cursor:pointer">閉じる</button>
     </div>`, { lock: true });
   // チェックシートは大きく表示（閉じるときに closeDrModal が元の大きさに戻す）
   const b = document.getElementById('dr-modal-body');
   b.style.maxWidth = 'min(1100px, 96vw)'; b.style.width = '96%'; b.style.maxHeight = '94vh'; b.style.fontSize = '1.3em';
+  clnRender(true);
+  clnStartPoll();
 }
 
 // 昼休みのグループ（誰が前半組・後半組か）を見る
@@ -10193,32 +10315,15 @@ function clnCloseManual() {
   if (ov) ov.remove();
 }
 
-function clnToggleAll() {
-  if (!_clnCur) return;
-  const boxes = _clnCur.items.map(it => document.getElementById('cln-' + it.id)).filter(Boolean);
-  const allOn = boxes.every(b => b.checked);
-  boxes.forEach(b => { b.checked = !allOn; });
-}
-
-async function doSaveCleaning() {
-  if (!_clnCur) return;
-  const results = {};
-  _clnCur.items.forEach(it => { const b = document.getElementById('cln-' + it.id); results[it.id] = !!(b && b.checked); });
-  const memo = (document.getElementById('cln-memo') || {}).value || '';
-  try {
-    const res = await api('saveCleaningCheck', { date: _clnCur.date, results, memo, assign: _clnAssign }, '保存中...');
-    closeDrModal();
-    showToast(`保存しました（${res.done}/${res.total}）`);
-    loadCleaning();
-  } catch(e) { showToast(e.message); }
-}
-
 async function doConfirmCleaning() {
-  if (!_clnCur) return;
+  const r = _clnCur; if (!r) return;
+  const nv = r.items.filter(it => r.results[it.id]).length;
+  if (nv < r.items.length && !confirm('確認していない場所があります（' + nv + '/' + r.items.length + '）。このまま完了にしますか？')) return;
   try {
-    await api('confirmCleaningCheck', { date: _clnCur.date }, '完了にしています...');
+    await _clnQueue; // 送信中の保存が終わってから
+    await api('confirmCleaningCheck', { date: r.date }, '完了にしています...');
     showToast('完了にしました');
-    openCleaningCheck(_clnCur.date);
+    openCleaningCheck(r.date);
     loadCleaning();
   } catch(e) { showToast(e.message); }
 }
