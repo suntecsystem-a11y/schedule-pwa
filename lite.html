@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HALO Lite</title>
-<meta name="theme-color" content="#5c6bc0">
+<meta name="theme-color" content="#3F5F55">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <link rel="manifest" href="manifest-lite.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,77 +23,94 @@
 -->
 <style>
 :root{
-  --primary:#5c6bc0;--primary-dark:#3949ab;--primary-light:#e8eaf6;
-  --bg:#f5f6fa;--surface:#fff;--border:#e0e0e0;--text:#212121;--text2:#757575;--text3:#bdbdbd;
-  --danger:#c62828;--ok:#2e7d32;--warn:#e65100;
+  /* 本体の新デザイン（halo-design.css の body.hn）と同じ色。2026-11-13 */
+  --primary:#3F5F55;--primary-dark:#344945;--primary-light:#E3EEE4;
+  --bg:#F7F5F1;--surface:#fff;--surface-1:#F3F0E8;--border:#E3DDD0;--text:#25302D;--text2:#6E7773;--text3:#A9AEA9;
+  --danger:#B5533C;--ok:#4E8A65;--warn:#C08A55;--red:#C2715A;--blue:#6A8FA8;
+  --tint:#C6D8C2;--eb:#7E6846;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;font-size:16px;-webkit-text-size-adjust:100%}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Geist','Noto Sans JP',-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic UI",sans-serif;font-size:16px;-webkit-text-size-adjust:100%;font-feature-settings:'palt';font-variant-numeric:tabular-nums;letter-spacing:.02em}
+body{background:var(--bg) linear-gradient(180deg,rgba(239,232,196,.55),rgba(239,232,196,0) 280px) no-repeat;min-height:100vh}
+b,strong{font-weight:600}
+/* 線のアイコン：読み込めたとき（body.ic-ok）だけ出し、絵文字を隠す */
+.ti{display:none}
+body.ic-ok .ti{display:inline-block}
+body.ic-ok .emo{display:none}
 button{font-family:inherit}
 input,select,textarea{font-family:inherit;font-size:16px}
 .hidden{display:none!important}
 /* ログイン */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-.login-card{background:var(--surface);border-radius:16px;padding:28px 22px;width:100%;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 22px;width:100%;max-width:360px;box-shadow:0 4px 20px rgba(70,95,85,.08)}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.login-logo img{height:44px;width:auto}
+.lite-tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--eb);background:#EFE8C4;border-radius:999px;padding:3px 10px}
 .login-card h1{margin:0 0 4px;font-size:1.4em;color:var(--primary)}
 .login-card p{margin:0 0 18px;font-size:.82em;color:var(--text2);line-height:1.6}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:.8em;font-weight:700;color:var(--text2);margin-bottom:4px}
-.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:#fff}
-.btn{display:inline-block;border:none;border-radius:10px;padding:11px 14px;font-weight:700;cursor:pointer;font-size:.95em}
+.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(63,95,85,.15)}
+.btn{display:inline-block;border:none;border-radius:12px;padding:11px 14px;font-weight:700;cursor:pointer;font-size:.95em}
 .btn-primary{background:var(--primary);color:#fff;width:100%}
-.btn-ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
-.btn-danger{background:#fff;color:var(--danger);border:1px solid #f3c0c0}
+.btn-ghost{background:#fff;color:var(--primary);border:1px solid var(--border)}
+.btn-danger{background:#fff;color:var(--danger);border:1px solid #EBC9BE}
 .btn:disabled{opacity:.5}
 .err{color:var(--danger);font-size:.85em;margin-top:10px;min-height:1em}
 /* アプリ */
 header{position:sticky;top:0;z-index:50;background:var(--primary);color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between}
-header .title{font-weight:800;font-size:1.05em}
+header .title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.05em}
+header .title img{height:30px;width:auto;margin:-4px 0}
+header .title .lite-tag{background:rgba(255,255,255,.16);color:#fff;font-size:10px;padding:2px 8px}
 header .who{font-size:.78em;opacity:.9}
 main{padding:12px 12px 90px;max-width:640px;margin:0 auto}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;background:#fff;border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:60;background:rgba(255,255,255,.97);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;border:none;background:none;padding:9px 0 8px;font-size:.72em;color:var(--text2);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
-nav button .ic{font-size:1.45em}
+nav button .ic{font-size:1.45em;line-height:1.1}
+nav button .ti{font-size:1.6em;line-height:1.1}
 nav button.on{color:var(--primary);font-weight:700}
-.card{background:var(--surface);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
-.card h2{margin:0 0 8px;font-size:.95em}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(70,95,85,.06)}
+.card h2{margin:0 0 10px;font-size:.95em;font-weight:600}
 /* カレンダー */
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.cal-head button{border:none;background:var(--primary-light);color:var(--primary-dark);border-radius:8px;padding:6px 12px;font-size:1em;cursor:pointer}
-.cal-title{font-weight:800}
+.cal-head button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;width:34px;height:34px;font-size:1.05em;cursor:pointer}
+.cal-title{font-weight:600;font-size:1.05em}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .cal .dow{text-align:center;font-size:.7em;color:var(--text2);padding:2px 0}
-.cal .d{min-height:46px;border-radius:8px;background:#fafafa;padding:3px;font-size:.78em;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center}
+.cal .d{min-height:50px;border-radius:10px;background:transparent;padding:3px;font-size:.78em;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center}
+.cal .d>div:first-child{width:24px;height:24px;line-height:24px;border-radius:50%;text-align:center;font-weight:500}
 .cal .d.out{opacity:.35}
-.cal .d.sun,.cal .d.hol{color:#d32f2f}
-.cal .d.sat{color:#1565c0}
-.cal .d.today{outline:2px solid var(--primary)}
-.cal .d.sel{background:var(--primary-light)}
+.cal .d.sun,.cal .d.hol{color:var(--red)}
+.cal .d.sat{color:var(--blue)}
+.cal .d.today>div:first-child{box-shadow:inset 0 0 0 1.5px var(--primary);color:var(--primary);font-weight:700}
+.cal .d.sel{background:color-mix(in srgb,var(--tint) 30%,#fff)}
+.cal .d.sel>div:first-child{background:var(--primary);color:#fff;box-shadow:none}
 .cal .dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;margin-top:3px}
 .cal .dot{width:7px;height:7px;border-radius:50%}
 .cal .bento{font-size:.85em;line-height:1}
-.ev{border-left:5px solid var(--primary);background:#fafafa;border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer}
+.ev{border-left:4px solid var(--primary);background:var(--surface-1);border-radius:10px;padding:8px 10px;margin-bottom:8px;cursor:pointer}
 .ev .t{font-weight:700;font-size:.92em}
 .ev .s{font-size:.78em;color:var(--text2);margin-top:2px;line-height:1.5}
 .badge{display:inline-block;font-size:.7em;border-radius:20px;padding:1px 8px;border:1px solid currentColor;margin-left:4px;vertical-align:1px}
 .empty{color:var(--text2);font-size:.85em;padding:8px 2px}
-.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:55;border:none;border-radius:28px;background:var(--primary);color:#fff;font-weight:800;padding:13px 18px;box-shadow:0 4px 14px rgba(0,0,0,.2);font-size:.95em;cursor:pointer}
+.fab{position:fixed;right:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:55;border:none;border-radius:28px;background:var(--primary);color:#fff;font-weight:700;padding:13px 18px;box-shadow:0 4px 14px rgba(63,95,85,.4);font-size:.95em;cursor:pointer}
 /* シート */
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.ov{position:fixed;inset:0;background:rgba(37,48,45,.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 .sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sheet-head b{font-size:1.02em}
 .x{font-size:1.5em;color:var(--text2);cursor:pointer;padding:0 6px;border:none;background:none}
 .row2{display:flex;gap:8px}
 .row2>*{flex:1;min-width:0}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1px solid var(--border);border-radius:16px;padding:5px 10px;font-size:.82em;background:#fff;cursor:pointer}
+.chip{border:1px solid var(--border);border-radius:999px;color:var(--text);padding:5px 10px;font-size:.82em;background:#fff;cursor:pointer}
 .chip.on{background:var(--primary);color:#fff;border-color:var(--primary)}
 .chip.ng{opacity:.4;cursor:not-allowed;text-decoration:line-through}
-.warn{background:#fff3e0;color:#8a4b00;border-radius:8px;padding:8px 10px;font-size:.8em;margin:6px 0;line-height:1.6}
+.warn{background:#F6EBDD;color:#7A5530;border-radius:8px;padding:8px 10px;font-size:.8em;margin:6px 0;line-height:1.6}
 .note{font-size:.75em;color:var(--text2);line-height:1.6}
-.list-scroll{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:6px}
-.person{display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:.88em;border-bottom:1px solid #f2f2f2}
+.list-scroll{max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:10px;padding:6px;background:#fff}
+.person{display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:.88em;border-bottom:1px solid var(--border)}
 .person:last-child{border-bottom:none}
 /* 安否 */
 .safety{background:#fff3e0;border:2px solid #ff9800;border-radius:14px;padding:12px;margin-bottom:12px}
@@ -100,20 +121,20 @@ nav button.on{color:var(--primary);font-weight:700}
 .sum{display:flex;gap:6px;margin-top:10px}
 .sum div{flex:1;text-align:center;background:#fff;border-radius:8px;padding:6px 2px;font-size:.72em;color:var(--text2)}
 .sum b{display:block;font-size:1.4em}
-.notice{border-bottom:1px solid #f0f0f0;padding:8px 2px}
+.notice{border-bottom:1px solid var(--border);padding:8px 2px}
 .notice:last-child{border-bottom:none}
 .notice .t{font-weight:700;font-size:.9em}
 .notice .b{font-size:.82em;color:var(--text2);white-space:pre-wrap;margin-top:3px;line-height:1.6}
 .bchips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.member{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid #f2f2f2;font-size:.88em}
+.member{display:flex;align-items:center;gap:8px;min-height:44px;padding:7px 2px;border-bottom:1px solid var(--border);font-size:.88em}
 .member:last-child{border-bottom:none}
 .member .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .member .pl{font-size:.75em;color:var(--text2);white-space:nowrap}
 .st{font-size:.72em;border-radius:12px;padding:2px 8px;font-weight:700;white-space:nowrap}
-.dept-h{font-size:.78em;font-weight:800;color:var(--text2);margin:10px 0 2px}
+.dept-h{font-size:.75em;font-weight:600;color:var(--eb);letter-spacing:.06em;margin:12px 0 2px}
 .plist{max-height:180px;overflow:auto}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:rgba(33,33,33,.92);color:#fff;padding:10px 16px;border-radius:10px;font-size:.88em;z-index:300;max-width:90vw;display:none}
-.loading{position:fixed;inset:0;background:rgba(255,255,255,.55);z-index:200;display:none;align-items:center;justify-content:center;font-weight:700;color:var(--primary-dark)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom));background:rgba(37,48,45,.94);color:#fff;padding:10px 16px;border-radius:10px;font-size:.88em;z-index:300;max-width:90vw;display:none}
+.loading{position:fixed;inset:0;background:rgba(247,245,241,.6);z-index:200;display:none;align-items:center;justify-content:center;font-weight:700;color:var(--primary-dark)}
 </style>
 </head>
 <body>
@@ -121,7 +142,7 @@ nav button.on{color:var(--primary);font-weight:700}
 <!-- ログイン -->
 <div id="login">
   <div class="login-card">
-    <h1>HALO Lite</h1>
+    <div class="login-logo"><img src="brand/halo-logo.svg" alt="HALO"><span class="lite-tag">LITE</span></div>
     <p>個人のスマホ向けの簡易版です。<br>予定・お弁当・安否確認・お知らせだけ使えます。<br>申請や名簿などは会社の端末の HALO を使ってください。</p>
     <div class="field"><label>社員番号</label><input id="emp-id" inputmode="numeric" autocomplete="username"></div>
     <div class="field"><label>PIN</label><input id="emp-pin" type="password" inputmode="numeric" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
@@ -133,8 +154,8 @@ nav button.on{color:var(--primary);font-weight:700}
 <!-- アプリ -->
 <div id="app" class="hidden">
   <header>
-    <div><div class="title">HALO Lite</div><div class="who" id="who"></div></div>
-    <button class="btn" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 10px;font-size:.8em" onclick="reloadAll()">↻ 更新</button>
+    <div><div class="title"><img src="brand/halo-logo-white.svg" alt="HALO"><span class="lite-tag">LITE</span></div><div class="who" id="who"></div></div>
+    <button class="btn" style="background:rgba(255,255,255,.18);color:#fff;padding:7px 10px;font-size:.8em" onclick="reloadAll()"><i class="ti ti-refresh"></i><span class="emo">↻</span> 更新</button>
   </header>
   <main>
     <div id="safety-area"></div>
@@ -144,9 +165,9 @@ nav button.on{color:var(--primary);font-weight:700}
   </main>
   <button class="fab" id="fab" onclick="openEventForm()">＋ 予定</button>
   <nav>
-    <button id="nav-cal" class="on" onclick="switchTab('cal')"><span class="ic">📅</span><span id="nav-cal-label">予定・弁当</span></button>
-    <button id="nav-board" onclick="switchTab('board')"><span class="ic">🏢</span>在籍</button>
-    <button id="nav-more" onclick="switchTab('more')"><span class="ic">☰</span>その他</button>
+    <button id="nav-cal" class="on" onclick="switchTab('cal')"><i class="ti ti-calendar"></i><span class="ic emo">📅</span><span id="nav-cal-label">予定・弁当</span></button>
+    <button id="nav-board" onclick="switchTab('board')"><i class="ti ti-users"></i><span class="ic emo">🏢</span>在籍</button>
+    <button id="nav-more" onclick="switchTab('more')"><i class="ti ti-dots"></i><span class="ic emo">☰</span>その他</button>
   </nav>
 </div>
 
@@ -157,6 +178,8 @@ nav button.on{color:var(--primary);font-weight:700}
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
 <script>
 'use strict';
+// 線のアイコン（Tabler）が読み込めたときだけ絵文字と入れ替える（本体の hn-ic-ok と同じ考え）
+try{ document.fonts && document.fonts.load('1em "tabler-icons"').then(f=>{ if(f && f.length) document.body.classList.add('ic-ok'); }).catch(()=>{}); }catch(e){}
 // ============================================================ 設定（index.html と同じ値）
 const API_URL = 'https://schedule-worker.suntec-halo.workers.dev/';
 const SESS_KEY = 'halo_lite_sess'; // 通常版（sch_sess）とは別
@@ -343,7 +366,7 @@ function renderCal(){
       <div class="cal">${WD.map(w=>`<div class="dow">${w}</div>`).join('')}${cells}</div>
     </div>
     <div class="card">
-      <h2>${sd.getMonth()+1}月${sd.getDate()}日（${WD[sd.getDay()]}）${hol?` <span style="color:#d32f2f;font-size:.8em">${esc(hol.name||'休日')}</span>`:''}</h2>
+      <h2>${sd.getMonth()+1}月${sd.getDate()}日（${WD[sd.getDay()]}）${hol?` <span style="color:var(--red);font-size:.8em">${esc(hol.name||'休日')}</span>`:''}</h2>
       <div class="dept-h" style="margin-top:2px">📅 予定</div>
       ${dayEvs.length ? dayEvs.map(evCard).join('') : '<div class="empty">この日のあなたの予定はありません</div>'}
       ${bentoVisible() ? bentoDayHtml(selDate) : ''}
@@ -725,7 +748,7 @@ function renderBoard(){
   const counts={}; mem.forEach(m=>counts[m.status]=(counts[m.status]||0)+1);
   const shown = _boardFilter ? mem.filter(m=>m.status===_boardFilter) : mem;
   const depts=[...new Set(shown.map(m=>m.dept||'その他'))];
-  const stBadge = st => `<span class="st" style="background:${(STATUS_COLOR[st]||'#90a4ae')}33;color:#333">${esc(st)}</span>`;
+  const stBadge = st => `<span class="st" style="background:${(STATUS_COLOR[st]||'#90a4ae')}33;color:var(--text)">${esc(st)}</span>`;
   const d=new Date((_board.date||fmt(new Date()))+'T00:00:00');
   $('tab-board').innerHTML = `
     ${mine?`<div class="card"><h2>あなた（${d.getMonth()+1}/${d.getDate()}）</h2>
