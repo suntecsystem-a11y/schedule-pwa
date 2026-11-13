@@ -8,10 +8,10 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --primary: #1a73e8; --primary-dark: #1557b0;
-  --danger: #e53935; --success: #43a047; --warn: #fb8c00;
-  --bg: #f5f7fa; --card: #fff; --border: #e0e0e0;
-  --text: #212121; --text-sub: #757575; --radius: 8px;
+  --primary: #3F5F55; --primary-dark: #344945;
+  --danger: #B5533C; --success: #4E8A65; --warn: #B07A3E;
+  --bg: #F7F5F1; --card: #fff; --border: #E3DDD0;
+  --text: #25302D; --text-sub: #6E7773; --radius: 12px;
 }
 body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg); color: var(--text); }
 
@@ -19,7 +19,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .screen.active { display: flex; flex-direction: column; }
 
 /* ログイン */
-#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#1a73e8,#0d47a1); }
+#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#3F5F55,#344945); }
 .login-card { background: var(--card); border-radius: 16px; padding: 40px 32px; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
 .login-card h1 { font-size: 20px; text-align: center; margin-bottom: 8px; }
 .login-card p  { font-size: 13px; color: var(--text-sub); text-align: center; margin-bottom: 24px; }
@@ -60,7 +60,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .badge-否認   { background: #ffebee; color: var(--danger); }
 .badge-取下げ  { background: #f5f5f5; color: var(--text-sub); }
 /* 届出アプリの7ステータス。本人にボールがある状態（書類待ち・差し戻し）は目立たせる */
-.badge-受付済   { background: #e3f2fd; color: #1565c0; }
+.badge-受付済   { background: #EEF3EC; color: #344945; }
 .badge-書類待ち { background: #fff3e0; color: #e65100; font-weight: 700; }
 .badge-差し戻し { background: #ffebee; color: var(--danger); font-weight: 700; }
 .badge-対応中   { background: #ede7f6; color: #5e35b1; }
@@ -76,7 +76,7 @@ button:disabled { opacity: .55; cursor: progress; }
 .td-names label { display:flex; align-items:flex-start; gap:8px; cursor:pointer; font-weight:400; margin:0; }
 
 /* FAB */
-.fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 16px rgba(26,115,232,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; border: none; font-size: 28px; cursor: pointer; box-shadow: 0 4px 16px rgba(63,95,85,.4); display: flex; align-items: center; justify-content: center; z-index: 50; }
 .fab:hover { transform: scale(1.08); }
 
 /* モーダル */
@@ -108,7 +108,7 @@ button:disabled { opacity: .55; cursor: progress; }
 
 /* 明細テーブル */
 .detail-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
-.detail-table th { background: #f0f4ff; padding: 6px 8px; text-align: left; border: 1px solid var(--border); }
+.detail-table th { background: #F3F0E8; padding: 6px 8px; text-align: left; border: 1px solid var(--border); }
 .detail-table td { padding: 6px 8px; border: 1px solid var(--border); }
 .detail-table input { width: 100%; border: none; background: none; font-size: 13px; font-family: inherit; }
 .detail-table input:focus { outline: 1px solid var(--primary); border-radius: 4px; }
@@ -123,7 +123,7 @@ button:disabled { opacity: .55; cursor: progress; }
 #transport-rows-table th:nth-child(6), #transport-rows-table td:nth-child(6) { width: 120px; }
 /* 枠なし入力だと入力欄の位置が分かりづらいので下線を付ける */
 #transport-rows-table input { border-bottom: 1px solid var(--border); border-radius: 0; padding: 3px 2px; }
-#transport-rows-table input:focus { outline: none; border-bottom: 2px solid var(--primary); background: #f5f9ff; }
+#transport-rows-table input:focus { outline: none; border-bottom: 2px solid var(--primary); background: #F3F7F3; }
 .btn-add-row { margin-top: 8px; padding: 6px 14px; border: 1px dashed var(--border); background: none; border-radius: var(--radius); font-size: 13px; cursor: pointer; color: var(--text-sub); }
 .btn-del-row { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; }
 
@@ -161,13 +161,19 @@ button:disabled { opacity: .55; cursor: progress; }
 .pending-card .card { flex: 1; margin-bottom: 0; }
 .pending-item { margin-bottom: 12px; }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="halo-apply.css?v=1"><!-- HALO の新デザイン（2026-11-13） -->
+<meta name="theme-color" content="#3F5F55">
 </head>
 <body>
 
 <!-- ログイン -->
 <div id="screen-login" class="screen active">
   <div class="login-card">
-    <h1>📋 社内申請アプリ</h1>
+    <div class="ha-login-logo"><img src="../brand/halo-logo.svg" alt="HALO"><span class="ha-tag">申請</span></div>
+    <h1 style="font-size:16px">社内申請アプリ</h1>
     <p>社員番号とPINコードでログイン</p>
     <div class="form-group">
       <label>社員番号</label>
@@ -188,7 +194,7 @@ button:disabled { opacity: .55; cursor: progress; }
   <header class="app-header">
     <div style="display:flex;align-items:center;gap:10px">
       <button onclick="location.href='../'" title="スケジュールに戻る" style="background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap">← スケジュール</button>
-      <h1>📋 社内申請</h1>
+      <h1 class="ha-logo"><img src="../brand/halo-logo-white.svg" alt="HALO"><span class="ha-tag">申請</span></h1>
     </div>
     <div class="header-user">
       <span id="header-username"></span>
@@ -1990,7 +1996,7 @@ function renderReceiptPhotos() {
     <div style="position:relative;">
       <img src="${p.url}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"
         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <a href="${p.url}" target="_blank" style="display:none;width:72px;height:72px;border-radius:6px;background:#e3f2fd;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;">
+      <a href="${p.url}" target="_blank" style="display:none;width:72px;height:72px;border-radius:6px;background:#EEF3EC;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;">
         <span style="font-size:1.6em">📎</span><span style="font-size:0.6em;color:#1e88e5;font-weight:600">開く</span>
       </a>
       <button onclick="removeReceiptPhoto(${i})" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--danger);color:#fff;font-size:0.7em;border:none;cursor:pointer;line-height:1;">×</button>
@@ -2311,7 +2317,7 @@ function _todokeFlowHTML(picked) {
     lines.push(t);
   });
   if (!lines.length) return '';
-  return '<div class="td-guide" style="background:#e3f2fd;border-left-color:#64b5f6;">'
+  return '<div class="td-guide" style="background:#EEF3EC;border-left-color:#99B9A4;">'
        + '<b>📮 このあとの流れ</b><br>' + lines.map(esc).join('<br>') + '</div>';
 }
 
@@ -2856,7 +2862,7 @@ function _todokeThreadHTML(thread, closed) {
         ${esc(t.postedName)}（${esc(t.postedRole)}）・${esc(_tdTime(t.postedAt))}
       </div>
       <div style="max-width:85%;padding:8px 12px;border-radius:12px;font-size:14px;white-space:pre-wrap;
-                  word-break:break-word;background:${mine ? '#e3f2fd' : 'var(--bg)'};">
+                  word-break:break-word;background:${mine ? '#EEF3EC' : 'var(--bg)'};">
         ${esc(t.body)}${files ? '<div style="margin-top:6px;font-size:13px;">' + files + '</div>' : ''}
       </div>
     </div>`;

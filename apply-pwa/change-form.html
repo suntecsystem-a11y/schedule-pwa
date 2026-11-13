@@ -7,10 +7,10 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --primary: #1a73e8; --primary-dark: #1557b0; --primary-light: #e8f0fe;
-  --danger: #e53935; --success: #43a047; --warn: #fb8c00;
-  --bg: #f5f7fa; --card: #fff; --border: #e0e0e0;
-  --text: #212121; --text-sub: #757575; --radius: 8px;
+  --primary: #3F5F55; --primary-dark: #344945; --primary-light: #E3EEE4;
+  --danger: #B5533C; --success: #4E8A65; --warn: #B07A3E;
+  --bg: #F7F5F1; --card: #fff; --border: #E3DDD0;
+  --text: #25302D; --text-sub: #6E7773; --radius: 12px;
   --before-bg: #f5f5f5; --before-border: #e0e0e0;
 }
 body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
@@ -19,7 +19,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .screen.active { display: flex; flex-direction: column; }
 
 /* ===== ログイン ===== */
-#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#1a73e8,#0d47a1); }
+#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#3F5F55,#344945); }
 .login-card { background: var(--card); border-radius: 16px; padding: 40px 32px; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
 .login-card h1 { font-size: 20px; text-align: center; margin-bottom: 8px; }
 .login-card p { font-size: 13px; color: var(--text-sub); text-align: center; margin-bottom: 24px; }
@@ -110,7 +110,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
   width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
   font-size: 14px; font-family: inherit; background: var(--card);
 }
-.ba-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+.ba-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(63,95,85,.15); }
 .ba-input.error { border-color: var(--danger); }
 select.ba-input { appearance: auto; }
 textarea.ba-input { resize: vertical; line-height: 1.6; }
@@ -199,7 +199,7 @@ textarea.ba-input { resize: vertical; line-height: 1.6; }
 .toast.show { opacity: 1; }
 
 /* ===== 注意ボックス ===== */
-.info-box { padding: 12px 14px; background: #e3f2fd; border-radius: var(--radius); font-size: 13px; color: #1565c0; margin-top: 12px; line-height: 1.6; }
+.info-box { padding: 12px 14px; background: #EEF3EC; border-radius: var(--radius); font-size: 13px; color: #344945; margin-top: 12px; line-height: 1.6; }
 .warn-box { padding: 12px 14px; background: #fff3e0; border-radius: var(--radius); font-size: 13px; color: #e65100; margin-top: 12px; line-height: 1.6; }
 
 /* ===== Welcome ===== */
@@ -212,12 +212,18 @@ textarea.ba-input { resize: vertical; line-height: 1.6; }
 .welcome-id { font-size: 14px; color: var(--text-sub); margin-bottom: 20px; }
 .welcome-desc { font-size: 14px; color: var(--text-sub); line-height: 1.7; text-align: left; padding: 16px; background: var(--bg); border-radius: var(--radius); }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="halo-apply.css?v=1"><!-- HALO の新デザイン（2026-11-13） -->
+<meta name="theme-color" content="#3F5F55">
 </head>
 <body>
 
 <!-- ===== ログイン画面 ===== -->
 <div id="screen-login" class="screen active">
   <div class="login-card">
+    <div class="ha-login-logo"><img src="../brand/halo-logo.svg" alt="HALO"><span class="ha-tag">変更届</span></div>
     <h1>従業員情報変更届</h1>
     <p>社員番号とPINコードでログイン</p>
     <div class="form-group">

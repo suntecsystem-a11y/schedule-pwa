@@ -1,0 +1,77 @@
+/* =====================================================================
+   申請アプリ（apply-pwa）を HALO の新デザインにそろえる（2026-11-13）
+   本体の halo-design.css（body.hn）と同じ色・文字・丸み。
+   3画面（index.html／change-form.html／onboarding.html）の <style> のあとで読み込み、上書きする。
+   色の基本は各ファイルの :root にも同じ値を書いてある（このファイルが読めなくても深緑になる）。
+   ===================================================================== */
+:root{
+  --primary:#3F5F55;--primary-dark:#344945;--primary-light:#E3EEE4;
+  --danger:#B5533C;--success:#4E8A65;--warn:#B07A3E;
+  --bg:#F7F5F1;--card:#fff;--border:#E3DDD0;--text:#25302D;--text-sub:#6E7773;--radius:12px;
+  --surface-1:#F3F0E8;--tint:#C6D8C2;--eb:#7E6846;
+}
+body{
+  font-family:'Geist','Noto Sans JP','Segoe UI','Helvetica Neue',sans-serif;
+  font-feature-settings:'palt';font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  background:var(--bg) linear-gradient(180deg,rgba(239,232,196,.55),rgba(239,232,196,0) 280px) no-repeat;
+}
+button,input,select,textarea{font-family:inherit;letter-spacing:inherit}
+
+/* ログイン：青いグラデーションをやめ、ロゴ入りのカード */
+#screen-login{background:transparent!important}
+.login-card{border:1px solid var(--border);border-radius:20px!important;box-shadow:0 4px 20px rgba(70,95,85,.08)!important}
+.ha-login-logo{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:10px}
+.ha-login-logo img{height:44px;width:auto}
+.ha-tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--eb);background:#EFE8C4;border-radius:999px;padding:3px 10px}
+.form-group input:focus,.modal select:focus,.modal input:focus,.modal textarea:focus{box-shadow:0 0 0 3px rgba(63,95,85,.15)}
+.btn-primary,.btn-submit{border-radius:12px}
+
+/* 上の帯：深緑・影なし・白いロゴ */
+.app-header,.wizard-header{box-shadow:none!important}
+.ha-logo{display:inline-flex;align-items:center;gap:8px}
+.ha-logo img{height:30px;width:auto;margin:-4px 0}
+.ha-logo .ha-tag{background:rgba(255,255,255,.16);color:#fff;font-size:10px;padding:2px 8px}
+.btn-logout{border-radius:999px!important;padding:5px 12px!important}
+
+/* タブ：選んだタブに緑の下線 */
+.tab-nav{background:rgba(255,255,255,.97)}
+.tab-btn{border-bottom-width:2px!important}
+.tab-btn.active{color:var(--primary)!important;font-weight:700}
+
+/* カード・バッジ */
+.card{border:1px solid var(--border);border-radius:16px!important;box-shadow:0 1px 2px rgba(70,95,85,.06)!important}
+.card:hover{background:#FDFCFA}
+.badge{border-radius:999px}
+.badge-申請中,.badge-書類待ち{background:#F6EBDD!important;color:#A0682C!important}
+.badge-承認済,.badge-完了{background:#E3EEE4!important;color:#3F7656!important}
+.badge-否認,.badge-差し戻し{background:#F6E2DB!important;color:#A6452F!important}
+.badge-受付済{background:#E5ECF1!important;color:#4F7189!important}
+.badge-対応中{background:#ECE8F4!important;color:#6C5F96!important}
+.badge-取下げ,.badge-取り下げ{background:var(--surface-1)!important;color:var(--text-sub)!important}
+.td-due-soon{background:#F6EBDD!important;border-color:#E5CDAE!important;color:#8A5A25!important}
+.td-due-over{background:#F6E2DB!important;border-color:#E6BCAF!important;color:#A6452F!important}
+.td-guide{background:#EEF3EC!important;border-left-color:#99B9A4!important}
+.rejection-box{background:#F6E2DB!important}
+.info-box{background:#EEF3EC!important;color:var(--primary-dark)!important}
+
+/* ボタン・表・モーダル */
+.fab{box-shadow:0 4px 14px rgba(63,95,85,.4)!important}
+.modal-overlay{background:rgba(37,48,45,.45)!important}
+.modal{border-radius:20px 20px 0 0!important;background:var(--bg)!important}
+.detail-table th{background:var(--surface-1)!important}
+.toast{background:rgba(37,48,45,.94)!important;border-radius:12px!important}
+.filter-bar select,.filter-bar input[type=date],.btn-filter-clear,.btn-cancel{border-radius:999px}
+
+/* スマホ幅：上の帯に収まるように（名前は省略、ロゴは小さく、札は隠す） */
+.app-header{gap:8px}
+.app-header>div:first-child{min-width:0}
+.header-user{min-width:0;flex-shrink:1}
+#header-username{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:9em}
+.btn-logout{white-space:nowrap;flex-shrink:0}
+.btn-refresh{flex-shrink:0}
+@media(max-width:480px){
+  .app-header{padding:0 10px!important}
+  .app-header .ha-logo .ha-tag{display:none}
+  .app-header .ha-logo img{height:24px}
+  #header-username{display:none}
+}

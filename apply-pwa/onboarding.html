@@ -7,10 +7,10 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --primary: #1a73e8; --primary-dark: #1557b0; --primary-light: #e8f0fe;
-  --danger: #e53935; --success: #43a047; --warn: #fb8c00;
-  --bg: #f5f7fa; --card: #fff; --border: #e0e0e0;
-  --text: #212121; --text-sub: #757575; --radius: 8px;
+  --primary: #3F5F55; --primary-dark: #344945; --primary-light: #E3EEE4;
+  --danger: #B5533C; --success: #4E8A65; --warn: #B07A3E;
+  --bg: #F7F5F1; --card: #fff; --border: #E3DDD0;
+  --text: #25302D; --text-sub: #6E7773; --radius: 12px;
 }
 body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -18,7 +18,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .screen.active { display: flex; flex-direction: column; }
 
 /* ===== ログイン ===== */
-#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#1a73e8,#0d47a1); }
+#screen-login { justify-content: center; align-items: center; background: linear-gradient(135deg,#3F5F55,#344945); }
 .login-card { background: var(--card); border-radius: 16px; padding: 40px 32px; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,.2); }
 .login-card h1 { font-size: 20px; text-align: center; margin-bottom: 8px; }
 .login-card p { font-size: 13px; color: var(--text-sub); text-align: center; margin-bottom: 24px; }
@@ -57,14 +57,14 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
   width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
   font-size: 15px; font-family: inherit; background: var(--card);
 }
-.field input:focus, .field select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+.field input:focus, .field select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(63,95,85,.15); }
 .field input.error, .field select.error { border-color: var(--danger); }
 .field .hint { font-size: 11px; color: var(--text-sub); margin-top: 4px; }
 .readonly-field { background: #f0f3f7 !important; color: var(--text-sub); font-weight: 700; cursor: default; }
 .ins-group { display: flex; align-items: center; gap: 8px; }
 .ins-box { width: 90px; text-align: center; padding: 10px 8px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 16px; font-family: inherit; letter-spacing: 2px; background: var(--card); }
 .ins-box.mid { width: 120px; } .ins-box.sm { width: 56px; }
-.ins-box:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+.ins-box:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(63,95,85,.15); }
 .ins-sep { color: var(--text-sub); font-weight: 700; }
 .hint-inline { font-size: 11px; font-weight: 600; color: var(--primary); margin-left: 8px; }
 .notice-box { padding: 10px 12px; background: #fff3e0; border-radius: var(--radius); font-size: 12.5px; color: #e65100; margin: 8px 0; line-height: 1.6; }
@@ -91,7 +91,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .leg-head { font-size: 12px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
 .leg-head .btn-remove { margin-left: auto; }
 .leg-transit { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; font-family: inherit; margin-bottom: 8px; }
-.leg-transit:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+.leg-transit:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(63,95,85,.15); }
 .btn-add { background: none; border: 1px dashed var(--primary); color: var(--primary); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
 .btn-add:hover { background: var(--primary-light); }
 .btn-remove { background: none; border: none; color: var(--danger); font-size: 12px; cursor: pointer; }
@@ -126,7 +126,7 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .welcome-icon { font-size: 48px; margin-bottom: 16px; }
 .welcome-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
 .welcome-desc { font-size: 14px; color: var(--text-sub); line-height: 1.7; text-align: left; padding: 16px; background: var(--bg); border-radius: var(--radius); margin-top:16px; }
-.info-box { padding: 12px 14px; background: #e3f2fd; border-radius: var(--radius); font-size: 13px; color: #1565c0; margin-top: 12px; line-height: 1.6; }
+.info-box { padding: 12px 14px; background: #EEF3EC; border-radius: var(--radius); font-size: 13px; color: #344945; margin-top: 12px; line-height: 1.6; }
 
 .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #323232; color: #fff; padding: 12px 20px; border-radius: var(--radius); font-size: 14px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 300; }
 .toast.show { opacity: 1; }
@@ -134,12 +134,18 @@ body { font-family: 'Segoe UI','Helvetica Neue',sans-serif; background: var(--bg
 .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="halo-apply.css?v=1"><!-- HALO の新デザイン（2026-11-13） -->
+<meta name="theme-color" content="#3F5F55">
 </head>
 <body>
 
 <!-- ===== ログイン（総務／システム担当が操作） ===== -->
 <div id="screen-login" class="screen active">
   <div class="login-card">
+    <div class="ha-login-logo"><img src="../brand/halo-logo.svg" alt="HALO"><span class="ha-tag">入社情報</span></div>
     <h1>入社情報 登録</h1>
     <p>社員番号とPINコードでログイン</p>
     <div class="form-group">
