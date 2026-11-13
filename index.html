@@ -2157,6 +2157,7 @@ ja:{
 'dr.col.check':'課題確認',
 'dr.col.today':'当日DA',
 'dr.notSubmitted':'未提出',
+'dr.onLeave':'休暇',
 'dr.dept.none':'（部門未設定）',
 'kot.open':'🕒 KING OF TIME（打刻・勤怠）',
 'dr.title':'📌 今日の課題',
@@ -2573,6 +2574,7 @@ vi:{
 'dr.col.check':'Xác nhận',
 'dr.col.today':'DA hôm nay',
 'dr.notSubmitted':'Chưa nộp',
+'dr.onLeave':'Nghỉ phép',
 'dr.dept.none':'(Chưa có bộ phận)',
 'kot.open':'🕒 KING OF TIME (chấm công)',
 'dr.title':'📌 Vấn đề hôm nay',
@@ -2963,6 +2965,7 @@ ne:{
 'dr.col.check':'पुष्टि',
 'dr.col.today':'आजको DA',
 'dr.notSubmitted':'पेश भएको छैन',
+'dr.onLeave':'बिदा',
 'dr.dept.none':'(विभाग छैन)',
 'kot.open':'🕒 KING OF TIME (हाजिरी)',
 'dr.title':'📌 आजका समस्याहरू',
@@ -9515,9 +9518,12 @@ async function openTeamIssueChecks(date) {
   // 1マス分の表示（済みは時刻、未は赤字）
   // 前日の列と当日の列（確認・当日DA）の間に区切りを入れる
   const sep = '<span style="align-self:stretch;border-left:1.5px dashed var(--border);margin:0 10px"></span>';
-  const cell = (at, ngKey) => at
+  // 終日休暇の人は未提出でも赤字にせず「休暇」と表示（入力があればそちらを優先）
+  const cell = (at, ngKey, leave) => at
     ? `<span style="color:#2e7d32;font-weight:700;width:72px;text-align:center">✅ ${_drTime(at)}</span>`
-    : `<span style="color:#e53935;font-weight:700;width:72px;text-align:center;font-size:0.92em">${t(ngKey)}</span>`;
+    : leave
+      ? `<span style="color:var(--text2);font-weight:700;width:72px;text-align:center;font-size:0.92em">🌴 ${t('dr.onLeave')}</span>`
+      : `<span style="color:#e53935;font-weight:700;width:72px;text-align:center;font-size:0.92em">${t(ngKey)}</span>`;
   // 部門ごとにまとめる（人数の多い部門から）。部門内は未確認→確認済み（時刻順）
   const byDept = {};
   members.forEach(m => { (byDept[m.dept || t('dr.dept.none')] ||= []).push(m); });
@@ -9537,7 +9543,7 @@ async function openTeamIssueChecks(date) {
       ${list.map(m => `
       <div style="display:flex;align-items:center;gap:8px;padding:7px 4px 7px 12px;border-bottom:1px solid var(--border);font-size:0.86em">
         <span style="flex:1;min-width:0">${esc(m.name)}</span>
-        ${cell(m.prevReportedAt, 'dr.notSubmitted')}${sep}${cell(m.checkedAt, 'dr.unchecked')}${cell(m.reportedAt, 'dr.notSubmitted')}
+        ${cell(m.prevReportedAt, 'dr.notSubmitted', m.prevOnLeave)}${sep}${cell(m.checkedAt, 'dr.unchecked', m.onLeave)}${cell(m.reportedAt, 'dr.notSubmitted', m.onLeave)}
       </div>`).join('')}
     </div>`;
   }).join('');
