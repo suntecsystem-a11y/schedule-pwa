@@ -1027,7 +1027,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=10">
+<link rel="stylesheet" href="halo-design.css?v=11">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -1175,6 +1175,22 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 
   <!-- カレンダー -->
   <div class="content" id="tab-calendar" style="display:none">
+    <!-- 2026-11-13 新デザイン 3f：TimeTree 型。見出し → 年月（左）と 今日‹›（右）→ 月/週/3日/日 → フィルター → 月の表＋その日の予定 -->
+    <h2 class="fac-title" id="cal-page-title">カレンダー</h2>
+    <div class="cal-head">
+      <span class="cal-nav-title" id="cal-title"></span>
+      <span class="cal-head-btns">
+        <button class="today-btn" id="today-btn-text" onclick="goToday()">今日</button>
+        <button class="nav-arrow" onclick="navCal(-1)" aria-label="前へ">‹</button>
+        <button class="nav-arrow" onclick="navCal(1)" aria-label="次へ">›</button>
+      </span>
+    </div>
+    <div class="view-switcher">
+      <button class="view-btn active" id="vbtn-month" onclick="switchView('month',this)">月</button>
+      <button class="view-btn" id="vbtn-week" onclick="switchView('week',this)">週</button>
+      <button class="view-btn" id="vbtn-3day" onclick="switchView('3day',this)">3日</button>
+      <button class="view-btn" id="vbtn-day" onclick="switchView('day',this)">日</button>
+    </div>
     <div class="filter-bar">
       <div class="filter-label" onclick="toggleFilterPanel()" style="cursor:pointer;user-select:none">
         <span><span id="filter-label-text">🔍 フィルター</span> <span id="filter-badge" style="display:none" class="filter-active-badge"></span></span>
@@ -1197,21 +1213,9 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <!-- 選択中メンバーのサマリー表示（折りたたみ時） -->
       <div id="filter-summary" style="display:none;margin-top:8px;flex-wrap:wrap;gap:4px"></div>
     </div>
-    <div class="view-switcher">
-      <button class="view-btn active" id="vbtn-month" onclick="switchView('month',this)">月</button>
-      <button class="view-btn" id="vbtn-week" onclick="switchView('week',this)">週</button>
-      <button class="view-btn" id="vbtn-day" onclick="switchView('day',this)">日</button>
-    </div>
-    <div class="cal-nav">
-      <button class="nav-arrow" onclick="navCal(-1)">‹</button>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="cal-nav-title" id="cal-title"></span>
-        <button class="today-btn" id="today-btn-text" onclick="goToday()">今日</button>
-      </div>
-      <button class="nav-arrow" onclick="navCal(1)">›</button>
-    </div>
     <div id="type-legend" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding:6px 2px"></div>
-    <div id="cal-content"></div>
+    <!-- 月の表（左）＋選んだ日の予定（右。スマホは下）。週・3日・日のときは表だけ -->
+    <div class="cal-split" id="cal-split"><div id="cal-content"></div><div id="cal-day-panel"></div></div>
     <div id="dashboard-widget" style="margin-top:16px"></div>
   </div>
 
@@ -2190,7 +2194,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席ボード',
+'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.hint':'選んでいる日をもう一度押すと、その日の予定を登録できます','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席ボード',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -2605,7 +2609,7 @@ vi:{
 'dr.err.empty':'Chưa có nội dung',
 'dr.sending':'Đang gửi...',
 'dr.saved':'Đã ghi Kaizen Step',
-'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
+'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.hint':'Bấm lại ngày đang chọn để thêm lịch','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
@@ -2995,7 +2999,7 @@ ne:{
 'dr.err.empty':'केही लेखिएको छैन',
 'dr.sending':'पठाउँदै...',
 'dr.saved':'Kaizen Step रेकर्ड गरियो',
-'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
+'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.hint':'छानिएको दिन फेरि थिचेर तालिका थप्नुहोस्','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
@@ -6137,6 +6141,7 @@ function switchView(v,btn){ calView=v; document.querySelectorAll('.view-btn').fo
 async function navCal(dir){
   if(calView==='month') calDate=new Date(calDate.getFullYear(),calDate.getMonth()+dir,1);
   else if(calView==='week') calDate=addDays(calDate,dir*7);
+  else if(calView==='3day') calDate=addDays(calDate,dir*3); // 2026-11-13 3f
   else calDate=addDays(calDate,dir);
   // まず先に画面を更新してから（空でも）データを取得
   renderCalendar();
@@ -6144,6 +6149,7 @@ async function navCal(dir){
 }
 async function goToday(){
   calDate=new Date();
+  _calSel=fmtDate(new Date()); // 月の表示で選ぶ日も今日に（3f）
   renderCalendar();
   if(GAS_URL) await loadEvents();
 }
@@ -6277,12 +6283,19 @@ function renderAll(){ renderCalendar(); renderTeam(); renderDashboard(); renderS
 
 function renderCalendar(){
   if(calView==='month') renderMonth();
-  else if(calView==='week') renderWeek();
+  else if(calView==='week' || calView==='3day') renderWeek();
   else renderDay();
+  // 選んだ日の予定は、月の表示のときだけ出す（3f）
+  const sp=document.getElementById('cal-split'); if(sp) sp.classList.toggle('with-day', calView==='month');
+  renderCalDay();
+  const pt=document.getElementById('cal-page-title'); if(pt) pt.textContent=t('nav.calendar');
+  const b3=document.getElementById('vbtn-3day'); if(b3) b3.textContent=t('cal.view.3day');
 }
 
 // ===== 月表示 =====
-const MAX_BARS=4;
+const MAX_BARS=3;
+const _BAR_H=20; // 月の表示の帯の高さ（2026-11-13 3f。前は26）
+let _calSel=fmtDate(new Date()); // 月の表示で選んでいる日（3f）
 function renderMonth(){
   const y=calDate.getFullYear(),m=calDate.getMonth();
   document.getElementById('cal-title').textContent=t('cal.month.title',{year:y,month:m+1});
@@ -6323,7 +6336,7 @@ function renderMonth(){
       const _nm=day.getMonth()<m?_natMapPrev:day.getMonth()>m?_natMapNext:_natMap;
       const natHName=_nm.get(ds);const natH=!!natHName;
       const anyHol=hol||natH;const holLabel=hol?.name||natHName||'';
-      html+=`<div class="month-cell${isToday?' today':''}${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
+      html+=`<div class="month-cell${isToday?' today':''}${ds===_calSel?' sel':''}${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
         <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6?' sun':''}${anyHol?' holiday':''}">${day.getDate()}</div>
         ${holLabel?`<span class="holiday-name">${esc(holLabel)}</span><span class="holiday-short">${esc(shortHolName(holLabel))}</span>`:''}
         ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">${t('cal.overflow',{n:ov.overflow})}</div>`:''}
@@ -6341,8 +6354,8 @@ function renderMonth(){
         const isPending = e.approvalStatus === '申請中';
         let cls='ev-bar '+(isS&&isE?'span-solo':isS?'span-start':isE?'span-end':'span-mid');
         const barStyle=isPending
-          ? `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${STATUS_COLOR[e.type]};opacity:0.5;border-style:dashed;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};background:${STATUS_COLOR[e.type]}33`
-          : `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*26}px;background:${STATUS_COLOR[e.type]}`;
+          ? `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*_BAR_H}px;background:${STATUS_COLOR[e.type]};opacity:0.5;border-style:dashed;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};background:${STATUS_COLOR[e.type]}33`
+          : `left:${(sc/7)*100}%;width:${((ec-sc+1)/7)*100}%;top:${li*_BAR_H}px;background:${STATUS_COLOR[e.type]}`;
         const barLabel = isS ? (isPending?t('cal.pending'):'')+typeIcon(e.type)+' '+esc(e.title||e.type) : '';
         const barTitle = typeIcon(e.type)+' '+(e.title||e.type);
         html+=`<div class="${cls}" style="${barStyle}" title="${esc(barTitle)}"
@@ -6354,8 +6367,8 @@ function renderMonth(){
       ov.singles.slice(0,ov.singleSlot).forEach((e,si)=>{
         const isPendS = e.approvalStatus === '申請中';
         const sBarStyle = isPendS
-          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*26+si*26}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
-          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*26+si*26}px;background:${STATUS_COLOR[e.type]}`;
+          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*_BAR_H+si*_BAR_H}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
+          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*_BAR_H+si*_BAR_H}px;background:${STATUS_COLOR[e.type]}`;
         const sSoloLabel = (isPendS?t('cal.pending'):'')+typeIcon(e.type)+' '+esc(e.title||e.type);
         html+=`<div class="ev-bar span-solo" style="${sBarStyle}" title="${esc(sSoloLabel)}"
           onclick="event.stopPropagation();openDetail('${e.id}')"><span>${sSoloLabel}</span></div>`;
@@ -6369,21 +6382,23 @@ function renderMonth(){
 
 // ===== 週表示 =====
 function renderWeek(){
-  const dow=(calDate.getDay()+6)%7;const monday=addDays(calDate,-dow);
-  const days=Array.from({length:7},(_,i)=>addDays(monday,i));
+  const N=calView==='3day'?3:7; // 3日の表示（2026-11-13 3f）は calDate から3日分
+  const dow=(calDate.getDay()+6)%7;const monday=N===7?addDays(calDate,-dow):new Date(calDate);
+  const days=Array.from({length:N},(_,i)=>addDays(monday,i));
+  const _gc=N===7?'':` style="grid-template-columns:48px repeat(${N},minmax(0,1fr));min-width:0"`;
   const todayStr=fmtDate(new Date());const filtered=getFiltered();
-  document.getElementById('cal-title').textContent=`${monday.getMonth()+1}/${monday.getDate()} 〜 ${days[6].getMonth()+1}/${days[6].getDate()}`;
-  const wS=fmtDate(days[0]),wE=fmtDate(days[6]);
+  document.getElementById('cal-title').textContent=`${monday.getMonth()+1}/${monday.getDate()} 〜 ${days[N-1].getMonth()+1}/${days[N-1].getDate()}`;
+  const wS=fmtDate(days[0]),wE=fmtDate(days[N-1]);
   const WEEK_LEAVE_TYPES=['休暇','休み'];
   const alldayEvs=filtered.filter(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;return(!e.start||isMultiDay(e))&&es<=wE&&ee>=wS&&!WEEK_LEAVE_TYPES.includes(e.type)});
   const leaveEvs=filtered.filter(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;return WEEK_LEAVE_TYPES.includes(e.type)&&es<=wE&&ee>=wS});
-  let html=`<div class="week-grid"><div class="week-header"><div class="week-header-cell"></div>
+  let html=`<div class="week-grid"><div class="week-header"${_gc}><div class="week-header-cell"></div>
     ${days.map((d,i)=>{const ds=fmtDate(d);const isT=ds===todayStr;const hol=holidays.find(h=>h.date===ds);const isCompHol=!!hol;const natHName=jpNationalHolidays(d.getFullYear()).get(ds);const isHol=isCompHol||!!natHName;const holLabel=hol?.name||natHName||'';
-      return`<div class="week-header-cell"${isCompHol?` style="background:#fff0f0"`:''}><div class="wday" style="${i===6||isHol?'color:var(--red)':i===5?'color:var(--blue)':''}">${tDow(i)}</div>
+      return`<div class="week-header-cell"${isCompHol?` style="background:#fff0f0"`:''}><div class="wday" style="${(d.getDay()+6)%7===6||isHol?'color:var(--red)':(d.getDay()+6)%7===5?'color:var(--blue)':''}">${tDow((d.getDay()+6)%7)}</div>
         <div class="wdate${isT?' today':''}${isHol?' holiday':''}">${d.getDate()}</div>${holLabel?`<div style="font-size:0.65em;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(holLabel)}</div>`:''}</div>`;}).join('')}
     </div>`;
   if(alldayEvs.length){
-    html+=`<div class="week-allday-row"><div class="week-allday-label">${t('common.allday')}</div>`;
+    html+=`<div class="week-allday-row"${_gc}><div class="week-allday-label">${t('common.allday')}</div>`;
     days.forEach(day=>{
       const ds=fmtDate(day);const isT=ds===todayStr;
       html+=`<div class="week-allday-cell${isT?' today':''}">${alldayEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
@@ -6395,7 +6410,7 @@ function renderWeek(){
     html+=`</div>`;
   }
   if(leaveEvs.length){
-    html+=`<div class="week-leave-row"><div class="week-leave-label">${t('common.leave')}</div>`;
+    html+=`<div class="week-leave-row"${_gc}><div class="week-leave-label">${t('common.leave')}</div>`;
     days.forEach(day=>{
       const ds=fmtDate(day);const isT=ds===todayStr;
       html+=`<div class="week-leave-cell${isT?' today':''}">${leaveEvs.filter(e=>eventIncludesDate(e,ds)).map(e=>{
@@ -6407,7 +6422,7 @@ function renderWeek(){
     html+=`</div>`;
   }
   const HOUR_PX=48, START_H=8, END_H=20, TOTAL_H=END_H-START_H;
-  html+=`<div class="week-body">`;
+  html+=`<div class="week-body"${_gc}>`;
   html+=`<div class="week-time-col">${Array.from({length:TOTAL_H},(_,i)=>`<div class="week-time-label">${START_H+i}:00</div>`).join('')}</div>`;
   days.forEach(day=>{
     const ds=fmtDate(day);const isT=ds===todayStr;
@@ -6499,7 +6514,40 @@ function eventCardHTML(e){
     </div>
   </div>`;
 }
-function onCellClick(ds){ openAddModal(ds) }
+// 日付を押す：1回目はその日を選んで予定を一覧に、選んでいる日をもう1回押すと登録の窓（2026-11-13 3f。前は1回目で登録の窓）
+function onCellClick(ds){
+  if(ds===_calSel){ openAddModal(ds); return; }
+  _calSel=ds;
+  document.querySelectorAll('#cal-content .month-cell.sel').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('#cal-content .month-cell').forEach(c=>{ if((c.getAttribute('onclick')||'').includes("'"+ds+"'")) c.classList.add('sel'); });
+  renderCalDay();
+  if(window.innerWidth<1100){ const p=document.getElementById('cal-day-panel'); if(p) p.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+// 選んだ日の予定（SCHEDULE）。フィルター（メンバー・種別）は月の表と同じ
+function renderCalDay(){
+  const el=document.getElementById('cal-day-panel');
+  if(!el) return;
+  if(calView!=='month'||!currentUser){ el.innerHTML=''; return; }
+  const ds=_calSel;
+  const d=new Date(ds+'T00:00:00');
+  const label=t('cal.day.title',{month:d.getMonth()+1,day:d.getDate(),dow:tDow((d.getDay()+6)%7)});
+  const list=getFiltered().filter(e=>eventIncludesDate(e,ds)).sort((a,b)=>(a.start||'00:00').localeCompare(b.start||'00:00'));
+  const rows=list.map(e=>{
+    const col=STATUS_COLOR[e.type]||'#9e9e9e';
+    const time=e.start&&!isMultiDay(e)?`${e.start}〜${e.end||''}`:t('home.next.allday');
+    const sub=[time, e.room?roomName(e.room):'', e.userName||''].filter(Boolean).join('・');
+    const pend=e.approvalStatus==='申請中'?`<span class="cd-pend">${t('cal.pending')}</span>`:'';
+    return`<button type="button" class="cd-row" onclick="openDetail('${e.id}')"><span class="cd-bar" style="background:${col}"></span>
+      <span class="cd-main"><span class="cd-title">${pend}${esc(e.title||tType(e.type))}</span><span class="cd-sub">${esc(sub)}</span></span>
+      <span class="cd-type" style="color:${col};border-color:${col}55">${tType(e.type)}</span></button>`;
+  }).join('');
+  el.innerHTML=`<div class="cd-card">
+    <div class="cd-head"><span class="hn-next-eb">SCHEDULE</span><span class="cd-date">${esc(t('cal.day.of',{date:label}))}</span>
+      <button type="button" class="cd-add" onclick="openAddModal('${ds}')">＋ ${t('cal.day.add')}</button></div>
+    ${rows||`<div class="fac-empty">${t('cal.day.none')}</div>`}
+    <div class="cd-hint">${t('cal.day.hint')}</div>
+  </div>`;
+}
 // 週表示の時間帯クリック：押した位置の1時間枠（例 15:00〜16:00）で予定登録を開く
 function onWeekColClick(event, ds){
   const HOUR_PX=48, START_H=8, END_H=20;  // renderWeek と同じ値
@@ -13414,6 +13462,6 @@ async function initPushNotifications(opts) {
 })();
 </script>
 <script src="peer-memo.js"></script>
-<script src="halo-design.js?v=10"></script>
+<script src="halo-design.js?v=11"></script>
 </body>
 </html>
