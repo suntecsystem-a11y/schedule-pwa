@@ -507,6 +507,8 @@ body.hn .cell-more{font-size:.66em;bottom:2px}
 .cd-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .cd-title{font-size:.9em;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cd-sub{font-size:.76em;color:var(--text2);font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cd-who{font-size:.76em;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cd-who::before{content:'';display:inline-block;width:.9em;height:.9em;margin-right:4px;vertical-align:-.1em;background:var(--text2);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 3.13a4 4 0 0 1 0 7.75M21 21v-2a4 4 0 0 0-3-3.85'/%3E%3C/svg%3E") center/contain no-repeat}
 .cd-type{font-size:.7em;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid;flex-shrink:0;background:var(--surface)}
 .cd-pend{font-size:.8em;color:var(--orange);margin-right:4px}
 .cd-hint{font-size:.72em;color:var(--text2);padding:8px 14px 10px;border-top:1px solid var(--border)}
