@@ -10219,7 +10219,7 @@ function renderCleaning() {
     todayBlock = `<div style="font-size:0.88em;color:var(--text2)">今日は会社の休みです</div>`;
   } else {
     const mine = ti.iAmDuty
-      ? `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.78em">あなたが当番</span>` : '';
+      ? `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.78em;white-space:nowrap;display:inline-block">あなたが当番</span>` : '';
     const dutyText = _clnIsAll(ti.kind) ? '後半組の全員で、全部の場所' : esc(ti.dutyDisp || ti.duty);
     const ck = ti.check;
     let checkLine = '';
@@ -10266,7 +10266,7 @@ function renderCleaning() {
       <div style="font-size:0.78em;color:var(--text2)">${esc(r.wd)}${isToday ? '・今日' : ''}</div>
       ${isHoliday
         ? '<div style="margin-top:4px;font-size:0.72em;color:var(--text2)">会社休み</div>'
-        : `<button onclick="openCleaningCheck('${r.date}')" style="margin-top:4px;padding:4px 6px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.72em;cursor:pointer;white-space:nowrap">📋 チェックシート</button>`}
+        : `<button onclick="openCleaningCheck('${r.date}')" style="margin-top:4px;padding:4px 6px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.72em;cursor:pointer;white-space:nowrap">📋 <span class="cln-lg">チェックシート</span><span class="cln-sm">開く</span></button>`}
     </div>`;
   };
   const bodyCell = (r, i, k) => {
@@ -10280,8 +10280,11 @@ function renderCleaning() {
       const n = (r.names || [])[k];
       if (n) {
         const mine = !!mineMap[n];
-        // 名前は中央、「あなた」は右はし
-        inner = `${r.checker === n ? '<span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);padding:1px 6px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.66em;white-space:nowrap">チェック</span>' : ''}<span style="font-size:0.98em;font-weight:700">${esc(dispMap[n] || n)}</span>${mine ? '<span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:1px 6px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.66em;white-space:nowrap">あなた</span>' : ''}`;
+        // 名前は中央。「チェック」「あなた」の札は、名前の下に並べる（スマホの狭い列で、名前と重ならないように）
+        const badge = (txt, bg) => `<span style="display:inline-block;padding:1px 6px;border-radius:10px;background:${bg};color:white;font-weight:700;font-size:0.66em;white-space:nowrap;line-height:1.5">${txt}</span>`;
+        const badges = (r.checker === n ? badge('チェック', '#1e88e5') : '') + (mine ? badge('あなた', '#e65100') : '');
+        const nm = dispMap[n] || n;
+        inner = `<div style="font-size:${String(nm).length > 5 ? '0.74em' : '0.95em'};font-weight:700;overflow-wrap:break-word;line-height:1.3">${esc(nm)}</div>${badges ? `<div style="margin-top:3px;display:flex;justify-content:center;gap:3px;flex-wrap:wrap">${badges}</div>` : ''}`;
         if (mine) st = 'background:#fff3e0;';
       }
     }
@@ -10292,11 +10295,10 @@ function renderCleaning() {
     const isToday = r.date === c.today;
     const bg = r.mine ? 'background:#fff3e0;' : isToday ? 'background:var(--primary-light);' : '';
     return `<div style="grid-column:${i + 1};grid-row:2 / span ${maxN};position:relative;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--border);${i ? 'border-left:1px solid var(--border);' : ''}${bg}">
-      <div style="text-align:center"><div style="font-size:1.05em;font-weight:700;color:var(--primary-dark)">後半組全員</div>${r.checkerDisp ? `<div style="margin-top:6px;font-size:0.78em;font-weight:700;color:#1e88e5">チェック：${esc(r.checkerDisp)}${r.iAmChecker ? '（あなた）' : ''}</div>` : ''}</div>
-      ${r.mine ? '<span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);padding:1px 6px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.66em;white-space:nowrap">あなた</span>' : ''}
+      <div style="text-align:center;padding:6px 2px"><div style="font-size:1.05em;font-weight:700;color:var(--primary-dark);line-height:1.35">後半組<wbr>全員</div>${r.checkerDisp ? `<div style="margin-top:6px;font-size:0.78em;font-weight:700;color:#1e88e5;line-height:1.35">チェック：<wbr>${esc(r.checkerDisp)}${r.iAmChecker ? '（あなた）' : ''}</div>` : ''}${r.mine ? '<div style="margin-top:6px"><span style="display:inline-block;padding:1px 6px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.66em;white-space:nowrap;line-height:1.5">あなた</span></div>' : ''}</div>
     </div>`;
   };
-  const grid = `<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden">
+  const grid = `<style>@media(max-width:560px){.cln-lg{display:none}}@media(min-width:561px){.cln-sm{display:none}}</style><div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid var(--border);border-radius:10px;overflow:hidden">
     ${sel.days.map((r, i) => hcell(r, i)).join('')}
     ${sel.days.map((r, i) => (_clnIsAll(r.kind) ? friCell(r, i) : Array.from({ length: maxN }, (_, k) => bodyCell(r, i, k)).join(''))).join('')}
   </div>`;
@@ -10314,7 +10316,7 @@ function renderCleaning() {
     <div style="margin-top:8px;padding:8px 12px;border-radius:8px;background:var(--bg);font-size:0.8em;line-height:1.9;color:var(--text)">
       <div><strong>月曜</strong>　後半組の全員で、全部の場所を掃除</div>
       <div><strong>火〜金</strong>　曜日ごとの当番3名。1名がチェック係、2名が掃除</div>
-      <div><span style="padding:1px 7px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.8em">チェック</span>　チェック係。掃除はせず、指示・最終チェック・完了を行う</div>
+      <div><span style="padding:1px 7px;border-radius:10px;background:#1e88e5;color:white;font-weight:700;font-size:0.8em">チェック</span>　チェック係。掃除はせず、指示・確認・完了を行う</div>
     </div>
     ${sel.start !== c.thisMon && weeks.some(w => w.start === c.thisMon) ? `<div style="text-align:center;margin-top:8px"><button onclick="clnWeek(0)" style="padding:6px 16px;border-radius:8px;border:none;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer">今週にもどる</button></div>` : ''}
   </div>`;
