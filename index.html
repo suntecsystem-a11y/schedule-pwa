@@ -855,7 +855,7 @@ body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px
 .tkk-month{padding:6px}.tkk-mh,.tkk-mg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}.tkk-mh div{text-align:center;font-size:.75em;color:var(--text2);padding:4px 0}
 .tkk-mc{min-height:92px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:3px;overflow:hidden}.tkk-mc.off{background:transparent;border:none}.tkk-mc.today{background:var(--primary-light)}
 .tkk-md{font-size:.8em;font-weight:700;cursor:pointer;margin-bottom:2px}.tkk-mchip{color:#fff;font-size:.68em;border-radius:3px;padding:1px 4px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tkk-more{font-size:.68em;color:var(--text2);cursor:pointer}
-.tk-schmk{color:#43a047;font-weight:700;margin-left:6px;flex:none}
+.tk-sm{position:absolute;top:50%;transform:translate(-50%,-50%);color:#2e7d32;font-size:15px;line-height:1;cursor:pointer;z-index:4;text-shadow:0 0 2px #fff,0 0 3px #fff}.tk-sm:hover{transform:translate(-50%,-50%) scale(1.35)}
 .tk-col .tk-cards{display:flex;flex-direction:column;gap:8px}
 #tkk-left .tk-col.main,#tk-kanban .tk-col.main{flex:3 1 0;max-width:none;min-width:260px}
 .tk-col.main .tk-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));align-content:start}
@@ -4827,9 +4827,9 @@ function tkGanttHtml(){
       const mv=!x.ch.length&&x.e;
       bar='<div class="tk-gb'+(x.ch.length?' sum':'')+(holdShown?' hold':'')+(mv?' mv':'')+'" data-id="'+x.id+'" style="left:'+left+'px;width:'+w+'px;background:'+tkBarColor(x)+'" title="'+tkEsc(x.title)+'　'+tkFmt(x.sd)+'〜'+tkFmt(x.ed)+'　進捗'+x.p+'%'+(mv?'　（つかんで移動／両端で伸縮）':'')+'"><div class="pf" style="width:'+x.p+'%"></div>'+lbl+(mv&&w>=24?'<i class="rh l"></i><i class="rh r"></i>':'')+'</div>';
     }
-    h+='<div class="tk-row l'+Math.min(depth,2)+(holdShown?' hold':'')+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(20+depth*18)+'px">'+(x.e?'<span class="tk-gr" data-gid="'+x.id+'" title="つかんで移動：別の活動・施策の上に落とすと所属を変更／同じ階層の上下に落とすと並べ替え">⋮⋮</span>':'')+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span>'+(tkkIsSched(x)?'<span class="tk-schmk" title="カレンダーに予定を入れています（'+tkMd(_tk.ks.next[String(x.id)])+'〜）">○</span>':'')+tkAddBtn(x)+'</div>'
+    h+='<div class="tk-row l'+Math.min(depth,2)+(holdShown?' hold':'')+'" data-id="'+x.id+'"><div class="tk-left"><div class="tk-c name" style="padding-left:'+(20+depth*18)+'px">'+(x.e?'<span class="tk-gr" data-gid="'+x.id+'" title="つかんで移動：別の活動・施策の上に落とすと所属を変更／同じ階層の上下に落とすと並べ替え">⋮⋮</span>':'')+tw+'<span class="tk-nm" title="'+tkEsc(x.title)+'">'+(x.priv?'🔒 ':'')+tkEsc(x.title)+'</span>'+tkAddBtn(x)+'</div>'
       +'<div class="tk-c who">'+whoTxt+'</div><div class="tk-c st">'+stc+'</div><div class="tk-c d">'+tkFmt(x.sd)+'</div><div class="tk-c d">'+tkFmt(x.ed)+'</div><div class="tk-c pg">'+x.p+'%</div></div>'
-      +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+'</div></div>';
+      +'<div class="tk-tl body" style="width:'+W+'px;background-size:'+dayW+'px 100%">'+bar+tkkGanttDots(x,R,dayW,days)+'</div></div>';
   });
   return h+'</div></div>';
 }
@@ -5463,13 +5463,28 @@ function tkkIsSched(x){return !!(_tk.ks&&_tk.ks.loaded&&x.type==='タスク'&&_t
 async function tkkSchedLoad(){
   const ks=_tk.ks={loading:true,loaded:false,next:{}};
   try{
-    const t0=tkIso(new Date()),t1=tkIso(tkAddDays(new Date(),180));
-    const evs=await api('getEvents',{rangeStart:t0,rangeEnd:t1},'予定を確認中...');
-    (evs||[]).forEach(e=>{const id=tkkTaskId(e);if(!id)return;const d=e.startDate||e.date;if(!d||d<t0)return;if(!ks.next[id]||d<ks.next[id])ks.next[id]=d;});
+    const t0=tkIso(new Date()),t1=tkIso(tkAddDays(new Date(),180)),tb=tkIso(tkAddDays(new Date(),-45));
+    const evs=await api('getEvents',{rangeStart:tb,rangeEnd:t1},'予定を確認中...');
+    ks.list={};ks.evs={};
+    (evs||[]).forEach(e=>{const id=tkkTaskId(e);if(!id||e.approvalStatus==='否認')return;const d=e.startDate||e.date;if(!d)return;
+      (ks.list[id]=ks.list[id]||[]).push({id:String(e.id),date:d,start:e.start||'',end:e.end||''});ks.evs[String(e.id)]=e;
+      if(d>=t0&&(!ks.next[id]||d<ks.next[id]))ks.next[id]=d;});
     ks.loaded=true;
   }catch(e){ks.failed=true;}   // 読めないときは、分けずに今までのかんばんを出す（読み直しは🔄）
   ks.loading=false;
   if(_tk.view==='kanban'||_tk.view==='gantt')tkRender(true);
+}
+// ガントの右側：そのタスクの予定がある日に●を置く。クリックでその予定をポップアップで開く（同じ日に複数あるときは最初の1件）
+function tkkGanttDots(x,R,dayW,days){
+  const ks=_tk.ks;if(!ks||!ks.loaded||x.type!=='タスク'||!ks.list)return '';
+  const l=ks.list[String(x.id)];if(!l||!l.length)return '';
+  const byD={};l.forEach(e=>{(byD[e.date]=byD[e.date]||[]).push(e);});
+  return Object.keys(byD).sort().map(d=>{
+    const i=tkDiff(R.start,tkParse(d));if(i<0||i>=days)return '';
+    const es=byD[d].sort((a,b)=>String(a.start).localeCompare(String(b.start)));
+    const tip=tkMd(d)+' '+es.map(e=>e.start?(e.start+'〜'+e.end):'終日').join('、')+'（クリックで予定を開く）';
+    return '<span class="tk-sm" style="left:'+(i*dayW+dayW/2)+'px" title="'+tkEsc(tip)+'" onclick="event.stopPropagation();tkkOpen(\''+es[0].id+'\')">●</span>';
+  }).join('');
 }
 function tkkBadge(x){
   const ks=_tk.ks;if(!ks||!ks.loaded||x.type!=='タスク')return '';
@@ -5519,7 +5534,7 @@ function tkkLayout(evs){
 function tkkOpen(id){
   if(typeof openDetail!=='function')return;
   if(!(events||[]).some(x=>String(x.id)===String(id))){
-    const e=(tkkS().events||[]).find(x=>String(x.id)===String(id));
+    const e=(tkkS().events||[]).find(x=>String(x.id)===String(id))||((_tk.ks&&_tk.ks.evs)||{})[String(id)];
     if(!e)return;
     events.push(e);
   }
@@ -6077,7 +6092,7 @@ function tkManualHtml(){
     +'<ul><li><b>状態</b>：未着手／進行中／完了。タスクを完了にすると進捗は100%になります。終了日（期限）のないものはタスクではなくTODOとして保存されます（TODOタブで扱います）。</li><li><b>担当者・メンバー</b>：従業員名簿（社内の人と外部パートナー）の氏名から選びます。メンバーは「見られる人」を増やす設定で、編集権限は付きません。</li><li><b>非公開</b>：チェックすると、そのレコードと配下は担当者・共同担当者・メンバーだけに表示されます（管理者・役員・上長にも見えません）。</li><li><b>＋ タスクを追加／コピー</b>：配下の追加、内容を引き継いだ新規作成。</li><li><b>削除</b>：権限のある人にだけ表示されます。実際には消さず、一覧・ガント・方針ツリーなどから見えなくなります（必要になったら、システム部門がkintoneで元に戻せます）。配下があるレコードは削除できません。</li><li>土日を日付に入れて保存すると確認が出ます。</li></ul>');
   h+=sec('tree','7. 方針ツリー','<p>会社の方針から日々の活動までのつながり（基本方針→事業グループ→事業→事業カテゴリ→施策→施策方針→活動）を一望できます。</p>'+f6+f7
     +'<ul><li><b>ツリー表示／表形式</b>：表形式では、KPI・目標・実績・達成率も1行ずつ見られます。</li><li><b>横表示／縦表示</b>：ツリーの向き。</li><li><b>＋／－</b>：枝の開閉。最初は施策までを表示、「すべて展開」で活動まで開きます。</li><li><b>対象年度</b>：KPIの年度で絞り込み。</li><li>施策・活動のノードをクリックすると内容を開けます（上位の階層は管理者のみ編集可）。</li><li>管理者・役員は、上位の階層とKPIをすべて表示します。施策・活動は、役員は全体、管理者はほかの人と同じ条件で見える範囲だけです。一般の社員は、自分が見られる施策・活動と、その上の階層の名称だけが表示されます（上位のKPIは見えません）。</li></ul>');
-  h+=sec('kd','8. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：「タスク（予定なし）」を広く並べ、「タスク（予定あり）」は初期は折りたたみます（見出しをクリックで開閉）。期限のないものはTODOなので、かんばんには出ません（右にカレンダーが出ない狭い画面では、未着手／進行中の列になります）。右のカレンダーは「日・週・月」を切り替えられ、予定の✓でタスクを完了にできます。日表示では▶■で作業時間を測り、計画との差を確認できます。ガントでは、予定を入れたタスクに○が付きます。右のカレンダーの幅は、境目をつかんで変えられます（ダブルクリックで元の幅）。進行中のカードには「進行中」の印が付きます。完了の列は、「完了タスク表示」にチェックを入れたときだけ出ます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、「完了タスク表示」にチェックを入れたときだけ、一覧にも件数にも含めます（初期は含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
+  h+=sec('kd','8. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：「タスク（予定なし）」を広く並べ、「タスク（予定あり）」は初期は折りたたみます（見出しをクリックで開閉）。期限のないものはTODOなので、かんばんには出ません（右にカレンダーが出ない狭い画面では、未着手／進行中の列になります）。右のカレンダーは「日・週・月」を切り替えられ、予定の✓でタスクを完了にできます。日表示では▶■で作業時間を測り、計画との差を確認できます。ガントでは、予定を入れた日に●が付き、クリックすると予定が開きます。右のカレンダーの幅は、境目をつかんで変えられます（ダブルクリックで元の幅）。進行中のカードには「進行中」の印が付きます。完了の列は、「完了タスク表示」にチェックを入れたときだけ出ます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、「完了タスク表示」にチェックを入れたときだけ、一覧にも件数にも含めます（初期は含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
   h+=sec('rules','9. 期限なし・完了・超過の扱い','<ul><li><b>期限なし＝TODO</b>：終了日のないものはTODOとして保存されます（「保留」の状態は廃止しました）。超過・遅延・「終了3営業日」には含まれず、ガント・かんばんにも出ません。</li><li><b>完了した施策</b>：「完了施策表示」にチェックしない限り、配下ごと非表示になります。</li><li><b>完了したタスク</b>：「完了タスク表示」にチェックしたときだけ表示します。</li><li><b>超過</b>：終了日を過ぎて、完了していないタスクは、赤で「超過」と表示されます。</li></ul>');
   h+=sec('perm','10. 見える範囲と編集できる範囲','<table class="mn-tb"><thead><tr><th></th><th>見える</th><th>編集・追加</th></tr></thead><tbody>'
     +'<tr><td>管理者（永野・畑村）</td><td>施策・活動・タスクは、ほかの人と同じ条件（担当・メンバー・上長）で見える範囲だけ。上位の階層（基本方針〜施策方針）とKPIは常に見える</td><td>見える範囲はすべて編集可。施策以上の登録・構造の変更ができる</td></tr>'
