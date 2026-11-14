@@ -855,6 +855,17 @@ body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px
 .tkk-month{padding:6px}.tkk-mh,.tkk-mg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}.tkk-mh div{text-align:center;font-size:.75em;color:var(--text2);padding:4px 0}
 .tkk-mc{min-height:92px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:3px;overflow:hidden}.tkk-mc.off{background:transparent;border:none}.tkk-mc.today{background:var(--primary-light)}
 .tkk-md{font-size:.8em;font-weight:700;cursor:pointer;margin-bottom:2px}.tkk-mchip{color:#fff;font-size:.68em;border-radius:3px;padding:1px 4px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tkk-more{font-size:.68em;color:var(--text2);cursor:pointer}
+.tk-rl{display:flex;align-items:stretch}
+.tk-rail{flex:0 0 196px;width:196px;border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;background:var(--surface)}
+.tk-rail .tk-head{display:block;margin:0;padding:12px 12px 6px}.tk-rail .tk-head small{display:block;margin-top:2px}
+.tk-rail .tk-tabs{flex-direction:column;padding:4px 6px;border-bottom:1px solid var(--border)}
+.tk-rail .tk-tabs button{text-align:left;padding:8px 10px;border-bottom:none;border-left:3px solid transparent;border-radius:6px}
+.tk-rail .tk-tabs button.on{border-left-color:var(--primary);background:var(--primary-light)}
+.tk-rail .tk-bar{flex-direction:column;align-items:stretch;flex-wrap:nowrap;gap:8px;padding:10px 12px;border-bottom:none}
+.tk-rail .tk-bar .tk-sp{display:none}.tk-rail .tk-bar input[type=search],.tk-rail .tk-bar select,.tk-rail .tk-bar .tk-btn{width:100%;box-sizing:border-box}
+.tk-rail .tk-bar .tk-grp{display:flex}.tk-rail .tk-bar .tk-grp button{flex:1}
+.tk-mainv{flex:1 1 0;min-width:0}
+.tk-railbtn{color:var(--text2)!important;font-size:.8em!important}
 .tk-sm{position:absolute;top:50%;transform:translate(-50%,-50%);color:#2e7d32;font-size:15px;line-height:1;cursor:pointer;z-index:4;text-shadow:0 0 2px #fff,0 0 3px #fff}.tk-sm:hover{transform:translate(-50%,-50%) scale(1.35)}
 .tk-col .tk-cards{display:flex;flex-direction:column;gap:8px}
 #tkk-left .tk-col.main,#tk-kanban .tk-col.main{flex:3 1 0;max-width:none;min-width:260px}
@@ -4612,7 +4623,7 @@ function tkRender(keepScroll){
   const isPol=_tk.view==='policy';
   const isTodo=_tk.view==='todo';
   const isTeam=_tk.view==='team';
-  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['todo','TODO'],['team','チーム'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'<button onclick="tkManual()">📖 マニュアル</button></div>';
+  const tabs='<div class="tk-tabs">'+[['gantt','ガントチャート'],['kanban','かんばん'],['dash','ダッシュボード'],['todo','TODO'],['team','チーム'],['policy','方針ツリー']].map(v=>'<button class="'+(_tk.view===v[0]?'on':'')+'" onclick="tkSet(\'view\',\''+v[0]+'\')">'+v[1]+'</button>').join('')+'<button onclick="tkManual()">📖 マニュアル</button>'+(tkRailCan()?'<button class="tk-railbtn" onclick="tkRailToggle()" title="タイトル・タブ・絞り込みを左に縦に並べる／上に横に並べる">'+(tkRailOn()?'◀ 上に横並び':'▶ 左に縦並び')+'</button>':'')+'</div>';
   let body='';
   if(isPol)body=tkPolicyHtml();
   else if(isTodo)body=tkTodoHtml();
@@ -4621,7 +4632,13 @@ function tkRender(keepScroll){
   else if(_tk.view==='gantt'){if(!_tk.ks)setTimeout(tkkSchedLoad,0);body=tkGanttHtml();}   // 予定を入れたタスクに○を付けるため、予定の有無も読む
   else if(_tk.view==='kanban')body=tkkSplitHtml();
   else body=tkDashHtml();
-  root.innerHTML='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(tkDisp(_tk.me)):'　対象：全員')+'</small></div><div class="tk-panel">'+tabs+(isPol?tkPolicyBar():(isTeam?tkTeamBar():(isTodo?tkTodoBar():bar)))+'<div id="tk-view">'+body+'</div></div>';
+  const headH='<div class="tk-head"><h2>✅ タスク管理</h2><small>kintoneのタスク管理アプリ'+(_tk.scope==='mine'?'　対象：'+tkEsc(tkDisp(_tk.me)):'　対象：全員')+'</small></div>';
+  const barH=(isPol?tkPolicyBar():(isTeam?tkTeamBar():(isTodo?tkTodoBar():bar)));
+  if(tkRailOn()){   // 左に縦：タイトル・タブ・絞り込みを左端に置いて、右の画面（かんばん・カレンダーなど）を縦いっぱいに使う
+    root.innerHTML='<div class="tk-panel tk-rl"><div class="tk-rail">'+headH+tabs+barH+'</div><div class="tk-mainv"><div id="tk-view">'+body+'</div></div></div>';
+  }else{
+    root.innerHTML=headH+'<div class="tk-panel">'+tabs+barH+'<div id="tk-view">'+body+'</div></div>';
+  }
   tkFit();
   if(isPol)tkPolicyAfter(keepScroll,psl,pst);
   const nd=document.getElementById('tk-dash');if(nd&&keepScroll)nd.scrollTop=dst;
@@ -4753,12 +4770,18 @@ function tkPolicyAfter(keep,psl,pst){
   });
 }
 
+// 左に縦の並び：幅900px以上で既定。この端末に覚える
+function tkRailCan(){return window.innerWidth>=900;}
+function tkRailOn(){if(!tkRailCan())return false;try{return localStorage.getItem('tkRail')!=='0';}catch(e){return true;}}
+function tkRailToggle(){try{localStorage.setItem('tkRail',tkRailOn()?'0':'1');}catch(e){}tkRender(true);}
 function tkFit(){
   const v=document.getElementById('tk-view');if(!v)return;
   const bn=document.getElementById('bottom-nav');
   const bh=bn&&bn.offsetParent!==null?bn.offsetHeight:0;
   tkNameWRestore();
-  v.style.height=Math.max(380,window.innerHeight-v.getBoundingClientRect().top-bh-14)+'px';
+  const rl=!!v.closest('.tk-rl');   // 左に縦のときは、下の余白をほぼなくして縦いっぱいに
+  v.style.height=Math.max(380,window.innerHeight-v.getBoundingClientRect().top-bh-(rl?20:14))+'px';
+  const rail=document.querySelector('#tab-tasks .tk-rail');if(rail)rail.style.maxHeight=v.style.height;
 }
 window.addEventListener('resize',()=>{if(typeof _tk!=='undefined'&&_tk.loaded)tkFit();});
 // ガント左側（施策／活動／タスク名）の幅：ヘッダー右端のつまみで伸縮。値はこの端末のブラウザに保存
