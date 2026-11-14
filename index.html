@@ -4918,12 +4918,76 @@ async function tkTodoOpen(id){
     +'<div class="btns"><button class="tk-btn tk-new" onclick="tkTodoSave()">保存</button><button class="tk-btn" onclick="tkTodoClose()">閉じる</button>'
     +(r.canDelete?'<button class="tk-btn" style="margin-left:auto;color:var(--red)" onclick="tkTodoDelete()">削除</button>':'')+'</div>'
     +'<details><summary style="cursor:pointer;font-weight:700">タスクに昇格（日程と活動を決める）</summary>'
-    +(acts.length?'<label>紐づける活動</label><select id="tktm-parent"><option value="">選んでください</option>'+acts.map(p=>'<option value="'+tkEsc(p.id)+'">'+tkEsc(p.title)+' (#'+tkEsc(p.id)+')</option>').join('')+'</select>'
+    +(acts.length?'<label>紐づける活動</label><input type="hidden" id="tktm-parent" value=""><button type="button" class="tk-btn" id="tktm-pick" style="width:100%;text-align:left" onclick="tkTodoPick()">🌳 施策・活動をツリーから選ぶ…</button>'
       +'<label>開始日</label><input type="date" id="tktm-s"><label>終了日</label><input type="date" id="tktm-e" value="'+tkEsc(r.end||'')+'">'
       +'<div class="btns"><button class="tk-btn tk-new" onclick="tkTodoPromote()">タスクにする</button></div>'
       :'<p class="tkt-note" style="margin-top:8px">タスクを追加できる活動がありません（活動の担当者・施策リーダー・管理者のみ追加できます）</p>')
     +'</details></div>';
   document.body.appendChild(m);
+}
+
+// 活動をツリー（上位→施策→活動）で選ぶポップアップ（2026-11-14）
+function tkTodoPick(){
+  const addable=new Set((_tk.parents||[]).filter(p=>p.type==='活動').map(p=>String(p.id)));
+  const src=Object.assign({},_tk.pmap||{},_tk.byId||{});
+  const all=Object.values(src).filter(n=>n&&!n.inDoneS&&n.type!=='タスク'&&n.type!=='Todo');
+  const byId={};all.forEach(n=>{byId[String(n.id)]=n;});
+  const kids={};const roots=[];
+  all.forEach(n=>{const pid=String(n.parent||'');if(pid&&byId[pid]&&pid!==String(n.id))(kids[pid]=kids[pid]||[]).push(n);else roots.push(n);});
+  // 選べる活動を含む枝だけ残す
+  const keep={};
+  const mark=n=>{let k=addable.has(String(n.id));(kids[String(n.id)]||[]).forEach(c=>{if(mark(c))k=true;});keep[String(n.id)]=k;return k;};
+  roots.forEach(mark);
+  const cur=document.getElementById('tktm-parent').value;
+  const old=document.getElementById('tktp-modal');if(old)old.remove();
+  const m=document.createElement('div');m.id='tktp-modal';
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9100;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.onclick=e=>{if(e.target===m)m.remove();};
+  const row=(n,d)=>{
+    const id=String(n.id);if(!keep[id])return '';
+    const ch=(kids[id]||[]).filter(c=>keep[String(c.id)]);
+    const sel=addable.has(id);
+    const col=(typeof TK_TYPE_COL!=='undefined'&&TK_TYPE_COL[n.type])||'#607d8b';
+    const badge='<span style="font-size:.7em;color:#fff;background:'+col+';border-radius:4px;padding:1px 5px;margin-right:6px">'+tkEsc(n.type)+'</span>';
+    const label='<span data-t="'+tkEsc((n.title||'').toLowerCase())+'">'+badge+tkEsc(n.title)+'</span>';
+    let h='<div class="tktp-n" data-id="'+tkEsc(id)+'" style="margin-left:'+(d?14:0)+'px">';
+    const open=d<2||ch.some(function f(c){return String(c.id)===cur;});
+    h+='<div class="tktp-r" style="display:flex;align-items:center;gap:4px;padding:5px 6px;border-radius:6px;'+(sel?'cursor:pointer;':'color:var(--text2);')+(id===cur?'background:var(--primary-light);font-weight:700;':'')+'"'+(sel?' data-pick="'+tkEsc(id)+'"':'')+'>'
+      +(ch.length?'<span class="tktp-t" data-tg="1" style="width:18px;cursor:pointer;user-select:none">'+(open?'▼':'▶')+'</span>':'<span style="width:18px"></span>')+label+'</div>';
+    if(ch.length)h+='<div class="tktp-c"'+(open?'':' style="display:none"')+'>'+ch.map(c=>row(c,d+1)).join('')+'</div>';
+    return h+'</div>';
+  };
+  m.innerHTML='<div style="background:var(--card,#fff);border-radius:12px;max-width:560px;width:100%;max-height:85vh;display:flex;flex-direction:column;padding:16px">'
+    +'<h3 style="margin:0 0 8px">紐づける活動を選択</h3>'
+    +'<input type="text" id="tktp-q" placeholder="名前で絞り込み" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px">'
+    +'<div id="tktp-tree" style="overflow:auto;flex:1;border:1px solid var(--border);border-radius:8px;padding:6px">'
+    +(roots.some(r=>keep[String(r.id)])?roots.map(r=>row(r,0)).join(''):'<p class="tkt-note">選べる活動がありません</p>')+'</div>'
+    +'<div class="btns" style="display:flex;justify-content:flex-end;margin-top:10px"><button class="tk-btn" onclick="document.getElementById(\'tktp-modal\').remove()">閉じる</button></div></div>';
+  document.body.appendChild(m);
+  const tree=m.querySelector('#tktp-tree');
+  tree.onclick=e=>{
+    const tg=e.target.closest('[data-tg]');
+    if(tg){const c=tg.closest('.tktp-n').querySelector(':scope>.tktp-c');if(c){const hide=c.style.display!=='none';c.style.display=hide?'none':'';tg.textContent=hide?'▶':'▼';}return;}
+    const r=e.target.closest('[data-pick]');
+    if(r){
+      const id=r.dataset.pick,n=byId[id];
+      document.getElementById('tktm-parent').value=id;
+      const path=[];let x=n;while(x){path.unshift(x.title);x=byId[String(x.parent||'')];}
+      const b=document.getElementById('tktm-pick');b.textContent='✅ '+path.join(' ＞ ')+'（変更）';
+      m.remove();
+    }
+  };
+  m.querySelector('#tktp-q').oninput=e=>{
+    const q=e.target.value.trim().toLowerCase();
+    tree.querySelectorAll('.tktp-n').forEach(nd=>{
+      if(!q){nd.style.display='';return;}
+      const own=(nd.querySelector(':scope>.tktp-r [data-t]')||{dataset:{t:''}}).dataset.t.includes(q);
+      const sub=[...nd.querySelectorAll('[data-t]')].some(s=>s.dataset.t.includes(q));
+      nd.style.display=(own||sub)?'':'none';
+      const c=nd.querySelector(':scope>.tktp-c');if(c&&q&&sub){c.style.display='';const t=nd.querySelector(':scope>.tktp-r [data-tg]');if(t)t.textContent='▼';}
+    });
+  };
+  setTimeout(()=>{const q=m.querySelector('#tktp-q');if(q)q.focus();},0);
 }
 function tkTodoClose(){const m=document.getElementById('tkt-modal');if(m)m.remove();}
 async function tkTodoSave(){
