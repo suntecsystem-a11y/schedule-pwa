@@ -4933,7 +4933,11 @@ function tkTodoPick(){
   const all=Object.values(src).filter(n=>n&&!n.inDoneS&&n.type!=='タスク'&&n.type!=='Todo');
   const byId={};all.forEach(n=>{byId[String(n.id)]=n;});
   const kids={};const roots=[];
-  all.forEach(n=>{const pid=String(n.parent||'');if(pid&&byId[pid]&&pid!==String(n.id))(kids[pid]=kids[pid]||[]).push(n);else roots.push(n);});
+  // 基本方針・事業グループ・事業・事業カテゴリは出さず、施策から表示する（親は一番近い表示対象の祖先に付け替え）
+  const HIDE_T=['基本方針','事業グループ','事業','事業カテゴリ'];
+  const vis=n=>HIDE_T.indexOf(n.type)<0;
+  const nearest=n=>{let x=byId[String(n.parent||'')],g=0;while(x&&!vis(x)&&g++<20)x=byId[String(x.parent||'')];return x&&vis(x)?x:null;};
+  all.filter(vis).forEach(n=>{const a=nearest(n);if(a&&a!==n)(kids[String(a.id)]=kids[String(a.id)]||[]).push(n);else roots.push(n);});
   // 選べる活動を含む枝だけ残す
   const keep={};
   const mark=n=>{let k=addable.has(String(n.id));(kids[String(n.id)]||[]).forEach(c=>{if(mark(c))k=true;});keep[String(n.id)]=k;return k;};
@@ -4972,7 +4976,7 @@ function tkTodoPick(){
     if(r){
       const id=r.dataset.pick,n=byId[id];
       document.getElementById('tktm-parent').value=id;
-      const path=[];let x=n;while(x){path.unshift(x.title);x=byId[String(x.parent||'')];}
+      const path=[];let x=n;while(x){path.unshift(x.title);x=nearest(x);}
       const b=document.getElementById('tktm-pick');b.textContent='✅ '+path.join(' ＞ ')+'（変更）';
       m.remove();
     }
