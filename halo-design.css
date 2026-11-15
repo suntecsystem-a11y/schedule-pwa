@@ -516,3 +516,19 @@ body.hn .cell-more{font-size:.66em;bottom:2px}
 body.hn .week-header{background:var(--surface);color:var(--text);border-bottom:1px solid var(--border)}
 body.hn .week-header .wday{color:var(--text2)}
 body.hn .week-header .wdate.today{background:var(--primary);color:#fff}
+
+/* ---------- マイページの並べ替え（2026-11-16） ---------- */
+.my-arrange-btn{display:block;margin:4px auto 20px;padding:8px 18px;border-radius:999px;border:1px solid var(--border);background:var(--surface,#fff);color:var(--text2);font-size:.82em;font-weight:600;cursor:pointer}
+.my-arrange-btn::before{content:'⇅ ';}
+.myl-desc{font-size:.78em;color:var(--text2);line-height:1.6;margin:4px 0 12px}
+.myl-row{display:flex;align-items:center;gap:8px;min-height:52px;padding:8px 10px;background:var(--surface,#fff);border:1px solid var(--border);border-radius:12px;margin-bottom:6px}
+.myl-row.off .myl-name{color:var(--text3,#aaa)}
+.myl-name{flex:1;min-width:0;font-size:.9em;font-weight:600}
+.myl-mv{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--surface,#fff);color:var(--text);font-size:1em;cursor:pointer;flex-shrink:0}
+.myl-mv:disabled{opacity:.3;cursor:default}
+.myl-sw{position:relative;width:46px;height:28px;flex-shrink:0;cursor:pointer}
+.myl-sw input{opacity:0;width:0;height:0;position:absolute}
+.myl-sw span{position:absolute;inset:0;border-radius:999px;background:#D9D4C8;transition:background .2s}
+.myl-sw span::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.myl-sw input:checked+span{background:var(--primary)}
+.myl-sw input:checked+span::after{transform:translateX(18px)}

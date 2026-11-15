@@ -1045,7 +1045,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=12">
+<link rel="stylesheet" href="halo-design.css?v=13">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -1800,6 +1800,14 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   </div>
 </div>
 
+<!-- マイページの並べ替え（2026-11-16） -->
+<div class="modal-backdrop" id="mylayout-backdrop" onclick="closeModalIfBackdrop(event,'mylayout-backdrop')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="mylayout-body"></div>
+  </div>
+</div>
+
 <!-- PIN再発行モーダル -->
 <div class="modal-backdrop" id="pin-modal-backdrop" onclick="closeModalIfBackdrop(event,'pin-modal-backdrop')">
   <div class="modal">
@@ -2466,7 +2474,7 @@ ja:{
 'push.default.title':'通知','push.not.granted':'プッシュ通知が許可されませんでした',
 'push.init.error':'⚠️ 通知初期化エラー: {msg}',
 'settings.push':'🔔 通知（この端末）',
-'settings.grp.display':'表示','settings.grp.notify':'通知','settings.grp.schedule':'予定','settings.grp.account':'アカウント','settings.fontsize':'🔤 文字の大きさ','settings.fs.n':'標準','settings.fs.l':'大きめ','settings.fs.xl':'特大','settings.fs.sample':'この大きさで表示されます','my.sec.notice':'お知らせ','my.sec.schedule':'自分の予定','my.sec.other':'その他',
+'settings.grp.display':'表示','settings.grp.notify':'通知','settings.grp.schedule':'予定','settings.grp.account':'アカウント','settings.fontsize':'🔤 文字の大きさ','settings.fs.n':'標準','settings.fs.l':'大きめ','settings.fs.xl':'特大','settings.fs.sample':'この大きさで表示されます','my.sec.notice':'お知らせ','my.sec.schedule':'自分の予定','my.sec.other':'その他','my.arrange':'並べ替え','my.arrange.title':'マイページの並べ替え','my.arrange.desc':'↑↓で順番を、右のスイッチで表示する・しないを選べます。自分のカードとお知らせはいつも一番上です。','my.arrange.reset':'元に戻す','my.arrange.save':'保存する','my.arrange.saved':'並びを保存しました','my.arrange.fail':'保存できませんでした。もう一度お試しください','my.arrange.up':'上へ','my.arrange.down':'下へ','my.blk.bento':'弁当予約','my.blk.calendar':'マイカレンダー・選んだ日の予定','my.blk.week':'今週のまとめ','my.blk.rental':'借りている端末','my.blk.car':'自分の車予約','my.blk.other':'その他（ルール・ご意見・設定）',
 'push.st.ok':'✅ この端末で通知を受け取れます','push.st.notreg':'⚠️ 通知は許可されていますが、この端末はまだ登録されていません',
 'push.st.default':'⚠️ 通知がまだ許可されていません','push.st.denied':'⛔ 通知がブロックされています',
 'push.st.ios':'iPhone・iPad は、Safari の共有ボタン（□↑）→「ホーム画面に追加」で追加し、ホーム画面のアイコンから開くと通知を受け取れます',
@@ -2857,7 +2865,7 @@ vi:{
 'push.default.title':'Thông báo','push.not.granted':'Push chưa được cho phép',
 'push.init.error':'⚠️ Lỗi khởi tạo thông báo: {msg}',
 'settings.push':'🔔 Thông báo (thiết bị này)',
-'settings.grp.display':'Hiển thị','settings.grp.notify':'Thông báo','settings.grp.schedule':'Lịch','settings.grp.account':'Tài khoản','settings.fontsize':'🔤 Cỡ chữ','settings.fs.n':'Chuẩn','settings.fs.l':'Lớn','settings.fs.xl':'Rất lớn','settings.fs.sample':'Chữ sẽ hiển thị cỡ này','my.sec.notice':'Thông báo','my.sec.schedule':'Lịch của tôi','my.sec.other':'Khác',
+'settings.grp.display':'Hiển thị','settings.grp.notify':'Thông báo','settings.grp.schedule':'Lịch','settings.grp.account':'Tài khoản','settings.fontsize':'🔤 Cỡ chữ','settings.fs.n':'Chuẩn','settings.fs.l':'Lớn','settings.fs.xl':'Rất lớn','settings.fs.sample':'Chữ sẽ hiển thị cỡ này','my.sec.notice':'Thông báo','my.sec.schedule':'Lịch của tôi','my.sec.other':'Khác','my.arrange':'Sắp xếp','my.arrange.title':'Sắp xếp trang của tôi','my.arrange.desc':'Dùng ↑↓ để đổi thứ tự, công tắc bên phải để hiện/ẩn. Thẻ của bạn và thông báo luôn ở trên cùng.','my.arrange.reset':'Khôi phục mặc định','my.arrange.save':'Lưu','my.arrange.saved':'Đã lưu thứ tự','my.arrange.fail':'Không lưu được. Vui lòng thử lại','my.arrange.up':'Lên','my.arrange.down':'Xuống','my.blk.bento':'Đặt cơm hộp','my.blk.calendar':'Lịch của tôi・Lịch ngày đã chọn','my.blk.week':'Tổng kết tuần','my.blk.rental':'Thiết bị đang mượn','my.blk.car':'Đặt xe của tôi','my.blk.other':'Khác (quy tắc・góp ý・cài đặt)',
 'push.st.ok':'✅ Thiết bị này có thể nhận thông báo','push.st.notreg':'⚠️ Đã cho phép thông báo nhưng thiết bị này chưa được đăng ký',
 'push.st.default':'⚠️ Chưa cho phép thông báo','push.st.denied':'⛔ Thông báo đang bị chặn',
 'push.st.ios':'iPhone・iPad: nhấn nút Chia sẻ (□↑) trong Safari →「Thêm vào MH chính」, rồi mở từ biểu tượng trên màn hình chính để nhận thông báo',
@@ -3248,7 +3256,7 @@ ne:{
 'push.default.title':'सूचना','push.not.granted':'Push सूचना अनुमति दिइएन',
 'push.init.error':'⚠️ सूचना प्रारम्भ त्रुटि: {msg}',
 'settings.push':'🔔 सूचना (यो उपकरण)',
-'settings.grp.display':'प्रदर्शन','settings.grp.notify':'सूचना','settings.grp.schedule':'तालिका','settings.grp.account':'खाता','settings.fontsize':'🔤 अक्षरको आकार','settings.fs.n':'सामान्य','settings.fs.l':'ठूलो','settings.fs.xl':'धेरै ठूलो','settings.fs.sample':'यो आकारमा देखिन्छ','my.sec.notice':'सूचना','my.sec.schedule':'मेरो तालिका','my.sec.other':'अन्य',
+'settings.grp.display':'प्रदर्शन','settings.grp.notify':'सूचना','settings.grp.schedule':'तालिका','settings.grp.account':'खाता','settings.fontsize':'🔤 अक्षरको आकार','settings.fs.n':'सामान्य','settings.fs.l':'ठूलो','settings.fs.xl':'धेरै ठूलो','settings.fs.sample':'यो आकारमा देखिन्छ','my.sec.notice':'सूचना','my.sec.schedule':'मेरो तालिका','my.sec.other':'अन्य','my.arrange':'क्रम मिलाउनुहोस्','my.arrange.title':'मेरो पृष्ठको क्रम','my.arrange.desc':'↑↓ ले क्रम बदल्नुहोस्, दायाँको स्विचले देखाउने/लुकाउने छान्नुहोस्। तपाईंको कार्ड र सूचना सधैं माथि रहन्छन्।','my.arrange.reset':'पहिलेकै जस्तो','my.arrange.save':'सेभ गर्नुहोस्','my.arrange.saved':'क्रम सेभ भयो','my.arrange.fail':'सेभ भएन। फेरि प्रयास गर्नुहोस्','my.arrange.up':'माथि','my.arrange.down':'तल','my.blk.bento':'खाना बुकिङ','my.blk.calendar':'मेरो पात्रो・छानिएको दिनको तालिका','my.blk.week':'यो हप्ताको सारांश','my.blk.rental':'लिएका उपकरण','my.blk.car':'मेरो गाडी बुकिङ','my.blk.other':'अन्य (नियम・सुझाव・सेटिङ)',
 'push.st.ok':'✅ यो उपकरणमा सूचना प्राप्त गर्न सकिन्छ','push.st.notreg':'⚠️ सूचना अनुमति छ, तर यो उपकरण अझै दर्ता भएको छैन',
 'push.st.default':'⚠️ सूचना अझै अनुमति दिइएको छैन','push.st.denied':'⛔ सूचना ब्लक गरिएको छ',
 'push.st.ios':'iPhone・iPad: Safari को सेयर बटन (□↑) →「Add to Home Screen」थिच्नुहोस्, अनि होम स्क्रिनको आइकनबाट खोल्दा सूचना आउँछ',
@@ -4048,7 +4056,7 @@ function showApp(opts){
     switchTab('home', document.querySelector('.sidebar-btn[data-tab="home"]'));
   }
   renderAll();
-  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink(), loadCleaning(), loadTrash()]);
+  Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink(), loadCleaning(), loadTrash(), loadMyLayout()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
 function showReleaseNotes(){
@@ -7125,6 +7133,83 @@ function facGridBook(ev, roomId, ds) {
   openRoomBookingModal(roomId, _facHM(m), _facHM(Math.min(m + 60, FAC_H1 * 60)));
 }
 
+
+// ===== マイページの並べ替え（2026-11-16）=====
+// かたまりの順番と表示する/しないを人ごとに Worker（KV の mypage_layout:社員番号）に保存する。
+// 自分のカードとお知らせは上に固定（ここでは扱わない）。読めないときは今までの並び。
+const MYPAGE_BLOCKS = ['bento','calendar','week','rental','car','other']; // Worker の mypage.js と同じ
+let _myLayout = null;      // {order:[...], hidden:[...]} / null＝今までの並び
+let _myLayoutDraft = null; // 並べ替えの窓で編集中のもの
+function _myLayoutNorm(l){
+  const o=[...new Set(((l&&l.order)||[]).filter(b=>MYPAGE_BLOCKS.includes(b)))];
+  MYPAGE_BLOCKS.forEach(b=>{ if(!o.includes(b)) o.push(b); });
+  return { order:o, hidden:[...new Set(((l&&l.hidden)||[]).filter(b=>MYPAGE_BLOCKS.includes(b)))] };
+}
+async function loadMyLayout(){
+  if(!GAS_URL) return;
+  try{
+    const r = await api('getMyPageLayout', {}, '', {quiet:true});
+    _myLayout = r ? _myLayoutNorm(r) : null;
+    if(_currentTab==='mypage') applyMyPageLayout();
+  }catch(e){ /* 読めなければ今までの並び */ }
+}
+function applyMyPageLayout(){
+  const box=document.getElementById('my-blocks'); if(!box) return;
+  const l=_myLayoutNorm(_myLayout);
+  l.order.forEach(b=>{ const el=box.querySelector(`.my-blk[data-blk="${b}"]`); if(el){ box.appendChild(el); el.style.display=l.hidden.includes(b)?'none':''; } });
+}
+const _myBlkLabel = b => t('my.blk.'+b);
+function openMyLayout(){
+  _myLayoutDraft=_myLayoutNorm(_myLayout);
+  renderMyLayoutSheet();
+  openModal('mylayout-backdrop');
+}
+function renderMyLayoutSheet(){
+  const el=document.getElementById('mylayout-body'); if(!el) return;
+  const d=_myLayoutDraft, n=d.order.length;
+  const rows=d.order.map((b,i)=>{
+    const on=!d.hidden.includes(b);
+    return `<div class="myl-row${on?'':' off'}">
+      <span class="myl-name">${esc(_myBlkLabel(b))}</span>
+      <button type="button" class="myl-mv" ${i===0?'disabled':''} onclick="moveMyBlk('${b}',-1)" aria-label="${t('my.arrange.up')}">↑</button>
+      <button type="button" class="myl-mv" ${i===n-1?'disabled':''} onclick="moveMyBlk('${b}',1)" aria-label="${t('my.arrange.down')}">↓</button>
+      <label class="myl-sw"><input type="checkbox" ${on?'checked':''} onchange="toggleMyBlk('${b}',this.checked)"><span></span></label>
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div class="modal-title">${t('my.arrange.title')}</div>
+    <div class="myl-desc">${t('my.arrange.desc')}</div>
+    ${rows}
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-outline" style="flex:1;margin-top:0" onclick="resetMyLayout()">${t('my.arrange.reset')}</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="saveMyLayout()">${t('my.arrange.save')}</button>
+    </div>`;
+}
+function moveMyBlk(b,dir){
+  const o=_myLayoutDraft.order, i=o.indexOf(b), j=i+dir;
+  if(i<0||j<0||j>=o.length) return;
+  [o[i],o[j]]=[o[j],o[i]]; renderMyLayoutSheet();
+}
+function toggleMyBlk(b,on){
+  const h=_myLayoutDraft.hidden.filter(x=>x!==b); if(!on) h.push(b);
+  _myLayoutDraft.hidden=h; renderMyLayoutSheet();
+}
+function resetMyLayout(){ _myLayoutDraft=_myLayoutNorm(null); renderMyLayoutSheet(); }
+async function saveMyLayout(){
+  const d=_myLayoutDraft;
+  const isDefault = d.hidden.length===0 && d.order.every((b,i)=>b===MYPAGE_BLOCKS[i]);
+  const prev=_myLayout;
+  _myLayout = isDefault ? null : d;
+  applyMyPageLayout();
+  closeModal('mylayout-backdrop');
+  if(!GAS_URL){ showToast(t('my.arrange.saved')); return; }
+  try{
+    await api('saveMyPageLayout', { layout: isDefault ? null : d }, t('common.processing'));
+    showToast(t('my.arrange.saved'));
+  }catch(e){
+    _myLayout=prev; applyMyPageLayout();
+    showToast(t('my.arrange.fail'));
+  }
+}
 // ===== 空き会議室クイック確認 =====
 function renderRoomAvailabilityNow(){
   const now = new Date();
@@ -11823,6 +11908,9 @@ function renderMyPage() {
 
     <div class="ios-head">${t('my.sec.schedule')}</div>
 
+    <!-- 2026-11-16 並べ替えできるかたまり（data-blk。順番と表示は applyMyPageLayout が決める） -->
+    <div id="my-blocks">
+    <div class="my-blk" data-blk="bento">
     ${_bentoVisible() ? `
     <!-- 弁当予約（大黒製造 以外の全員に表示） -->
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
@@ -11832,7 +11920,9 @@ function renderMyPage() {
       </div>
       <div style="font-size:0.72em;color:var(--text2);margin-top:6px;line-height:1.5">カレンダーの🍱がある日をタップすると、予約内容の確認・変更ができます</div>
     </div>` : ''}
+    </div>
 
+    <div class="my-blk" data-blk="calendar">
     <div class="mypage-cal-row">
     <!-- マイカレンダー -->
     <div class="mypage-cal-card" style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
@@ -11863,8 +11953,10 @@ function renderMyPage() {
         `<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">${t('my.no.events')}</div>`}
     </div>
     </div><!-- /mypage-cal-row -->
+    </div>
 
     <!-- 今週のサマリー -->
+    <div class="my-blk" data-blk="week">
     ${(() => {
       const now2 = new Date();
       const dow2 = now2.getDay();
@@ -11908,8 +12000,10 @@ function renderMyPage() {
         </div>
       </div>`;
     })()}
+    </div>
 
     <!-- 今借りている端末 -->
+    <div class="my-blk" data-blk="rental">
     ${(()=>{
       const myRentals=events.filter(e=>e.approvalStatus!=='否認'&&(e.userId===currentUser.id)&&(e.rentals||[]).length>0&&e.rentalStatus&&e.rentalStatus!=='返却済');
       if(!myRentals.length) return '';
@@ -11941,8 +12035,10 @@ function renderMyPage() {
         }).join('')}
       </div>`;
     })()}
+    </div>
 
     <!-- 自分の車予約（車タブを開ける人だけ。出発・帰社もここから） -->
+    <div class="my-blk" data-blk="car">
     ${carAllowed() ? `
     <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="font-size:0.72em;color:var(--text2);font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.car.recent')}</div>
@@ -11971,8 +12067,10 @@ function renderMyPage() {
       }).join('') :
         `<div style="color:var(--text2);font-size:0.85em;text-align:center;padding:12px 0">${t('my.car.none')}</div>`}
     </div>` : ''}
+    </div>
 
     <!-- その他（新デザイン 3a：iPhone の設定と同じ行の形。押すと下に開く） -->
+    <div class="my-blk" data-blk="other">
     <div class="ios-head">${t('my.sec.other')}</div>
     <div class="ios-group" style="margin-bottom:12px">
       <button type="button" class="ios-row ios-link" onclick="const b=this.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';this.classList.toggle('open')"><span class="ios-label">${t('my.rules')}</span><span class="ios-chev"></span></button>
@@ -12044,7 +12142,12 @@ function renderMyPage() {
       </div>
       <button type="button" class="ios-row ios-link" onclick="switchTab('settings')"><span class="ios-label">${t('settings.title')}</span><span class="ios-chev"></span></button>
     </div>
+    </div>
+    </div><!-- /my-blocks -->
+    <!-- 並べ替え（「その他」を隠しても、ここは残す） -->
+    <button type="button" class="my-arrange-btn" onclick="openMyLayout()">${t('my.arrange')}</button>
   `;
+  applyMyPageLayout();
   if(_bentoVisible()) initBentoSection();
 }
 
@@ -13753,6 +13856,6 @@ async function initPushNotifications(opts) {
 })();
 </script>
 <script src="peer-memo.js"></script>
-<script src="halo-design.js?v=12"></script>
+<script src="halo-design.js?v=13"></script>
 </body>
 </html>
