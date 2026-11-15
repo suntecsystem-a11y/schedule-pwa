@@ -4468,6 +4468,7 @@ function renderTasksTab(){
   tkRender();
 }
 async function tkLoad(scope,keep,fresh){
+  tkRestore();   // 前回の「見る人・メンバー・部門・状態」を戻す（最初の1回だけ）
   if(scope)_tk.scope=scope;
   try{
     const r=await api('getTasks',{scope:_tk.scope,fresh:fresh?1:0},'タスクを読み込み中...');
@@ -4522,7 +4523,7 @@ function tkBuild(list){
 const tkNorm=t=>String(t||'').normalize('NFKC').toLowerCase();
 function tkWhoOK(x){
   const m=tkWmode();
-  if(m==='dept'&&_tk.dept){const set=tkDeptNames(_tk.dept);return set.has(tkSq(x.who))||(x.co||[]).some(c=>set.has(tkSq(c)));}
+  if(m==='dept'&&(_tk.depts||[]).length){const set=new Set();_tk.depts.forEach(d=>tkDeptNames(d).forEach(n=>set.add(n)));return set.has(tkSq(x.who))||(x.co||[]).some(c=>set.has(tkSq(c)));}
   if(m!=='member')return true;   // 自分・すべて は人で絞らない
   const w=_tk.whos||[];return !w.length||w.includes(x.who)||(x.co||[]).some(c=>w.includes(c));
 }
@@ -4530,13 +4531,27 @@ function tkWhoOK(x){
 // 状態：完了タスクを出すかどうかも、ここで決める（「完了タスク表示」は、この選択に統合）
 // 絞り込みの件数と解除
 function tkCount(){return _tk.nodes.filter(n=>!n.ch.length&&tkVisible(n)&&(_tk.view!=='kanban'||n.ed||n.st==='完了')).length;}
-function tkFilterOn(){return !!(String(_tk.q||'').trim()||_tk.st||_tk.done||_tk.doneS||(_tk.whos||[]).length||_tk.dept);}
-function tkFilterReset(){_tk.q='';_tk.st='';_tk.done=false;_tk.doneS=false;_tk.whos=[];_tk.dept='';tkRender(true);}
+function tkFilterOn(){return !!(String(_tk.q||'').trim()||_tk.st||_tk.done||_tk.doneS||(_tk.whos||[]).length||(_tk.depts||[]).length);}
+function tkFilterReset(){_tk.q='';_tk.st='';_tk.done=false;_tk.doneS=false;_tk.whos=[];_tk.depts=[];tkRender(true);}
 function tkStSet(v){
   if(v==='open'){_tk.st='';_tk.done=false;}
   else if(v==='all'){_tk.st='';_tk.done=true;}
   else{_tk.st=v;_tk.done=(v==='完了');}
+  _tk.doneS=_tk.done;   // 完了を出す状態（完了／すべて）のときは、完了した施策も出す
   tkRender(true);
+}
+function tkSaveKey(){return 'tkFilt_'+String((typeof currentUser!=='undefined'&&currentUser&&currentUser.id)||'');}
+function tkSave(){
+  try{localStorage.setItem(tkSaveKey(),JSON.stringify({wmode:tkWmode(),whos:_tk.whos||[],depts:_tk.depts||[],st:_tk.st||'',done:!!_tk.done}));}catch(e){}
+}
+function tkRestore(){
+  if(_tk.restored)return;_tk.restored=true;
+  try{
+    const v=JSON.parse(localStorage.getItem(tkSaveKey())||'null');if(!v)return;
+    if(['mine','all','member','dept'].includes(v.wmode)){_tk.wmode=v.wmode;_tk.scope=v.wmode==='mine'?'mine':'all';}
+    _tk.whos=Array.isArray(v.whos)?v.whos:[];_tk.depts=Array.isArray(v.depts)?v.depts:[];
+    _tk.st=TK_STS.includes(v.st)?v.st:'';_tk.done=!!v.done||_tk.st==='完了';_tk.doneS=_tk.done;
+  }catch(e){}
 }
 function tkWmode(){return _tk.wmode||(_tk.scope==='all'?'all':'mine');}
 function tkDepts(){return [...new Set((USERS||[]).map(u=>u.dept).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));}
@@ -4549,7 +4564,7 @@ function tkScopeBtns(full){
 function tkWmodeSet(m){
   _tk.wmode=m;
   if(m!=='member')_tk.whos=[];
-  if(m!=='dept')_tk.dept='';
+  if(m!=='dept')_tk.depts=[];
   const sc=m==='mine'?'mine':'all';
   if(_tk.scope!==sc)tkLoad(sc);else tkRender(true);
 }
@@ -4557,7 +4572,7 @@ function tkWhoSel(people){
   const m=tkWmode();
   let h;
   if(m==='member')h=tkWhoPicker(people);
-  else if(m==='dept')h='<select onchange="tkSet(\'dept\',this.value)"><option value="">部門：すべて</option>'+tkDepts().map(d=>'<option value="'+tkEsc(d)+'"'+(d===_tk.dept?' selected':'')+'>'+tkEsc(d)+'</option>').join('')+'</select>';
+  else if(m==='dept')h=tkDeptPicker();
   else h='<select disabled title="「メンバー」「部門」を選ぶと使えます"><option>ー</option></select>';   // 自分・すべて は選ぶものがないので「ー」
   return '<span class="tk-selw">'+h+'</span>';
 }
@@ -4613,6 +4628,26 @@ function tkWhoPicker(people){
   }
   return h+'</span>';
 }
+// 部門の選択（複数選べる）。メンバーの選択と同じ作り
+function tkDeptPicker(){
+  const all=tkDepts();
+  const w=(_tk.depts=(_tk.depts||[]).filter(d=>all.includes(d)));
+  const lbl=!w.length?'すべて':(w.length===1?w[0]:w[0]+' 他'+(w.length-1));
+  let h='<span class="tk-ms"><button type="button" class="tk-btn'+(w.length?' on':'')+'" onclick="tkDeptToggle()">部門：'+tkEsc(lbl)+' ▾</button>';
+  if(_tk.deptOpen){
+    h+='<div class="tk-ms-pop"><div class="tk-ms-top"><span>複数選べます</span><a onclick="tkDeptClear()">クリア</a></div><div class="tk-ms-list" id="tk-ds-list">'
+      +all.map(d=>'<label><input type="checkbox" '+(w.includes(d)?'checked ':'')+'onchange="tkDeptPick(this.dataset.n,this.checked)" data-n="'+tkEsc(d)+'"> '+tkEsc(d)+'</label>').join('')+'</div></div>';
+  }
+  return h+'</span>';
+}
+function tkDeptToggle(){_tk.deptOpen=!_tk.deptOpen;tkRender(true);}
+function tkDeptClear(){_tk.depts=[];tkRender(true);}
+function tkDeptPick(n,on){
+  const ls=document.getElementById('tk-ds-list');const st=ls?ls.scrollTop:0;
+  const set=new Set(_tk.depts||[]);if(on)set.add(n);else set.delete(n);_tk.depts=[...set];
+  tkRender(true);
+  const nl=document.getElementById('tk-ds-list');if(nl)nl.scrollTop=st;
+}
 function tkWhoToggle(){_tk.whoOpen=!_tk.whoOpen;tkRender(true);}
 function tkWhoClear(){_tk.whos=[];tkRender(true);}
 function tkWhoPick(n,on){
@@ -4621,7 +4656,7 @@ function tkWhoPick(n,on){
   tkRender(true);
   const nl=document.getElementById('tk-ms-list');if(nl)nl.scrollTop=st;
 }
-document.addEventListener('click',e=>{if(_tk&&_tk.whoOpen&&!e.target.closest('.tk-ms')){_tk.whoOpen=false;if(document.getElementById('tab-tasks')&&_tk.loaded)tkRender(true);}});
+document.addEventListener('click',e=>{if(_tk&&(_tk.whoOpen||_tk.deptOpen)&&!e.target.closest('.tk-ms')){_tk.whoOpen=false;_tk.deptOpen=false;if(document.getElementById('tab-tasks')&&_tk.loaded)tkRender(true);}});
 function tkSet(k,v){_tk[k]=v;if(k==='view'&&v==='gantt')_tk.fresh=true;if(k==='view'&&v==='policy'&&!(_tk.pol&&_tk.pol.loaded)){tkLoadPolicy();return;}if(k==='view'&&v==='team'&&!(_tk.team&&_tk.team.loaded)){tkLoadTeam();return;}tkRender();}
 function tkToggle(id){_tk.open[id]=!_tk.open[id];tkRender(true);}
 function tkSetAll(v){Object.keys(_tk.open).forEach(k=>_tk.open[k]=v);tkRender(true);}
@@ -4642,6 +4677,7 @@ function tkRender(keepScroll){
     return;
   }
   if(!_tk.loaded){root.innerHTML='';return;}
+  tkSave();
   const people=tkPeople();
   const scopeBtns=tkScopeBtns(true);
   const stKey=_tk.st?_tk.st:(_tk.done?'all':'open');
@@ -4651,8 +4687,7 @@ function tkRender(keepScroll){
     +'<span class="tk-bg"><input type="search" id="tk-q" class="tk-q" placeholder="🔍 タイトル・タグ・担当者で検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'   // ② 検索と状態
     +'<label>状態 <select onchange="tkStSet(this.value)">'+stOpts.map(o=>'<option value="'+o[0]+'"'+(o[0]===stKey?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label>'
       +(_tk.view==='gantt'||_tk.view==='kanban'?'<span class="tk-cnt" title="いまの絞り込みで表示している件数（配下のないタスクなどの数）">該当 <b>'+tkCount()+'</b>件</span>':'')
-      +(tkFilterOn()?'<button class="tk-btn" onclick="tkFilterReset()" title="検索語・状態・メンバー・部門・完了施策表示を、初期の状態に戻します">✕ 条件を解除</button>':'')+'</span>'
-    +'<span class="tk-bg"><label><input type="checkbox" '+(_tk.doneS?'checked':'')+' onchange="tkSet(\'doneS\',this.checked)"> 完了施策表示</label></span>'   // ③ 表示
+      +(tkFilterOn()?'<button class="tk-btn" onclick="tkFilterReset()" title="検索語・状態・メンバー・部門を、初期の状態に戻します">✕ 条件を解除</button>':'')+'</span>'
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
     +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
@@ -6020,7 +6055,7 @@ async function tkfSave(){
     if(_tk.pol)_tk.pol.stale=true;
     if(_tk.view==='policy'){await tkLoadPolicy(true,true);return;}
     if(task.type==='施策'||task.type==='活動')await tkLoad(null,true,true);
-    if(task.type==='施策'&&task.status==='完了'&&!_tk.doneS)showToast('完了した施策は非表示になりました（「完了施策表示」で表示できます）');
+    if(task.type==='施策'&&task.status==='完了'&&!_tk.doneS)showToast('完了した施策は非表示になりました（状態を「完了」か「すべて」にすると表示できます）');
     else tkApplyLocal('save',{id:res.id,type:task.type,title:task.title.trim(),parent:task.parent||'',who:task.owner||'',co:task.co||[],
       st:task.status,start:task.start||'',end:task.end||'',p:(task.type==='タスク'&&task.status==='完了')?100:(Number(task.progress)||0),priv:!!task.priv,tag:String(task.tag||'').trim(),e:1,a:0});
   }catch(e){
@@ -6077,7 +6112,7 @@ function tkManualHtml(){
   const sec=(id,title,body)=>'<section id="mn-'+id+'"><h3>'+title+'</h3>'+body+'</section>';
   // --- 画面1：タブとバー
   const f1='<div class="mn-fig"><div class="mn-tabs">'+['ガントチャート','かんばん','ダッシュボード','方針ツリー'].map((t,i)=>'<span class="'+(i===0?'on':'')+'">'+t+'</span>').join('')+'</div>'
-    +'<div class="mn-bar">'+no(1)+'<span class="mn-grp"><b class="on">自分のタスク</b><b>すべて</b></span>'+no(2)+pill('🔍 タイトル・タグ検索')+pill('担当者 ▾')+pill('状態 ▾')+no(3)+'<span class="mn-ck">☐ 完了タスク表示</span><span class="mn-ck">☐ 完了施策表示</span>'+no(4)+pill('すべて展開')+pill('今日へ')+'<span class="mn-grp"><b>日</b><b class="on">週</b><b>月</b></span>'+no(5)+pill('＋ 新規',1)+no(6)+pill('📖 マニュアル')+pill('🔄 更新')+'</div></div>'
+    +'<div class="mn-bar">'+no(1)+'<span class="mn-grp"><b class="on">自分</b><b>すべて</b><b>メンバー</b><b>部門</b></span>'+no(2)+pill('🔍 タイトル・タグ検索')+pill('状態 ▾')+no(3)+'<span class="mn-ck">該当 12件</span>'+no(4)+pill('すべて展開')+pill('今日へ')+'<span class="mn-grp"><b>日</b><b class="on">週</b><b>月</b></span>'+no(5)+pill('＋ 新規',1)+no(6)+pill('📖 マニュアル')+pill('🔄 更新')+'</div></div>'
     +'<ol class="mn-ol"><li>'+no(1)+'<b>自分のタスク／すべて</b>：自分が担当者・共同担当者のものだけ見るか、見られる範囲すべてを見るか。</li>'
     +'<li>'+no(2)+'<b>検索・担当者・状態</b>：タイトルとタグで検索（空白で区切るとすべてを含むものだけ。施策・活動のタイトル／タグに合えば配下も出ます）。担当者は複数選べます（担当者か共同担当者のどれかに当てはまるもの）。</li><li>'+no(3)+'<b>完了の表示</b>：完了したタスク、完了した施策（配下ごと）は初期では非表示。見たいときにチェック。</li>'
     +'<li>'+no(4)+'<b>展開・今日へ・日／週／月</b>：行の開閉、今日の位置へ移動、ガントの目盛り（日・週・月）の切り替え。</li>'
@@ -6139,8 +6174,8 @@ function tkManualHtml(){
     +'<ul><li><b>状態</b>：未着手／進行中／完了。タスクを完了にすると進捗は100%になります。終了日（期限）のないものはタスクではなくTODOとして保存されます（TODOタブで扱います）。</li><li><b>担当者・メンバー</b>：従業員名簿（社内の人と外部パートナー）の氏名から選びます。メンバーは「見られる人」を増やす設定で、編集権限は付きません。</li><li><b>非公開</b>：チェックすると、そのレコードと配下は担当者・共同担当者・メンバーだけに表示されます（管理者・役員・上長にも見えません）。</li><li><b>＋ タスクを追加／コピー</b>：配下の追加、内容を引き継いだ新規作成。</li><li><b>削除</b>：権限のある人にだけ表示されます。実際には消さず、一覧・ガント・方針ツリーなどから見えなくなります（必要になったら、システム部門がkintoneで元に戻せます）。配下があるレコードは削除できません。</li><li>土日を日付に入れて保存すると確認が出ます。</li></ul>');
   h+=sec('tree','7. 方針ツリー','<p>会社の方針から日々の活動までのつながり（基本方針→事業グループ→事業→事業カテゴリ→施策→施策方針→活動）を一望できます。</p>'+f6+f7
     +'<ul><li><b>ツリー表示／表形式</b>：表形式では、KPI・目標・実績・達成率も1行ずつ見られます。</li><li><b>横表示／縦表示</b>：ツリーの向き。</li><li><b>＋／－</b>：枝の開閉。最初は施策までを表示、「すべて展開」で活動まで開きます。</li><li><b>対象年度</b>：KPIの年度で絞り込み。</li><li>施策・活動のノードをクリックすると内容を開けます（上位の階層は管理者のみ編集可）。</li><li>管理者・役員は、上位の階層とKPIをすべて表示します。施策・活動は、役員は全体、管理者はほかの人と同じ条件で見える範囲だけです。一般の社員は、自分が見られる施策・活動と、その上の階層の名称だけが表示されます（上位のKPIは見えません）。</li></ul>');
-  h+=sec('kd','8. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：「タスク（予定なし）」を広く並べ、「タスク（予定あり）」は初期は折りたたみます（見出しをクリックで開閉）。期限のないものはTODOなので、かんばんには出ません（右にカレンダーが出ない狭い画面では、未着手／進行中の列になります）。右のカレンダーは「日・週・月」を切り替えられ、予定の✓でタスクを完了にできます。日表示では▶■で作業時間を測り、計画との差を確認できます。ガントでは、予定を入れた日に●が付き、クリックすると予定が開きます。右のカレンダーの幅は、境目をつかんで変えられます（ダブルクリックで元の幅）。進行中のカードには「進行中」の印が付きます。完了の列は、「完了タスク表示」にチェックを入れたときだけ出ます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、「完了タスク表示」にチェックを入れたときだけ、一覧にも件数にも含めます（初期は含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分のタスク／すべて」「担当者」「状態」の絞り込みが効きます。</li></ul>');
-  h+=sec('rules','9. 期限なし・完了・超過の扱い','<ul><li><b>期限なし＝TODO</b>：終了日のないものはTODOとして保存されます（「保留」の状態は廃止しました）。超過・遅延・「終了3営業日」には含まれず、ガント・かんばんにも出ません。</li><li><b>完了した施策</b>：「完了施策表示」にチェックしない限り、配下ごと非表示になります。</li><li><b>完了したタスク</b>：「完了タスク表示」にチェックしたときだけ表示します。</li><li><b>超過</b>：終了日を過ぎて、完了していないタスクは、赤で「超過」と表示されます。</li></ul>');
+  h+=sec('kd','8. かんばん・ダッシュボード','<ul><li><b>かんばん</b>：「タスク（予定なし）」を広く並べ、「タスク（予定あり）」は初期は折りたたみます（見出しをクリックで開閉）。期限のないものはTODOなので、かんばんには出ません（右にカレンダーが出ない狭い画面では、未着手／進行中の列になります）。右のカレンダーは「日・週・月」を切り替えられ、予定の✓でタスクを完了にできます。日表示では▶■で作業時間を測り、計画との差を確認できます。ガントでは、予定を入れた日に●が付き、クリックすると予定が開きます。右のカレンダーの幅は、境目をつかんで変えられます（ダブルクリックで元の幅）。進行中のカードには「進行中」の印が付きます。完了の列は、状態を「完了」か「すべて」にしたときだけ出ます。カードをクリックすると内容を開けます。終了日が近い順に並びます。</li><li><b>ダッシュボード</b>：完了したタスクは、状態を「完了」か「すべて」にしたときだけ、一覧にも件数にも含めます（初期の「未完了」では含めません）。上のタイル（全タスク／遅延／終了3営業日／開始3営業日／日程未設定）をクリックすると、該当の一覧が下に出ます。ほかに、状態別の件数、施策別の進捗、担当者別の負荷が見られます。</li><li>どちらも、上の「自分／すべて／メンバー／部門」「検索」「状態」の絞り込みが効きます（検索は、左側で絞った中から探します。選んだ「見る人」「メンバー」「部門」「状態」は、この端末に覚えます）。</li></ul>');
+  h+=sec('rules','9. 期限なし・完了・超過の扱い','<ul><li><b>期限なし＝TODO</b>：終了日のないものはTODOとして保存されます（「保留」の状態は廃止しました）。超過・遅延・「終了3営業日」には含まれず、ガント・かんばんにも出ません。</li><li><b>完了した施策</b>：状態を「完了」か「すべて」にしない限り、配下ごと非表示になります。</li><li><b>完了したタスク</b>：状態を「完了」か「すべて」にしたときだけ表示します。</li><li><b>超過</b>：終了日を過ぎて、完了していないタスクは、赤で「超過」と表示されます。</li></ul>');
   h+=sec('perm','10. 見える範囲と編集できる範囲','<table class="mn-tb"><thead><tr><th></th><th>見える</th><th>編集・追加</th></tr></thead><tbody>'
     +'<tr><td>管理者（永野・畑村）</td><td>施策・活動・タスクは、ほかの人と同じ条件（担当・メンバー・上長）で見える範囲だけ。上位の階層（基本方針〜施策方針）とKPIは常に見える</td><td>見える範囲はすべて編集可。施策以上の登録・構造の変更ができる</td></tr>'
     +'<tr><td>役員</td><td>すべて（非公開を除く）</td><td>自分の担当分</td></tr>'
@@ -6150,7 +6185,7 @@ function tkManualHtml(){
     +'<tr><td>施策のメンバー（社内関係者）</td><td>その施策と配下</td><td>なし（見るだけ）</td></tr>'
     +'<tr><td>上長（主任以上）</td><td>部下が関わる施策</td><td>なし（担当分のみ）</td></tr></tbody></table>'
     +'<ul><li><b>非公開</b>のレコードは、担当者・共同担当者・メンバーだけが見られます。</li><li>権限のない操作は、サーバー側でも止められます（画面で隠れているだけではありません）。</li><li>外部のパートナーは、パートナー名簿の「HALOタスク権限」が「利用」または「管理者」のときだけ使えます。</li></ul>');
-  h+=sec('faq','11. 困ったとき','<ul><li><b>他の人が変えた内容が見えない</b> → 「🔄 更新」。</li><li><b>「他の人が先に更新しました」と出た</b> → いったん閉じて、開き直してから入力し直してください。</li><li><b>追加したのに一覧にない</b> → 「自分のタスク」になっていると、他の人の担当は出ません。「すべて」に切り替え、完了にした場合は「完了タスク表示」も確認。</li><li><b>「＋ 新規」が出ない・バーが動かせない</b> → 権限がありません。施策のリーダーまたは管理者に依頼してください。</li><li>使い方の質問・不具合は、システム部門（永野）まで。</li></ul>');
+  h+=sec('faq','11. 困ったとき','<ul><li><b>他の人が変えた内容が見えない</b> → 「🔄 更新」。</li><li><b>「他の人が先に更新しました」と出た</b> → いったん閉じて、開き直してから入力し直してください。</li><li><b>追加したのに一覧にない</b> → 「自分」になっていると、他の人の担当は出ません。「すべて」に切り替え、完了にした場合は状態を「すべて」にして確認。</li><li><b>「＋ 新規」が出ない・バーが動かせない</b> → 権限がありません。施策のリーダーまたは管理者に依頼してください。</li><li>使い方の質問・不具合は、システム部門（永野）まで。</li></ul>');
   return h;
 }
 function tkManual(){
