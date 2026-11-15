@@ -855,6 +855,9 @@ body.tk-resizing{cursor:col-resize;user-select:none}.tk-c.who{width:70px;gap:6px
 .tkk-month{padding:6px}.tkk-mh,.tkk-mg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}.tkk-mh div{text-align:center;font-size:.75em;color:var(--text2);padding:4px 0}
 .tkk-mc{min-height:92px;background:#fff;border:1px solid var(--border);border-radius:6px;padding:3px;overflow:hidden}.tkk-mc.off{background:transparent;border:none}.tkk-mc.today{background:var(--primary-light)}
 .tkk-md{font-size:.8em;font-weight:700;cursor:pointer;margin-bottom:2px}.tkk-mchip{color:#fff;font-size:.68em;border-radius:3px;padding:1px 4px;margin-bottom:2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tkk-more{font-size:.68em;color:var(--text2);cursor:pointer}
+.tk-bg{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;padding-right:12px;border-right:1px solid var(--border)}
+.tk-selw{display:inline-block;width:170px}.tk-selw>select,.tk-selw .tk-ms,.tk-selw .tk-ms>.tk-btn{width:100%;box-sizing:border-box}.tk-selw .tk-ms{display:block;position:relative}
+.tk-hb{margin-left:8px;white-space:nowrap}.tk-hb a{cursor:pointer;color:var(--text2);padding:0 5px;border:1px solid #cfd6e0;border-radius:4px;margin-right:3px;font-size:.85em;background:#fff}.tk-hb a:hover{background:var(--primary-light)}
 .tk-sm{position:absolute;top:50%;transform:translate(-50%,-50%);color:#2e7d32;font-size:15px;line-height:1;cursor:pointer;z-index:4;text-shadow:0 0 2px #fff,0 0 3px #fff}.tk-sm:hover{transform:translate(-50%,-50%) scale(1.35)}
 .tk-col .tk-cards{display:flex;flex-direction:column;gap:8px}
 #tkk-left .tk-col.main,#tk-kanban .tk-col.main{flex:3 1 0;max-width:none;min-width:260px}
@@ -4523,6 +4526,13 @@ function tkWhoOK(x){
   const w=_tk.whos||[];return !w.length||w.includes(x.who)||(x.co||[]).some(c=>w.includes(c));
 }
 // 見る人の切り替え：自分／すべて／メンバー（担当者を選ぶ）／部門（部門を選ぶ）。自分だけサーバーから自分の分を取り、ほかは全員分を取って画面で絞る
+// 状態：完了タスクを出すかどうかも、ここで決める（「完了タスク表示」は、この選択に統合）
+function tkStSet(v){
+  if(v==='open'){_tk.st='';_tk.done=false;}
+  else if(v==='all'){_tk.st='';_tk.done=true;}
+  else{_tk.st=v;_tk.done=(v==='完了');}
+  tkRender(true);
+}
 function tkWmode(){return _tk.wmode||(_tk.scope==='all'?'all':'mine');}
 function tkDepts(){return [...new Set((USERS||[]).map(u=>u.dept).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));}
 function tkDeptNames(d){return new Set((USERS||[]).filter(u=>u.dept===d).map(u=>tkSq(u.name)));}
@@ -4540,9 +4550,11 @@ function tkWmodeSet(m){
 }
 function tkWhoSel(people){
   const m=tkWmode();
-  if(m==='member')return tkWhoPicker(people);
-  if(m==='dept')return '<label>部門 <select onchange="tkSet(\'dept\',this.value)"><option value="">すべての部門</option>'+tkDepts().map(d=>'<option value="'+tkEsc(d)+'"'+(d===_tk.dept?' selected':'')+'>'+tkEsc(d)+'</option>').join('')+'</select></label>';
-  return '';
+  let h;
+  if(m==='member')h=tkWhoPicker(people);
+  else if(m==='dept')h='<select onchange="tkSet(\'dept\',this.value)"><option value="">部門：すべて</option>'+tkDepts().map(d=>'<option value="'+tkEsc(d)+'"'+(d===_tk.dept?' selected':'')+'>'+tkEsc(d)+'</option>').join('')+'</select>';
+  else h='<select disabled title="「メンバー」「部門」を選ぶと使えます"><option>ー</option></select>';   // 自分・すべて は選ぶものがないので「ー」
+  return '<span class="tk-selw">'+h+'</span>';
 }
 function tkQOK(x){
   const terms=tkNorm(_tk.q).split(/\s+/).filter(Boolean);
@@ -4626,13 +4638,13 @@ function tkRender(keepScroll){
   if(!_tk.loaded){root.innerHTML='';return;}
   const people=tkPeople();
   const scopeBtns=tkScopeBtns(true);
-  const bar='<div class="tk-bar">'+scopeBtns
-    +tkWhoSel(people)
-    +'<input type="search" id="tk-q" class="tk-q" placeholder="🔍 タイトル・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'
-    +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
-    +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了タスク表示</label>'
-    +'<label><input type="checkbox" '+(_tk.doneS?'checked':'')+' onchange="tkSet(\'doneS\',this.checked)"> 完了施策表示</label>'
-    +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkSetAll(true)">すべて展開</button><button class="tk-btn" onclick="tkSetAll(false)">すべて折りたたむ</button>':'')
+  const stKey=_tk.st?_tk.st:(_tk.done?'all':'open');
+  const stOpts=[['open','未完了（未着手＋進行中）'],['未着手','未着手'],['進行中','進行中'],['完了','完了'],['all','すべて']];
+  const bar='<div class="tk-bar">'
+    +'<span class="tk-bg">'+scopeBtns+tkWhoSel(people)+'</span>'   // ① 見る人：ボタン＋選択欄（選択欄は常に同じ場所）
+    +'<span class="tk-bg"><input type="search" id="tk-q" class="tk-q" placeholder="🔍 タイトル・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'   // ② 検索と状態
+    +'<label>状態 <select onchange="tkStSet(this.value)">'+stOpts.map(o=>'<option value="'+o[0]+'"'+(o[0]===stKey?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label></span>'
+    +'<span class="tk-bg"><label><input type="checkbox" '+(_tk.doneS?'checked':'')+' onchange="tkSet(\'doneS\',this.checked)"> 完了施策表示</label></span>'   // ③ 表示
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
     +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
@@ -4836,7 +4848,7 @@ function tkGanttHtml(){
     }
   }
   let h='<div id="tk-wrap"><div id="tk-content" style="width:calc(var(--tk-leftw) + '+W+'px)">';
-  h+='<div class="tk-hrow"><div class="tk-left"><div class="tk-c name">施策／活動／タスク<span class="tk-rs" title="左右にドラッグして名前の幅を変更（ダブルクリックで元に戻す）"></span></div><div class="tk-c who">担当者</div><div class="tk-c st">状態</div><div class="tk-c d">開始</div><div class="tk-c d">期限</div><div class="tk-c pg">進捗</div></div><div class="tk-tl" style="width:'+W+'px"><div class="tk-hd">'+mo+dy+'</div></div></div>';
+  h+='<div class="tk-hrow"><div class="tk-left"><div class="tk-c name">施策／活動／タスク<span class="tk-hb"><a onclick="tkSetAll(true)" title="すべて展開">▼</a><a onclick="tkSetAll(false)" title="すべて折りたたむ">▶</a></span><span class="tk-rs" title="左右にドラッグして名前の幅を変更（ダブルクリックで元に戻す）"></span></div><div class="tk-c who">担当者</div><div class="tk-c st">状態</div><div class="tk-c d">開始</div><div class="tk-c d">期限</div><div class="tk-c pg">進捗</div></div><div class="tk-tl" style="width:'+W+'px"><div class="tk-hd">'+mo+dy+'</div></div></div>';
   h+='<div id="tk-weekend" style="left:var(--tk-leftw);width:'+W+'px">'+we+'</div>';
   const tx=tkDiff(R.start,today);
   if(tx>=0&&tx<days)h+='<div id="tk-today" style="left:calc(var(--tk-leftw) + '+(tx*dayW+dayW/2-1)+'px)"><b>今日</b></div>';
