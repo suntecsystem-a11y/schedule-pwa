@@ -4516,7 +4516,34 @@ function tkBuild(list){
 }
 // 絞り込み：担当者（複数。担当者または共同担当者のどれかに当てはまる）／タイトル・タグの検索（空白区切りはすべて含む。上位の施策・活動のタイトル/タグに合えば配下も出す）
 const tkNorm=t=>String(t||'').normalize('NFKC').toLowerCase();
-function tkWhoOK(x){const w=_tk.whos||[];return !w.length||w.includes(x.who)||(x.co||[]).some(c=>w.includes(c));}
+function tkWhoOK(x){
+  const m=tkWmode();
+  if(m==='dept'&&_tk.dept){const set=tkDeptNames(_tk.dept);return set.has(tkSq(x.who))||(x.co||[]).some(c=>set.has(tkSq(c)));}
+  if(m!=='member')return true;   // 自分・すべて は人で絞らない
+  const w=_tk.whos||[];return !w.length||w.includes(x.who)||(x.co||[]).some(c=>w.includes(c));
+}
+// 見る人の切り替え：自分／すべて／メンバー（担当者を選ぶ）／部門（部門を選ぶ）。自分だけサーバーから自分の分を取り、ほかは全員分を取って画面で絞る
+function tkWmode(){return _tk.wmode||(_tk.scope==='all'?'all':'mine');}
+function tkDepts(){return [...new Set((USERS||[]).map(u=>u.dept).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ja'));}
+function tkDeptNames(d){return new Set((USERS||[]).filter(u=>u.dept===d).map(u=>tkSq(u.name)));}
+function tkScopeBtns(full){
+  if(!_tk.canAll)return '';
+  const m=tkWmode(),b=(k,l)=>'<button class="'+(m===k?'on':'')+'" onclick="tkWmodeSet(\''+k+'\')">'+l+'</button>';
+  return '<div class="tk-grp">'+b('mine','自分')+b('all','すべて')+(full?b('member','メンバー')+b('dept','部門'):'')+'</div>';
+}
+function tkWmodeSet(m){
+  _tk.wmode=m;
+  if(m!=='member')_tk.whos=[];
+  if(m!=='dept')_tk.dept='';
+  const sc=m==='mine'?'mine':'all';
+  if(_tk.scope!==sc)tkLoad(sc);else tkRender(true);
+}
+function tkWhoSel(people){
+  const m=tkWmode();
+  if(m==='member')return tkWhoPicker(people);
+  if(m==='dept')return '<label>部門 <select onchange="tkSet(\'dept\',this.value)"><option value="">すべての部門</option>'+tkDepts().map(d=>'<option value="'+tkEsc(d)+'"'+(d===_tk.dept?' selected':'')+'>'+tkEsc(d)+'</option>').join('')+'</select></label>';
+  return '';
+}
 function tkQOK(x){
   const terms=tkNorm(_tk.q).split(/\s+/).filter(Boolean);
   if(!terms.length)return true;
@@ -4598,10 +4625,10 @@ function tkRender(keepScroll){
   }
   if(!_tk.loaded){root.innerHTML='';return;}
   const people=tkPeople();
-  const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">すべて</button></div>':'';
+  const scopeBtns=tkScopeBtns(true);
   const bar='<div class="tk-bar">'+scopeBtns
+    +tkWhoSel(people)
     +'<input type="search" id="tk-q" class="tk-q" placeholder="🔍 タイトル・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'
-    +tkWhoPicker(people)
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
     +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了タスク表示</label>'
     +'<label><input type="checkbox" '+(_tk.doneS?'checked':'')+' onchange="tkSet(\'doneS\',this.checked)"> 完了施策表示</label>'
@@ -4876,7 +4903,7 @@ function tkDashSel(k){_tk.dashSel=k;tkRender(true);}
 // ===== TODOタブ（レコード種別「Todo」。日付や親を持たない「やれたらいいね」。見える範囲は、親のないタスクと同じ：本人・上長・役員） =====
 function tkTodoBar(){
   const people=[...new Set(tkPeople().concat((_tk.todos||[]).map(t=>t.who).filter(Boolean)))].sort((a,b)=>a.localeCompare(b,'ja'));
-  const scopeBtns=_tk.canAll?'<div class="tk-grp"><button class="'+(_tk.scope==='mine'?'on':'')+'" onclick="tkLoad(\'mine\')">自分のタスク</button><button class="'+(_tk.scope==='all'?'on':'')+'" onclick="tkLoad(\'all\')">すべて</button></div>':'';
+  const scopeBtns=tkScopeBtns(false);
   return '<div class="tk-bar">'+scopeBtns+'<input type="search" id="tk-q" class="tk-q" placeholder="🔍 内容・タグで検索" value="'+tkEsc(_tk.q||'')+'" oninput="if(!event.isComposing)tkSearch(this.value)" oncompositionend="tkSearch(this.value)">'
     +tkWhoPicker(people)
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
