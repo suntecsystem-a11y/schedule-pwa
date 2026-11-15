@@ -1185,14 +1185,9 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <div id="notice-home-list"></div>
     </div>
     <!-- 今週の昼休みグループ・今日の掃除当番・掃除チェックシート（2026-11-11。新棟。お知らせの下） -->
-    <!-- 今日の当番のまとめ（掃除・ごみ捨て・昼休み）。詳しい表・チェックシートは、下の「詳細」を開く（2026-11-16） -->
-    <div id="duty-summary" style="display:none;padding:8px 0 0"></div>
-    <details id="duty-more" style="display:none;margin-top:8px">
-      <summary style="cursor:pointer;font-size:0.85em;color:var(--primary);padding:6px 4px">📅 当番表・グループ・チェックシートの詳細を見る</summary>
-      <div id="cleaning-area" style="display:none;padding:8px 0 0"></div>
-      <!-- ごみ捨て当番（燃えるごみ・プラ。2026-11-12。リリース前なので永野の画面だけ） -->
-      <div id="trash-area" style="display:none;padding:8px 0 0"></div>
-    </details>
+    <div id="cleaning-area" style="display:none;padding:8px 0 0"></div>
+    <!-- ごみ捨て当番（燃えるごみ・プラ。2026-11-12。リリース前なので永野の画面だけ） -->
+    <div id="trash-area" style="display:none;padding:8px 0 0"></div>
     <div id="home-content"></div>
   </div>
 
@@ -8195,12 +8190,8 @@ function renderHomeTodo() {
       go: imp.length === 1 ? `openNoticeDetail('${imp[0].id}')` : "setNoticeFilter('unread');document.getElementById('notice-home-wrap').scrollIntoView({behavior:'smooth',block:'start'})" });
   }
   if (typeof _clnData !== 'undefined' && _clnData && _clnData.todayInfo && _clnData.todayInfo.iAmDuty) {
-    items.push({ ic: '🧹', text: t('home.todo.clean'), go: "dutyOpen()" });
+    items.push({ ic: '🧹', text: t('home.todo.clean'), go: "document.getElementById('cleaning-area').scrollIntoView({behavior:'smooth',block:'start'})" });
   }
-  try {
-    const tt = (typeof _trashData !== 'undefined' && _trashData) ? trashToday(_trashData) : null;
-    if (tt && tt.mine) items.push({ ic: '🗑', text: 'ごみ捨て当番の日です（' + tt.kind + '）', go: "dutyOpen()" });
-  } catch (e) { /* ごみ捨てのデータがまだ無いとき */ }
   if (!items.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
   el.style.display = '';
   el.innerHTML = `
@@ -10522,30 +10513,6 @@ let _clnCur = null;
 const _clnIsAll = (k) => k === '全員清掃' || k === '金曜全員';
 let _clnError = false;
 let _clnSel = ''; // 今開いている週の月曜（週ごとにめくる）
-let _trashData = null;
-// ごみ捨ての日：火・金＝燃えるごみ、木＝プラ（曜日は 0=日…6=土）
-const TRASH_KIND = { 2: '燃えるごみ', 4: 'プラ', 5: '燃えるごみ' };
-const _WD = ['日', '月', '火', '水', '木', '金', '土'];
-function _ymdDow(ymd) { const p = String(ymd).split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay(); }
-// 今日の様子：捨てる日か・今週の当番グループ・自分が当番か
-function trashToday(d) {
-  if (!d || !d.active) return null;
-  const dw = _ymdDow(d.today), kind = TRASH_KIND[dw] || '';
-  const mon = _clnAdd(d.today, -((dw + 6) % 7));
-  const w = (d.weeks || []).find(x => x.start === mon) || null;
-  return { kind, week: w, mine: !!(kind && w && w.mine) };
-}
-// 次の自分の当番日（今日を含む。6週先まで）
-function trashNext(d) {
-  if (!d || !d.active) return null;
-  for (let i = 0; i < 42; i++) {
-    const ymd = _clnAdd(d.today, i), dw = _ymdDow(ymd);
-    if (!TRASH_KIND[dw]) continue;
-    const w = (d.weeks || []).find(x => x.start === _clnAdd(ymd, -((dw + 6) % 7)));
-    if (w && w.mine) return { date: ymd, dw, kind: TRASH_KIND[dw] };
-  }
-  return null;
-}
 
 // ---- ごみ捨て当番（燃えるごみ・プラ）。週ごとにグループで回す。リリース前：永野（社員番号81）の画面にだけ出す
 async function loadTrash() {
@@ -10554,8 +10521,7 @@ async function loadTrash() {
   if (!currentUser || String(currentUser.id) !== '81') { area.innerHTML = ''; area.style.display = 'none'; return; }
   let d = null;
   try { d = await api('getTrashDuty', {}, '', { quiet: true }); } catch(e) { d = null; }
-  _trashData = (d && d.active) ? d : null;
-  if (!d || !d.active) { area.innerHTML = ''; area.style.display = 'none'; renderDutySummary(); return; }
+  if (!d || !d.active) { area.innerHTML = ''; area.style.display = 'none'; return; }
   const md = (ymd) => { const p = String(ymd).split('-'); return `${+p[1]}/${+p[2]}`; };
   const names = (w) => w.members.map(m => m.mine ? `<b style="color:var(--primary-dark)">${esc(m.disp)}</b>` : esc(m.disp)).join('、');
   const nextMon = _clnAdd(d.thisMon, 7);
@@ -10573,89 +10539,13 @@ async function loadTrash() {
        </div>`;
   const rows = d.weeks.map(w => `<div style="padding:6px 0;border-top:1px solid var(--border,#eee);font-size:0.85em"><b>${md(w.start)}〜</b>　${esc(w.group)}<div style="font-size:0.9em;color:var(--text2)">${names(w)}</div></div>`).join('');
   area.style.display = '';
-  const tn = trashNext(d);
-  const nextLine = tn
-    ? `<div style="font-size:0.92em;margin-top:10px"><span style="color:var(--text2)">次のあなたの当番：</span><strong style="color:#e65100;font-size:1.05em">${tn.date === d.today ? '今日' : md(tn.date) + '（' + _WD[tn.dw] + '）'}</strong><span style="color:var(--text2);font-size:0.85em">（${tn.kind}）</span></div>`
-    : `<div style="font-size:0.85em;margin-top:10px;color:var(--text2)">あなたの当番は、表示している期間にはありません</div>`;
   area.innerHTML = `
     <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid #8d6e63">
       <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:4px">🗑 ごみ捨て当番（燃えるごみ・プラ）</div>
       <div style="font-size:0.75em;color:var(--text2);margin-bottom:10px">その週の当番グループが、ストック置き場（新棟裏）のごみを、決まった日に捨てます（燃えるごみ：火・金／プラ：木）。</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${chip('今週', cur, d.thisMon)}${chip('来週', nxt, nextMon)}</div>
-      ${nextLine}
       <details style="margin-top:10px"><summary style="cursor:pointer;font-size:0.85em;color:var(--primary)">6週の順番を見る</summary>${rows}</details>
     </div>`;
-  renderDutySummary();
-}
-// 詳細（週ごとの表・グループ・チェックシート）を開いて、そこまで動く
-function dutyOpen() {
-  const m = document.getElementById('duty-more');
-  if (m) m.open = true;
-  const a = document.getElementById('duty-summary');
-  if (a) a.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-// 今日の当番のまとめ（掃除・ごみ捨て・昼休み）。あなたの当番を、いちばん上に出す
-function renderDutySummary() {
-  const el = document.getElementById('duty-summary'), more = document.getElementById('duty-more');
-  if (!el) return;
-  const c = _clnData, tr = _trashData;
-  if (!c && !tr && !_clnError) { el.style.display = 'none'; el.innerHTML = ''; if (more) more.style.display = 'none'; return; }
-  el.style.display = ''; if (more) more.style.display = '';
-  const badge = (t, bg) => `<span style="margin-left:6px;padding:2px 8px;border-radius:10px;background:${bg || '#e65100'};color:white;font-weight:700;font-size:0.78em;white-space:nowrap;display:inline-block">${t}</span>`;
-  const row = (ic, label, main, sub) => `<div style="display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--border,#eee)"><div style="font-size:1.3em;line-height:1.3">${ic}</div><div style="flex:1;min-width:0"><div style="font-size:0.75em;color:var(--text2)">${label}</div><div style="font-weight:700;line-height:1.4">${main}</div>${sub ? `<div style="font-size:0.78em;color:var(--text2);margin-top:2px">${sub}</div>` : ''}</div></div>`;
-  let mineList = [], rows = '', btn = '';
-  // 掃除
-  if (c && !c.empty) {
-    const ti = c.todayInfo;
-    let main, sub = '';
-    if (!ti) main = '<span style="font-weight:400;color:var(--text2)">今日は当番表がありません</span>';
-    else if (ti.kind === '会社休み') main = '<span style="font-weight:400;color:var(--text2)">今日は会社の休みです</span>';
-    else {
-      main = (_clnIsAll(ti.kind) ? '後半組の全員で、全部の場所' : esc(ti.dutyDisp || ti.duty)) + (ti.iAmDuty ? badge('あなたが当番') : '');
-      if (ti.iAmDuty) mineList.push('掃除');
-      const ck = ti.check;
-      const st = ck ? (ck.confName ? '✅ チェックシート完了' : ck.done > 0 ? `確認OK ${ck.done}/${ck.total}` : 'チェックシート未記入') : '';
-      sub = [ti.checkerDisp ? `チェック係：${esc(ti.checkerDisp)}${ti.iAmChecker ? '（あなた）' : ''}` : '', st].filter(Boolean).join('　');
-      btn = `<button onclick="openCleaningCheck()" style="flex:1;min-width:150px;padding:11px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer">📋 チェックシートを${(ti.canEdit === false && !ti.iAmDuty) ? '見る' : '開く'}</button>`;
-    }
-    const nd = c.nextDuty;
-    const nl = nd ? `次のあなたの当番：<b style="color:#e65100">${nd.date === c.today ? '今日' : _clnMD(nd.date) + '（' + esc(nd.wd) + '）'}</b>` : 'あなたの当番は、登録されている期間にはありません';
-    rows += row('🧹', '掃除（13:30〜）', main, [sub, nl].filter(Boolean).join('<br>'));
-  } else if (c && c.empty) {
-    rows += row('🧹', '掃除', '<span style="font-weight:400;color:var(--text2)">' + (c.firstDate ? `当番表は ${_clnMD(c.firstDate)} の週から表示されます` : '当番表は、まだ登録されていません') + '</span>', '');
-  } else if (_clnError) {
-    rows += row('🧹', '掃除', '<span style="font-weight:400;color:var(--text2)">読み込めませんでした。画面を再読み込みしてください</span>', '');
-  }
-  // ごみ捨て
-  if (tr) {
-    const tt = trashToday(tr), tn = trashNext(tr);
-    const md = (ymd) => { const p = String(ymd).split('-'); return `${+p[1]}/${+p[2]}`; };
-    let main, sub = '';
-    if (!tt || !tt.week) main = '<span style="font-weight:400;color:var(--text2)">' + (tr.thisMon < tr.startsAt ? md(tr.startsAt) + ' の週から' : '当番表がありません') + '</span>';
-    else if (!tt.kind) main = '<span style="font-weight:400;color:var(--text2)">今日は捨てる日ではありません</span>';
-    else {
-      main = `${tt.kind}（${esc(tt.week.group)}）` + (tt.mine ? badge('あなたが当番') : '');
-      if (tt.mine) mineList.push('ごみ捨て');
-    }
-    if (tt && tt.week) sub = '今週の当番：' + tt.week.members.map(m => m.mine ? `<b style="color:var(--primary-dark)">${esc(m.disp)}</b>` : esc(m.disp)).join('、');
-    const nl = tn ? `次のあなたの当番：<b style="color:#e65100">${tn.date === tr.today ? '今日' : md(tn.date) + '（' + _WD[tn.dw] + '）'}</b>（${tn.kind}）` : 'あなたの当番は、表示している期間にはありません';
-    rows += row('🗑', 'ごみ捨て（火・金＝燃えるごみ／木＝プラ）', main, [sub, nl].filter(Boolean).join('<br>'));
-  }
-  // 昼休み
-  if (c && !c.empty) {
-    const wk = (c.weeks || []).find(w => w.start === c.thisMon);
-    const wn = (c.weeks || []).find(w => w.start === _clnAdd(c.thisMon, 7));
-    const lb = (w) => w && w.lunch ? `${esc(w.lunch.label)}　${esc(w.lunch.time)}` : '';
-    if (wk && wk.lunch) rows += row('🍴', '昼休み（今週）', lb(wk) + (wk.myGroup ? `<span style="font-weight:400;font-size:0.78em;color:var(--text2)">　あなたは ${esc(wk.myGroup)}グループ</span>` : ''), wn && wn.lunch ? '来週：' + lb(wn) : '');
-  }
-  const head = mineList.length
-    ? `<div style="font-size:0.92em;font-weight:700;color:#e65100;margin-bottom:6px">今日のあなたの当番：${mineList.join('・')}</div>`
-    : `<div style="font-size:0.85em;color:var(--text2);margin-bottom:6px">今日のあなたの当番はありません</div>`;
-  el.innerHTML = `<div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid ${mineList.length ? '#e65100' : '#26a69a'}">
-      <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:6px">🏢 新棟：今日の当番</div>${head}${rows}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${btn}<button onclick="dutyOpen()" style="flex:1;min-width:150px;padding:11px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.95em;cursor:pointer">📅 当番表・グループを見る</button></div>
-    </div>`;
-  try { if (typeof renderHomeTodo === 'function') renderHomeTodo(); } catch (e) {}
 }
 async function loadCleaning() {
   const area = document.getElementById('cleaning-area');
@@ -10704,7 +10594,6 @@ function renderCleaning() {
       <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:10px">🏢 新棟：昼休み・掃除当番</div>
       ${inner}
     </div>`;
-  renderDutySummary();
   area.style.display = '';
   if (!c) {
     area.innerHTML = box(`<div style="font-size:0.88em;color:var(--text2)">${_clnError ? '当番表を読み込めませんでした。画面を再読み込みしてください。' : '読み込み中...'}</div>`);
