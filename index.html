@@ -4690,7 +4690,7 @@ function tkRender(keepScroll){
       +(tkFilterOn()?'<button class="tk-btn" onclick="tkFilterReset()" title="検索語・状態・メンバー・部門を、初期の状態に戻します">✕ 条件を解除</button>':'')+'</span>'
     +'<span class="tk-sp"></span>'
     +(_tk.view==='gantt'?'<button class="tk-btn" onclick="tkScrollToday()">今日へ</button><div class="tk-grp">'+[[28,'日'],[14,'週'],[6,'月']].map(z=>'<button class="'+(_tk.dayW===z[0]?'on':'')+'" onclick="tkZoom('+z[0]+')">'+z[1]+'</button>').join('')+'</div>':'')
-    +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
+    +(_tk.caps&&_tk.caps.canCreate?'<button class="tk-btn tk-new" onclick="tkfOpenNew()">＋ 新規</button>':'')+'<button class="tk-btn" onclick="_tk.ks=null;_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
   const isPol=_tk.view==='policy';
   const isTodo=_tk.view==='todo';
   const isTeam=_tk.view==='team';
@@ -4963,7 +4963,7 @@ function tkTodoBar(){
     +tkWhoPicker(people)
     +'<label>状態 <select onchange="tkSet(\'st\',this.value)"><option value="">すべて</option>'+TK_STS.map(s=>'<option'+(s===_tk.st?' selected':'')+'>'+s+'</option>').join('')+'</select></label>'
     +'<label><input type="checkbox" '+(_tk.done?'checked':'')+' onchange="tkSet(\'done\',this.checked)"> 完了タスク表示</label>'
-    +'<span class="tk-sp"></span><button class="tk-btn" onclick="_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
+    +'<span class="tk-sp"></span><button class="tk-btn" onclick="_tk.ks=null;_tk.loaded=false;tkLoad(null,false,true)">🔄 更新</button></div>';
 }
 // ダッシュボードの一覧表（tkDashFlat）と同じ表。TodoはGantt等に出さないので、表示用に同じ形へ変換して渡す
 function tkTodoHtml(){
@@ -5552,7 +5552,7 @@ async function tkkSchedLoad(){
       (ks.list[id]=ks.list[id]||[]).push({id:String(e.id),date:d,start:e.start||'',end:e.end||''});ks.evs[String(e.id)]=e;
       if(d>=t0&&(!ks.next[id]||d<ks.next[id]))ks.next[id]=d;});
     ks.loaded=true;
-  }catch(e){ks.failed=true;}   // 読めないときは、分けずに今までのかんばんを出す（読み直しは🔄）
+  }catch(e){ks.failed=true;try{console.warn('予定の読み込み失敗',e);}catch(x){}showToast('予定を読み込めませんでした（予定済みの表示と●が出ません）：'+((e&&e.message)||e)+'　🔄 更新で読み直せます');}   // 読めないときは、分けずに今までのかんばんを出す（読み直しは🔄）
   ks.loading=false;
   if(_tk.view==='kanban'||_tk.view==='gantt')tkRender(true);
 }
