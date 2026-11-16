@@ -10613,7 +10613,7 @@ let _trashData = null; // ごみ捨て当番のデータ（「捨てた」を押
 // ---- ごみ捨て当番（資源ごみ・燃えるごみ・プラ）。週ごとにグループで回す。2026-11-16 全員に公開（掃除当番のカードは、まだ永野（社員番号81）だけ）
 // ごみ捨ての記録（「捨てた」ボタン）：今週の火・木・金。全員に、捨て済みか・まだかが見える
 // 「捨てた」：その週の当番グループの中から、捨てた人を選んで記録する（自分は初めからチェック済み。複数可）
-function trashMark(date) {
+function trashMark(date, slot) {
   const d = _trashData;
   if (!d) return;
   const dt = String(date).split('-').map(Number);
@@ -10625,9 +10625,9 @@ function trashMark(date) {
   m.id = 'trash-pick';
   m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9100;display:flex;align-items:center;justify-content:center;padding:16px';
   m.onclick = (e) => { if (e.target === m) m.remove(); };
-  m.dataset.date = date;
+  m.dataset.date = date; m.dataset.slot = slot || '';
   m.innerHTML = `<div style="background:white;border-radius:14px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:18px">
-      <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">🗑 誰が捨てましたか？</div>
+      <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">🗑 誰が${slot === 'cb' ? '出し' : '捨て'}ましたか？</div>
       <div style="font-size:0.8em;color:var(--text2);margin-bottom:10px">${dt[1]}/${dt[2]} の当番グループ「${esc(w.group)}」から選びます（複数選べます）。</div>
       ${w.members.map((mb, i) => `<label style="display:flex;align-items:center;gap:10px;padding:10px 6px;border-top:1px solid var(--border,#eee);font-size:1em;cursor:pointer"><input type="checkbox" class="trash-pick-cb" data-n="${esc(mb.name)}" ${mb.mine ? 'checked' : ''} style="width:20px;height:20px"> <span>${esc(mb.disp)}${mb.mine ? '<span style="color:var(--text2);font-size:0.8em">（あなた）</span>' : ''}</span></label>`).join('')}
       <div style="display:flex;gap:8px;margin-top:14px">
@@ -10640,45 +10640,50 @@ async function trashMarkSave() {
   const m = document.getElementById('trash-pick'); if (!m) return;
   const members = [...m.querySelectorAll('.trash-pick-cb:checked')].map(x => x.dataset.n);
   if (!members.length) { showToast('捨てた人を選んでください'); return; }
-  const date = m.dataset.date;
+  const date = m.dataset.date, slot = m.dataset.slot || undefined;
   m.remove();
-  try { await api('markTrashDone', { date, members }, '記録しています...'); showToast('記録しました'); }
+  try { await api('markTrashDone', { date, members, slot }, '記録しています...'); showToast('記録しました'); }
   catch (e) { showToast('記録できませんでした：' + ((e && e.message) || e)); }
   loadTrash();
 }
-async function trashUndo(date) {
-  if (!confirm('この日の「捨てた」の記録を取り消しますか？')) return;
-  try { await api('undoTrashDone', { date }, '取り消しています...'); showToast('取り消しました'); }
+async function trashUndo(date, slot) {
+  if (!confirm('この日の記録を取り消しますか？')) return;
+  try { await api('undoTrashDone', { date, slot: slot || undefined }, '取り消しています...'); showToast('取り消しました'); }
   catch (e) { showToast('取り消せませんでした：' + ((e && e.message) || e)); }
   loadTrash();
 }
 function trashLogHtml(d, cur) {
   if (!d.logReady || !cur || d.thisMon < d.startsAt) return '';
-  const log = d.log || {};
-  const kinds = ['資源ごみ（本社）', '燃えるごみ', 'プラ', '燃えるごみ'], wds = ['月', '火', '木', '金'];
+  const kindOf = ['資源ごみ（本社）', '燃えるごみ', '', 'プラ', '燃えるごみ'], wdOf = ['月', '火', '水', '木', '金'];
+  // 月〜金：朝のごみ（月・火・木・金）と、段ボール（月・水・金）を、日付順に並べる
+  const items = [];
+  [0, 1, 2, 3, 4].forEach(n => { if (kindOf[n]) items.push({ n, slot: '' }); if ([0, 2, 4].includes(n)) items.push({ n, slot: 'cb' }); });
   const canMark = !!(cur.mine || d.canAdmin);
   const hm = (iso) => { try { return new Date(iso).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Tokyo' }); } catch (e) { return ''; } };
-  const rows = [0, 1, 3, 4].map((n, i) => {
-    const date = _clnAdd(d.thisMon, n), md = date.split('-').map(Number), rec = log[date];
-    const head = `<b>${md[1]}/${md[2]}（${wds[i]}）</b> ${kinds[i]} <span style="color:var(--text2);font-size:0.85em">朝8:00〜9:00</span>`;
+  const rows = items.map(({ n, slot }) => {
+    const cb = slot === 'cb', verb = cb ? '出し' : '捨て';
+    const date = _clnAdd(d.thisMon, n), md = date.split('-').map(Number), rec = (cb ? (d.logCb || {}) : (d.log || {}))[date];
+    const head = cb
+      ? `<b>${md[1]}/${md[2]}（${wdOf[n]}）</b> 段ボール <span style="color:var(--text2);font-size:0.85em">16:00〜16:50・本社駐輪場前</span>`
+      : `<b>${md[1]}/${md[2]}（${wdOf[n]}）</b> ${kindOf[n]} <span style="color:var(--text2);font-size:0.85em">朝8:00〜9:00</span>`;
     let st = '';
     if (rec) {
       const who = (rec.who && rec.who.length ? rec.who : [String(rec.by).split(/[\s　]/)[0]]).join('・');   // 捨てた人（古い記録は、押した人）
       const by = String(rec.by).split(/[\s　]/)[0];
-      st = `<span style="color:#2e7d32;font-weight:700" title="記録した人：${esc(by)}">✅ 捨て済み　${esc(who)}</span> <span style="color:var(--text2);font-size:0.82em">${esc(hm(rec.at))}</span>`
-        + (rec.canUndo ? ` <a onclick="trashUndo('${date}')" style="color:var(--text2);font-size:0.85em;text-decoration:underline;cursor:pointer;white-space:nowrap">取り消す</a>` : '');
+      st = `<span style="color:#2e7d32;font-weight:700" title="記録した人：${esc(by)}">✅ ${cb ? '出し済み' : '捨て済み'}　${esc(who)}</span> <span style="color:var(--text2);font-size:0.82em">${esc(hm(rec.at))}</span>`
+        + (rec.canUndo ? ` <a onclick="trashUndo('${date}'${cb ? ",'cb'" : ''})" style="color:var(--text2);font-size:0.85em;text-decoration:underline;cursor:pointer;white-space:nowrap">取り消す</a>` : '');
     } else if (date === d.today) {
-      st = `<span style="color:#e53935;font-weight:700">まだ捨てていません</span>`
-        + (canMark ? ` <button onclick="trashMark('${date}')" style="margin-left:6px;padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer;white-space:nowrap">🗑 捨てた</button>` : '');
+      st = `<span style="color:#e53935;font-weight:700">まだ${verb}ていません</span>`
+        + (canMark ? ` <button onclick="trashMark('${date}'${cb ? ",'cb'" : ''})" style="margin-left:6px;padding:6px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer;white-space:nowrap">🗑 ${verb}た</button>` : '');
     } else if (date < d.today) {
       st = `<span style="color:#f57c00">記録なし</span>`
-        + (canMark ? ` <button onclick="trashMark('${date}')" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer;white-space:nowrap">捨てた</button>` : '');
+        + (canMark ? ` <button onclick="trashMark('${date}'${cb ? ",'cb'" : ''})" style="margin-left:6px;padding:3px 10px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.85em;cursor:pointer;white-space:nowrap">${verb}た</button>` : '');
     } else {
       st = `<span style="color:var(--text3)">ー</span>`;
     }
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--border,#eee);font-size:0.88em"><span>${head}</span><span>${st}</span></div>`;
   }).join('');
-  return `<div style="margin-top:10px"><div style="font-size:0.75em;color:var(--text2);margin-bottom:2px">今週の記録（当番グループの人が、捨てたら「捨てた」を1日1回押します）</div>${rows}</div>`;
+  return `<div style="margin-top:10px"><div style="font-size:0.75em;color:var(--text2);margin-bottom:2px">今週の記録（当番グループの人が、捨てたら「捨てた」、段ボールを出したら「出した」を押します）</div>${rows}</div>`;
 }
 async function loadTrash() {
   const area = document.getElementById('trash-area');
@@ -10707,8 +10712,8 @@ async function loadTrash() {
   area.style.display = '';
   area.innerHTML = `
     <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid #8d6e63">
-      <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:4px">🗑 ごみ捨て当番（燃えるごみ・プラ）</div>
-      <div style="font-size:0.75em;color:var(--text2);margin-bottom:10px">各部門が置いたストック（新棟裏）を、その週の当番グループが、決まった日の朝8:00〜9:00に捨てます（資源ごみ：月・本社／燃えるごみ：火・金／プラ：木。燃えるごみ・プラは本社と新棟の1か所3袋まで）。</div>
+      <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:4px">🗑 ごみ捨て当番（ごみ・段ボール）</div>
+      <div style="font-size:0.75em;color:var(--text2);margin-bottom:10px">各部門が置いたストック（新棟裏）を、その週の当番グループが、決まった日の朝8:00〜9:00に捨てます（資源ごみ：月・本社／燃えるごみ：火・金／プラ：木。燃えるごみ・プラは本社と新棟の1か所3袋まで）。段ボールは、月・水・金の16:00〜16:50に、本社駐輪場前へ出します（各部門がまとめた段ボール箱。「石原様」と書く）。</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${chip('今週', cur, d.thisMon)}${chip('来週', nxt, nextMon)}</div>
       ${trashLogHtml(d, cur)}
       <details style="margin-top:10px"><summary style="cursor:pointer;font-size:0.85em;color:var(--primary)">6週の順番を見る</summary>${rows}</details>
