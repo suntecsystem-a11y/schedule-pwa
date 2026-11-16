@@ -10513,11 +10513,41 @@ let _clnCur = null;
 const _clnIsAll = (k) => k === '全員清掃' || k === '金曜全員';
 let _clnError = false;
 let _clnSel = ''; // 今開いている週の月曜（週ごとにめくる）
+let _trashData = null; // ごみ捨て当番のデータ（「捨てた」を押すときに、その週のグループを調べる）
 
 // ---- ごみ捨て当番（燃えるごみ・プラ）。週ごとにグループで回す。リリース前：永野（社員番号81）の画面にだけ出す
 // ごみ捨ての記録（「捨てた」ボタン）：今週の火・木・金。全員に、捨て済みか・まだかが見える
-async function trashMark(date) {
-  try { await api('markTrashDone', { date }, '記録しています...'); showToast('記録しました'); }
+// 「捨てた」：その週の当番グループの中から、捨てた人を選んで記録する（自分は初めからチェック済み。複数可）
+function trashMark(date) {
+  const d = _trashData;
+  if (!d) return;
+  const dt = String(date).split('-').map(Number);
+  const mon = _clnAdd(date, -((new Date(Date.UTC(dt[0], dt[1] - 1, dt[2])).getUTCDay() + 6) % 7));
+  const w = (d.weeks || []).find(x => x.start === mon);
+  if (!w) { showToast('この週の当番表がありません'); return; }
+  const old = document.getElementById('trash-pick'); if (old) old.remove();
+  const m = document.createElement('div');
+  m.id = 'trash-pick';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9100;display:flex;align-items:center;justify-content:center;padding:16px';
+  m.onclick = (e) => { if (e.target === m) m.remove(); };
+  m.dataset.date = date;
+  m.innerHTML = `<div style="background:white;border-radius:14px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:18px">
+      <div style="font-size:1.05em;font-weight:700;margin-bottom:4px">🗑 誰が捨てましたか？</div>
+      <div style="font-size:0.8em;color:var(--text2);margin-bottom:10px">${dt[1]}/${dt[2]} の当番グループ「${esc(w.group)}」から選びます（複数選べます）。</div>
+      ${w.members.map((mb, i) => `<label style="display:flex;align-items:center;gap:10px;padding:10px 6px;border-top:1px solid var(--border,#eee);font-size:1em;cursor:pointer"><input type="checkbox" class="trash-pick-cb" data-n="${esc(mb.name)}" ${mb.mine ? 'checked' : ''} style="width:20px;height:20px"> <span>${esc(mb.disp)}${mb.mine ? '<span style="color:var(--text2);font-size:0.8em">（あなた）</span>' : ''}</span></label>`).join('')}
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button onclick="document.getElementById('trash-pick').remove()" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border);background:white;font-weight:700;cursor:pointer">キャンセル</button>
+        <button onclick="trashMarkSave()" style="flex:2;padding:12px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;cursor:pointer">記録する</button>
+      </div></div>`;
+  document.body.appendChild(m);
+}
+async function trashMarkSave() {
+  const m = document.getElementById('trash-pick'); if (!m) return;
+  const members = [...m.querySelectorAll('.trash-pick-cb:checked')].map(x => x.dataset.n);
+  if (!members.length) { showToast('捨てた人を選んでください'); return; }
+  const date = m.dataset.date;
+  m.remove();
+  try { await api('markTrashDone', { date, members }, '記録しています...'); showToast('記録しました'); }
   catch (e) { showToast('記録できませんでした：' + ((e && e.message) || e)); }
   loadTrash();
 }
@@ -10538,8 +10568,9 @@ function trashLogHtml(d, cur) {
     const head = `<b>${md[1]}/${md[2]}（${wds[i]}）</b> ${kinds[i]} <span style="color:var(--text2);font-size:0.85em">朝8:00〜9:00</span>`;
     let st = '';
     if (rec) {
-      const who = String(rec.by).split(/[\s　]/)[0];
-      st = `<span style="color:#2e7d32;font-weight:700">✅ 捨て済み（${esc(who)} ${esc(hm(rec.at))}）</span>`
+      const who = (rec.who && rec.who.length ? rec.who : [String(rec.by).split(/[\s　]/)[0]]).join('・');   // 捨てた人（古い記録は、押した人）
+      const by = String(rec.by).split(/[\s　]/)[0];
+      st = `<span style="color:#2e7d32;font-weight:700" title="記録した人：${esc(by)}">✅ 捨て済み　${esc(who)}</span> <span style="color:var(--text2);font-size:0.82em">${esc(hm(rec.at))}</span>`
         + (rec.canUndo ? ` <a onclick="trashUndo('${date}')" style="color:var(--text2);font-size:0.85em;text-decoration:underline;cursor:pointer;white-space:nowrap">取り消す</a>` : '');
     } else if (date === d.today) {
       st = `<span style="color:#e53935;font-weight:700">まだ捨てていません</span>`
@@ -10560,6 +10591,7 @@ async function loadTrash() {
   if (!currentUser || String(currentUser.id) !== '81') { area.innerHTML = ''; area.style.display = 'none'; return; }
   let d = null;
   try { d = await api('getTrashDuty', {}, '', { quiet: true }); } catch(e) { d = null; }
+  _trashData = (d && d.active) ? d : null;
   if (!d || !d.active) { area.innerHTML = ''; area.style.display = 'none'; return; }
   const md = (ymd) => { const p = String(ymd).split('-'); return `${+p[1]}/${+p[2]}`; };
   const names = (w) => w.members.map(m => m.mine ? `<b style="color:var(--primary-dark)">${esc(m.disp)}</b>` : esc(m.disp)).join('、');
