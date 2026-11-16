@@ -10885,7 +10885,7 @@ function clnSetHeadHtml(s) {
 function clnRowsHtml() {
   const r = _clnCur; const byId = {}; r.items.forEach(it => { byId[it.id] = it; });
   const used = {}; let out = '';
-  clnSetsNow().forEach(s => { s.ids.forEach(id => { used[id] = 1; }); out += `<div style="margin-top:12px;border:2px solid var(--primary);border-radius:10px;overflow:hidden">${clnSetHeadHtml(s)}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">${s.ids.map(id => clnRowHtml(byId[id])).join('')}</div></div>`; });
+  clnSetsNow().forEach(s => { s.ids.forEach(id => { used[id] = 1; }); out += `<div style="margin-top:12px;border:2px solid var(--primary);border-radius:10px;overflow:hidden">${clnSetHeadHtml(s)}<div>${s.ids.map(id => clnRowHtml(byId[id])).join('')}</div></div>`; });
   const rest = r.items.filter(it => !used[it.id]);
   if (rest.length && out) out += '<div style="margin-top:12px;padding:6px 10px;font-size:0.82em;font-weight:700;color:var(--text2)">そのほか</div>';
   return out + rest.map(clnRowHtml).join('');
