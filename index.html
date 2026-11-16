@@ -10919,6 +10919,10 @@ function clnApply(st) {
   clnRender();
 }
 
+// 保存の返事で画面を書き換えるのは、あとに待っている操作がないときだけ。
+// 待っているのに書き換えると、続けて押した内容（担当を選んですぐ取り消す、など）が、先の返事で元に戻ってしまう
+function clnApplyIfLast(st) { if (_clnBusy > 1) return; clnApply(st); }
+
 // 送るものを1つずつ順番に送る（続けて押しても、順番どおりに反映される）
 function clnQueue(fn) {
   _clnBusy++;
@@ -10933,7 +10937,7 @@ async function clnSaveAuto() {
   const r = _clnCur; if (!r) return;
   const memo = (document.getElementById('cln-memo') || {}).value || '';
   const res = await api('saveCleaningCheck', { date: r.date, results: r.results, memo, assign: r.assign }, null, { quiet: true });
-  clnApply(res.status);
+  clnApplyIfLast(res.status);
 }
 
 function clnToggleWho(id, name) {
@@ -10954,7 +10958,7 @@ function clnMark(id, val) {
   clnRender(true);
   clnQueue(async () => {
     const res = await api('markCleaned', { date: r.date, item: id, value: !!val }, null, { quiet: true });
-    clnApply(res.status);
+    clnApplyIfLast(res.status);
   });
 }
 
