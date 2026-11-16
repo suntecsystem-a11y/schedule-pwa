@@ -532,6 +532,13 @@ input,select{font-family:inherit;outline:none}
   background:var(--primary);color:white;min-height:52px;flex-shrink:0;
 }
 .ev-modal-back{width:52px;height:52px;display:flex;align-items:center;justify-content:center;font-size:1.3em;flex-shrink:0;cursor:pointer}
+/* 入力する窓のヘッダー：左に「キャンセル」、真ん中に題名、右に「保存」（2026-11-16） */
+.ev-modal-cancel{height:52px;padding:0 16px;background:none;border:none;color:white;font-size:0.88em;font-family:inherit;flex-shrink:0;white-space:nowrap;cursor:pointer}
+.ev-modal-cancel:hover{background:rgba(255,255,255,.12)}
+.ev-modal-title{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.95em;font-weight:700;color:white;text-align:center}
+.ev-modal-title>#modal-title-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-draft-chip{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;font-size:0.72em;font-weight:500;padding:2px 4px 2px 8px;border-radius:999px;background:rgba(255,255,255,.18)}
+.ev-draft-chip button{background:none;border:none;color:white;font-size:1em;font-family:inherit;text-decoration:underline;padding:0 4px;cursor:pointer}
 .ev-modal-type-tabs{display:flex;flex:1;overflow-x:auto;height:52px;scrollbar-width:none}
 .ev-modal-type-tabs::-webkit-scrollbar{display:none}
 .ev-modal-type-tab{
@@ -1390,7 +1397,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
         <textarea id="notice-body" rows="5" placeholder="本文を入力" style="display:block;width:100%;margin-top:4px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;box-sizing:border-box;resize:vertical;background:var(--bg);font-family:inherit"></textarea>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button id="notice-cancel-btn" onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
+        <button id="notice-cancel-btn" onclick="closeNoticeModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
         <button id="notice-submit-btn" onclick="submitNotice()" style="padding:8px 18px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.9em;cursor:pointer">投稿</button>
       </div>
     </div>
@@ -1421,7 +1428,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
         ⚠️ 全社員にプッシュ通知が送信されます
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
-        <button onclick="closeSafetySendModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">${t('common.cancel')}</button>
+        <button id="safety-send-cancel-btn" onclick="closeSafetySendModal()" style="padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:white;font-size:0.9em;cursor:pointer">キャンセル</button>
         <button id="safety-send-submit-btn" onclick="submitSafetyCheck()" style="padding:8px 18px;border-radius:10px;border:none;background:#e65100;color:white;font-weight:700;font-size:0.9em;cursor:pointer">発信する</button>
       </div>
     </div>
@@ -1536,10 +1543,10 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <!-- 予定追加・編集モーダル -->
 <div class="modal-backdrop" id="add-modal-backdrop">
   <div class="modal">
-    <!-- ヘッダー：戻る＋タイトル＋保存 -->
+    <!-- ヘッダー：キャンセル＋タイトル（下書きの印）＋保存（2026-11-16 ポップアップの形をそろえる 1つ目） -->
     <div class="ev-modal-header">
-      <div class="ev-modal-back" onclick="closeModal('add-modal-backdrop')">‹</div>
-      <div style="flex:1;font-size:0.95em;font-weight:700;color:white" id="modal-title-text">新しい予定を追加</div>
+      <button type="button" class="ev-modal-cancel" id="ev-cancel-btn" onclick="cancelAddModal()">キャンセル</button>
+      <div class="ev-modal-title"><span id="modal-title-text">新しい予定を追加</span><span class="ev-draft-chip" id="ev-draft-chip" style="display:none"><span id="ev-draft-label">下書き</span><button type="button" id="ev-draft-discard" onclick="discardEvDraft()">消す</button></span></div>
       <button class="ev-modal-save" id="btn-save-event" onclick="doSaveEvent()">保存</button>
     </div>
     <!-- ボディ -->
@@ -2322,7 +2329,7 @@ ja:{
 'member.rest.off':'🛌 休み解除','member.rest.on':'🛌 休みにする',
 'member.add.event':'＋ この人の予定を追加','member.edit':'編集',
 // 予定モーダル
-'ev.add':'新しい予定を追加','ev.edit':'予定を編集','ev.copy':'予定をコピーして作成',
+'ev.draft':'下書き','ev.draft.discard':'消す','ev.add':'新しい予定を追加','ev.edit':'予定を編集','ev.copy':'予定をコピーして作成',
 'ev.title.ph':'タイトルを追加','ev.allday':'終日','ev.depart':'出発日','ev.return':'帰社日',
 'ev.depart.time':'出発時間','ev.return.time':'帰社時間',
 'ev.repeat.none':'繰り返しなし','ev.repeat.daily':'毎日','ev.repeat.weekday':'毎日（平日のみ）',
@@ -2723,7 +2730,7 @@ vi:{
 'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
 'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
 'member.add.event':'＋ Thêm lịch cho người này','member.edit':'Sửa',
-'ev.add':'Thêm lịch mới','ev.edit':'Sửa lịch','ev.copy':'Sao chép lịch',
+'ev.draft':'Bản nháp','ev.draft.discard':'Xóa','ev.add':'Thêm lịch mới','ev.edit':'Sửa lịch','ev.copy':'Sao chép lịch',
 'ev.title.ph':'Thêm tiêu đề','ev.allday':'Cả ngày','ev.depart':'Ngày đi','ev.return':'Ngày về',
 'ev.depart.time':'Giờ đi','ev.return.time':'Giờ về',
 'ev.repeat.none':'Không lặp','ev.repeat.daily':'Hàng ngày','ev.repeat.weekday':'Hàng ngày (trừ T7/CN)',
@@ -3114,7 +3121,7 @@ ne:{
 'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
 'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
 'member.add.event':'＋ यो व्यक्तिको तालिका थप्नुहोस्','member.edit':'सम्पादन',
-'ev.add':'नयाँ तालिका थप्नुहोस्','ev.edit':'तालिका सम्पादन','ev.copy':'तालिका प्रतिलिपि',
+'ev.draft':'मस्यौदा','ev.draft.discard':'हटाउनुहोस्','ev.add':'नयाँ तालिका थप्नुहोस्','ev.edit':'तालिका सम्पादन','ev.copy':'तालिका प्रतिलिपि',
 'ev.title.ph':'शीर्षक थप्नुहोस्','ev.allday':'दिनभर','ev.depart':'प्रस्थान मिति','ev.return':'फिर्ती मिति',
 'ev.depart.time':'प्रस्थान समय','ev.return.time':'फिर्ती समय',
 'ev.repeat.none':'दोहोर्याउन छैन','ev.repeat.daily':'दैनिक','ev.repeat.weekday':'कार्यदिन मात्र',
@@ -3523,6 +3530,8 @@ function applyLanguage(lang){
   const _nbl=document.getElementById('notice-body-label');if(_nbl)_nbl.textContent=t('notice.body');
   const _nb=document.getElementById('notice-body');if(_nb)_nb.placeholder=t('notice.body.ph');
   const _ncb=document.getElementById('notice-cancel-btn');if(_ncb)_ncb.textContent=t('common.cancel');
+  const _evcb=document.getElementById('ev-cancel-btn');if(_evcb)_evcb.textContent=t('common.cancel');
+  const _sscb=document.getElementById('safety-send-cancel-btn');if(_sscb)_sscb.textContent=t('common.cancel');
   const _nsb=document.getElementById('notice-submit-btn');if(_nsb)_nsb.textContent=t('notice.post.btn');
   // 問い合わせ
   const _ifl=document.getElementById('inq-files-label');if(_ifl)_ifl.textContent=t('inq.files');
@@ -8663,6 +8672,8 @@ function openAddModal(dateStr, startTime, endTime){
   onTypeChange();renderPeoplePicker();renderRoomPicker();
   updatePeopleSummary();renderPeopleSchedule();
   openModal('add-modal-backdrop');
+  // 呼び出し元が開いた後に部屋・時間・種別を入れることがあるので、それが済んでから下書きを見る
+  _evDraftKey='new'; setTimeout(()=>{ if(_evDraftKey==='new') _evDraftStart('new'); },0);
 }
 function openEditModal(id){
   const e=events.find(ev=>ev.id===id);if(!e)return;
@@ -8710,6 +8721,7 @@ function openEditModal(id){
   onTypeChange();renderPeoplePicker();renderRoomPicker();
   closeModal('detail-modal-backdrop');
   openModal('add-modal-backdrop');
+  _evDraftStart(id);
 }
 function copyEvent(id){
   const e=events.find(ev=>ev.id===id);if(!e)return;
@@ -9488,13 +9500,13 @@ async function doSaveEvent(){
     // デモモード
     if(editingId){const i=events.findIndex(e=>e.id===editingId);events[i]={...ev,id:editingId};showToast(t('ev.updated'))}
     else{events.push({...ev,id:uid()});showToast(t('ev.saved'))}
-    closeModal('add-modal-backdrop');renderAll();renderRoomTimeline();renderTeam();
+    _evDraftDone();closeModal('add-modal-backdrop');renderAll();renderRoomTimeline();renderTeam();
     return;
   }
   try {
     const result = await api('saveEvent', {event:ev}, editingId?t('common.updating'):t('common.saving'));
     if(!editingId) ev.id = result.id;
-    closeModal('add-modal-backdrop');
+    _evDraftDone();closeModal('add-modal-backdrop');
     await loadEvents({ force: true });
     const wasAlreadyPending = editingId && events.find(e=>e.id===editingId)?.approvalStatus === '申請中';
     let savedMsg = result.approvalStatus === '申請中'
@@ -9518,12 +9530,12 @@ async function doDeleteEvent(){
   if(!editingId)return;
   if(!GAS_URL){
     events=events.filter(e=>e.id!==editingId);
-    closeModal('add-modal-backdrop');showToast(t('ev.deleted'));
+    _evDraftDone();closeModal('add-modal-backdrop');showToast(t('ev.deleted'));
     renderAll();renderRoomTimeline();renderTeam();return;
   }
   try {
     await api('deleteEvent', {eventId:editingId}, t('common.deleting'));
-    closeModal('add-modal-backdrop');
+    _evDraftDone();closeModal('add-modal-backdrop');
     carDataLastFetched=0;  // 紐づく車の予約も取消になるため
     await loadEvents({ force: true });
     showToast(t('ev.deleted'));
@@ -9756,8 +9768,91 @@ async function rejectEventAction(eventId) {
   } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
 }
 
-function openModal(id){ document.getElementById(id).classList.add('open') }
-function closeModal(id){ document.getElementById(id).classList.remove('open') }
+// ===== ポップアップの共通の仕組み（2026-11-16）=====
+// HALO_POPUP_CANCEL に登録したポップアップは、スマホの「戻る」と Esc キーでも閉じる（登録した関数を呼ぶ）。
+// 開くときに履歴を1つ積み、ボタンで閉じたときはその履歴を1つ戻す（アプリごと前の画面に戻らないように）。
+// ほかのポップアップも、ここに足していけば同じ閉じ方になる。
+var HALO_POPUP_CANCEL={ 'add-modal-backdrop':()=>cancelAddModal() };
+var _popBackStack=[], _popBackIgnore=0;
+function _popupPushBack(id){
+  if(!HALO_POPUP_CANCEL[id]||_popBackStack.includes(id))return;
+  try{ history.pushState({haloPopup:id},''); _popBackStack.push(id); }catch(e){}
+}
+function _popupDropBack(id){
+  const i=_popBackStack.indexOf(id); if(i<0)return;
+  _popBackStack.splice(i,1); _popBackIgnore++;
+  try{ history.back(); }catch(e){ _popBackIgnore--; }
+}
+window.addEventListener('popstate',()=>{
+  if(_popBackIgnore>0){ _popBackIgnore--; return; }
+  const id=_popBackStack.pop();
+  if(id&&HALO_POPUP_CANCEL[id]) HALO_POPUP_CANCEL[id]();
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||!_popBackStack.length)return;
+  e.preventDefault();
+  HALO_POPUP_CANCEL[_popBackStack[_popBackStack.length-1]]();
+});
+function openModal(id){ document.getElementById(id).classList.add('open'); _popupPushBack(id); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); _popupDropBack(id); }
+
+// ----- 予定入力の下書き（閉じても、直前まで入力していた内容を残す）-----
+// 新しい予定は 'new'、編集はその予定の id ごとに残す。保存できたら消す。ページを読み直すと消える。
+// 車の欄は残さない（車予約は準備中のため）。
+var _EV_DRAFT_IDS=['ev-type','ev-title','ev-date','ev-start-date','ev-end-date','ev-start','ev-end','ev-memo','ev-repeat','ev-repeat-end','ev-rental-start','ev-rental-end','ev-rental-purpose','ev-remote-reason'];
+var _evDrafts={}, _evDraftKey=null, _evDraftBase=null;
+function _evSnap(){
+  const v={};
+  _EV_DRAFT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el) v[id]=el.value; });
+  v.approver=document.getElementById('ev-approver').value;
+  v.allday=document.getElementById('ev-allday').checked;
+  v.room=selectedRoom||null;
+  v.people=[...selectedPeople].sort();
+  v.rentals=JSON.parse(JSON.stringify(selectedRentals||[]));
+  v.rentalTouched=_rentalDatesTouched;
+  return v;
+}
+function _evApply(v){
+  _EV_DRAFT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el&&v[id]!==undefined) el.value=v[id]; });
+  document.getElementById('ev-allday').checked=!!v.allday; updateAlldayToggleVisual();
+  selectedRoom=v.room; selectedPeople=new Set(v.people); selectedRentals=v.rentals; _rentalDatesTouched=v.rentalTouched;
+  document.getElementById('repeat-end-wrap').style.display=v['ev-repeat']?'block':'none';
+  onTypeChange(); renderPeoplePicker(); renderRoomPicker(); updatePeopleSummary(); renderPeopleSchedule();
+  document.getElementById('ev-approver').value=v.approver||''; // 承認者の選択肢は onTypeChange で作り直されるので後から入れる
+  updateSaveButtonState();
+}
+// 開いた直後に呼ぶ。下書きがあれば戻し、「下書き」の印を出す
+function _evDraftStart(key){
+  _evDraftKey=key; _evDraftBase=_evSnap();
+  const d=_evDrafts[key];
+  if(d) _evApply(d);
+  _evDraftMark(!!d);
+}
+function _evDraftMark(on){
+  const c=document.getElementById('ev-draft-chip'); if(!c)return;
+  document.getElementById('ev-draft-label').textContent=t('ev.draft');
+  document.getElementById('ev-draft-discard').textContent=t('ev.draft.discard');
+  c.style.display=on?'inline-flex':'none';
+}
+// キャンセル・戻る・Esc で閉じる。開いたときから変わっていれば下書きに残す
+function cancelAddModal(){
+  if(_evDraftKey&&_evDraftBase){
+    const s=_evSnap();
+    if(JSON.stringify(s)!==JSON.stringify(_evDraftBase)) _evDrafts[_evDraftKey]=s;
+    else delete _evDrafts[_evDraftKey];
+  }
+  _evDraftKey=null;
+  closeModal('add-modal-backdrop');
+}
+// 保存・削除できたとき
+function _evDraftDone(){ if(_evDraftKey) delete _evDrafts[_evDraftKey]; _evDraftKey=null; }
+// 「消す」：下書きを捨てて、開いたときの状態に戻す
+function discardEvDraft(){
+  const key=_evDraftKey; if(!key||!_evDraftBase)return;
+  delete _evDrafts[key];
+  _evApply(_evDraftBase);
+  _evDraftMark(false);
+}
 function closeModalIfBackdrop(e,id){ if(e.target.id===id) closeModal(id) }
 
 // ============================================================
