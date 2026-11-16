@@ -10846,11 +10846,7 @@ const _clnCanMark = (id) => { const r = _clnCur; return !!r && !r.future && !r.c
 
 // セット（一緒に割り当てたほうがよい場所）。2か所以上そろったセットだけ、まとめて選べる
 const CLN_SETS = [
-  { name: '食堂', ids: ['trash', 'table', 'sink'] },
-  { name: '補充・消毒', ids: ['water', 'slipper', 'drinks', 'cups'] },
-  { name: 'トイレ', ids: ['toilet_m', 'toilet_f'] },
-  { name: '会議室', ids: ['room3', 'room2'] },
-  { name: '玄関・階段・窓', ids: ['entrance', 'stairs', 'window'] },
+  { name: 'ゴミ捨て・ポット水・飲み物・紙コップ', ids: ['trash', 'water', 'drinks', 'cups'] }, // 永野さん指定（2026-11-16）。ほかのセットは、決まったら足す
 ];
 const CLN_SHORT = { trash: 'ゴミ捨て', water: 'ポット水', table: 'テーブル', slipper: 'スリッパ', drinks: '飲み物', cups: '紙コップ', entrance: '玄関', sink: 'シンク', toilet_m: '男性トイレ', toilet_f: '女性トイレ', window: '2階の窓', stairs: '階段・廊下', room3: '3階会議室', room2: '2階会議室' };
 let _clnRowOpen = {}; // セットの中の場所を、1か所だけ個別に変えるために開いたもの
