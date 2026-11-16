@@ -10835,7 +10835,6 @@ function openCleaningSample() {
 }
 
 let _clnAssign = {}; // _clnCur.assign と同じ物（互換のため残す）
-let _clnPoll = null;   // 5秒おきの読み直し（チェックシートを開いている間だけ動く）
 let _clnBusy = 0;      // 保存・「確認OK」の送信中の数（送信中は読み直しで上書きしない）
 let _clnQueue = Promise.resolve();
 let _clnSig = '';
@@ -10969,22 +10968,8 @@ function clnSaveMemo() {
   clnQueue(clnSaveAuto);
 }
 
-// 5秒おきの読み直し：チェックシートを開いている間だけ。画面が裏に回っている間は止める
-function clnStartPoll() { clnStopPoll(); _clnPoll = setInterval(clnPollTick, 5000); }
-function clnStopPoll() { if (_clnPoll) { clearInterval(_clnPoll); _clnPoll = null; } }
-async function clnPollTick() {
-  const m = document.getElementById('dr-modal');
-  if (!_clnCur || !document.getElementById('cln-rows') || !m || m.style.display === 'none') { clnStopPoll(); return; }
-  if (document.hidden || _clnBusy > 0) return;
-  try {
-    const st = await api('getCleaningStatus', { date: _clnCur.date }, null, { quiet: true });
-    if (_clnBusy > 0 || !document.getElementById('cln-rows')) return;
-    clnApply(st);
-  } catch (e) { /* 通信できないときは、次の読み直しを待つ */ }
-}
-document.addEventListener('visibilitychange', () => { if (!document.hidden && _clnPoll) clnPollTick(); });
-
-function clnClose() { clnStopPoll(); closeDrModal(); loadCleaning(); }
+// チェックシートを開いている間の自動の読み直し（5秒おき）は、なくした（2026-11-16）。保存と読み直しが重なると、押した内容が古い内容に戻ることがあったため。最新の内容は、開き直すと見える
+function clnClose() { closeDrModal(); loadCleaning(); }
 
 async function openCleaningCheck(date) {
   let r;
@@ -11023,7 +11008,6 @@ async function openCleaningCheck(date) {
   const b = document.getElementById('dr-modal-body');
   b.style.maxWidth = 'min(1100px, 96vw)'; b.style.width = '96%'; b.style.maxHeight = '94vh'; b.style.fontSize = '1.3em';
   clnRender(true);
-  clnStartPoll();
 }
 
 // 昼休みのグループ（誰が前半組・後半組か）を見る
