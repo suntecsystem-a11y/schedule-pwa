@@ -1054,7 +1054,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=14">
+<link rel="stylesheet" href="halo-design.css?v=15">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -1804,15 +1804,6 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   </div>
 </div>
 
-<!-- 日の全件ポップアップ -->
-<div class="modal-backdrop" id="day-popup-backdrop" onclick="closeModalIfBackdrop(event,'day-popup-backdrop')">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div id="day-popup-content"></div>
-    <button class="btn-outline" style="margin-top:12px" onclick="closeModal('day-popup-backdrop')">閉じる</button>
-  </div>
-</div>
-
 <!-- マイページの並べ替え（2026-11-16） -->
 <div class="modal-backdrop" id="mylayout-backdrop" onclick="closeModalIfBackdrop(event,'mylayout-backdrop')">
   <div class="modal">
@@ -2234,7 +2225,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','cal.day.hint':'選んでいる日をもう一度押すと、その日の予定を登録できます','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席・当番',
+'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席・当番',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -2650,7 +2641,7 @@ vi:{
 'dr.err.empty':'Chưa có nội dung',
 'dr.sending':'Đang gửi...',
 'dr.saved':'Đã ghi Kaizen Step',
-'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','cal.day.hint':'Bấm lại ngày đang chọn để thêm lịch','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh・Trực nhật',
+'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh・Trực nhật',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
@@ -3041,7 +3032,7 @@ ne:{
 'dr.err.empty':'केही लेखिएको छैन',
 'dr.sending':'पठाउँदै...',
 'dr.saved':'Kaizen Step रेकर्ड गरियो',
-'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','cal.day.hint':'छानिएको दिन फेरि थिचेर तालिका थप्नुहोस्','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति・पालो',
+'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति・पालो',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
@@ -6602,8 +6593,17 @@ function renderCalendar(){
 }
 
 // ===== 月表示 =====
-const MAX_BARS=3;
-const _BAR_H=20; // 月の表示の帯の高さ（2026-11-13 3f。前は26）
+// 2026-11-17 1日の帯を3本→2本、間隔を20→18px（帯は16px）。マスの下に押せる余白を残す
+const MAX_BARS=2;
+const _BAR_H=18; // 月の表示の帯の間隔（2026-11-13 3f で 26→20、11-17 で 18）
+// 帯を押したとき：スマホ（599px以下）は帯が細くて押し分けにくいので、押した位置の日を選ぶだけ。PC は今までどおり詳細を開く
+function onMonthBarClick(ev, id, wStart){
+  ev.stopPropagation();
+  if(!window.matchMedia('(max-width:599px)').matches){ openDetail(id); return; }
+  const layer=ev.currentTarget.parentElement.getBoundingClientRect();
+  const col=Math.max(0,Math.min(6,Math.floor((ev.clientX-layer.left)/layer.width*7)));
+  calSelectDay(fmtDate(addDays(parseDate(wStart),col)));
+}
 let _calSel=fmtDate(new Date()); // 月の表示で選んでいる日（3f）
 function renderMonth(){
   const y=calDate.getFullYear(),m=calDate.getMonth();
@@ -6648,7 +6648,8 @@ function renderMonth(){
       html+=`<div class="month-cell${isToday?' today':''}${ds===_calSel?' sel':''}${hol&&!natH?' comp-hol':''}" onclick="onCellClick('${ds}')"${hol?` style="background:#fff0f0"`:''}>
         <div class="cell-num${isOther?' other-month':''}${isToday?' today':''}${dow===5?' sat':''}${dow===6?' sun':''}${anyHol?' holiday':''}">${day.getDate()}</div>
         ${holLabel?`<span class="holiday-name">${esc(holLabel)}</span><span class="holiday-short">${esc(shortHolName(holLabel))}</span>`:''}
-        ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();openDayPopup('${ds}')">${t('cal.overflow',{n:ov.overflow})}</div>`:''}
+        <button type="button" class="cell-add" aria-label="${esc(t('cal.day.add'))}" onclick="event.stopPropagation();openAddModal('${ds}')">＋</button>
+        ${ov.overflow>0?`<div class="cell-more" onclick="event.stopPropagation();calSelectDay('${ds}')">${t('cal.overflow',{n:ov.overflow})}</div>`:''}
       </div>`;
     });
     html+=`<div class="ev-layer">`;
@@ -6668,7 +6669,7 @@ function renderMonth(){
         const barLabel = isS ? (isPending?t('cal.pending'):'')+typeIcon(e.type)+' '+esc(e.title||e.type) : '';
         const barTitle = typeIcon(e.type)+' '+(e.title||e.type);
         html+=`<div class="${cls}" style="${barStyle}" title="${esc(barTitle)}"
-          onclick="event.stopPropagation();openDetail('${e.id}')"><span>${barLabel}</span></div>`;
+          onclick="onMonthBarClick(event,'${e.id}','${wStart}')"><span>${barLabel}</span></div>`;
       });
     });
     week.forEach((day,di)=>{
@@ -6680,7 +6681,7 @@ function renderMonth(){
           : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*_BAR_H+si*_BAR_H}px;background:${STATUS_COLOR[e.type]}`;
         const sSoloLabel = (isPendS?t('cal.pending'):'')+typeIcon(e.type)+' '+esc(e.title||e.type);
         html+=`<div class="ev-bar span-solo" style="${sBarStyle}" title="${esc(sSoloLabel)}"
-          onclick="event.stopPropagation();openDetail('${e.id}')"><span>${sSoloLabel}</span></div>`;
+          onclick="onMonthBarClick(event,'${e.id}','${wStart}')"><span>${sSoloLabel}</span></div>`;
       });
     });
     html+=`</div></div>`;
@@ -6826,6 +6827,10 @@ function eventCardHTML(e){
 // 日付を押す：1回目はその日を選んで予定を一覧に、選んでいる日をもう1回押すと登録の窓（2026-11-13 3f。前は1回目で登録の窓）
 function onCellClick(ds){
   if(ds===_calSel){ openAddModal(ds); return; }
+  calSelectDay(ds);
+}
+// その日を選ぶだけ（右・スマホは下にその日の予定）。「+N件」とスマホで帯を押したときもここ（2026-11-17 ポップアップをやめた）
+function calSelectDay(ds){
   _calSel=ds;
   document.querySelectorAll('#cal-content .month-cell.sel').forEach(c=>c.classList.remove('sel'));
   document.querySelectorAll('#cal-content .month-cell').forEach(c=>{ if((c.getAttribute('onclick')||'').includes("'"+ds+"'")) c.classList.add('sel'); });
@@ -6858,7 +6863,6 @@ function renderCalDay(){
     <div class="cd-head"><span class="hn-next-eb">SCHEDULE</span><span class="cd-date">${esc(t('cal.day.of',{date:label}))}</span>
       <button type="button" class="cd-add" onclick="openAddModal('${ds}')">＋ ${t('cal.day.add')}</button></div>
     ${rows||`<div class="fac-empty">${t('cal.day.none')}</div>`}
-    <div class="cd-hint">${t('cal.day.hint')}</div>
   </div>`;
 }
 // 週表示の時間帯クリック：押した位置の1時間枠（例 15:00〜16:00）で予定登録を開く
@@ -6868,23 +6872,6 @@ function onWeekColClick(event, ds){
   const h=Math.max(START_H,Math.min(END_H-1,START_H+Math.floor(y/HOUR_PX)));
   const hh=n=>String(n).padStart(2,'0')+':00';
   openAddModal(ds, hh(h), hh(h+1));
-}
-
-// ===== 日の全件ポップアップ =====
-function openDayPopup(ds){
-  const d=parseDate(ds);const all=getFiltered().filter(e=>eventIncludesDate(e,ds));
-  const timed=all.filter(e=>e.start).sort((a,b)=>a.start.localeCompare(b.start));
-  document.getElementById('day-popup-content').innerHTML=
-    `<div style="font-size:0.95em;font-weight:700;color:var(--text2);margin-bottom:14px">${t('cal.day.events',{month:d.getMonth()+1,day:d.getDate(),count:all.length})}</div>`+
-    [...timed,...all.filter(e=>!e.start)].map(e=>`
-      <div class="day-ev-item" onclick="closeModal('day-popup-backdrop');openDetail('${e.id}')">
-        <div class="day-ev-dot" style="background:${STATUS_COLOR[e.type]}"></div>
-        <div class="day-ev-info">
-          <div class="day-ev-name">${esc(e.title||e.type)}</div>
-          <div class="day-ev-sub">${tType(e.type)}${e.start?' ・ '+e.start+'〜'+e.end:''}${(e.people||[]).map(p=>' ・ '+userName(p)).join('')}</div>
-        </div>›
-      </div>`).join('');
-  openModal('day-popup-backdrop');
 }
 
 // ===== 会議室タイムライン =====
