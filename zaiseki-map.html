@@ -853,7 +853,7 @@ function createTravelGraph(layout) {
     var run=++cameraRun;
     var chars=zone.querySelector('.chars'),origin=you.closest('[data-zone]');
     var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-    var PHONE=window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
+    var PHONE=(function(){var q='(max-width:700px) and (orientation:portrait)';try{if(window.parent!==window)return window.parent.matchMedia(q).matches;}catch(e){}return window.matchMedia(q).matches;})();
     if(!animate||RM||PHONE||!origin||origin===zone){var empty=chars.querySelector('.empty');if(empty)empty.remove();chars.appendChild(you);if(animate&&origin!==zone){you.classList.remove('arrive');void you.offsetWidth;you.classList.add('arrive');}you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
     var em=chars.querySelector('.empty');if(em)em.remove();
     // Reserve the exact arrival dimensions without counting a second person.

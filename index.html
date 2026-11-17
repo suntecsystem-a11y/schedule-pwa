@@ -7761,7 +7761,7 @@ function renderTeamMap(members){
     frame=document.createElement('iframe');
     frame.id='team-map-frame';
     frame.title=t('team.map.title');
-    frame.src='zaiseki-map.html?v=2'; // 2026-11-17 休憩中のマスを足したので 2 に（古いマップが残ると休憩中の人が消えるため）
+    frame.src='zaiseki-map.html?v=3'; // 2026-11-17 休憩中のマス（v=2）、タブレットでも歩く（v=3）。古いマップが残らないよう直したら上げる
     frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
     wrap.appendChild(frame);
   }
