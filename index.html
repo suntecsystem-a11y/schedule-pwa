@@ -536,7 +536,7 @@ input,select{font-family:inherit;outline:none}
 .ev-modal-cancel{height:52px;padding:0 16px;background:none;border:none;color:white;font-size:0.88em;font-family:inherit;flex-shrink:0;white-space:nowrap;cursor:pointer}
 .ev-modal-cancel:hover{background:rgba(255,255,255,.12)}
 .ev-modal-title{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.95em;font-weight:700;color:white;text-align:center}
-.ev-modal-title>#modal-title-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-modal-title>#modal-title-text,.ev-modal-title>#car-modal-title-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ev-draft-chip{display:inline-flex;align-items:center;gap:6px;flex-shrink:0;font-size:0.72em;font-weight:500;padding:2px 4px 2px 8px;border-radius:999px;background:rgba(255,255,255,.18)}
 .ev-draft-chip button{background:none;border:none;color:white;font-size:1em;font-family:inherit;text-decoration:underline;padding:0 4px;cursor:pointer}
 .ev-modal-type-tabs{display:flex;flex:1;overflow-x:auto;height:52px;scrollbar-width:none}
@@ -1836,8 +1836,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <div class="modal-backdrop" id="car-modal-backdrop">
   <div class="modal">
     <div class="ev-modal-header">
-      <div class="ev-modal-back" onclick="closeCarModal()">‹</div>
-      <div style="flex:1;font-size:0.95em;font-weight:700;color:white" id="car-modal-title-text">車を予約する</div>
+      <button type="button" class="ev-modal-cancel" id="car-cancel-btn" onclick="cancelCarModal()">キャンセル</button>
+      <div class="ev-modal-title"><span id="car-modal-title-text">車を予約する</span><span class="ev-draft-chip" id="car-draft-chip" style="display:none"><span class="halo-draft-label">下書き</span><button type="button" class="halo-draft-discard" onclick="_carDraft.discard()">消す</button></span></div>
       <button class="ev-modal-save" id="car-btn-save" onclick="doSaveCarEvent()">保存</button>
     </div>
     <div class="ev-modal-body">
@@ -3531,6 +3531,7 @@ function applyLanguage(lang){
   const _nb=document.getElementById('notice-body');if(_nb)_nb.placeholder=t('notice.body.ph');
   const _ncb=document.getElementById('notice-cancel-btn');if(_ncb)_ncb.textContent=t('common.cancel');
   const _evcb=document.getElementById('ev-cancel-btn');if(_evcb)_evcb.textContent=t('common.cancel');
+  const _carcb=document.getElementById('car-cancel-btn');if(_carcb)_carcb.textContent=t('common.cancel');
   const _sscb=document.getElementById('safety-send-cancel-btn');if(_sscb)_sscb.textContent=t('common.cancel');
   const _nsb=document.getElementById('notice-submit-btn');if(_nsb)_nsb.textContent=t('notice.post.btn');
   // 問い合わせ
@@ -9772,7 +9773,7 @@ async function rejectEventAction(eventId) {
 // HALO_POPUP_CANCEL に登録したポップアップは、スマホの「戻る」と Esc キーでも閉じる（登録した関数を呼ぶ）。
 // 開くときに履歴を1つ積み、ボタンで閉じたときはその履歴を1つ戻す（アプリごと前の画面に戻らないように）。
 // ほかのポップアップも、ここに足していけば同じ閉じ方になる。
-var HALO_POPUP_CANCEL={ 'add-modal-backdrop':()=>cancelAddModal() };
+var HALO_POPUP_CANCEL={ 'add-modal-backdrop':()=>cancelAddModal(), 'car-modal-backdrop':()=>cancelCarModal() };
 var _popBackStack=[], _popBackIgnore=0;
 function _popupPushBack(id){
   if(!HALO_POPUP_CANCEL[id]||_popBackStack.includes(id))return;
@@ -9853,6 +9854,50 @@ function discardEvDraft(){
   _evApply(_evDraftBase);
   _evDraftMark(false);
 }
+// ----- 下書きの共通の作り（2026-11-17。車予約から使う。予定入力は上の専用の処理のまま）-----
+// o.snap()＝今の入力を取り出す、o.apply(v)＝入力に戻す、o.chip＝「下書き」の印の要素の id
+function haloDraft(o){
+  const d={store:{},key:null,base:null};
+  d.mark=(on)=>{
+    const c=document.getElementById(o.chip); if(!c)return;
+    const l=c.querySelector('.halo-draft-label'), b=c.querySelector('.halo-draft-discard');
+    if(l) l.textContent=t('ev.draft'); if(b) b.textContent=t('ev.draft.discard');
+    c.style.display=on?'inline-flex':'none';
+  };
+  // 開いた直後に呼ぶ。下書きがあれば戻す
+  d.start=(key)=>{ d.key=key; d.base=o.snap(); const v=d.store[key]; if(v) o.apply(v); d.mark(!!v); };
+  // キャンセル・戻る・Esc で閉じるとき。開いたときから変わっていれば残す
+  d.keep=()=>{
+    if(d.key&&d.base){ const v=o.snap(); if(JSON.stringify(v)!==JSON.stringify(d.base)) d.store[d.key]=v; else delete d.store[d.key]; }
+    d.key=null;
+  };
+  // 保存・削除できたとき
+  d.done=()=>{ if(d.key) delete d.store[d.key]; d.key=null; };
+  // 「消す」：開いたときの状態に戻す
+  d.discard=()=>{ if(!d.key||!d.base)return; delete d.store[d.key]; o.apply(d.base); d.mark(false); };
+  return d;
+}
+
+// ----- 車予約（出発・記録の編集）の下書き。予約ごと・出発/編集ごとに残す -----
+var _CAR_DRAFT_IDS=['car-end','car-alcohol','car-memo','car-endat'];
+var _carDraft=haloDraft({
+  chip:'car-draft-chip',
+  snap:()=>{
+    const v={};
+    _CAR_DRAFT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el) v[id]=el.value; });
+    v.confirmation=document.getElementById('car-confirmation').checked;
+    v.photos=JSON.parse(JSON.stringify(carPhotos||[]));
+    return v;
+  },
+  apply:(v)=>{
+    _CAR_DRAFT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el&&v[id]!==undefined) el.value=v[id]; });
+    document.getElementById('car-confirmation').checked=!!v.confirmation;
+    carPhotos=JSON.parse(JSON.stringify(v.photos||[]));
+    renderCarPhotos(); checkCarConflict(); checkCarAlcohol(); updateCarSaveButtonState();
+  },
+});
+function cancelCarModal(){ _carDraft.keep(); closeCarModal(); }
+
 function closeModalIfBackdrop(e,id){ if(e.target.id===id) closeModal(id) }
 
 // ============================================================
@@ -13268,6 +13313,7 @@ function openCarEditModal(id, mode) {
   updateCarSaveButtonState();
   closeModal('car-detail-backdrop');
   openModal('car-modal-backdrop');
+  _carDraft.start(id+':'+(carEditMode||'edit'));
 }
 
 function closeCarModal() { stopCarCamera(); closeModal('car-modal-backdrop'); }
@@ -13358,11 +13404,11 @@ async function doSaveCarEvent() {
     if (alcohol === '' || !carPhotos.length) { showToast(t('car.depart.need')); return; }
     if (!GAS_URL) {
       Object.assign(ev0, { alcohol, photos: carPhotos.slice(), memo, status: '使用中' });
-      closeCarModal(); renderCarView(); showToast(t('car.departed')); return;
+      _carDraft.done(); closeCarModal(); renderCarView(); showToast(t('car.departed')); return;
     }
     try {
       await api('departCarEvent', { eventId: carEditingId, alcohol, photos: carPhotos, memo }, t('car.updating'));
-      await loadCarData({ force: true }); renderCarView(); closeCarModal();
+      await loadCarData({ force: true }); renderCarView(); _carDraft.done(); closeCarModal();
       if (_currentTab === 'mypage') renderMyPage();
       showToast(t('car.departed'));
     } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
@@ -13384,11 +13430,11 @@ async function doSaveCarEvent() {
   };
   if (!GAS_URL) {
     Object.assign(ev0, payload);
-    closeCarModal(); renderCarView(); showToast(t('car.updated.msg')); return;
+    _carDraft.done(); closeCarModal(); renderCarView(); showToast(t('car.updated.msg')); return;
   }
   try {
     await api('saveCarEvent', { event: payload }, t('car.updating'));
-    await loadCarData({ force: true }); renderCarView(); closeCarModal();
+    await loadCarData({ force: true }); renderCarView(); _carDraft.done(); closeCarModal();
     if (_currentTab === 'mypage') renderMyPage();
     showToast(t('car.updated.msg'));
   } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
@@ -13411,11 +13457,11 @@ async function doDeleteCarEvent() {
   if (!carEditingId) return;
   if (!GAS_URL) {
     carEvents = carEvents.filter(e => e.id !== carEditingId);
-    closeCarModal(); renderCarView(); showToast(t('car.deleted')); return;
+    _carDraft.done(); closeCarModal(); renderCarView(); showToast(t('car.deleted')); return;
   }
   try {
     await api('deleteCarEvent', {eventId:carEditingId}, t('car.deleting'));
-    await loadCarData({ force: true }); renderCarView(); closeCarModal();
+    await loadCarData({ force: true }); renderCarView(); _carDraft.done(); closeCarModal();
     showToast(t('car.deleted'));
   } catch(err) { showToast(t('common.error.toast',{msg:err.message})); }
 }
