@@ -10402,8 +10402,8 @@ function renderMyFeedback() {
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 0 2px">
       ${_fbWeekBtn('◀', `fbMyGo(${idx + 1})`, idx + 1 < records.length, 'previous week')}
       <div style="text-align:center;width:11em">
-        <div style="font-weight:700;font-size:1.05em;white-space:nowrap">${esc(r.weekLabel)}</div>
-        <div style="font-size:0.72em;color:var(--text2)">${records.length - idx} / ${records.length}</div>
+        <select onchange="fbMyGo(Number(this.value))" aria-label="week" style="width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.95em;font-weight:700;text-align:center;background:white">${records.map((x, i) => `<option value="${i}"${i === idx ? ' selected' : ''}>${esc(x.weekLabel)}</option>`).join('')}</select>
+        <div style="font-size:0.72em;color:var(--text2);margin-top:2px">${records.length - idx} / ${records.length}</div>
       </div>
       ${_fbWeekBtn('▶', `fbMyGo(${idx - 1})`, idx > 0, 'next week')}
     </div>` : '';
