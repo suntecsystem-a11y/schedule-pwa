@@ -10948,7 +10948,7 @@ async function _loadTrashBody() {
       <details style="margin-top:10px"><summary style="cursor:pointer;font-size:0.85em;color:var(--primary)">6週の順番を見る</summary>${rows}</details>
     </div>`;
 }
-async function loadCleaning() { try { await _loadCleaningBody(); } finally { renderDutyHome(); } }
+async function loadCleaning() { try { await _loadCleaningBody(); } finally { renderDutyHome(); renderHomeTodo(); } }   // 当番のデータはホームを描いたあとに届くので、「あなたのやること」も描き直す（2026-11-18）
 async function _loadCleaningBody() {
   const area = document.getElementById('cleaning-area');
   if (!area) return;
