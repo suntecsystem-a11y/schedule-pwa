@@ -6444,11 +6444,10 @@ document.addEventListener('pointerup',e=>{
   tkfNewFromRow(dg.id,tkDs(tkAddDays(_tk.range.start,lo)),tkDs(tkAddDays(_tk.range.start,hi)));
 });
 // タブ利用回数（2026-11-18。Worker の stats.js）。人は区別せず、日×タブの回数だけ数える。
-// 本番の Worker に logTabView を入れるまでは、開発用（schedule-worker-dev）につながっているときだけ送る
-const TAB_STATS_ON = /\/\/schedule-worker-dev\./.test(GAS_URL);
+// 本番の Worker（D1 halo-stats）にも入れた。見るのは halo-worker の scripts/tab-stats.mjs（画面には出さない）
 let _lastLoggedTab = null;
 function _logTabView(tab){
-  if(!TAB_STATS_ON || !currentUser || tab===_lastLoggedTab) return; // 同じタブの押し直しは数えない
+  if(!GAS_URL || !currentUser || tab===_lastLoggedTab) return; // 同じタブの押し直しは数えない
   _lastLoggedTab = tab;
   _apiQuiet('logTabView', { tab }).catch(()=>{});
 }
