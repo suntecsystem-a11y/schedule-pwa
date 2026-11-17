@@ -10013,13 +10013,14 @@ function closeDrModal() {
   document.getElementById('dr-modal').style.display = 'none';
   const b = document.getElementById('dr-modal-body');
   b.style.maxWidth = 'min(900px,96vw)';  // 週次フィードバックで広げた幅を元に戻す
-  b.style.width = '92%'; b.style.maxHeight = '88vh'; b.style.fontSize = '';   // bigDrModal で大きくした分も元に戻す
+  b.style.width = '92%'; b.style.maxHeight = '88vh'; b.style.fontSize = ''; b.style.height = '';   // bigDrModal で大きくした分も元に戻す
 }
 function widenDrModal() { document.getElementById('dr-modal-body').style.maxWidth = 'min(1000px, 96vw)'; }
 // 週次フィードバック・確認公開のポップアップ：画面いっぱいに近い大きさ＋文字を大きく（2026-10-28）
 function bigDrModal() {
   const b = document.getElementById('dr-modal-body');
   b.style.maxWidth = 'min(1400px, 98vw)'; b.style.width = '98%'; b.style.maxHeight = '94vh'; b.style.fontSize = '1.25em';
+  b.style.height = '94vh';   // 高さを固定（週を切り替えても、上の ◀ ▶ やボタンの位置が動かない。内容は中でスクロール）
 }
 
 async function openTeamIssueChecks(date) {
@@ -10400,8 +10401,8 @@ function renderMyFeedback() {
   const nav = r ? `
     <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 0 2px">
       ${_fbWeekBtn('◀', `fbMyGo(${idx + 1})`, idx + 1 < records.length, 'previous week')}
-      <div style="text-align:center;min-width:140px">
-        <div style="font-weight:700;font-size:1.05em">${esc(r.weekLabel)}</div>
+      <div style="text-align:center;width:11em">
+        <div style="font-weight:700;font-size:1.05em;white-space:nowrap">${esc(r.weekLabel)}</div>
         <div style="font-size:0.72em;color:var(--text2)">${records.length - idx} / ${records.length}</div>
       </div>
       ${_fbWeekBtn('▶', `fbMyGo(${idx - 1})`, idx > 0, 'next week')}
@@ -10481,7 +10482,7 @@ function renderTeamFeedback() {
     ${viewOnly ? _fbTabs('team') : ''}
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       ${_fbWeekBtn('◀', `fbChangeWeek('${esc(olderWeek)}')`, !!olderWeek, 'previous week')}
-      <select onchange="fbChangeWeek(this.value)" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em">${opts}</select>
+      <select onchange="fbChangeWeek(this.value)" style="width:11em;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.88em">${opts}</select>
       ${_fbWeekBtn('▶', `fbChangeWeek('${esc(newerWeek)}')`, !!newerWeek, 'next week')}
       <span style="font-size:0.8em;color:var(--text2)">${esc(t('fb.team.count', { n: records.length, d: drafts.length }))}</span>
       ${viewOnly ? '' : `<button onclick="fbExport(false)" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.export')}</button><button onclick="fbExport(true)" style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer">${t('fb.export.all')}</button>`}
