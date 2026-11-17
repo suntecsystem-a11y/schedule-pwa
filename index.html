@@ -239,7 +239,7 @@ input,select{font-family:inherit;outline:none}
   .sidebar-btn{position:relative;flex-direction:column;justify-content:center;gap:3px;padding:8px 2px;min-height:56px}
   .sidebar-icon{font-size:1.3em;width:auto}
   .sidebar-short{display:block;max-width:100%;font-size:0.72em;line-height:1.2;text-align:center;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
-  #notice-badge-side{position:absolute;top:4px;right:8px}
+  #notice-badge-side,#chat-badge-side{position:absolute;top:4px;right:8px}
 }
 
 /* スマホ(600px未満)：下部ナビ＋その他シート */
@@ -1112,7 +1112,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span class="sidebar-short">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
     <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span><span class="sidebar-short">カレンダー</span></button>
     <button class="sidebar-btn" data-tab="team" data-tip="在席・当番" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席・当番</span><span class="sidebar-short">在席</span></button>
-    <button class="sidebar-btn chat-only" data-tab="chat" data-tip="チャット" onclick="switchTab('chat',this)"><span class="sidebar-icon">💬</span><span class="sidebar-label">チャット</span><span class="sidebar-short">チャット</span></button>
+    <button class="sidebar-btn chat-only" data-tab="chat" data-tip="チャット" onclick="switchTab('chat',this)"><span class="sidebar-icon">💬</span><span class="sidebar-label">チャット</span><span class="sidebar-short">チャット</span><span id="chat-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
     <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span><span class="sidebar-short">申請</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
     <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span><span class="sidebar-short">会議室</span></button>
@@ -1144,7 +1144,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="tab-btn active" data-tab="home" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
     <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar',this)">📅 カレンダー</button>
     <button class="tab-btn" data-tab="team" onclick="switchTab('team',this)">👥 在席</button>
-    <button class="tab-btn chat-only" data-tab="chat" onclick="switchTab('chat',this)">💬 チャット</button>
+    <button class="tab-btn chat-only" data-tab="chat" onclick="switchTab('chat',this)">💬 チャット<span id="chat-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
     <button class="tab-btn" data-tab="apply" onclick="switchTab('apply',this)">📋 申請</button>
     <button class="tab-btn" data-tab="mypage" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms',this)">🏢 会議室</button>
@@ -1347,7 +1347,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   <!-- チーム -->
   <div class="content" id="tab-tasks" style="display:none"></div>
 
-  <!-- HALO チャット（2026-11-17。chat.html を iframe で。使える人だけ・開いたときだけ読み込む。_initChatAccess） -->
+  <!-- HALO チャット（2026-11-17。chat.html を iframe で。使える人だけ。_initChatAccess）。
+       11/18 から、未読の数をタブに出すため HALO を開いたら裏で読み込む（_loadChatFrame） -->
   <div class="content" id="tab-chat" style="display:none"><iframe id="chat-frame" title="チャット"></iframe></div>
   <div class="content" id="tab-team" style="display:none">
     <!-- いつもの表示 ⇔ マップの切替（表示の選択肢とは分けて、一番上の右に置く） -->
@@ -1555,7 +1556,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   <button class="bn-btn active" data-tab="home" onclick="switchTab('home')"><span class="bn-icon-wrap"><span class="bn-icon">🏠</span><span class="bn-badge" id="notice-badge-bottom" style="display:none"></span></span><span class="bn-label">ホーム</span></button>
   <button class="bn-btn" data-tab="calendar" onclick="switchTab('calendar')"><span class="bn-icon-wrap"><span class="bn-icon">📅</span></span><span class="bn-label">カレンダー</span></button>
   <button class="bn-add" onclick="closeMoreSheet();openAddModal()" aria-label="予定を追加">＋</button>
-  <button class="bn-btn chat-only" data-tab="chat" onclick="switchTab('chat')"><span class="bn-icon-wrap"><span class="bn-icon">💬</span></span><span class="bn-label">チャット</span></button>
+  <button class="bn-btn chat-only" data-tab="chat" onclick="switchTab('chat')"><span class="bn-icon-wrap"><span class="bn-icon">💬</span><span class="bn-badge" id="chat-badge-bottom" style="display:none"></span></span><span class="bn-label">チャット</span></button>
   <button class="bn-btn" data-tab="team" onclick="switchTab('team')"><span class="bn-icon-wrap"><span class="bn-icon">👥</span></span><span class="bn-label">在席</span></button>
   <button class="bn-btn" data-tab="more" onclick="toggleMoreSheet()"><span class="bn-icon-wrap"><span class="bn-icon">☰</span><span class="bn-badge" id="bottom-notif-badge" style="display:none"></span></span><span class="bn-label">その他</span></button>
 </nav>
@@ -4091,8 +4092,36 @@ async function _initChatAccess(){
   try{
     const r=await api('chatAccess',{},null,{quiet:true}); // 読み込み中の表示を出さない
     document.body.classList.toggle('chat-on',!!(r&&r.allowed));
+    if(r&&r.allowed){
+      _updateChatBadge(r.unread||0);
+      // 未読の数をすぐ変えるため、チャットを裏で読み込んでおく（HALO の読み込みと取り合わないよう少し待つ。2026-11-18）
+      setTimeout(_loadChatFrame,1500);
+    }
   }catch(e){ document.body.classList.remove('chat-on'); }
 }
+function _loadChatFrame(){ const f=document.getElementById('chat-frame'); if(f&&!f.src) f.src='chat.html?embed=1'; }
+// チャットのタブの未読の数（お知らせと同じ ①②…。通知を切ったチャンネルは数えない。2026-11-18）
+function _updateChatBadge(count){
+  const CIRCLED=['','①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+  const label=count<=0?'':count<CIRCLED.length?CIRCLED[count]:(count>99?'99+':String(count));
+  ['chat-badge-side','chat-badge-tab','chat-badge-bottom'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.textContent=label; el.style.display=count>0?'inline-block':'none';
+  });
+}
+// チャットに「今チャットのタブを開いているか」を知らせる。開いていないときは既読にしない・スマホ通知を止めない
+function _tellChatActive(){
+  const f=document.getElementById('chat-frame');
+  if(!f||!f.src||!f.contentWindow) return;
+  try{ f.contentWindow.postMessage({haloChat:'active',on:_currentTab==='chat'},location.origin); }catch(e){}
+}
+window.addEventListener('message',e=>{
+  const f=document.getElementById('chat-frame');
+  if(!f||e.source!==f.contentWindow||e.origin!==location.origin) return;
+  const d=e.data||{};
+  if(d.haloChat==='unread') _updateChatBadge(Number(d.n)||0);
+  else if(d.haloChat==='ready') _tellChatActive();
+});
 function showReleaseNotes(){
   if(!SHOW_RELEASE_NOTES||!RELEASE_NOTES.length) return;
   const seen=localStorage.getItem('release_seen');
@@ -6427,7 +6456,8 @@ function switchTab(tab, btn){
   if(!BOTTOM_TABS.includes(tab)){const mb=document.querySelector('.bn-btn[data-tab="more"]');if(mb)mb.classList.add('active');}
   _currentTab=tab;
   document.body.dataset.tab=tab; // スマホでチャットを使う人の「＋」をカレンダーの中に出すため
-  if(tab==='chat'){ const f=document.getElementById('chat-frame'); if(f&&!f.src) f.src='chat.html?embed=1'; }
+  if(tab==='chat') _loadChatFrame();
+  _tellChatActive();
   closeMoreSheet();
   renderBottomNav();
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); loadPlaces().then(()=>{ if(_currentTab==='home') renderHomeMyPlace(); }); }

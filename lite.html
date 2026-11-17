@@ -70,6 +70,8 @@ nav button{flex:1;border:none;background:none;padding:9px 0 8px;font-size:.72em;
 nav button .ic{font-size:1.45em;line-height:1.1}
 nav button .ti{font-size:1.6em;line-height:1.1}
 nav button.on{color:var(--primary);font-weight:700}
+#nav-chat{position:relative}
+#chat-count{position:absolute;top:4px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e53935;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(70,95,85,.06)}
 .card h2{margin:0 0 10px;font-size:.95em;font-weight:600}
 /* カレンダー */
@@ -167,7 +169,7 @@ nav button.on{color:var(--primary);font-weight:700}
   <nav>
     <button id="nav-cal" class="on" onclick="switchTab('cal')"><i class="ti ti-calendar"></i><span class="ic emo">📅</span><span id="nav-cal-label">予定・弁当</span></button>
     <button id="nav-board" onclick="switchTab('board')"><i class="ti ti-users"></i><span class="ic emo">🏢</span>在籍</button>
-    <button id="nav-chat" class="hidden" onclick="location.href='chat.html?lite=1'"><i class="ti ti-message-circle"></i><span class="ic emo">💬</span>チャット</button>
+    <button id="nav-chat" class="hidden" onclick="location.href='chat.html?lite=1'"><i class="ti ti-message-circle"></i><span class="ic emo">💬</span>チャット<span id="chat-count" class="hidden"></span></button>
     <button id="nav-more" onclick="switchTab('more')"><i class="ti ti-dots"></i><span class="ic emo">☰</span>その他</button>
   </nav>
 </div>
@@ -295,6 +297,15 @@ function logout(){
   clearSess(); location.reload();
 }
 
+// HALO チャットの入口と未読の数（通知を切ったチャンネルは数えない。2026-11-18）。開いたとき・戻ってきたときに取り直す
+function loadChatCount(){
+  api('chatAccess',{}, {silent:true}).then(r=>{
+    const on=!!(r&&r.allowed), n=on?(r.unread||0):0;
+    $('nav-chat').classList.toggle('hidden', !on);
+    $('chat-count').textContent = n>99?'99+':String(n);
+    $('chat-count').classList.toggle('hidden', !n);
+  }).catch(()=>{});
+}
 async function startApp(){
   const s = loadSess(); if(!s){ showLogin(); return; }
   me = s.user;
@@ -313,7 +324,7 @@ async function startApp(){
   loadBento();
   setTimeout(()=>initPush(false), 1200);
   // HALO チャット（2026-11-17）。使える人（今はソフト設計の人）にだけ下のメニューに出す。守りは Worker 側
-  api('chatAccess',{}, {silent:true}).then(r=>{ $('nav-chat').classList.toggle('hidden', !(r&&r.allowed)); }).catch(()=>{});
+  loadChatCount();
 }
 async function reloadAll(){
   _loadedRange=''; await loadEvents(true); renderCal(); loadSafety();
@@ -924,7 +935,7 @@ function closeSheet(){ const o=$('ov'); if(o) o.remove(); }
   const s=loadSess();
   if(s && s.token && s.token.indexOf('l1.')===0){ startApp(); } else { clearSess(); showLogin(); }
   // 開いたまま日付をまたいだら今日に合わせる
-  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && me){ loadSafety(); } });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && me){ loadSafety(); loadChatCount(); } });
 })();
 </script>
 </body>

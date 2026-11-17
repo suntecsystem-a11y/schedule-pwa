@@ -314,7 +314,11 @@ const S = {
   token: '', me: '', users: {}, channels: [], cur: null, msgs: [], hasMore: false, loadingOlder: false,
   firstUnreadSeq: null, thread: null, threadMsgs: [], ws: null, wsTry: 0, readTimer: null,
   pendingDel: null, emojiTarget: null,
+  // HALO 本体のタブの中では、チャットのタブを開いているときだけ「見ている」（親が知らせる。2026-11-18）
+  active: !EMBED, sleeping: false, lastFocus: null, lastUnread: null,
 };
+/** 今この画面を人が見ているか。見ていないときは既読にしない・スマホ通知を止めない */
+const isViewing = () => S.active && document.visibilityState === 'visible';
 
 // ---------- つなぎ ----------
 async function api(action, data = {}) {
@@ -330,7 +334,10 @@ function loadSession() { try { return JSON.parse(localStorage.getItem(SESS_KEY))
 function logout() {
   if (S.ws) S.ws.close();
   // HALO の中では、HALO 本体を読み直してログインし直してもらう（通行証は HALO と同じもの）
-  if (EMBED) { try { window.parent.location.reload(); return; } catch {} }
+  if (EMBED) {
+    if (!S.active) { S.sleeping = true; return; } // 裏で読み込んでいるだけのとき。タブを開いたら読み直す
+    try { window.parent.location.reload(); return; } catch {}
+  }
   try { localStorage.removeItem(SESS_KEY); } catch {}
   location.reload();
 }
@@ -369,6 +376,8 @@ const canChat = (id) => !S.onlyDepts || !S.onlyDepts.length || S.onlyDepts.inclu
 
 // ---------- 起動 ----------
 async function start() {
+  // HALO に「読み込めた」と知らせる（今チャットのタブを開いているかを教えてもらう）
+  if (EMBED) { try { window.parent.postMessage({ haloChat: 'ready' }, location.origin); } catch {} }
   const sess = loadSession();
   if (!sess || !sess.token) { if (EMBED) { logout(); return; } $('login').classList.remove('hidden'); return; }
   if (EMBED) document.body.classList.add('embed');
@@ -422,9 +431,10 @@ function renderChannels() {
   $('chList').innerHTML = (chs.length ? '<div class="sec">チャンネル</div>' + chs.map(row).join('') : '')
     + (dms.length ? '<div class="sec">会話</div>' + dms.map(row).join('') : '')
     || '<div class="empty">チャンネルがありません</div>';
+  postUnread();
 }
 $('chList').addEventListener('click', (e) => { const el = e.target.closest('.ch'); if (el) openChannel(el.dataset.id); });
-$('back').addEventListener('click', () => { document.body.classList.remove('in-ch'); closeThread(); });
+$('back').addEventListener('click', () => { document.body.classList.remove('in-ch'); closeThread(); sendFocus(); });
 
 async function openChannel(id) {
   saveDraft('main');
@@ -436,6 +446,7 @@ async function openChannel(id) {
   $('muteBtn').textContent = ch && ch.muted ? '通知を戻す' : '通知を切る';
   document.body.classList.add('in-ch');
   renderChannels();
+  sendFocus();
   $('msgs').innerHTML = '<div class="more">読み込んでいます…</div>';
   setComposer('main', { text: loadDraft(id) });
   S.firstUnreadSeq = ch && ch.unread ? (ch.readSeq || 0) + 1 : null;
@@ -674,12 +685,12 @@ function addMsg(channelId, msg) {
       renderThread(stick);
     }
     // 返信はチャンネルの一覧には出さない（元のメッセージの「返信 n件」で分かる）。読んだ印は進める
-    if (channelId === S.cur && document.visibilityState === 'visible') markRead(msg.seq);
+    if (channelId === S.cur && isViewing()) markRead(msg.seq);
   } else if (channelId === S.cur) {
     const stick = nearBottom() || msg.empId === S.me;
     upsert(S.msgs, msg);
     renderMsgs(stick ? true : 'keep');
-    if (stick && document.visibilityState === 'visible') markRead();
+    if (stick && isViewing()) markRead();
   }
   renderChannels();
 }
@@ -700,6 +711,7 @@ function upsert(list, msg) {
 
 // 読んだところを進める（3秒まとめて送る＝無料枠を守る）
 function markRead(seqHint) {
+  if (!isViewing()) return;
   const ch = S.channels.find((c) => c.id === S.cur);
   if (!ch) return;
   const last = Math.max(seqHint || 0, ...S.msgs.filter((m) => m.seq).map((m) => m.seq), ch.lastSeq && nearBottom() ? ch.lastSeq : 0);
@@ -711,7 +723,48 @@ function markRead(seqHint) {
   const id = ch.id;
   S.readTimer = setTimeout(() => api('chatRead', { channelId: id, seq: last }).catch(() => {}), 3000);
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && nearBottom()) markRead(); });
+document.addEventListener('visibilitychange', onViewChange);
+/** 見ている・見ていないが変わった（ブラウザのタブ・HALO のタブ） */
+function onViewChange() {
+  if (S.sleeping && S.active) { logout(); return; }
+  if (isViewing() && S.cur && nearBottom()) markRead();
+  sendFocus();
+}
+/**
+ * どのチャンネルを見ているかを Worker（ChatHubDO）に知らせる。見ているチャンネルのメッセージだけ
+ * スマホ通知を送らない（つながっているだけで HALO の別のタブにいる人にはメンションの通知が届く）
+ */
+function sendFocus() {
+  const ch = isViewing() && S.cur && document.body.classList.contains('in-ch') ? S.cur : '';
+  if (!S.ws || S.ws.readyState !== 1 || ch === S.lastFocus) return;
+  try { S.ws.send(JSON.stringify({ type: 'focus', ch })); S.lastFocus = ch; } catch {}
+}
+// HALO 本体から「チャットのタブを開いた・閉じた」
+window.addEventListener('message', (e) => {
+  if (!EMBED || e.source !== window.parent || e.origin !== location.origin) return;
+  const d = e.data || {};
+  if (d.haloChat !== 'active') return;
+  const was = S.active;
+  S.active = !!d.on;
+  if (S.active && !was && !S.sleeping) {
+    // 裏にいた間に届いた分を「ここから未読」で見せる（裏では画面の大きさが0なので描き直す）
+    const ch = S.channels.find((c) => c.id === S.cur);
+    if (ch) {
+      S.firstUnreadSeq = ch.unread ? (ch.readSeq || 0) + 1 : null;
+      renderMsgs('unread');
+      markRead();
+    } else if (!S.cur && window.innerWidth >= 700 && S.channels.length) openChannel(S.channels[0].id);
+  }
+  onViewChange();
+});
+/** 未読の合計（通知を切ったチャンネルは数えない）を HALO のタブの数字・ページの題名に出す */
+function postUnread() {
+  const n = S.channels.reduce((a, c) => a + (c.muted ? 0 : Math.max(0, c.unread || 0)), 0);
+  if (n === S.lastUnread) return;
+  S.lastUnread = n;
+  if (EMBED) { try { window.parent.postMessage({ haloChat: 'unread', n }, location.origin); } catch {} }
+  else document.title = (n ? `(${n}) ` : '') + 'HALO チャット';
+}
 
 // ---------- 入力欄（チャンネルとスレッドの2つ） ----------
 const C = {}; // where → { root, input, send, ctx, box, state:{quote, edit, mentions:Map} }
@@ -1120,7 +1173,9 @@ function connect() {
   let ping;
   ws.onopen = () => {
     S.wsTry = 0;
+    S.lastFocus = null;
     setConn(true);
+    sendFocus();
     ping = setInterval(() => { try { ws.send('ping'); } catch {} }, 30000);
     resync();
   };
@@ -1149,7 +1204,7 @@ async function reloadChannels(checkCur) {
     const ch = S.channels.find((c) => c.id === S.cur);
     if (checkCur && S.cur && !ch) {
       // しまわれた・メンバーから外れたチャンネル
-      S.cur = null; S.msgs = []; closeThread();
+      S.cur = null; S.msgs = []; closeThread(); sendFocus();
       $('chName').textContent = '';
       $('msgs').innerHTML = '<div class="empty">このチャンネルは見られなくなりました</div>';
     } else if (ch) {
