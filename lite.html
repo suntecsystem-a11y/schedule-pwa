@@ -167,6 +167,7 @@ nav button.on{color:var(--primary);font-weight:700}
   <nav>
     <button id="nav-cal" class="on" onclick="switchTab('cal')"><i class="ti ti-calendar"></i><span class="ic emo">📅</span><span id="nav-cal-label">予定・弁当</span></button>
     <button id="nav-board" onclick="switchTab('board')"><i class="ti ti-users"></i><span class="ic emo">🏢</span>在籍</button>
+    <button id="nav-chat" class="hidden" onclick="location.href='chat.html?lite=1'"><i class="ti ti-message-circle"></i><span class="ic emo">💬</span>チャット</button>
     <button id="nav-more" onclick="switchTab('more')"><i class="ti ti-dots"></i><span class="ic emo">☰</span>その他</button>
   </nav>
 </div>
@@ -311,6 +312,8 @@ async function startApp(){
   // お弁当の🍱をカレンダーに出すため、一度読む
   loadBento();
   setTimeout(()=>initPush(false), 1200);
+  // HALO チャット（2026-11-17）。使える人（今はソフト設計の人）にだけ下のメニューに出す。守りは Worker 側
+  api('chatAccess',{}, {silent:true}).then(r=>{ $('nav-chat').classList.toggle('hidden', !(r&&r.allowed)); }).catch(()=>{});
 }
 async function reloadAll(){
   _loadedRange=''; await loadEvents(true); renderCal(); loadSafety();

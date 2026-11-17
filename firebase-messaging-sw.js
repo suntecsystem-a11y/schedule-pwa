@@ -33,7 +33,7 @@ messaging.onBackgroundMessage(async payload => {
     // アイコンはこのファイルと同じ場所（/schedule-pwa/）。前は '/icon-192.png'（サイトの一番上）を見ていて 404 だった（2026-11-06）
     icon:               new URL('icon-192.png', self.registration.scope).href,
     badge:              new URL('icon-192.png', self.registration.scope).href,
-    tag:                isTodoke ? type + '_' + payload.data.recordId : type,
+    tag:                isTodoke ? type + '_' + payload.data.recordId : (type === 'chat' && payload.data?.channelId ? 'chat_' + payload.data.channelId : type),
     data:               payload.data || {},
     requireInteraction: false,
   };
@@ -55,6 +55,15 @@ self.addEventListener('notificationclick', event => {
   // 届出の通知は、申請アプリの該当届出を直接開く。
   // それ以外は従来どおり（開いているウィンドウにフォーカス）。
   const data = event.notification.data || {};
+  // HALO チャットの通知（2026-11-17）は、そのチャンネルを開く。HALO Lite で通知を登録した端末は Lite 用に開く
+  if (data.type === 'chat' && data.channelId) {
+    event.waitUntil(caches.open('halo-mode').then(c => c.match('mode')).then(r => (r ? r.text() : '')).catch(() => '')
+      .then(mode => {
+        const url = new URL('chat.html?' + (mode === 'lite' ? 'lite=1&' : '') + 'ch=' + encodeURIComponent(data.channelId), self.registration.scope).href;
+        return clients.openWindow ? clients.openWindow(url) : null;
+      }));
+    return;
+  }
   if (String(data.type || '').indexOf('todoke_') === 0 && data.recordId) {
     const url = new URL('./apply-pwa/?todoke=' + encodeURIComponent(data.recordId),
                         self.registration.scope).href;

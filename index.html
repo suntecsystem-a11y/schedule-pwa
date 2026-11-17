@@ -266,6 +266,16 @@ input,select{font-family:inherit;outline:none}
 .more-tile.active{background:var(--primary-light);color:var(--primary-dark)}
 .more-tile:disabled{opacity:.45;cursor:not-allowed}
 .more-tile .bn-badge{top:8px;right:auto;left:calc(50% + 12px)}
+/* HALO チャット（2026-11-17）。使える人だけ（body.chat-on）。iframe は画面いっぱい */
+body:not(.chat-on) .chat-only{display:none!important}
+#tab-chat{padding:0!important;max-width:none!important}
+#chat-frame{display:block;width:100%;border:0;height:calc(100dvh - 56px)}
+body[data-tab="chat"] .fab{display:none!important} /* チャットの送信ボタンと重ならないように */
+@media(max-width:599px){
+  body.chat-on #bottom-nav .bn-add{display:none}
+  body.chat-on[data-tab="calendar"] .fab{display:flex!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+  #chat-frame{height:calc(100dvh - 56px - 64px - env(safe-area-inset-bottom,0px))}
+}
 @media(max-width:599px){
   body.app-active #bottom-nav{display:flex}
   body.app-active .tab-nav-wrap{display:none}
@@ -1101,6 +1111,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span class="sidebar-short">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
     <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span><span class="sidebar-short">カレンダー</span></button>
     <button class="sidebar-btn" data-tab="team" data-tip="在席・当番" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席・当番</span><span class="sidebar-short">在席</span></button>
+    <button class="sidebar-btn chat-only" data-tab="chat" data-tip="チャット" onclick="switchTab('chat',this)"><span class="sidebar-icon">💬</span><span class="sidebar-label">チャット</span><span class="sidebar-short">チャット</span></button>
     <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span><span class="sidebar-short">申請</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
     <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span><span class="sidebar-short">会議室</span></button>
@@ -1132,6 +1143,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="tab-btn active" data-tab="home" onclick="switchTab('home',this)">🏠 ホーム<span id="notice-badge-tab" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:4px;vertical-align:middle"></span></button>
     <button class="tab-btn" data-tab="calendar" onclick="switchTab('calendar',this)">📅 カレンダー</button>
     <button class="tab-btn" data-tab="team" onclick="switchTab('team',this)">👥 在席</button>
+    <button class="tab-btn chat-only" data-tab="chat" onclick="switchTab('chat',this)">💬 チャット</button>
     <button class="tab-btn" data-tab="apply" onclick="switchTab('apply',this)">📋 申請</button>
     <button class="tab-btn" data-tab="mypage" onclick="switchTab('mypage',this)">👤 マイページ<span class="notif-badge" id="tab-notif-badge" style="display:none;position:relative;top:-4px;margin-left:2px"></span></button>
     <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms',this)">🏢 会議室</button>
@@ -1334,6 +1346,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   <!-- チーム -->
   <div class="content" id="tab-tasks" style="display:none"></div>
 
+  <!-- HALO チャット（2026-11-17。chat.html を iframe で。使える人だけ・開いたときだけ読み込む。_initChatAccess） -->
+  <div class="content" id="tab-chat" style="display:none"><iframe id="chat-frame" title="チャット"></iframe></div>
   <div class="content" id="tab-team" style="display:none">
     <!-- いつもの表示 ⇔ マップの切替（表示の選択肢とは分けて、一番上の右に置く） -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button type="button" class="team-mode-btn" id="team-mode-btn" onclick="toggleTeamMode()"></button></div>
@@ -1540,6 +1554,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   <button class="bn-btn active" data-tab="home" onclick="switchTab('home')"><span class="bn-icon-wrap"><span class="bn-icon">🏠</span><span class="bn-badge" id="notice-badge-bottom" style="display:none"></span></span><span class="bn-label">ホーム</span></button>
   <button class="bn-btn" data-tab="calendar" onclick="switchTab('calendar')"><span class="bn-icon-wrap"><span class="bn-icon">📅</span></span><span class="bn-label">カレンダー</span></button>
   <button class="bn-add" onclick="closeMoreSheet();openAddModal()" aria-label="予定を追加">＋</button>
+  <button class="bn-btn chat-only" data-tab="chat" onclick="switchTab('chat')"><span class="bn-icon-wrap"><span class="bn-icon">💬</span></span><span class="bn-label">チャット</span></button>
   <button class="bn-btn" data-tab="team" onclick="switchTab('team')"><span class="bn-icon-wrap"><span class="bn-icon">👥</span></span><span class="bn-label">在席</span></button>
   <button class="bn-btn" data-tab="more" onclick="toggleMoreSheet()"><span class="bn-icon-wrap"><span class="bn-icon">☰</span><span class="bn-badge" id="bottom-notif-badge" style="display:none"></span></span><span class="bn-label">その他</span></button>
 </nav>
@@ -2230,7 +2245,7 @@ ja:{
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
 'nav.team.short':'在席','nav.devices.short':'端末','nav.cars.short':'車',
-'nav.more':'その他','nav.add':'予定を追加',
+'nav.more':'その他','nav.add':'予定を追加','nav.chat':'チャット',
 'devices.title':'📱 端末貸出','devices.all':'すべて','devices.available':'空き','devices.rented':'貸出中','devices.pending':'申請中','devices.reserved':'予約中','devices.empty':'端末マスタが登録されていません',
 // アプリ
 'app.title':'スケジュール管理',
@@ -2645,7 +2660,7 @@ vi:{
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
-'nav.more':'Thêm','nav.add':'Thêm lịch',
+'nav.more':'Thêm','nav.add':'Thêm lịch','nav.chat':'Trò chuyện',
 'devices.title':'📱 Mượn thiết bị','devices.all':'Tất cả','devices.available':'Trống','devices.rented':'Đang mượn','devices.pending':'Chờ duyệt','devices.reserved':'Đã đặt','devices.empty':'Chưa có thiết bị nào',
 'app.title':'Quản lý lịch trình',
 'login.title':'Quản lý lịch trình','login.subtitle':'Đăng nhập bằng mã nhân viên và PIN',
@@ -3036,7 +3051,7 @@ ne:{
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
-'nav.more':'थप','nav.add':'कार्यक्रम थप्नुहोस्',
+'nav.more':'थप','nav.add':'कार्यक्रम थप्नुहोस्','nav.chat':'च्याट',
 'devices.title':'📱 उपकरण भाडा','devices.all':'सबै','devices.available':'खाली','devices.rented':'भाडामा','devices.pending':'बिचाराधीन','devices.reserved':'आरक्षित','devices.empty':'कुनै उपकरण दर्ता छैन',
 'app.title':'तालिका व्यवस्थापन',
 'login.title':'तालिका व्यवस्थापन','login.subtitle':'कर्मचारी नम्बर र PIN ले लग इन गर्नुहोस्',
@@ -3357,6 +3372,7 @@ const NAV_META={
   home:{e:'🏠',k:'nav.home',s:'nav.home'},
   calendar:{e:'📅',k:'nav.calendar',s:'nav.calendar'},
   team:{e:'👥',k:'nav.team',s:'nav.team.short'},
+  chat:{e:'💬',k:'nav.chat',s:'nav.chat'}, // 2026-11-17 HALO チャット（使える人だけ。_initChatAccess）
   apply:{e:'📋',k:'nav.apply',s:'nav.apply'},
   mypage:{e:'👤',k:'nav.mypage',s:'nav.mypage'},
   rooms:{e:'🏢',k:'nav.facility',s:'nav.facility.short'}, // 2026-11-12 3e-1：会議室＋端末＝設備予約
@@ -3371,7 +3387,7 @@ const NAV_META={
 // 車予約タブ（準備中）を先行して開ける社員番号。全員に開放するときは NAV_META.cars の prep を外す
 const CAR_ALLOWED_IDS=['90'];
 function carAllowed(){return !!(currentUser&&CAR_ALLOWED_IDS.includes(String(currentUser.id)));}
-const BOTTOM_TABS=['home','calendar','team'];
+const BOTTOM_TABS=['home','calendar','team','chat'];
 const MORE_TABS=['apply','mypage','rooms','inquiry','tasks','elearning','settings','admin'];
 let _currentTab='home';
 let _moreNotifCount=0;
@@ -4052,6 +4068,7 @@ function showApp(opts){
   document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
   _applyNavLabels();
   if(typeof tkFetchAccess==='function')tkFetchAccess();
+  _initChatAccess();
   buildFilterUI();
   const _retTab=sessionStorage.getItem('sch_return_tab');
   const _fromIncident=document.referrer&&document.referrer.includes('incident-report');
@@ -4066,6 +4083,14 @@ function showApp(opts){
   renderAll();
   Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink(), loadCleaning(), loadTrash(), loadMyLayout()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
+}
+// HALO チャット（2026-11-17）。Worker の chatAccess が「使える」と返した人だけ入口を出す（今は部署「ソフト設計」の人。
+// 守りは Worker 側。ここは見せるかどうかだけ）。使えない人・失敗したときは何も変えない
+async function _initChatAccess(){
+  try{
+    const r=await api('chatAccess',{},null,{quiet:true}); // 読み込み中の表示を出さない
+    document.body.classList.toggle('chat-on',!!(r&&r.allowed));
+  }catch(e){ document.body.classList.remove('chat-on'); }
 }
 function showReleaseNotes(){
   if(!SHOW_RELEASE_NOTES||!RELEASE_NOTES.length) return;
@@ -6393,12 +6418,15 @@ function switchTab(tab, btn){
   if(tab==='cars'){ _facFilter='car'; tab='rooms'; }       // 車も設備予約の中（準備中。3e-1）
   if(tab==='tasks'&&!tkAllowed())return;
   if(tab==='cars'&&!carAllowed())return;
-  ['home','calendar','tasks','rooms','team','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
+  if(tab==='chat'&&!document.body.classList.contains('chat-on'))return;
+  ['home','calendar','tasks','rooms','team','chat','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn,.sidebar-btn,.bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   if(!BOTTOM_TABS.includes(tab)){const mb=document.querySelector('.bn-btn[data-tab="more"]');if(mb)mb.classList.add('active');}
   _currentTab=tab;
+  document.body.dataset.tab=tab; // スマホでチャットを使う人の「＋」をカレンダーの中に出すため
+  if(tab==='chat'){ const f=document.getElementById('chat-frame'); if(f&&!f.src) f.src='chat.html?embed=1'; }
   closeMoreSheet();
   renderBottomNav();
   if(tab==='home')    { renderHome(); renderHomeDayWidgets(); loadNotices(); loadPlaces().then(()=>{ if(_currentTab==='home') renderHomeMyPlace(); }); }

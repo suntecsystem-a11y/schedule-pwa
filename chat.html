@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>HALO チャット</title>
+<!--
+  HALO チャット（2026-11-17）。正本はこのファイル（halo-github/chat.html）。開発用の写しは schedule-dev の build-dev-pwa.js が作る
+  （本番の Worker のアドレスを開発用に置き換える）。今は部署「ソフト設計」の人だけ使える（守りは Worker の CHAT_ONLY_DEPTS）。
+  HALO 本体のチャットのタブ（index.html の #chat-frame）は ?embed=1 で読み込む。
+  できること：チャンネルと DM・グループの一覧・未読（未読の位置から開く）・送る・リアルタイムに届く・
+    スレッド・引用・リアクション・「確認しました」・直す・消す・メンション（@）・新しい会話・通知を切る・送る前の個人情報の注意。
+  前の Supabase 版（チャットツール/index.html）の操作を、HALO の新デザインの色で作り直したもの。
+  接続先：本番の Worker（開発用の写しでは開発用 Worker）。?api=local で手元（wrangler dev の 127.0.0.1:8787）。
+  ログイン：HALO と同じ通行証（sch_sess）。?lite=1 なら HALO Lite の通行証（halo_lite_sess）。無ければこの画面でログインする。
+  個人の端末（HALO Lite）でも使うので、書きかけ以外は端末に残さない（メッセージは毎回 Worker から読む）。
+  決まり：docs/HALOチャット_要件定義書.md・HALOチャット_設計書.md
+-->
+<style>
+:root{
+  --primary:#3F5F55;--primary-dark:#344945;--primary-light:#E3EEE4;
+  --bg:#F7F5F1;--surface:#FFFFFF;--surface-1:#F3F0E8;--border:#E3DDD0;
+  --text:#25302D;--text2:#6E7773;--text3:#A9AEA9;--red:#C2715A;--sun:#EFE8C4;--mention:#F4EBCB;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Geist','Noto Sans JP',system-ui,sans-serif;background:var(--bg);color:var(--text);font-feature-settings:'palt';letter-spacing:.02em;overflow:hidden}
+button,input,textarea{font:inherit;letter-spacing:inherit;color:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+
+/* ログイン */
+#login{min-height:100%;display:flex;align-items:center;justify-content:center;padding:16px}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:100%;max-width:340px}
+.login-card h1{font-size:18px;font-weight:600;margin-bottom:18px}
+.login-card label{display:block;font-size:12px;color:var(--text2);margin:12px 0 4px}
+.login-card input{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:15px}
+.login-card button{width:100%;margin-top:18px;padding:12px;border:0;border-radius:999px;background:var(--primary);color:#fff;font-weight:600}
+.err{color:var(--red);font-size:13px;margin-top:10px;min-height:1em}
+
+/* 全体 */
+body.embed .side-head{display:none}
+#app{height:100%;display:flex}
+#side{width:280px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.side-head{height:56px;display:flex;align-items:center;gap:8px;padding:0 10px 0 16px;background:var(--primary);color:#fff}
+.side-head .t{font-weight:600;flex:1}
+.side-head .me{font-size:12px;opacity:.85}
+.head-btn{border:1px solid rgba(255,255,255,.45);background:transparent;color:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}
+#chList{flex:1;overflow-y:auto;padding:4px 0 8px}
+.sec{font-size:11px;color:var(--text2);letter-spacing:.08em;padding:12px 16px 4px}
+.ch{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer}
+.ch:hover{background:var(--surface-1)}
+.ch.on{background:var(--primary-light)}
+.ch .nm{flex:1;min-width:0}
+.ch .nm b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch .nm small{display:block;color:var(--text2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch.unread .nm b{font-weight:700}
+.ch .mute{font-size:11px;color:var(--text3)}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
+.ch.muted .badge{background:var(--text3)}
+.conn{font-size:11px;color:var(--text2);padding:8px 16px;border-top:1px solid var(--border)}
+.conn.off{color:var(--red)}
+
+.pane{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+#thread{flex:0 0 380px;border-left:1px solid var(--border)}
+.pane-head{height:56px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 12px 0 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+.pane-head .t{font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pane-head .sub{font-size:12px;color:var(--text2);font-weight:400;margin-left:6px}
+.txt-btn{border:0;background:none;color:var(--primary);font-weight:600;padding:6px 6px;font-size:14px}
+#back{display:none}
+.list{flex:1;overflow-y:auto;padding:12px 16px 16px}
+.more{text-align:center;color:var(--text3);font-size:12px;padding:6px}
+.day{text-align:center;margin:14px 0 8px}
+.day span{font-size:11px;color:var(--text2);background:var(--surface-1);border-radius:999px;padding:3px 10px}
+.unread-line{display:flex;align-items:center;gap:8px;color:var(--red);font-size:11px;margin:10px 0}
+.unread-line::before,.unread-line::after{content:'';flex:1;border-top:1px solid var(--red);opacity:.5}
+
+.m{position:relative;display:flex;flex-direction:column;align-items:flex-start;margin:4px 0;padding:2px 0}
+.m.mine{align-items:flex-end}
+.m .who{font-size:12px;color:var(--text2);margin:6px 6px 2px}
+.m .bub{max-width:min(560px,82%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;line-height:1.55}
+.m.mine .bub{background:var(--primary-light);border-color:#CFDDD1}
+.m.mentioned .bub{background:var(--mention);border-color:#E6D79F}
+.m.pending .bub{opacity:.6}
+.m.failed .bub{border-color:var(--red)}
+.m.deleted .bub{color:var(--text3);font-style:italic}
+.m .bub a{color:var(--primary-dark)}
+.m .bub .at{color:var(--primary-dark);font-weight:600}
+.quote{display:block;border-left:3px solid var(--text3);padding:2px 8px;margin:0 0 6px;color:var(--text2);font-size:13px;white-space:pre-wrap;max-height:4.6em;overflow:hidden}
+.meta{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--text3);margin:2px 6px 0}
+.reacts{display:flex;flex-wrap:wrap;gap:4px;margin:4px 4px 0;max-width:min(560px,82%)}
+.m.mine .reacts{justify-content:flex-end}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:2px 9px;font-size:12px;line-height:1.6}
+.chip.on{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark);font-weight:600}
+.chip.stamp{background:var(--surface-1)}
+.chip.stamp.on{background:var(--primary-light)}
+.replies{border:0;background:none;color:var(--primary);font-size:12px;font-weight:600;margin:4px 6px 0;padding:0}
+/* メッセージの操作（PC はマウスを乗せると出る。スマホは押すと下から出る） */
+.acts{position:absolute;top:-14px;right:4px;display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2px;box-shadow:0 2px 8px rgba(37,48,45,.08);z-index:5}
+.m:not(.mine) .acts{left:auto;right:auto;left:40%}
+@media(hover:hover){.m:hover .acts{display:flex}}
+.acts button{border:0;background:none;padding:4px 6px;border-radius:7px;color:var(--text2);font-size:12px}
+.acts button:hover{background:var(--surface-1);color:var(--text)}
+.empty{color:var(--text2);text-align:center;margin-top:40px;font-size:14px}
+
+.composer{flex-shrink:0;border-top:1px solid var(--border);background:var(--surface);padding:8px 12px calc(10px + env(safe-area-inset-bottom));position:relative}
+.rule{font-size:11px;color:var(--text2);margin:0 4px 6px}
+.ctx{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);background:var(--surface-1);border-radius:8px;padding:6px 10px;margin-bottom:6px}
+.ctx span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctx button{border:0;background:none;color:var(--text2);font-size:12px}
+.row{display:flex;gap:8px;align-items:flex-end}
+textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:#fff;font-size:15px;line-height:1.45}
+.send{border:0;border-radius:999px;background:var(--primary);color:#fff;font-weight:600;padding:0 18px;height:42px}
+.send:disabled{opacity:.45;cursor:default}
+.mention-box{position:absolute;bottom:100%;left:12px;right:12px;max-height:220px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 16px rgba(37,48,45,.12);z-index:20}
+.mention-box div{padding:8px 12px;cursor:pointer;font-size:14px}
+.mention-box div small{color:var(--text2);margin-left:6px;font-size:12px}
+.mention-box div.sel,.mention-box div:hover{background:var(--primary-light)}
+
+/* 小窓・下から出る操作 */
+.overlay{position:fixed;inset:0;background:rgba(37,48,45,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.box{background:var(--surface);border-radius:16px;max-width:400px;width:100%;padding:20px;max-height:86vh;display:flex;flex-direction:column}
+.box h2{font-size:16px;font-weight:600;margin-bottom:8px}
+.box p{font-size:14px;color:var(--text2);line-height:1.6}
+.box ul{margin:8px 0 0 18px;font-size:14px}
+.btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn{border-radius:999px;padding:9px 16px;font-weight:600;border:1px solid var(--border);background:#fff}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.danger{background:var(--red);border-color:var(--red);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+#people input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin:4px 0 8px}
+#peopleList{overflow-y:auto;flex:1;min-height:120px;border-top:1px solid var(--border)}
+#peopleList label{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--surface-1);font-size:14px}
+#peopleList small{color:var(--text2);font-size:12px}
+#picked{font-size:12px;color:var(--text2);min-height:1.2em}
+.side-tools{padding:8px 10px 4px;border-bottom:1px solid var(--border)}
+.side-tools input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface-1);font-size:14px}
+.side-btns{display:flex;justify-content:space-between;margin-top:2px}
+.side-btns .txt-btn{font-size:13px}
+#searchList{flex:1;overflow-y:auto;padding:4px 0 8px}
+.hit{padding:9px 16px;cursor:pointer;border-bottom:1px solid var(--surface-1)}
+.hit:hover{background:var(--surface-1)}
+.hit .where{font-size:11px;color:var(--text2)}
+.hit .body{font-size:13px;margin-top:2px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+.hit mark{background:var(--sun);color:inherit;border-radius:3px}
+.field{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:10px;margin:6px 0 10px;font-size:15px}
+.opt{display:flex;align-items:center;gap:8px;font-size:14px;padding:6px 2px}
+#setNameRow{display:flex;gap:8px;align-items:center}
+#setNameRow .field{margin:4px 0}
+#setNameRow .btn{white-space:nowrap;flex-shrink:0}
+#setMembers{max-height:40vh;overflow-y:auto;margin-top:8px;border-top:1px solid var(--border)}
+#setMembers div{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--surface-1);font-size:14px}
+#setMembers div span{flex:1}
+#setMembers small{color:var(--text2)}
+#setMembers button{border:0;background:none;color:var(--red);font-size:12px}
+.btns.wrap{flex-wrap:wrap}
+.files{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.bub .files:first-child{margin-top:0}
+.file{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-1);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer;text-align:left;max-width:320px}
+.file b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file small{color:var(--text2);white-space:nowrap}
+.thumb{display:block;max-width:240px;max-height:200px;border-radius:10px;border:1px solid var(--border);cursor:pointer;background:var(--surface-1);min-width:80px;min-height:60px}
+.attach{border:0;background:none;color:var(--text2);height:42px;padding:0 4px}
+.attach:hover{color:var(--primary)}
+.pending-files{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.pending-files span{font-size:12px;background:var(--surface-1);border-radius:999px;padding:3px 10px}
+.pending-files button{border:0;background:none;color:var(--text2);margin-left:4px}
+.ch .tag{font-size:10px;color:var(--text2);border:1px solid var(--border);border-radius:999px;padding:0 6px;margin-left:4px;font-weight:400}
+.emojis{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.emojis button{border:0;background:var(--surface-1);border-radius:10px;font-size:22px;padding:8px 0}
+.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:16px 16px 0 0;padding:8px 8px calc(12px + env(safe-area-inset-bottom));z-index:60;box-shadow:0 -4px 20px rgba(37,48,45,.15)}
+.sheet button{display:block;width:100%;text-align:left;border:0;background:none;padding:13px 16px;font-size:15px;border-radius:10px}
+.sheet button:active{background:var(--surface-1)}
+.sheet .danger{color:var(--red)}
+
+/* タブレット：スレッドは画面の上にかぶせる */
+@media(max-width:1099px){
+  #thread{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);z-index:40;box-shadow:-4px 0 20px rgba(37,48,45,.12)}
+}
+/* スマホ：一覧とチャンネルを切り替える */
+@media(max-width:699px){
+  #side{width:100%;border-right:0}
+  #main{display:none}
+  body.in-ch #side{display:none}
+  body.in-ch #main{display:flex}
+  #back{display:inline-block}
+  #thread{width:100%;border-left:0}
+}
+</style>
+</head>
+<body>
+
+<div id="login" class="hidden">
+  <form class="login-card" id="loginForm">
+    <h1>HALO チャット</h1>
+    <label for="empId">社員番号</label>
+    <input id="empId" autocomplete="username" required>
+    <label for="pin">PIN</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+    <button type="submit">ログイン</button>
+    <div class="err" id="loginErr"></div>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <aside id="side">
+    <div class="side-head"><span class="t">チャット</span><span class="me" id="meName"></span></div>
+    <div class="side-tools">
+      <form id="searchForm"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"></form>
+      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button></div>
+    </div>
+    <div id="chList"></div>
+    <div id="searchList" class="hidden"></div>
+    <div class="conn" id="conn">接続しています…</div>
+  </aside>
+
+  <section class="pane" id="main">
+    <div class="pane-head"><button id="back" class="txt-btn" type="button">‹ 一覧</button><span class="t" id="chName"></span><button class="txt-btn" id="muteBtn" type="button"></button><button class="txt-btn" id="setBtn" type="button">設定</button></div>
+    <div class="list" id="msgs"></div>
+    <div class="composer" id="mainComposer"></div>
+  </section>
+
+  <section class="pane hidden" id="thread">
+    <div class="pane-head"><span class="t">スレッド</span><button class="txt-btn" id="closeThread" type="button">閉じる</button></div>
+    <div class="list" id="threadMsgs"></div>
+    <div class="composer" id="threadComposer"></div>
+  </section>
+</div>
+
+<div id="pii" class="overlay hidden">
+  <div class="box">
+    <h2>個人情報が入っていませんか？</h2>
+    <p>次のようなものが見つかりました。</p>
+    <ul id="piiList"></ul>
+    <div class="btns"><button type="button" class="btn primary" id="piiFix">直す</button><button type="button" class="btn" id="piiSend">このまま送る</button></div>
+  </div>
+</div>
+
+<div id="confirmDel" class="overlay hidden">
+  <div class="box">
+    <h2>このメッセージを消しますか？</h2>
+    <p>「削除されました」と表示されます。</p>
+    <div class="btns"><button type="button" class="btn" id="delNo">やめる</button><button type="button" class="btn danger" id="delYes">消す</button></div>
+  </div>
+</div>
+
+<div id="emojiPick" class="overlay hidden">
+  <div class="box">
+    <h2>リアクション</h2>
+    <div class="emojis" id="emojiGrid"></div>
+    <div class="btns"><button type="button" class="btn" id="emojiClose">閉じる</button></div>
+  </div>
+</div>
+
+<div id="chanNew" class="overlay hidden">
+  <div class="box">
+    <h2>チャンネルを作る</h2>
+    <input id="chanName" class="field" maxlength="40" placeholder="チャンネルの名前">
+    <label class="opt"><input type="radio" name="chanKind" value="public" checked> 全員が見られる</label>
+    <label class="opt"><input type="radio" name="chanKind" value="private"> 招いた人だけ（作ったあとでメンバーを選びます）</label>
+    <div class="err" id="chanErr"></div>
+    <div class="btns"><button type="button" class="btn" id="chanNo">やめる</button><button type="button" class="btn primary" id="chanGo">作る</button></div>
+  </div>
+</div>
+
+<div id="chanSet" class="overlay hidden">
+  <div class="box">
+    <h2>チャンネルの設定</h2>
+    <div id="setNameRow"><input id="setName" class="field" maxlength="40"><button type="button" class="btn" id="setNameGo">名前を変える</button></div>
+    <p id="setNote"></p>
+    <div id="setMembers"></div>
+    <div class="err" id="setErr"></div>
+    <div class="btns wrap"><button type="button" class="btn" id="setAdd">メンバーを足す</button><button type="button" class="btn" id="setLeave">抜ける</button><button type="button" class="btn danger" id="setArchive">しまう</button><button type="button" class="btn primary" id="setClose">閉じる</button></div>
+  </div>
+</div>
+
+<div id="people" class="overlay hidden">
+  <div class="box">
+    <h2 id="peopleTitle">新しい会話</h2>
+    <p id="peopleNote">相手を選んでください（2人以上でグループ）。</p>
+    <input id="peopleQ" placeholder="名前・部署で探す">
+    <div id="peopleList"></div>
+    <div id="picked"></div>
+    <div class="btns"><button type="button" class="btn" id="peopleNo">やめる</button><button type="button" class="btn primary" id="peopleGo" disabled>開く</button></div>
+  </div>
+</div>
+
+<div id="sheetBg" class="overlay hidden" style="background:rgba(37,48,45,.2)"></div>
+<div id="sheet" class="sheet hidden"></div>
+
+<script>
+'use strict';
+const params = new URLSearchParams(location.search);
+const API = params.get('api') === 'local' ? 'http://127.0.0.1:8787/' : 'https://schedule-worker.suntec-halo.workers.dev/';
+const EMBED = params.get('embed') === '1' && window.parent !== window; // HALO 本体のタブの中
+const LITE = params.get('lite') === '1';
+const SESS_KEY = LITE ? 'halo_lite_sess' : 'sch_sess';
+const DRAFT_PREFIX = 'chat_draft_';
+const STAMP = '__stamp__';
+const EMOJIS = ['👍', '🙏', '😊', '😂', '😮', '😢', '🎉', '👏', '🔥', '❤️', '💡', '👀'];
+const ICON = {
+  reply: '<svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>',
+  quote: '<svg class="i" viewBox="0 0 24 24"><path d="M7 7h4v4H8c0 2 1 3 3 3v2c-3 0-5-2-5-5V7zm7 0h4v4h-3c0 2 1 3 3 3v2c-3 0-5-2-5-5V7z"/></svg>',
+  react: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 14c1.5 1.5 4.5 1.5 6 0M9.5 10h0M14.5 10h0"/></svg>',
+  stamp: '<svg class="i" viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg>',
+  edit: '<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  del: '<svg class="i" viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>',
+};
+
+const $ = (id) => document.getElementById(id);
+const S = {
+  token: '', me: '', users: {}, channels: [], cur: null, msgs: [], hasMore: false, loadingOlder: false,
+  firstUnreadSeq: null, thread: null, threadMsgs: [], ws: null, wsTry: 0, readTimer: null,
+  pendingDel: null, emojiTarget: null,
+};
+
+// ---------- つなぎ ----------
+async function api(action, data = {}) {
+  const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action, token: S.token, ...data }) });
+  const j = await res.json();
+  if (!j.ok) {
+    if (j.error === 'SESSION_EXPIRED') { logout(); throw new Error('ログインし直してください'); }
+    throw new Error(j.error || '失敗しました');
+  }
+  return j.data;
+}
+function loadSession() { try { return JSON.parse(localStorage.getItem(SESS_KEY)); } catch { return null; } }
+function logout() {
+  if (S.ws) S.ws.close();
+  // HALO の中では、HALO 本体を読み直してログインし直してもらう（通行証は HALO と同じもの）
+  if (EMBED) { try { window.parent.location.reload(); return; } catch {} }
+  try { localStorage.removeItem(SESS_KEY); } catch {}
+  location.reload();
+}
+function toast(msg) { alert(msg); }
+
+// ---------- 表示の道具 ----------
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nameOf = (id) => { if (id === 'all') return '全員'; const u = S.users[id]; return u ? (u.dispName || u.name) : id; };
+const fullNameOf = (id) => { const u = S.users[id]; return u ? u.name : id; };
+const pad = (n) => String(n).padStart(2, '0');
+const hm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`; };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+/** 本文：リンクとメンション（@名前）を目立たせる */
+function renderBody(m) {
+  let h = esc(m.body).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+  for (const id of m.mentions || []) {
+    const label = esc('@' + (id === 'all' ? '全員' : nameOf(id)));
+    h = h.split(label).join(`<span class="at">${label}</span>`);
+  }
+  return h;
+}
+
+function chTitle(c) {
+  if (!c) return '';
+  if (c.kind === 'dm' || c.kind === 'group') {
+    const others = (c.members || []).filter((id) => id !== S.me).map(nameOf);
+    return others.join('、') || '（自分だけ）';
+  }
+  return c.name || '（名前なし）';
+}
+
+/** チャットを使える人か（試す人だけに絞っているときは、その部署の人だけ） */
+const canChat = (id) => !S.onlyDepts || !S.onlyDepts.length || S.onlyDepts.includes(String((S.users[id] || {}).dept || '').trim());
+
+// ---------- 起動 ----------
+async function start() {
+  const sess = loadSession();
+  if (!sess || !sess.token) { if (EMBED) { logout(); return; } $('login').classList.remove('hidden'); return; }
+  if (EMBED) document.body.classList.add('embed');
+  S.token = sess.token;
+  $('app').classList.remove('hidden');
+  buildComposer('mainComposer', 'main');
+  buildComposer('threadComposer', 'thread');
+  try {
+    const [init, users] = await Promise.all([api('chatInit'), api('getUsers').catch(() => [])]);
+    (users || []).forEach((u) => { S.users[u.id] = u; });
+    S.me = init.me;
+    S.channels = init.channels;
+    S.filesEnabled = !!init.filesEnabled;
+    S.onlyDepts = init.onlyDepts || []; // 試す人だけに絞っているときの部署（会話の相手・メンションの候補もその人たちだけ）
+    S.maxFileBytes = init.maxFileBytes || 250 * 1024 * 1024;
+    document.querySelectorAll('.attach').forEach((b) => b.classList.toggle('hidden', !S.filesEnabled));
+    $('meName').textContent = nameOf(S.me);
+    renderChannels();
+    connect();
+    const want = params.get('ch');
+    if (want && S.channels.some((c) => c.id === want)) openChannel(want);
+    else if (window.innerWidth >= 700 && S.channels.length) openChannel(S.channels[0].id);
+  } catch (e) {
+    $('chList').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
+}
+
+$('loginForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  $('loginErr').textContent = '';
+  try {
+    const res = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'login', empId: $('empId').value.trim(), pin: $('pin').value.trim(), lite: LITE || undefined }) });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'ログインできませんでした');
+    localStorage.setItem(SESS_KEY, JSON.stringify({ token: j.data.token, user: j.data.user }));
+    location.reload();
+  } catch (e) { $('loginErr').textContent = e.message; }
+});
+
+// ---------- チャンネルの一覧 ----------
+function renderChannels() {
+  S.channels.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+  const row = (c) => `
+    <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}" data-id="${esc(c.id)}">
+      <div class="nm"><b>${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? '<span class="tag">部署</span>' : c.kind === 'private' ? '<span class="tag">招待のみ</span>' : ''}</b><small>${esc(c.lastPreview || '')}</small></div>
+      ${c.muted ? '<span class="mute">通知オフ</span>' : ''}
+      ${c.unread ? `<span class="badge">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}
+    </div>`;
+  const chs = S.channels.filter((c) => c.kind !== 'dm' && c.kind !== 'group');
+  const dms = S.channels.filter((c) => c.kind === 'dm' || c.kind === 'group');
+  $('chList').innerHTML = (chs.length ? '<div class="sec">チャンネル</div>' + chs.map(row).join('') : '')
+    + (dms.length ? '<div class="sec">会話</div>' + dms.map(row).join('') : '')
+    || '<div class="empty">チャンネルがありません</div>';
+}
+$('chList').addEventListener('click', (e) => { const el = e.target.closest('.ch'); if (el) openChannel(el.dataset.id); });
+$('back').addEventListener('click', () => { document.body.classList.remove('in-ch'); closeThread(); });
+
+async function openChannel(id) {
+  saveDraft('main');
+  closeThread();
+  S.cur = id;
+  S.msgs = [];
+  const ch = S.channels.find((c) => c.id === id);
+  $('chName').innerHTML = esc(chTitle(ch)) + (ch && ch.kind === 'group' ? `<span class="sub">${(ch.members || []).length}人</span>` : '');
+  $('muteBtn').textContent = ch && ch.muted ? '通知を戻す' : '通知を切る';
+  document.body.classList.add('in-ch');
+  renderChannels();
+  $('msgs').innerHTML = '<div class="more">読み込んでいます…</div>';
+  setComposer('main', { text: loadDraft(id) });
+  S.firstUnreadSeq = ch && ch.unread ? (ch.readSeq || 0) + 1 : null;
+  try {
+    const r = await api('chatHistory', { channelId: id });
+    if (S.cur !== id) return;
+    S.msgs = r.msgs;
+    S.hasMore = r.hasMore;
+    renderMsgs('unread');
+    markRead();
+  } catch (e) { $('msgs').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+$('muteBtn').addEventListener('click', async () => {
+  const ch = S.channels.find((c) => c.id === S.cur);
+  if (!ch) return;
+  try {
+    const r = await api('chatMute', { channelId: ch.id, muted: !ch.muted });
+    ch.muted = r.muted;
+    $('muteBtn').textContent = ch.muted ? '通知を戻す' : '通知を切る';
+    renderChannels();
+  } catch (e) { toast(e.message); }
+});
+
+// ---------- メッセージの表示 ----------
+function msgHtml(m, prev, where) {
+  const mine = m.empId === S.me;
+  const day = !prev || ymd(prev.createdAt) !== ymd(m.createdAt) ? `<div class="day"><span>${ymd(m.createdAt)}</span></div>` : '';
+  const unread = where === 'main' && S.firstUnreadSeq && m.seq === firstUnreadShown() ? '<div class="unread-line">ここから未読</div>' : '';
+  const sameWho = prev && prev.empId === m.empId && !day && !unread && m.createdAt - prev.createdAt < 5 * 60 * 1000;
+  const mentioned = !mine && (m.mentions || []).some((id) => id === S.me || id === 'all');
+  const cls = 'm' + (mine ? ' mine' : '') + (mentioned ? ' mentioned' : '') + (m.deleted ? ' deleted' : '')
+    + (m._pending ? ' pending' : '') + (m._failed ? ' failed' : '');
+  const quote = m.quote ? `<span class="quote">${esc(nameOf(m.quote.empId))}：${m.quote.deleted ? '（削除されました）' : esc(m.quote.body)}</span>` : '';
+  const stamps = (m.reactions || []).find((r) => r.emoji === STAMP);
+  const emo = (m.reactions || []).filter((r) => r.emoji !== STAMP);
+  const reacts = m.deleted ? '' : [
+    ...emo.map((r) => `<button class="chip${r.empIds.includes(S.me) ? ' on' : ''}" data-act="toggle" data-emoji="${esc(r.emoji)}" title="${esc(r.empIds.map(nameOf).join('、'))}">${esc(r.emoji)} ${r.empIds.length}</button>`),
+    ...(stamps ? [`<button class="chip stamp${stamps.empIds.includes(S.me) ? ' on' : ''}" data-act="stamp" title="押すと付ける／外す">確認しました：${esc(stamps.empIds.map(nameOf).join('、'))}</button>`] : []),
+  ].join('');
+  const replies = where === 'main' && m.replyCount ? `<button class="replies" data-act="thread">返信 ${m.replyCount}件${m.lastReplyAt ? '・' + hm(m.lastReplyAt) : ''}</button>` : '';
+  const acts = m.deleted || m._pending || m._failed ? '' : `<div class="acts">
+      ${where === 'main' ? `<button data-act="thread" title="スレッドで返信">${ICON.reply}</button>` : ''}
+      <button data-act="quote" title="引用して返信">${ICON.quote}</button>
+      <button data-act="react" title="リアクション">${ICON.react}</button>
+      <button data-act="stamp" title="確認しました">${ICON.stamp}</button>
+      ${mine ? `<button data-act="edit" title="直す">${ICON.edit}</button><button data-act="del" title="消す">${ICON.del}</button>` : ''}
+    </div>`;
+  const status = m._failed ? '送れませんでした（押すともう一度送ります）' : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? '・編集済み' : '');
+  return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
+    ${!mine && !sameWho ? `<div class="who">${esc(nameOf(m.empId))}</div>` : ''}
+    ${acts}
+    <div class="bub">${m.deleted ? '削除されました' : quote + renderBody(m) + filesHtml(m)}</div>
+    ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
+    ${replies}
+    <div class="meta">${status}</div>
+  </div>`;
+}
+
+// ---------- 添付の表示（中身は SharePoint。開くたびに Worker が確かめて一時的なアドレスを返す） ----------
+const sizeText = (n) => (n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB');
+const isImage = (f) => /^image\/(png|jpe?g|gif|webp)$/i.test(f.mime || '');
+function filesHtml(m) {
+  const fs = m.files || [];
+  if (!fs.length) return '';
+  return '<div class="files">' + fs.map((f) => (isImage(f) && !m._pending
+    ? `<img class="thumb" alt="${esc(f.name)}" title="${esc(f.name)}" data-file="${esc(f.itemId)}">`
+    : `<button type="button" class="file" data-file="${esc(f.itemId || '')}"><b>${esc(f.name)}</b><small>${sizeText(f.size || 0)}${f._progress !== undefined ? '・' + f._progress + '%' : ''}</small></button>`)).join('') + '</div>';
+}
+const fileUrlCache = new Map(); // itemId → { url, webUrl, until }
+async function fileUrl(itemId) {
+  const hit = fileUrlCache.get(itemId);
+  if (hit && hit.until > Date.now()) return hit;
+  const r = await api('chatFileOpen', { channelId: S.cur, itemId });
+  const v = { ...r, until: Date.now() + 20 * 60 * 1000 };
+  fileUrlCache.set(itemId, v);
+  return v;
+}
+function loadThumbs(root) {
+  root.querySelectorAll('img.thumb[data-file]:not([src])').forEach(async (img) => {
+    try { img.src = (await fileUrl(img.dataset.file)).url; } catch { img.alt = '（画像を開けませんでした）'; }
+  });
+}
+async function openFileAct(itemId) {
+  if (!itemId) return;
+  const w = window.open('', '_blank'); // 先に窓を開ける（ポップアップを止められないように）
+  try { const r = await fileUrl(itemId); if (w) w.location = r.url; else location.href = r.url; } catch (e) { if (w) w.close(); toast(e.message); }
+}
+
+// 「ここから未読」を出す位置（読み込んだ中で、未読の最初のメッセージ）
+function firstUnreadShown() {
+  const m = S.msgs.find((x) => x.seq && x.seq >= S.firstUnreadSeq && x.empId !== S.me);
+  return m ? m.seq : null;
+}
+
+function renderMsgs(scroll) {
+  const box = $('msgs');
+  const oldH = box.scrollHeight, oldTop = box.scrollTop;
+  const head = S.hasMore ? '<div class="more">上へ戻るとさらに読みます</div>' : '';
+  box.innerHTML = S.msgs.length ? head + S.msgs.map((m, i) => msgHtml(m, S.msgs[i - 1], 'main')).join('') : '<div class="empty">まだメッセージがありません</div>';
+  loadThumbs(box);
+  if (scroll === 'unread') {
+    const line = box.querySelector('.unread-line');
+    if (line) box.scrollTop = Math.max(0, line.offsetTop - 60); else box.scrollTop = box.scrollHeight;
+  } else if (scroll === true) box.scrollTop = box.scrollHeight;
+  else if (scroll === 'keep') box.scrollTop = oldTop;
+  else box.scrollTop = box.scrollHeight - oldH + oldTop;
+}
+
+function renderThread(scroll) {
+  if (!S.thread) return;
+  const box = $('threadMsgs');
+  const all = [S.thread.parent, ...S.threadMsgs];
+  box.innerHTML = all.map((m, i) => msgHtml(m, all[i - 1], 'thread')).join('')
+    + (S.threadMsgs.length ? '' : '<div class="empty">まだ返信がありません</div>');
+  loadThumbs(box);
+  if (scroll) box.scrollTop = box.scrollHeight;
+}
+
+const nearBottom = (id = 'msgs') => { const b = $(id); return b.scrollHeight - b.scrollTop - b.clientHeight < 80; };
+
+$('msgs').addEventListener('scroll', async () => {
+  const box = $('msgs');
+  if (box.scrollTop < 40 && S.hasMore && !S.loadingOlder && S.cur) {
+    S.loadingOlder = true;
+    const id = S.cur;
+    try {
+      const firstSeq = S.msgs.find((m) => m.seq)?.seq;
+      const r = await api('chatHistory', { channelId: id, before: firstSeq });
+      if (S.cur === id) { S.msgs = r.msgs.concat(S.msgs); S.hasMore = r.hasMore; renderMsgs(false); }
+    } catch {} finally { S.loadingOlder = false; }
+  }
+  if (nearBottom()) markRead();
+});
+
+// ---------- メッセージの操作 ----------
+function findMsg(where, seq, id) {
+  const list = where === 'thread' ? [S.thread?.parent, ...S.threadMsgs].filter(Boolean) : S.msgs;
+  return list.find((m) => (seq && m.seq === seq) || (id && m.id === id));
+}
+function onListClick(where) {
+  return (e) => {
+    const el = e.target.closest('.m');
+    if (!el) return;
+    const m = findMsg(where, Number(el.dataset.seq) || 0, el.dataset.id);
+    if (!m) return;
+    if (m._failed) { sendMsg(m); return; } // 送れなかったものは、どこを押しても送り直す
+    const fileEl = e.target.closest('[data-file]');
+    if (fileEl) { openFileAct(fileEl.dataset.file); return; }
+    const btn = e.target.closest('[data-act]');
+    if (btn) { doAct(btn.dataset.act, m, where, btn.dataset.emoji); return; }
+    if (m._failed) { sendMsg(m); return; }
+    // スマホ（マウスが無い）は、メッセージを押すと操作を下から出す
+    if (!window.matchMedia('(hover:hover)').matches && !e.target.closest('a') && !m.deleted && !m._pending) openSheet(m, where);
+  };
+}
+$('msgs').addEventListener('click', onListClick('main'));
+$('threadMsgs').addEventListener('click', onListClick('thread'));
+
+function doAct(act, m, where, emoji) {
+  if (act === 'thread') openThread(m.parentSeq || m.seq);
+  else if (act === 'quote') setComposer(where, { quote: m });
+  else if (act === 'react') { S.emojiTarget = m; $('emojiPick').classList.remove('hidden'); }
+  else if (act === 'stamp') react(m, STAMP);
+  else if (act === 'toggle') react(m, emoji);
+  else if (act === 'edit') setComposer(where, { edit: m, text: m.body, mentions: m.mentions });
+  else if (act === 'del') { S.pendingDel = m; $('confirmDel').classList.remove('hidden'); }
+}
+
+function openSheet(m, where) {
+  const mine = m.empId === S.me;
+  const items = [
+    ...(where === 'main' ? [['thread', 'スレッドで返信']] : []),
+    ['quote', '引用して返信'], ['react', 'リアクション'], ['stamp', '確認しました'],
+    ...(mine ? [['edit', '直す'], ['del', '消す']] : []),
+  ];
+  $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}" class="${a === 'del' ? 'danger' : ''}">${l}</button>`).join('');
+  $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); doAct(b.dataset.a, m, where); };
+  $('sheet').classList.remove('hidden'); $('sheetBg').classList.remove('hidden');
+}
+function closeSheet() { $('sheet').classList.add('hidden'); $('sheetBg').classList.add('hidden'); }
+$('sheetBg').addEventListener('click', closeSheet);
+
+$('emojiGrid').innerHTML = EMOJIS.map((e) => `<button type="button">${e}</button>`).join('');
+$('emojiGrid').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || !S.emojiTarget) return; $('emojiPick').classList.add('hidden'); react(S.emojiTarget, b.textContent); });
+$('emojiClose').addEventListener('click', () => $('emojiPick').classList.add('hidden'));
+
+async function react(m, emoji) {
+  try { const r = await api('chatReact', { channelId: S.cur, seq: m.seq, emoji }); applyUpdate(S.cur, r.msg); } catch (e) { toast(e.message); }
+}
+$('delNo').addEventListener('click', () => $('confirmDel').classList.add('hidden'));
+$('delYes').addEventListener('click', async () => {
+  $('confirmDel').classList.add('hidden');
+  const m = S.pendingDel; S.pendingDel = null;
+  if (!m) return;
+  try { const r = await api('chatDelete', { channelId: S.cur, seq: m.seq }); applyUpdate(S.cur, r.msg); } catch (e) { toast(e.message); }
+});
+
+// ---------- スレッド ----------
+async function openThread(parentSeq) {
+  if (!S.cur) return;
+  const id = S.cur;
+  $('thread').classList.remove('hidden');
+  $('threadMsgs').innerHTML = '<div class="more">読み込んでいます…</div>';
+  setComposer('thread', {});
+  try {
+    const r = await api('chatThread', { channelId: id, parentSeq });
+    if (S.cur !== id) return;
+    S.thread = { channelId: id, parent: r.parent };
+    S.threadMsgs = r.replies;
+    renderThread(true);
+  } catch (e) { $('threadMsgs').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+function closeThread() { S.thread = null; S.threadMsgs = []; $('thread').classList.add('hidden'); }
+$('closeThread').addEventListener('click', closeThread);
+
+// ---------- 届いた・変わった ----------
+function bumpChannel(channelId, msg) {
+  const ch = S.channels.find((c) => c.id === channelId);
+  if (!ch) return false;
+  ch.lastSeq = Math.max(ch.lastSeq || 0, msg.seq);
+  ch.lastAt = msg.createdAt;
+  ch.lastPreview = msg.body.replace(/\s+/g, ' ').slice(0, 40);
+  if (msg.empId === S.me) ch.readSeq = Math.max(ch.readSeq || 0, msg.seq);
+  ch.unread = Math.max(0, ch.lastSeq - (ch.readSeq || 0));
+  return true;
+}
+
+/** 新しいメッセージ（自分が送ったものは「送っています」を置き換える） */
+function addMsg(channelId, msg) {
+  if (!bumpChannel(channelId, msg)) { reloadChannels(); return; } // 新しい DM など、まだ一覧に無いチャンネル
+  if (msg.parentSeq) {
+    if (S.thread && S.thread.channelId === channelId && S.thread.parent.seq === msg.parentSeq) {
+      const stick = nearBottom('threadMsgs') || msg.empId === S.me;
+      upsert(S.threadMsgs, msg);
+      renderThread(stick);
+    }
+    // 返信はチャンネルの一覧には出さない（元のメッセージの「返信 n件」で分かる）。読んだ印は進める
+    if (channelId === S.cur && document.visibilityState === 'visible') markRead(msg.seq);
+  } else if (channelId === S.cur) {
+    const stick = nearBottom() || msg.empId === S.me;
+    upsert(S.msgs, msg);
+    renderMsgs(stick ? true : 'keep');
+    if (stick && document.visibilityState === 'visible') markRead();
+  }
+  renderChannels();
+}
+/** 直した・消した・リアクション・返信の数が変わった */
+function applyUpdate(channelId, msg) {
+  if (channelId !== S.cur) return;
+  if (!msg.parentSeq && S.msgs.some((m) => m.seq === msg.seq)) { upsert(S.msgs, msg); renderMsgs('keep'); }
+  if (S.thread && S.thread.channelId === channelId) {
+    if (S.thread.parent.seq === msg.seq) { S.thread.parent = msg; renderThread(false); }
+    else if (S.threadMsgs.some((m) => m.seq === msg.seq)) { upsert(S.threadMsgs, msg); renderThread(false); }
+  }
+}
+function upsert(list, msg) {
+  const i = list.findIndex((m) => m.id === msg.id || (msg.seq && m.seq === msg.seq));
+  if (i >= 0) list[i] = msg; else list.push(msg);
+  list.sort((a, b) => (a.seq || 1e15) - (b.seq || 1e15));
+}
+
+// 読んだところを進める（3秒まとめて送る＝無料枠を守る）
+function markRead(seqHint) {
+  const ch = S.channels.find((c) => c.id === S.cur);
+  if (!ch) return;
+  const last = Math.max(seqHint || 0, ...S.msgs.filter((m) => m.seq).map((m) => m.seq), ch.lastSeq && nearBottom() ? ch.lastSeq : 0);
+  if (!last || last <= (ch.readSeq || 0)) return;
+  ch.readSeq = last;
+  ch.unread = Math.max(0, (ch.lastSeq || 0) - ch.readSeq);
+  renderChannels();
+  clearTimeout(S.readTimer);
+  const id = ch.id;
+  S.readTimer = setTimeout(() => api('chatRead', { channelId: id, seq: last }).catch(() => {}), 3000);
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && nearBottom()) markRead(); });
+
+// ---------- 入力欄（チャンネルとスレッドの2つ） ----------
+const C = {}; // where → { root, input, send, ctx, box, state:{quote, edit, mentions:Map} }
+function buildComposer(rootId, where) {
+  const root = $(rootId);
+  root.innerHTML = `
+    <div class="ctx hidden"><span></span><button type="button">やめる</button></div>
+    <div class="rule">住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください</div>
+    <div class="pending-files hidden"></div>
+    <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ で名前）'}"></textarea><button class="send" type="button" disabled>送信</button></div>
+    <div class="mention-box hidden"></div>`;
+  const c = { root, input: root.querySelector('textarea'), send: root.querySelector('.send'), ctx: root.querySelector('.ctx'), box: root.querySelector('.mention-box'), state: { mentions: new Map() },
+    fileInput: root.querySelector('input[type=file]'), pendingEl: root.querySelector('.pending-files'), files: [] };
+  C[where] = c;
+  root.querySelector('.attach').addEventListener('click', () => c.fileInput.click());
+  c.fileInput.addEventListener('change', () => { addFiles(where, [...c.fileInput.files]); c.fileInput.value = ''; });
+  c.input.addEventListener('paste', (e) => { const fs = [...((e.clipboardData && e.clipboardData.files) || [])]; if (fs.length && S.filesEnabled) { e.preventDefault(); addFiles(where, fs); } });
+  root.addEventListener('dragover', (e) => { if (S.filesEnabled) e.preventDefault(); });
+  root.addEventListener('drop', (e) => { if (!S.filesEnabled) return; e.preventDefault(); addFiles(where, [...((e.dataTransfer && e.dataTransfer.files) || [])]); });
+  c.pendingEl.addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (b) { c.files.splice(Number(b.dataset.i), 1); renderPendingFiles(where); autosize(where); } });
+  c.input.addEventListener('input', () => { autosize(where); mentionSearch(where); });
+  c.input.addEventListener('keydown', (e) => {
+    if (!c.box.classList.contains('hidden')) {
+      const items = [...c.box.children];
+      let i = items.findIndex((x) => x.classList.contains('sel'));
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        i = (i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        items.forEach((x, k) => x.classList.toggle('sel', k === i));
+        return;
+      }
+      if ((e.key === 'Enter' || e.key === 'Tab') && !e.isComposing && i >= 0) { e.preventDefault(); pickMention(where, items[i].dataset.id); return; }
+      if (e.key === 'Escape') { c.box.classList.add('hidden'); return; }
+    }
+    // PC は Enter で送る（Shift＋Enter は改行）。変換中の Enter と、スマホでは送らない
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(pointer:fine)').matches) { e.preventDefault(); trySend(where); }
+  });
+  c.box.addEventListener('mousedown', (e) => { const d = e.target.closest('[data-id]'); if (d) { e.preventDefault(); pickMention(where, d.dataset.id); } });
+  c.send.addEventListener('click', () => trySend(where));
+  c.ctx.querySelector('button').addEventListener('click', () => setComposer(where, {}));
+}
+function autosize(where) {
+  const c = C[where];
+  c.input.style.height = 'auto';
+  c.input.style.height = Math.min(c.input.scrollHeight, 160) + 'px';
+  c.input.style.overflowY = c.input.scrollHeight > 160 ? 'auto' : 'hidden';
+  c.send.disabled = (!c.input.value.trim() && !(c.files && c.files.length)) || !S.cur;
+}
+/** 入力欄の状態を決める：{ text, quote, edit, mentions } */
+function setComposer(where, o) {
+  const c = C[where];
+  const wasEditing = c.input.dataset.editing === '1';
+  c.state = { quote: o.quote || null, edit: o.edit || null, mentions: new Map() };
+  for (const id of o.mentions || []) c.state.mentions.set(id, '@' + nameOf(id));
+  // 直すのをやめたときは、直していた文を消す（書きかけには戻さない）
+  if (o.text !== undefined) c.input.value = o.text;
+  else if (wasEditing && !o.edit) c.input.value = '';
+  const label = o.edit ? '直しています' : o.quote ? `引用：${nameOf(o.quote.empId)}「${o.quote.body.replace(/\s+/g, ' ').slice(0, 40)}」` : '';
+  c.ctx.classList.toggle('hidden', !label);
+  c.ctx.querySelector('span').textContent = label;
+  c.send.textContent = o.edit ? '保存' : '送信';
+  c.input.dataset.editing = o.edit ? '1' : '';
+  autosize(where);
+  if (o.quote || o.edit) c.input.focus();
+}
+
+// ---------- メンション（@） ----------
+function mentionCandidates() {
+  const ch = S.channels.find((c) => c.id === S.cur);
+  const ids = ch && ch.members && ch.kind !== 'public' ? ch.members : Object.keys(S.users);
+  return ['all', ...ids.filter((id) => id !== S.me && canChat(id))];
+}
+function mentionSearch(where) {
+  const c = C[where];
+  const pos = c.input.selectionStart;
+  const before = c.input.value.slice(0, pos);
+  const m = before.match(/(^|\s)@([^\s@]{0,20})$/);
+  if (!m) { c.box.classList.add('hidden'); return; }
+  const q = m[2].toLowerCase();
+  const list = mentionCandidates().filter((id) => {
+    if (id === 'all') return '全員'.includes(q) || 'all'.includes(q);
+    const u = S.users[id] || {};
+    return [u.name, u.dispName, u.dept, id].some((s) => s && String(s).toLowerCase().includes(q));
+  }).slice(0, 30);
+  if (!list.length) { c.box.classList.add('hidden'); return; }
+  c.box.innerHTML = list.map((id, k) => `<div data-id="${esc(id)}" class="${k === 0 ? 'sel' : ''}">${esc(id === 'all' ? '全員' : fullNameOf(id))}<small>${esc(id === 'all' ? 'このチャンネルの全員に知らせる' : (S.users[id]?.dept || ''))}</small></div>`).join('');
+  c.box.classList.remove('hidden');
+}
+function pickMention(where, id) {
+  const c = C[where];
+  const pos = c.input.selectionStart;
+  const before = c.input.value.slice(0, pos).replace(/@([^\s@]{0,20})$/, '');
+  const label = '@' + nameOf(id);
+  c.input.value = before + label + ' ' + c.input.value.slice(pos);
+  const p = before.length + label.length + 1;
+  c.input.setSelectionRange(p, p);
+  c.state.mentions.set(id, label);
+  c.box.classList.add('hidden');
+  autosize(where);
+  c.input.focus();
+}
+/** 送る本文に残っている @名前 だけをメンションにする */
+function collectMentions(where, body) {
+  return [...C[where].state.mentions].filter(([, label]) => body.includes(label)).map(([id]) => id);
+}
+
+// ---------- 送る ----------
+let piiWhere = null;
+function addFiles(where, list) {
+  const c = C[where];
+  for (const f of list) {
+    if (f.size > S.maxFileBytes) { toast('「' + f.name + '」は大きすぎます（1つ250MBまで）。SharePoint に置いてリンクを貼ってください'); continue; }
+    if (c.files.length >= 10) { toast('添付は1回に10個までです'); break; }
+    c.files.push(f);
+  }
+  renderPendingFiles(where);
+  autosize(where);
+}
+function renderPendingFiles(where) {
+  const c = C[where];
+  c.pendingEl.innerHTML = c.files.map((f, i) => '<span>' + esc(f.name) + '（' + sizeText(f.size) + '）<button type="button" data-i="' + i + '" title="外す">×</button></span>').join('');
+  c.pendingEl.classList.toggle('hidden', !c.files.length);
+}
+
+function trySend(where) {
+  const c = C[where];
+  const body = c.input.value.trim();
+  if ((!body && !c.files.length) || !S.cur) return;
+  const found = findPii(body + '\n' + c.files.map((f) => f.name).join('\n'));
+  if (found.length) {
+    piiWhere = where;
+    $('piiList').innerHTML = found.map((f) => `<li>${esc(f)}</li>`).join('');
+    $('pii').classList.remove('hidden');
+    return;
+  }
+  doSend(where, body);
+}
+$('piiFix').addEventListener('click', () => { $('pii').classList.add('hidden'); C[piiWhere]?.input.focus(); });
+$('piiSend').addEventListener('click', () => { $('pii').classList.add('hidden'); doSend(piiWhere, C[piiWhere].input.value.trim()); });
+
+async function doSend(where, body) {
+  const c = C[where];
+  const st = c.state;
+  const mentions = collectMentions(where, body);
+  if (st.edit) {
+    try {
+      const r = await api('chatEdit', { channelId: S.cur, seq: st.edit.seq, body, mentions });
+      c.input.value = '';
+      setComposer(where, {});
+      applyUpdate(S.cur, r.msg);
+    } catch (e) { toast(e.message); }
+    return;
+  }
+  const raw = c.files.splice(0);
+  renderPendingFiles(where);
+  const msg = {
+    id: uid(), empId: S.me, body, createdAt: Date.now(), mentions, reactions: [],
+    files: raw.map((f) => ({ name: f.name, size: f.size, mime: f.type, _progress: 0 })), _raw: raw,
+    parentSeq: where === 'thread' && S.thread ? S.thread.parent.seq : null,
+    quote: st.quote ? { seq: st.quote.seq, empId: st.quote.empId, body: st.quote.body.slice(0, 80) } : null,
+    _pending: true, _ch: S.cur, _quoteSeq: st.quote ? st.quote.seq : null,
+  };
+  c.input.value = '';
+  if (where === 'main') clearDraft(S.cur);
+  setComposer(where, {});
+  if (where === 'thread') { S.threadMsgs.push(msg); renderThread(true); } else { S.msgs.push(msg); renderMsgs(true); }
+  sendMsg(msg);
+}
+
+async function sendMsg(msg) {
+  msg._pending = true; msg._failed = false;
+  rerenderFor(msg);
+  try {
+    // 添付は先に SharePoint へ（送り直しのときは、置けたものは置き直さない）
+    for (let i = 0; i < (msg._raw || []).length; i++) {
+      if (msg.files[i].itemId) continue;
+      msg.files[i].itemId = await uploadFile(msg._ch, msg._raw[i], (p) => { msg.files[i]._progress = p; rerenderFor(msg); });
+    }
+    const files = (msg.files || []).filter((f) => f.itemId).map((f) => ({ itemId: f.itemId }));
+    const r = await api('chatSend', { channelId: msg._ch, clientId: msg.id, body: msg.body, parentSeq: msg.parentSeq || undefined, quoteSeq: msg._quoteSeq || undefined, mentions: msg.mentions, files: files.length ? files : undefined });
+    addMsg(msg._ch, r.msg);
+    if (r.parent) applyUpdate(msg._ch, r.parent);
+  } catch (e) {
+    msg._pending = false; msg._failed = true;
+    rerenderFor(msg);
+  }
+}
+/** 1つのファイルを SharePoint の受付口へ、約9MB ずつ直接送る。itemId を返す */
+async function uploadFile(channelId, file, onProgress) {
+  const st = await api('chatFileStart', { channelId, name: file.name, size: file.size });
+  const chunk = st.chunkBytes || 9 * 1024 * 1024;
+  let item = null;
+  for (let start = 0; start < file.size; start += chunk) {
+    const end = Math.min(start + chunk, file.size);
+    const res = await fetch(st.uploadUrl, { method: 'PUT', headers: { 'Content-Range': 'bytes ' + start + '-' + (end - 1) + '/' + file.size }, body: file.slice(start, end) });
+    if (!res.ok) throw new Error('ファイルを送れませんでした（' + res.status + '）');
+    if (res.status === 200 || res.status === 201) item = await res.json();
+    onProgress(Math.round((end / file.size) * 100));
+  }
+  if (!item || !item.id) throw new Error('ファイルを送れませんでした');
+  return item.id;
+}
+
+function rerenderFor(msg) {
+  if (msg._ch !== S.cur) return;
+  if (msg.parentSeq) renderThread(nearBottom('threadMsgs')); else renderMsgs(nearBottom() ? true : 'keep');
+}
+
+// ---------- 送る前の個人情報の注意（止めない。docs/HALOチャット_設計書.md 4-6-2） ----------
+function myNumberOk(d) { // マイナンバーの検査用の数字
+  const n = d.split('').map(Number);
+  let s = 0;
+  for (let i = 1; i <= 11; i++) { const p = n[11 - i], q = i <= 6 ? i + 1 : i - 5; s += p * q; }
+  const r = s % 11; const c = r <= 1 ? 0 : 11 - r;
+  return c === n[11];
+}
+function luhnOk(d) {
+  let s = 0;
+  for (let i = 0; i < d.length; i++) { let x = Number(d[d.length - 1 - i]); if (i % 2) { x *= 2; if (x > 9) x -= 9; } s += x; }
+  return s % 10 === 0;
+}
+function findPii(text) {
+  const t = text.replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0)).replace(/[－ー―‐]/g, '-');
+  const out = new Set();
+  for (const m of t.matchAll(/(?<!\d)(\d[\d -]{10,22}\d)(?!\d)/g)) {
+    const d = m[1].replace(/[ -]/g, '');
+    if (d.length === 12 && myNumberOk(d)) out.add('マイナンバーらしい12けたの数字');
+    if (d.length >= 14 && d.length <= 16 && luhnOk(d)) out.add('カード番号らしい数字');
+  }
+  if (/(口座|普通|当座|支店)[^\d]{0,12}\d{7}(?!\d)/.test(t)) out.add('口座番号らしい数字');
+  if (/(?<!\d)0\d{1,4}-?\d{1,4}-?\d{4}(?!\d)/.test(t) && /(?<!\d)0[\d-]{9,12}(?!\d)/.test(t)) out.add('電話番号らしい数字');
+  if (/(〒\s?\d{3}-?\d{4}|(?<!\d)\d{3}-\d{4}(?!\d))/.test(t) && /(都|道|府|県|市|区|町|村)/.test(t)) out.add('住所らしい文');
+  return [...out];
+}
+
+// ---------- 書きかけ（端末に残すのはこれだけ） ----------
+function saveDraft(where) { const c = C[where]; if (!S.cur || !c || c.state.edit) return; try { const v = c.input.value; if (v.trim()) localStorage.setItem(DRAFT_PREFIX + S.cur, v); else localStorage.removeItem(DRAFT_PREFIX + S.cur); } catch {} }
+function loadDraft(id) { try { return localStorage.getItem(DRAFT_PREFIX + id) || ''; } catch { return ''; } }
+function clearDraft(id) { try { localStorage.removeItem(DRAFT_PREFIX + id); } catch {} }
+window.addEventListener('pagehide', () => saveDraft('main'));
+
+// ---------- 人を選ぶ小窓（新しい会話・メンバーを足す） ----------
+const picked = new Set();
+let peopleExclude = new Set();
+let peopleOnGo = null;
+function openPeople({ title, note, goLabel, exclude, onGo }) {
+  picked.clear();
+  peopleExclude = new Set(exclude || []);
+  peopleOnGo = onGo;
+  $('peopleTitle').textContent = title;
+  $('peopleNote').textContent = note;
+  $('peopleGo').textContent = goLabel;
+  $('peopleQ').value = '';
+  renderPeople();
+  $('people').classList.remove('hidden');
+  $('peopleQ').focus();
+}
+$('newDm').addEventListener('click', () => openPeople({
+  title: '会話を始める', note: '相手を選んでください（2人以上でグループ）。', goLabel: '開く', exclude: [S.me],
+  onGo: async (ids) => {
+    const r = await api('chatOpenDm', { empIds: ids });
+    const ch = r.channel;
+    if (!S.channels.some((c) => c.id === ch.id)) S.channels.push(ch);
+    renderChannels();
+    openChannel(ch.id);
+  },
+}));
+$('peopleNo').addEventListener('click', () => $('people').classList.add('hidden'));
+$('peopleQ').addEventListener('input', renderPeople);
+function renderPeople() {
+  const q = $('peopleQ').value.trim().toLowerCase();
+  const list = Object.values(S.users).filter((u) => !peopleExclude.has(u.id) && canChat(u.id))
+    .filter((u) => !q || [u.name, u.dispName, u.dept, u.id].some((v) => v && String(v).toLowerCase().includes(q)))
+    .sort((a, b) => String(a.dept).localeCompare(String(b.dept), 'ja') || String(a.name).localeCompare(String(b.name), 'ja'))
+    .slice(0, 200);
+  $('peopleList').innerHTML = list.map((u) => `<label><input type="checkbox" value="${esc(u.id)}" ${picked.has(u.id) ? 'checked' : ''}><span>${esc(u.name)} <small>${esc(u.dept || '')}${u.isPartner ? '・協力会社' : ''}</small></span></label>`).join('') || '<div class="empty">見つかりません</div>';
+  $('picked').textContent = picked.size ? `選んだ人：${[...picked].map(fullNameOf).join('、')}` : '';
+  $('peopleGo').disabled = !picked.size;
+}
+$('peopleList').addEventListener('change', (e) => { const cb = e.target; if (cb.checked) picked.add(cb.value); else picked.delete(cb.value); renderPeople(); });
+$('peopleGo').addEventListener('click', async () => {
+  if (!peopleOnGo) return;
+  $('peopleGo').disabled = true;
+  try { await peopleOnGo([...picked]); $('people').classList.add('hidden'); }
+  catch (e) { toast(e.message); }
+  finally { $('peopleGo').disabled = !picked.size; }
+});
+
+// ---------- チャンネルを作る ----------
+$('newCh').addEventListener('click', () => {
+  $('chanName').value = ''; $('chanErr').textContent = '';
+  document.querySelector('input[name=chanKind][value=public]').checked = true;
+  $('chanNew').classList.remove('hidden'); $('chanName').focus();
+});
+$('chanNo').addEventListener('click', () => $('chanNew').classList.add('hidden'));
+$('chanGo').addEventListener('click', async () => {
+  const kind = document.querySelector('input[name=chanKind]:checked').value;
+  $('chanErr').textContent = '';
+  try {
+    const r = await api('chatChannelSave', { name: $('chanName').value, kind, members: [] });
+    $('chanNew').classList.add('hidden');
+    if (!S.channels.some((c) => c.id === r.channel.id)) S.channels.push(r.channel);
+    renderChannels();
+    await openChannel(r.channel.id);
+    if (kind === 'private') openSettings();
+  } catch (e) { $('chanErr').textContent = e.message; }
+});
+
+// ---------- チャンネルの設定（名前・メンバー・抜ける・しまう） ----------
+$('setBtn').addEventListener('click', () => openSettings());
+$('setClose').addEventListener('click', () => $('chanSet').classList.add('hidden'));
+async function openSettings() {
+  const ch = S.channels.find((c) => c.id === S.cur);
+  if (!ch) return;
+  $('setErr').textContent = '';
+  $('setName').value = ch.name || '';
+  const canName = ch.kind !== 'dm' && !ch.dept && ch.id !== 'general';
+  const canMembers = (ch.kind === 'private' || ch.kind === 'group') && !ch.dept;
+  $('setNameRow').classList.toggle('hidden', !canName && ch.kind !== 'group');
+  $('setAdd').classList.toggle('hidden', !canMembers);
+  $('setLeave').classList.toggle('hidden', !canMembers);
+  $('setArchive').classList.toggle('hidden', ch.kind === 'dm' || ch.id === 'general');
+  $('setNote').textContent = ch.dept ? '部署のチャンネルです。メンバーは名簿の部署で決まります（異動すると自動で入れ替わります）。'
+    : ch.kind === 'public' ? '全員が見られるチャンネルです。'
+    : ch.kind === 'dm' ? '1対1の会話です。'
+    : '招かれた人だけが見られます。名前・メンバーを変えられるのは、作った人と管理者です。';
+  $('setMembers').innerHTML = '';
+  $('chanSet').classList.remove('hidden');
+  if (ch.kind === 'public') return;
+  try {
+    const r = await api('chatMembers', { id: ch.id });
+    $('setMembers').innerHTML = r.members.map((m) => `<div><span>${esc(fullNameOf(m.empId))} <small>${esc(S.users[m.empId]?.dept || '')}${m.role === 'owner' ? '・作った人' : ''}</small></span>${canMembers && m.empId !== S.me ? `<button type="button" data-rm="${esc(m.empId)}">外す</button>` : ''}</div>`).join('');
+  } catch (e) { $('setErr').textContent = e.message; }
+}
+$('setNameGo').addEventListener('click', async () => {
+  try { await api('chatChannelSave', { id: S.cur, name: $('setName').value }); await reloadChannels(true); $('chanSet').classList.add('hidden'); }
+  catch (e) { $('setErr').textContent = e.message; }
+});
+$('setMembers').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-rm]');
+  if (!b) return;
+  try { await api('chatMembersSave', { id: S.cur, remove: [b.dataset.rm] }); openSettings(); }
+  catch (er) { $('setErr').textContent = er.message; }
+});
+$('setAdd').addEventListener('click', async () => {
+  let current = [];
+  try { current = (await api('chatMembers', { id: S.cur })).members.map((m) => m.empId); } catch {}
+  $('chanSet').classList.add('hidden');
+  const id = S.cur;
+  openPeople({
+    title: 'メンバーを足す', note: '足す人を選んでください。', goLabel: '足す', exclude: current,
+    onGo: async (ids) => { await api('chatMembersSave', { id, add: ids }); await reloadChannels(true); openSettings(); },
+  });
+});
+$('setLeave').addEventListener('click', async () => {
+  if (!confirm('このチャンネルから抜けますか？（もう一度入るには、メンバーに足してもらう必要があります）')) return;
+  try { await api('chatMembersSave', { id: S.cur, remove: [S.me] }); $('chanSet').classList.add('hidden'); await reloadChannels(true); }
+  catch (e) { $('setErr').textContent = e.message; }
+});
+$('setArchive').addEventListener('click', async () => {
+  if (!confirm('このチャンネルをしまいますか？（一覧から消え、読み書きできなくなります。中身は消えません）')) return;
+  try { await api('chatChannelArchive', { id: S.cur, archived: true }); $('chanSet').classList.add('hidden'); await reloadChannels(true); }
+  catch (e) { $('setErr').textContent = e.message; }
+});
+
+// ---------- 探す ----------
+$('searchForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const q = $('searchQ').value.trim();
+  if (!q) { closeSearch(); return; }
+  $('chList').classList.add('hidden');
+  $('searchList').classList.remove('hidden');
+  $('searchList').innerHTML = '<div class="more">探しています…</div>';
+  try {
+    const r = await api('chatSearch', { q });
+    const words = q.split(/[\s　]+/).filter(Boolean);
+    const mark = (t) => { let h = esc(t); for (const w of words) h = h.split(esc(w)).join(`<mark>${esc(w)}</mark>`); return h; };
+    $('searchList').innerHTML = `<div class="sec">「${esc(q)}」の結果 ${r.hits.length}件　<button class="txt-btn" type="button" id="searchClose">閉じる</button></div>`
+      + (r.hits.map((h) => {
+        const ch = S.channels.find((c) => c.id === h.channelId);
+        const text = h.msg.body || (h.msg.files || []).map((f) => f.name).join('、');
+        return `<div class="hit" data-ch="${esc(h.channelId)}" data-seq="${h.msg.seq}" data-parent="${h.msg.parentSeq || ''}">
+          <div class="where">${esc(chTitle(ch))}・${esc(nameOf(h.msg.empId))}・${ymd(h.msg.createdAt)} ${hm(h.msg.createdAt)}${h.msg.parentSeq ? '・スレッド' : ''}</div>
+          <div class="body">${mark(text)}</div></div>`;
+      }).join('') || '<div class="empty">見つかりませんでした</div>');
+  } catch (er) { $('searchList').innerHTML = `<div class="empty">${esc(er.message)}</div>`; }
+});
+function closeSearch() { $('searchList').classList.add('hidden'); $('chList').classList.remove('hidden'); $('searchQ').value = ''; }
+$('searchList').addEventListener('click', async (e) => {
+  if (e.target.closest('#searchClose')) { closeSearch(); return; }
+  const h = e.target.closest('.hit');
+  if (!h) return;
+  await openChannel(h.dataset.ch);
+  if (h.dataset.parent) { openThread(Number(h.dataset.parent)); return; }
+  // 読み込んだ中にあれば、そのメッセージまで動かす
+  const el = $('msgs').querySelector(`.m[data-seq="${h.dataset.seq}"]`);
+  if (el) { el.scrollIntoView({ block: 'center' }); el.querySelector('.bub').style.outline = '2px solid var(--sun)'; }
+});
+
+// ---------- 届く（WebSocket。通行証は2つ目の protocol で渡す） ----------
+function connect() {
+  const url = API.replace(/^http/, 'ws') + 'chat/ws';
+  let ws;
+  try { ws = new WebSocket(url, ['halo-chat', S.token]); } catch { return retry(); }
+  S.ws = ws;
+  let ping;
+  ws.onopen = () => {
+    S.wsTry = 0;
+    setConn(true);
+    ping = setInterval(() => { try { ws.send('ping'); } catch {} }, 30000);
+    resync();
+  };
+  ws.onmessage = (e) => {
+    if (e.data === 'pong') return;
+    let p; try { p = JSON.parse(e.data); } catch { return; }
+    if (p.type === 'msg') addMsg(p.channelId, p.msg);
+    else if (p.type === 'update') applyUpdate(p.channelId, p.msg);
+    else if (p.type === 'channel') reloadChannels(true);
+  };
+  ws.onclose = (e) => {
+    clearInterval(ping);
+    setConn(false);
+    if (e.code === 4001) { logout(); return; }
+    retry();
+  };
+}
+function retry() { const wait = Math.min(30000, 1000 * 2 ** S.wsTry++); setTimeout(connect, wait); }
+function setConn(on) { const c = $('conn'); c.textContent = on ? 'つながっています' : 'つながっていません（つなぎ直しています）'; c.classList.toggle('off', !on); }
+
+async function reloadChannels(checkCur) {
+  try {
+    const init = await api('chatInit');
+    S.channels = init.channels;
+    renderChannels();
+    const ch = S.channels.find((c) => c.id === S.cur);
+    if (checkCur && S.cur && !ch) {
+      // しまわれた・メンバーから外れたチャンネル
+      S.cur = null; S.msgs = []; closeThread();
+      $('chName').textContent = '';
+      $('msgs').innerHTML = '<div class="empty">このチャンネルは見られなくなりました</div>';
+    } else if (ch) {
+      $('chName').innerHTML = esc(chTitle(ch)) + (ch.kind === 'group' ? '<span class="sub">' + (ch.members || []).length + '人</span>' : '');
+    }
+  } catch {}
+}
+// つなぎ直したときに、切れていた間の分を取り直す
+let firstOpen = true;
+async function resync() {
+  if (firstOpen) { firstOpen = false; return; }
+  await reloadChannels();
+  if (S.cur) {
+    try { const r = await api('chatHistory', { channelId: S.cur }); r.msgs.forEach((m) => upsert(S.msgs, m)); renderMsgs('keep'); } catch {}
+  }
+  if (S.thread) openThread(S.thread.parent.seq);
+}
+
+start();
+</script>
+</body>
+</html>
