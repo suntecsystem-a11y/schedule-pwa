@@ -143,6 +143,8 @@ input,select{font-family:inherit;outline:none}
 .dept-ratio{font-size:0.78em;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:8px}
 .team-vbtn{padding:6px 16px;border:1.5px solid var(--border);border-radius:8px;font-size:0.82em;font-weight:600;color:var(--text2);background:white;cursor:pointer;transition:all .15s}
 .team-vbtn.active{background:var(--primary);color:white;border-color:var(--primary)}
+/* 表示の切替が4つ（「当番」を足した 2026-11-17）なので、スマホでは4つを同じ幅に詰めて1行に収める */
+@media(max-width:599px){.team-vbtn-row{gap:4px!important}.team-vbtn-row .team-vbtn{flex:1;min-width:0;padding-left:2px!important;padding-right:2px!important;font-size:.74em!important;overflow:hidden;text-overflow:ellipsis}}
 /* 在席ボードの「今いる場所」（2026-11-06） */
 .team-mode-btn{min-height:36px;padding:0 14px;border-radius:18px;border:2px solid #272438;background:#141c2c;color:#e6c578;font-size:0.82em;font-weight:700;cursor:pointer}
 .team-mode-btn.back{background:white;color:var(--primary-dark);border-color:var(--primary)}
@@ -1098,7 +1100,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
   <div class="sidebar-nav">
     <button class="sidebar-btn active" data-tab="home" data-tip="ホーム" onclick="switchTab('home',this)"><span class="sidebar-icon">🏠</span><span class="sidebar-label">ホーム</span><span class="sidebar-short">ホーム</span><span id="notice-badge-side" style="display:none;background:#e53935;color:white;font-size:0.68em;font-weight:700;min-width:16px;height:16px;border-radius:8px;padding:0 4px;line-height:16px;text-align:center;margin-left:auto"></span></button>
     <button class="sidebar-btn" data-tab="calendar" data-tip="カレンダー" onclick="switchTab('calendar',this)"><span class="sidebar-icon">📅</span><span class="sidebar-label">カレンダー</span><span class="sidebar-short">カレンダー</span></button>
-    <button class="sidebar-btn" data-tab="team" data-tip="在席ボード" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席ボード</span><span class="sidebar-short">在席</span></button>
+    <button class="sidebar-btn" data-tab="team" data-tip="在席・当番" onclick="switchTab('team',this)"><span class="sidebar-icon">👥</span><span class="sidebar-label">在席・当番</span><span class="sidebar-short">在席</span></button>
     <button class="sidebar-btn" data-tab="apply" data-tip="申請" onclick="switchTab('apply',this)"><span class="sidebar-icon">📋</span><span class="sidebar-label">申請</span><span class="sidebar-short">申請</span></button>
     <button class="sidebar-btn" data-tab="mypage" data-tip="マイページ" onclick="switchTab('mypage',this)"><span class="sidebar-icon" style="position:relative">👤<span class="notif-badge" id="sidebar-notif-badge" style="display:none"></span></span><span class="sidebar-label">マイページ</span><span class="sidebar-short">マイページ</span></button>
     <button class="sidebar-btn" data-tab="rooms" data-tip="会議室" onclick="switchTab('rooms',this)"><span class="sidebar-icon">🏢</span><span class="sidebar-label">会議室</span><span class="sidebar-short">会議室</span></button>
@@ -1191,10 +1193,8 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       </div>
       <div id="notice-home-list"></div>
     </div>
-    <!-- 今週の昼休みグループ・今日の掃除当番・掃除チェックシート（2026-11-11。新棟。お知らせの下） -->
-    <div id="cleaning-area" style="display:none;padding:8px 0 0"></div>
-    <!-- ごみ捨て当番（燃えるごみ・プラ。2026-11-12。リリース前なので永野の画面だけ） -->
-    <div id="trash-area" style="display:none;padding:8px 0 0"></div>
+    <!-- 今日の当番（2026-11-17。掃除当番表・ごみ捨て当番は在席ボードの「当番」に移した。ホームは今日の分だけ） -->
+    <div id="duty-home" style="display:none;padding:8px 0 0"></div>
     <div id="home-content"></div>
   </div>
 
@@ -1339,10 +1339,11 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button type="button" class="team-mode-btn" id="team-mode-btn" onclick="toggleTeamMode()"></button></div>
     <div id="team-myplace"></div>
     <div id="team-view-card" style="background:white;border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)">
-      <div style="display:flex;gap:6px;margin-bottom:10px">
+      <div class="team-vbtn-row" style="display:flex;gap:6px;margin-bottom:10px">
         <button class="team-vbtn active" id="team-vbtn-normal" onclick="switchTeamView('normal')">在席ボード</button>
         <button class="team-vbtn" id="team-vbtn-dept" onclick="switchTeamView('dept')">📋 部署ごと</button>
         <button class="team-vbtn" id="team-vbtn-place" onclick="switchTeamView('place')">📍 場所ごと</button>
+        <button class="team-vbtn" id="team-vbtn-duty" onclick="switchTeamView('duty')">🧹 当番</button>
       </div>
       <div id="team-search-wrap">
         <input type="text" id="team-search" placeholder="🔍 名前で検索..." oninput="renderTeam()"
@@ -1352,6 +1353,11 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       </div>
     </div>
     <div id="team-grid"></div>
+    <!-- 当番（2026-11-17 ホームから移した）：今週の昼休みグループ・掃除当番表・チェックシート（新棟）と、ごみ捨て当番 -->
+    <div id="team-duty" style="display:none">
+      <div id="cleaning-area" style="display:none;padding:0 0 8px"></div>
+      <div id="trash-area" style="display:none;padding:0 0 8px"></div>
+    </div>
     <!-- 在席マップ（zaiseki-map.html を iframe で。マップを選んだときだけ読み込む。2026-11-06 段階M1） -->
     <div id="team-map-wrap" style="display:none"></div>
   </div>
@@ -2228,7 +2234,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','cal.day.hint':'選んでいる日をもう一度押すと、その日の予定を登録できます','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席ボード',
+'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','cal.day.hint':'選んでいる日をもう一度押すと、その日の予定を登録できます','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席・当番',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -2297,7 +2303,7 @@ ja:{
 'rooms.cap':'定員{n}名','rooms.book':'＋ 予約','rooms.reserved':'予約中',
 'rooms.no.res':'予約なし','rooms.book.room':'＋ 会議室を予約',
 // 在席ボード
-'team.board':'在席ボード','team.dept':'📋 部署ごと','team.search':'🔍 名前で検索...',
+'team.board':'在席ボード','team.duty':'🧹 当番','team.dept':'📋 部署ごと','team.search':'🔍 名前で検索...',
 'team.nobody':'該当するメンバーがいません','team.holiday':'休日',
 // 在席ボードの「今いる場所」（2026-11-06）。場所の名前（本社 2階南 など）は固有名詞なので訳さない
 'place.my':'あなたの今いる場所','place.unset':'場所未設定','place.change':'場所を変更',
@@ -2644,7 +2650,7 @@ vi:{
 'dr.err.empty':'Chưa có nội dung',
 'dr.sending':'Đang gửi...',
 'dr.saved':'Đã ghi Kaizen Step',
-'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','cal.day.hint':'Bấm lại ngày đang chọn để thêm lịch','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh',
+'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','cal.day.hint':'Bấm lại ngày đang chọn để thêm lịch','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh・Trực nhật',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
@@ -2702,7 +2708,7 @@ vi:{
 'rooms.busy':'🔴 {name}　Đang dùng','rooms.free':'🟢 {name}　Trống　＋Đặt',
 'rooms.cap':'Sức chứa {n} người','rooms.book':'＋ Đặt','rooms.reserved':'Đã đặt',
 'rooms.no.res':'Chưa có đặt','rooms.book.room':'＋ Đặt phòng họp',
-'team.board':'Điểm danh','team.dept':'📋 Theo phòng ban','team.search':'🔍 Tìm theo tên...',
+'team.board':'Điểm danh','team.duty':'🧹 Trực nhật','team.dept':'📋 Theo phòng ban','team.search':'🔍 Tìm theo tên...',
 'team.nobody':'Không tìm thấy','team.holiday':'Ngày nghỉ',
 'place.my':'Vị trí hiện tại của bạn','place.unset':'Chưa chọn vị trí','place.change':'Đổi vị trí',
 'place.out':'Đang ra ngoài','place.out.btn':'Báo đang ra ngoài','place.out.self':'Đang ra ngoài (tự chọn)','place.back':'Đã quay lại: {place}',
@@ -3035,7 +3041,7 @@ ne:{
 'dr.err.empty':'केही लेखिएको छैन',
 'dr.sending':'पठाउँदै...',
 'dr.saved':'Kaizen Step रेकर्ड गरियो',
-'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','cal.day.hint':'छानिएको दिन फेरि थिचेर तालिका थप्नुहोस्','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति',
+'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','cal.day.hint':'छानिएको दिन फेरि थिचेर तालिका थप्नुहोस्','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति・पालो',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
@@ -3093,7 +3099,7 @@ ne:{
 'rooms.busy':'🔴 {name}　प्रयोगमा','rooms.free':'🟢 {name}　खाली　＋बुक',
 'rooms.cap':'{n} जना क्षमता','rooms.book':'＋ बुक','rooms.reserved':'बुक भएको',
 'rooms.no.res':'बुकिङ छैन','rooms.book.room':'＋ कोठा बुक गर्नुहोस्',
-'team.board':'उपस्थिति बोर्ड','team.dept':'📋 विभाग अनुसार','team.search':'🔍 नामले खोज्नुहोस्...',
+'team.board':'उपस्थिति बोर्ड','team.duty':'🧹 पालो','team.dept':'📋 विभाग अनुसार','team.search':'🔍 नामले खोज्नुहोस्...',
 'team.nobody':'कोही भेटिएन','team.holiday':'बिदा',
 'place.my':'तपाईंको हालको स्थान','place.unset':'स्थान छानिएको छैन','place.change':'स्थान बदल्नुहोस्',
 'place.out':'बाहिर गएको','place.out.btn':'बाहिर गएको भनी राख्नुहोस्','place.out.self':'बाहिर गएको (आफैं छानेको)','place.back':'फर्किएँ: {place}',
@@ -3463,6 +3469,7 @@ function applyLanguage(lang){
   const _tvn=document.getElementById('team-vbtn-normal');if(_tvn)_tvn.textContent=t('team.board');
   const _tvd=document.getElementById('team-vbtn-dept');if(_tvd)_tvd.textContent=t('team.dept');
   const _tvp=document.getElementById('team-vbtn-place');if(_tvp)_tvp.textContent=t('team.place');
+  const _tvdu=document.getElementById('team-vbtn-duty');if(_tvdu)_tvdu.textContent=t('team.duty');
   const _ts=document.getElementById('team-search');if(_ts)_ts.placeholder=t('team.search');
   // 管理者パネル
   const _at=document.getElementById('admin-title-text');if(_at)_at.innerHTML=t('admin.members')+' <span style="font-size:0.8em;color:var(--text2);font-weight:400">'+t('admin.pin.reissue')+'</span>';
@@ -7564,6 +7571,7 @@ function renderTeam(){
     return;
   }
   if (teamView === 'dept') { renderTeamDeptView(); return; }
+  if (teamView === 'duty') { renderCleaning(); return; }   // ごみ捨て当番は loadTrash が描いたものをそのまま出す
   const kw=(document.getElementById('team-search')?.value||'').toLowerCase();
   const _teamHol=holidays.find(h=>h.date===ds);
   const isCompHoliday=!!_teamHol;
@@ -7667,7 +7675,8 @@ function toggleTeamDept(btn){
 
 function switchTeamView(v) {
   teamView = v;
-  try { localStorage.setItem('halo_team_view', v); } catch(e) {}
+  // 「当番」は覚えない（在席ボードを開いたら、いつもは人の一覧から。当番はホームのカードからも入れる）
+  if (v !== 'duty') { try { localStorage.setItem('halo_team_view', v); } catch(e) {} }
   renderTeam();
 }
 function toggleTeamMode() {
@@ -7679,12 +7688,13 @@ function toggleTeamMode() {
 // マップのときは「あなたの今いる場所」と表示の切替を出さず、マップだけにする
 function _syncTeamView(){
   const isMap = teamMode==='map';
-  [['normal','team-vbtn-normal'],['dept','team-vbtn-dept'],['place','team-vbtn-place']]
+  [['normal','team-vbtn-normal'],['dept','team-vbtn-dept'],['place','team-vbtn-place'],['duty','team-vbtn-duty']]
     .forEach(([v,id])=>document.getElementById(id)?.classList.toggle('active', teamView===v));
   // 部署ごと・場所ごとでは検索・ステータスチップを非表示
   const sw=document.getElementById('team-search-wrap'); if(sw) sw.style.display = teamView==='normal' ? 'block' : 'none';
   const show=(id,on)=>{ const el=document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
-  show('team-myplace', !isMap); show('team-view-card', !isMap); show('team-grid', !isMap); show('team-map-wrap', isMap);
+  const isDuty = teamView==='duty';
+  show('team-myplace', !isMap); show('team-view-card', !isMap); show('team-grid', !isMap && !isDuty); show('team-duty', !isMap && isDuty); show('team-map-wrap', isMap);
   const mb=document.getElementById('team-mode-btn');
   if(mb){ mb.textContent = isMap ? t('team.map.off') : t('team.map.on'); mb.classList.toggle('back', isMap); }
 }
@@ -8200,7 +8210,7 @@ function renderHomeTodo() {
       go: imp.length === 1 ? `openNoticeDetail('${imp[0].id}')` : "setNoticeFilter('unread');document.getElementById('notice-home-wrap').scrollIntoView({behavior:'smooth',block:'start'})" });
   }
   if (typeof _clnData !== 'undefined' && _clnData && _clnData.todayInfo && _clnData.todayInfo.iAmDuty) {
-    items.push({ ic: '🧹', text: t('home.todo.clean'), go: "document.getElementById('cleaning-area').scrollIntoView({behavior:'smooth',block:'start'})" });
+    items.push({ ic: '🧹', text: t('home.todo.clean'), go: "openDutyView()" });
   }
   if (!items.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
   el.style.display = '';
@@ -10651,6 +10661,63 @@ let _clnCur = null;
 
 // 全員で掃除する日（月曜）。前は金曜で「金曜全員」と呼んでいた値も同じに扱う
 const _clnIsAll = (k) => k === '全員清掃' || k === '金曜全員';
+
+// ===== ホームの「今日の当番」（2026-11-17）=====
+// 当番表（掃除・ごみ捨て）は在席ボードの「当番」に移した。ホームには今日の分だけを小さく出し、自分が当番の行は色を付けてボタンを出す。
+// データは在席ボードと同じ（_clnData＝getCleaningHome、_trashData＝getTrashDuty）。押すと在席ボードの「当番」へ移る
+function openDutyView() { switchTab('team'); switchTeamView('duty'); }
+function renderDutyHome() {
+  const el = document.getElementById('duty-home');
+  if (!el) return;
+  const c = (typeof _clnData !== 'undefined') ? _clnData : null;
+  const d = (typeof _trashData !== 'undefined') ? _trashData : null;
+  const rows = [];
+  const btnCss = 'flex-shrink:0;padding:6px 10px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer;white-space:nowrap';
+  // 昼休み（自分のグループの今週の時間）と、今日の掃除
+  if (c && !c.empty) {
+    const w = (c.weeks || []).find(x => x.start === c.thisMon);
+    if (w && w.lunch) rows.push({ k: '昼休み', v: `${esc(w.lunch.label)}　${esc(w.lunch.time)}`, note: `${esc(w.lunch.group)} グループ` });
+    const ti = c.todayInfo;
+    if (ti && ti.kind !== '会社休み') {
+      const me = !!(ti.iAmDuty || ti.iAmChecker);
+      const who = _clnIsAll(ti.kind) ? '後半組の全員' : esc(ti.dutyDisp || ti.duty || '');
+      rows.push({ k: '掃除<br>13:30〜', v: who, mine: me,
+        note: ti.iAmChecker ? 'あなたがチェック係' : ti.iAmDuty ? 'あなたが当番' : '',
+        btn: me ? `<button type="button" onclick="event.stopPropagation();openCleaningCheck()" style="${btnCss}">チェックシート</button>` : '' });
+    }
+  }
+  // ごみ捨て（今週の当番グループと、今日のごみ）。曜日ごとのごみは在席ボードのごみ捨て当番の表と同じ
+  if (d && d.thisMon >= d.startsAt) {
+    const cur = (d.weeks || []).find(x => x.start === d.thisMon);
+    if (cur) {
+      const n = Math.round((Date.parse(d.today) - Date.parse(d.thisMon)) / 86400000);
+      const kindOf = ['資源ごみ（本社）', '燃えるごみ', '', 'プラ', '燃えるごみ'];
+      const today = [];
+      if (kindOf[n]) today.push({ slot: '', label: kindOf[n] + '（朝8:00〜9:00）', rec: (d.log || {})[d.today] });
+      if ([0, 2, 4].includes(n)) today.push({ slot: 'cb', label: '段ボール（16:00〜16:50）', rec: (d.logCb || {})[d.today] });
+      const left = today.filter(x => !x.rec);
+      const me = !!cur.mine && today.length > 0;
+      const todayText = today.length ? today.map(x => esc(x.label) + (x.rec ? ' 済み' : '')).join('・') : '今日はありません';
+      rows.push({ k: 'ごみ捨て', v: `${esc(cur.group)}`, mine: me && left.length > 0,
+        note: (cur.mine ? '今週はあなたのグループ　' : '') + todayText,
+        btn: (me && left.length && (cur.mine || d.canAdmin)) ? `<button type="button" onclick="event.stopPropagation();trashMark('${d.today}'${left[0].slot ? ",'cb'" : ''})" style="${btnCss}">記録する</button>` : '' });
+    }
+  }
+  if (!rows.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = '';
+  el.innerHTML = `
+    <div onclick="openDutyView()" style="background:white;border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);cursor:pointer">
+      <div style="display:flex;align-items:center;margin-bottom:6px">
+        <span style="font-size:0.95em;font-weight:700;color:var(--text)">今日の当番</span>
+        <span style="margin-left:auto;font-size:0.8em;color:var(--primary)">当番表 ›</span>
+      </div>
+      ${rows.map(r => `<div style="display:flex;align-items:center;gap:10px;padding:8px ${r.mine ? '10px' : '0'};border-top:1px solid var(--border,#eee);${r.mine ? 'background:var(--primary-light);border-radius:8px;border-top-color:transparent;margin-top:2px' : ''}">
+        <span style="width:64px;flex-shrink:0;font-size:0.75em;color:var(--text2);line-height:1.3">${r.k}</span>
+        <span style="min-width:0;flex:1"><span style="font-size:0.92em;font-weight:700;color:var(--text)">${r.v}</span>${r.note ? `<span style="display:block;font-size:0.78em;color:${r.mine ? 'var(--primary-dark)' : 'var(--text2)'}">${r.note}</span>` : ''}</span>
+        ${r.btn || ''}
+      </div>`).join('')}
+    </div>`;
+}
 let _clnError = false;
 let _clnSel = ''; // 今開いている週の月曜（週ごとにめくる）
 let _trashData = null; // ごみ捨て当番のデータ（「捨てた」を押すときに、その週のグループを調べる）
@@ -10730,7 +10797,8 @@ function trashLogHtml(d, cur) {
   }).join('');
   return `<div style="margin-top:10px"><div style="font-size:0.75em;color:var(--text2);margin-bottom:2px">今週の記録（当番グループの人が、捨てたら「捨てた」、段ボールを出したら「出した」を押します）</div>${rows}</div>`;
 }
-async function loadTrash() {
+async function loadTrash() { try { await _loadTrashBody(); } finally { renderDutyHome(); } }   // 終わったらホームの「今日の当番」も描き直す
+async function _loadTrashBody() {
   const area = document.getElementById('trash-area');
   if (!area) return;
   if (!currentUser) { area.innerHTML = ''; area.style.display = 'none'; return; }   // 全員に公開（2026-11-16）
@@ -10764,7 +10832,8 @@ async function loadTrash() {
       <details style="margin-top:10px"><summary style="cursor:pointer;font-size:0.85em;color:var(--primary)">6週の順番を見る</summary>${rows}</details>
     </div>`;
 }
-async function loadCleaning() {
+async function loadCleaning() { try { await _loadCleaningBody(); } finally { renderDutyHome(); } }
+async function _loadCleaningBody() {
   const area = document.getElementById('cleaning-area');
   if (!area) return;
   // 2026-11-16 全員に公開（それまでは永野（社員番号81）の画面にだけ出していた）
