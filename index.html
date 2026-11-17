@@ -6443,12 +6443,23 @@ document.addEventListener('pointerup',e=>{
   const b=tkDayAt(dg.tl,e.clientX),lo=Math.min(dg.a,b),hi=Math.max(dg.a,b);
   tkfNewFromRow(dg.id,tkDs(tkAddDays(_tk.range.start,lo)),tkDs(tkAddDays(_tk.range.start,hi)));
 });
+// タブ利用回数（2026-11-18。Worker の stats.js）。人は区別せず、日×タブの回数だけ数える。
+// 本番の Worker に logTabView を入れるまでは、開発用（schedule-worker-dev）につながっているときだけ送る
+const TAB_STATS_ON = /\/\/schedule-worker-dev\./.test(GAS_URL);
+let _lastLoggedTab = null;
+function _logTabView(tab){
+  if(!TAB_STATS_ON || !currentUser || tab===_lastLoggedTab) return; // 同じタブの押し直しは数えない
+  _lastLoggedTab = tab;
+  _apiQuiet('logTabView', { tab }).catch(()=>{});
+}
 function switchTab(tab, btn){
+  const _tabName = tab; // 端末・車は設備予約に入る前の名前で数える
   if(tab==='devices'){ _facFilter='device'; tab='rooms'; } // 端末は設備予約の中（3e-1）
   if(tab==='cars'){ _facFilter='car'; tab='rooms'; }       // 車も設備予約の中（準備中。3e-1）
   if(tab==='tasks'&&!tkAllowed())return;
   if(tab==='cars'&&!carAllowed())return;
   if(tab==='chat'&&!document.body.classList.contains('chat-on'))return;
+  _logTabView(_tabName);
   ['home','calendar','tasks','rooms','team','chat','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
