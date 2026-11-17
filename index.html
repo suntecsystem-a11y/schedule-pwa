@@ -1007,11 +1007,11 @@ body.tk-dragging .tk-gb.mv{cursor:grabbing}
 #tk-man .mn-toc{position:sticky;top:0;background:var(--surface);padding:10px 0;display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--border);z-index:2}
 #tk-man .mn-toc a{cursor:pointer;font-size:.85em;padding:3px 10px;border-radius:14px;background:var(--primary-light);color:var(--primary-dark)}
 #tk-man section{padding-top:18px}
-#tk-man h3{font-size:1.08em;margin:0 0 8px;padding-left:10px;border-left:4px solid var(--primary)}
+#tk-man h3{font-size:1.08em;margin:0 0 8px}
 #tk-man p{margin:0 0 10px}
 #tk-man ul,#tk-man ol{margin:8px 0 10px 1.3em;padding:0}#tk-man li{margin:3px 0}
 #tk-man .mn-ol{list-style:none;margin-left:0}
-#tk-man .mn-note{background:#fff8e1;border-left:4px solid var(--orange);padding:8px 12px;border-radius:4px;margin:10px 0;color:#5d4037}
+#tk-man .mn-note{background:#fff8e1;padding:8px 12px;border-radius:4px;margin:10px 0;color:#5d4037}
 #tk-man .mn-fig{border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg);margin:10px 0}
 #tk-man .mn-svg{width:100%;height:auto;display:block;margin:10px 0}
 #tk-man .mn-svg .bg{fill:var(--bg);stroke:var(--border)}#tk-man .mn-svg .tx{fill:var(--text)}#tk-man .mn-svg .ln{stroke:var(--border)}
@@ -9969,7 +9969,7 @@ function renderIssueCheck() {
     : `<button onclick="doIssueCheck()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#43a047;color:white;font-weight:700;font-size:0.95em;cursor:pointer">${t('dr.check')}</button>`;
   area.style.display = '';
   area.innerHTML = `
-    <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);border-left:4px solid #f57c00">
+    <div style="background:white;border-radius:var(--radius);padding:12px;box-shadow:var(--shadow)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span style="font-size:0.82em;font-weight:700;color:var(--text2)">${t('dr.title')}</span>
         <span style="display:flex;gap:6px">
@@ -10648,7 +10648,7 @@ function renderKotLink() {
   if (!area) return;
   if (!_kotUrl) { area.style.display = 'none'; area.innerHTML = ''; return; }
   area.style.display = '';
-  area.innerHTML = `<a href="${esc(_kotUrl)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:var(--radius);background:white;box-shadow:var(--shadow);color:var(--primary-dark);font-weight:700;font-size:0.95em;text-decoration:none;border-left:4px solid var(--primary)">${t('kot.open')}<span style="font-size:0.8em;color:var(--text2)">↗</span></a>`;
+  area.innerHTML = `<a href="${esc(_kotUrl)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:var(--radius);background:white;box-shadow:var(--shadow);color:var(--primary-dark);font-weight:700;font-size:0.95em;text-decoration:none">${t('kot.open')}<span style="font-size:0.8em;color:var(--text2)">↗</span></a>`;
 }
 
 // ============================================================
@@ -10824,7 +10824,7 @@ async function _loadTrashBody() {
   const rows = d.weeks.map(w => `<div style="padding:6px 0;border-top:1px solid var(--border,#eee);font-size:0.85em"><b>${md(w.start)}〜</b>　${esc(w.group)}<div style="font-size:0.9em;color:var(--text2)">${names(w)}</div></div>`).join('');
   area.style.display = '';
   area.innerHTML = `
-    <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid #8d6e63">
+    <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">
       <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:4px">🗑 ごみ捨て当番（ごみ・段ボール）</div>
       <div style="font-size:0.75em;color:var(--text2);margin-bottom:10px">各部門が置いたストック（新棟裏）を、その週の当番グループが、決まった日の朝8:00〜9:00に捨てます（資源ごみ：月・本社／燃えるごみ：火・金／プラ：木。燃えるごみ・プラは本社と新棟の1か所3袋まで）。段ボールは、月・水・金の16:00〜16:50に、本社駐輪場前へ出します（各部門がまとめた段ボール箱。「石原様」と書く）。</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">${chip('今週', cur, d.thisMon)}${chip('来週', nxt, nextMon)}</div>
@@ -10876,7 +10876,7 @@ function renderCleaning() {
   if (!area) return;
   const c = _clnData;
   const box = (inner) => `
-    <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);border-left:4px solid #26a69a">
+    <div style="background:white;border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)">
       <div style="font-size:0.95em;font-weight:700;color:var(--text);margin-bottom:10px">🏢 新棟：昼休み・掃除当番</div>
       ${inner}
     </div>`;
@@ -11149,7 +11149,7 @@ function clnRowHtml(it) {
   const okBtn = (canMark || ok) ? btn(ok, canMark, '確認OK', `clnMark('${it.id}',${!ok})`) : '';
   const clInfo = (ok && cl) ? `<span style="font-size:0.76em;color:var(--text2)">${esc(_clnDisp(cl.by))} ${_drTime(cl.at)}${cl.proxy ? '（チェック係が記入）' : ''}</span>` : '';
   return `
-    <div style="padding:10px 8px;border-bottom:1px solid var(--border);${mine ? 'background:#fff3e0;border-left:4px solid #e65100;' : ''}">
+    <div style="padding:10px 8px;border-bottom:1px solid var(--border);${mine ? 'background:#fff3e0;' : ''}">
       <div style="display:flex;align-items:center;gap:8px">
         <div style="flex:1;min-width:0;font-size:0.92em;font-weight:700">${esc(it.label)}${it.id === 'stairs' ? '<div style="font-weight:400;font-size:0.82em;color:var(--text2)">掃除機とクイックルワイパー。人が余ったら2名で担当</div>' : ''}${mine ? '<span style="margin-left:8px;padding:1px 8px;border-radius:10px;background:#e65100;color:white;font-weight:700;font-size:0.72em;white-space:nowrap">あなたの担当</span>' : ''}</div>
         ${(it.manual || it.howto) ? `<button type="button" onclick="clnOpenManual('${it.id}')" style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.82em;cursor:pointer;white-space:nowrap">📖 マニュアル</button>` : ''}
@@ -12141,7 +12141,7 @@ function renderMyPage() {
 
     <!-- 届出のお知らせ -->
     ${todokeNotifs.length ? `
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #1565c0">
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="font-size:0.72em;color:#1565c0;font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.todoke.title',{n:todokeNotifs.length})}</div>
       ${todokeNotifs.map(n => {
         const head = n.todokeKind === 'todoke_request' ? t('my.todoke.request')
@@ -12166,7 +12166,7 @@ function renderMyPage() {
 
     <!-- 申請の承認依頼 -->
     ${applyRequests.length ? `
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #e65100">
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="font-size:0.72em;color:#e65100;font-weight:700;letter-spacing:.05em;margin-bottom:10px">承認をお願いします（${applyRequests.length}件）</div>
       ${applyRequests.map(n => {
         const applyLabels = { leave:'🌴 休暇申請', other:'📝 その他申請', rental:'📱 端末貸出', expense:'💴 出張費精算', transport:'🚃 交通費精算', change:'🪪 従業員情報変更届' };
@@ -12186,7 +12186,7 @@ function renderMyPage() {
 
     <!-- 承認待ち（主任向け） -->
     ${pendingApprovals.length ? `
-    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #e65100">
+    <div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
       <div style="font-size:0.72em;color:#e65100;font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.pending',{n:pendingApprovals.length})}</div>
       ${pendingApprovals.map(e => {
         const applicant = USERS.find(u => u.id === e.userId);
@@ -12360,7 +12360,7 @@ function renderMyPage() {
     ${(()=>{
       const myRentals=events.filter(e=>e.approvalStatus!=='否認'&&(e.userId===currentUser.id)&&(e.rentals||[]).length>0&&e.rentalStatus&&e.rentalStatus!=='返却済');
       if(!myRentals.length) return '';
-      return `<div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow);border-left:4px solid #1565c0">
+      return `<div style="background:white;border-radius:var(--radius);padding:14px 16px;margin-bottom:12px;box-shadow:var(--shadow)">
         <div style="font-size:0.72em;color:#1565c0;font-weight:700;letter-spacing:.05em;margin-bottom:10px">${t('my.rental.current')}</div>
         ${myRentals.map(e=>{
           const stMap={'申請中':['#fb8c00','#fff3e0'],'予約中':['#1565c0','#e3f2fd'],'貸出中':['#e53935','#ffebee']};
