@@ -188,6 +188,7 @@ body.hn .status-会議室,body.hn .status-会議中{background:#E2E9F3;color:#3F
 body.hn .status-休み{background:#F4E5DF;color:#8E4F3C}
 body.hn .status-在席{background:#ECEEEB;color:#5F655D}
 body.hn .status-来社{background:#EEEDDC;color:#66622A}
+body.hn .status-休憩中{background:#EFE9E4;color:#6E5A4B}
 
 /* ---------- お知らせ・バナー ---------- */
 body.hn .notif-item{background:#F2F6F1;border:1px solid var(--hn-tint)}

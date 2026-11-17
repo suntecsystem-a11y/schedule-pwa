@@ -411,6 +411,8 @@ body{margin:0}
 .char.arrive{animation:zmap-arrive .7s ease-out}
 @keyframes zmap-arrive{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.char.arrive{animation:none}}
+/* 休憩中のマス（2026-11-17）。社内なので出張・外出（茶色）とも休み（紫の縁）とも違う色 */
+.zone.kyukei{background:#50754c;box-shadow:inset 0 0 0 2px #e6c578,0 4px #141c2c}
 /* スマホの縦向きでも、誰がどこにいるか（人数・一覧）をマップより上に出す */
 @media (max-width:700px) and (orientation:portrait){
   .game>.classic-summary{order:-6}
@@ -503,6 +505,7 @@ body{margin:0}
       <div class="zone status" data-zone="gaishutsu"><span class="zlabel">外出中</span><div class="chars"></div></div>
       <div class="zone status" data-zone="zaitaku"><span class="zlabel">在宅</span><div class="chars"></div></div>
       <div class="zone rest" data-zone="rest"><span class="zlabel">休暇/休み</span><div class="chars"></div></div>
+      <div class="zone kyukei" data-zone="kyukei"><span class="zlabel">休憩中</span><div class="chars"></div></div>
     </div>
 
     <div class="cmd">
@@ -928,7 +931,8 @@ function createTravelGraph(layout) {
   var LAND={
     ibaraki:{rows:FACT,pal:P_FACT,palH:H_FACT,px:3}, daikoku:{rows:WARE,pal:P_WARE,palH:H_WARE,px:3},
     zaitaku:{rows:HOUSE,pal:P_HOUSE,palH:H_HOUSE,px:3}, shuccho:{rows:TRAIN,pal:P_TRAIN,palH:H_TRAIN,px:3},
-    gaishutsu:{rows:CAR,pal:P_CAR,palH:H_CAR,px:3}, rest:{rows:PARA,pal:P_PARA,palH:H_PARA,px:3}
+    gaishutsu:{rows:CAR,pal:P_CAR,palH:H_CAR,px:3}, rest:{rows:PARA,pal:P_PARA,palH:H_PARA,px:3},
+    kyukei:{rows:HOUSE,pal:P_HOUSE,palH:H_HOUSE,px:3}
   };
   function renderScenes(halo){
     document.querySelectorAll('.zone').forEach(function(z){
@@ -1117,7 +1121,8 @@ daikoku:{sub:'みなとの そうこ',body:'<path fill="#c8b888" d="M2 25h44v4H2
 shuccho:{sub:'たびの とちゅう',body:'<path fill="#5379aa" d="M0 16L10 2l11 14L32 0l16 18z"/><path fill="#a1a7b0" d="M7 7l3-5 4 6-4-2zm21-1 4-6 5 7-5-2z"/><path fill="#c8b888" d="M23 14h5l5 16H14z"/><path fill="#272438" d="M36 11h2v16h-2z"/><path fill="#c8b888" d="M30 12h15v6H30z"/><path fill="#815539" d="M33 14h8v2h-8z"/>'},
 gaishutsu:{sub:'まちへ おでかけ',body:'<path fill="#314d39" d="M6 7h3v21H6z"/><path fill="#c8b888" d="M1 9h19v6H1zm2 8h18v6H3z"/><path fill="#815539" d="M3 11h12v2H3zm3 8h12v2H6z"/><path fill="#314d39" d="M29 7h15v13H29zM26 11h21v7H26z"/><path fill="#50754c" d="M30 5h12v12H30zM27 10h18v6H27z"/><path fill="#815539" d="M34 18h5v10h-5z"/><path fill="#e6c578" d="M24 27h23v3H24z"/>'},
 zaitaku:{sub:'じぶんの いえ',body:'<path fill="#272438" d="M6 13L24 1l19 12v2H6z"/><path fill="#b85c4b" d="M8 12L24 3l16 9z"/><path fill="#e2b888" d="M10 14h28v14H10z"/><path fill="#697080" d="M22 18h7v10h-7z"/><path fill="#5379aa" d="M13 17h5v5h-5zm18 0h5v5h-5z"/><path fill="#eee5cd" d="M15 17h1v5h-1zm18 0h1v5h-1z"/><path fill="#815539" d="M33 3h4v7h-4z"/>'},
-rest:{sub:'やどやで ひとやすみ',body:'<path fill="#272438" d="M6 12L24 1l18 11v16H6z"/><path fill="#697080" d="M8 11L24 3l16 8z"/><path fill="#c8b888" d="M9 13h30v14H9z"/><path fill="#314d39" d="M21 18h8v10h-8z"/><path fill="#e6c578" d="M12 16h5v6h-5zm20 0h4v6h-4z"/><path fill="#272438" d="M35 0h2v12h-2z"/><path fill="#eee5cd" d="M28 1h17v7H28z"/><path fill="#697080" d="M30 2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v1h-1zm1-2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v2h-1z"/>'}
+rest:{sub:'やどやで ひとやすみ',body:'<path fill="#272438" d="M6 12L24 1l18 11v16H6z"/><path fill="#697080" d="M8 11L24 3l16 8z"/><path fill="#c8b888" d="M9 13h30v14H9z"/><path fill="#314d39" d="M21 18h8v10h-8z"/><path fill="#e6c578" d="M12 16h5v6h-5zm20 0h4v6h-4z"/><path fill="#272438" d="M35 0h2v12h-2z"/><path fill="#eee5cd" d="M28 1h17v7H28z"/><path fill="#697080" d="M30 2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v1h-1zm1-2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v2h-1z"/>'},
+kyukei:{sub:'おひるやすみ',body:'<path fill="#815539" d="M2 26h44v4H2z"/><path fill="#eee5cd" d="M7 26L15 11l8 15z"/><path fill="#272438" d="M12 20h6v6h-6z"/><path fill="#a1a7b0" d="M27 15h12v11H27z"/><path fill="#697080" d="M28 16h10v2H28z"/><path fill="#a1a7b0" d="M39 17h4v6h-4z"/><path fill="#272438" d="M40 18h2v4h-2z"/><path fill="#eee5cd" d="M30 8h1v5h-1zm4-2h1v6h-1z"/>'}
 };
 Object.keys(scenes).forEach(function(id){var zone=document.querySelector('[data-zone="'+id+'"]');var land=zone.querySelector('.zland');land.innerHTML='<svg class="pixel-land" viewBox="0 0 48 32" aria-hidden="true">'+scenes[id].body+'</svg>';var star=document.createElement('span');star.className='scene-star';star.textContent='✦';zone.appendChild(star);});
 // Sound is opt-in and generated locally, without recordings or network access.
@@ -1169,7 +1174,8 @@ document.querySelectorAll('.btns').forEach(function(group){group.addEventListene
       {id:'D3',name:'高橋',dept:'営業部',zone:'shuccho'},{id:'D4',name:'渡辺',dept:'製造部',zone:'shinto-senmu'},
       {id:'D5',name:'伊藤',dept:'製造部',zone:'ibaraki'},{id:'D6',name:'清水',dept:'製造部',zone:'shinto-3f-mtg1'},
       {id:'D7',name:'鈴木',dept:'総務部',zone:'shinto-3f-mtg1'},{id:'D8',name:'山田',dept:'総務部',zone:'shinto-2f-mtg'},
-      {id:'D9',name:'井上',dept:'総務部',zone:'zaitaku'},{id:'D10',name:'松本',dept:'開発部',zone:'rest'}],
+      {id:'D9',name:'井上',dept:'総務部',zone:'zaitaku'},{id:'D10',name:'松本',dept:'開発部',zone:'rest'},
+      {id:'D11',name:'小林',dept:'製造部',zone:'kyukei'},{id:'D12',name:'中村',dept:'総務部',zone:'kyukei'}],
       extraRows:[{label:'社内（場所未設定）',names:['岡田','小川']}],labels:{}});
   } else {
     post({type:'zmap:ready'});

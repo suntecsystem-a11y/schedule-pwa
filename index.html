@@ -417,6 +417,7 @@ body[data-tab="chat"] .fab{display:none!important} /* チャットの送信ボ�
 .status-休み{background:#fbe9e7;color:#bf360c}
 .status-在席{background:#f5f5f5;color:#616161}
 .status-来社{background:#e0f2f1;color:#004d40}
+.status-休憩中{background:#efebe9;color:#4e342e}
 
 /* 安否確認 */
 .safety-banner{background:#fff3e0;border:2px solid #ff9800;border-radius:var(--radius);padding:16px;margin-bottom:8px}
@@ -1064,7 +1065,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=15">
+<link rel="stylesheet" href="halo-design.css?v=16">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -2061,9 +2062,9 @@ const ALL_TYPES = ['会議室','打ち合わせ','作業','外出','出張','休
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅', 'その他'];
 const COLOR_PALETTES = {
-  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','作業':'#4dd0e1','在席':'#ccc','会議中':'#9fa8da'},
-  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','来社':'#26a69a','その他':'#78909c','作業':'#fdd835','在席':'#ccc','会議中':'#90a4ae'},
-  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','来社':'#009688','その他':'#78909c','作業':'#ffb74d','在席':'#ccc','会議中':'#e57373'},
+  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','作業':'#4dd0e1','在席':'#ccc','会議中':'#9fa8da','休憩中':'#bcaaa4'},
+  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','来社':'#26a69a','その他':'#78909c','作業':'#fdd835','在席':'#ccc','会議中':'#90a4ae','休憩中':'#a1887f'},
+  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','来社':'#009688','その他':'#78909c','作業':'#ffb74d','在席':'#ccc','会議中':'#e57373','休憩中':'#bcaaa4'},
 };
 let colorMode = localStorage.getItem('sch_color_mode') || 'normal';
 const STATUS_COLOR = {...COLOR_PALETTES.normal};
@@ -2280,7 +2281,7 @@ ja:{
 // 種別
 'type.room':'会議室','type.meeting':'打ち合わせ','type.out':'外出','type.trip':'出張',
 'type.leave':'休暇','type.rest':'休み','type.remote':'在宅','type.visit':'来社','type.work':'作業','type.other':'その他',
-'type.busy':'会議中','type.present':'在席',
+'type.busy':'会議中','type.present':'在席','type.lunch':'休憩中','team.lunch.until':'{t}まで',
 // ホーム
 'home.today.schedule':'📅 今日の予定','home.room.avail':'🏢 会議室の空き',
 'home.car.avail':'🚗 社用車の空き（今日）','home.notice':'📢 お知らせ',
@@ -2690,7 +2691,7 @@ vi:{
 'common.error':'Đã xảy ra lỗi','common.timeout':'⚠️ Kết nối quá thời gian',
 'type.room':'Phòng họp','type.meeting':'Họp','type.out':'Ra ngoài','type.trip':'Công tác',
 'type.leave':'Nghỉ phép','type.rest':'Nghỉ','type.remote':'Tại nhà','type.visit':'Đến công ty','type.work':'Công việc','type.other':'Khác',
-'type.busy':'Đang họp','type.present':'Có mặt',
+'type.busy':'Đang họp','type.present':'Có mặt','type.lunch':'Nghỉ trưa','team.lunch.until':'đến {t}',
 'home.today.schedule':'📅 Lịch hôm nay','home.room.avail':'🏢 Phòng họp trống',
 'home.car.avail':'🚗 Xe trống (hôm nay)','home.notice':'📢 Thông báo',
 'home.post':'＋ Đăng','home.no.schedule':'📅 Không có lịch','home.rest':'🛌 Nghỉ',
@@ -3081,7 +3082,7 @@ ne:{
 'common.error':'त्रुटि भयो','common.timeout':'⚠️ जडान समय सकियो',
 'type.room':'बैठक कोठा','type.meeting':'बैठक','type.out':'बाहिर','type.trip':'व्यापार यात्रा',
 'type.leave':'बिदा','type.rest':'आराम','type.remote':'घरबाट काम','type.visit':'कार्यालय भ्रमण','type.work':'काम','type.other':'अन्य',
-'type.busy':'बैठकमा','type.present':'उपस्थित',
+'type.busy':'बैठकमा','type.present':'उपस्थित','type.lunch':'खाना विश्राम','team.lunch.until':'{t} सम्म',
 'home.today.schedule':'📅 आजको तालिका','home.room.avail':'🏢 खाली कोठा',
 'home.car.avail':'🚗 खाली गाडी (आज)','home.notice':'📢 सूचना',
 'home.post':'＋ पोस्ट','home.no.schedule':'📅 तालिका छैन','home.rest':'🛌 आराम',
@@ -3362,7 +3363,7 @@ function t(key,params){
   return s.replace(/\{(\w+)\}/g,(_,k)=>params[k]!=null?params[k]:_);
 }
 function tType(type){
-  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','在宅':'type.remote','来社':'type.visit','作業':'type.work','その他':'type.other','会議中':'type.busy','在席':'type.present'};
+  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','在宅':'type.remote','来社':'type.visit','作業':'type.work','その他':'type.other','会議中':'type.busy','在席':'type.present','休憩中':'type.lunch'};
   return m[type]?t(m[type]):type;
 }
 function tDow(i){return[t('common.mon'),t('common.tue'),t('common.wed'),t('common.thu'),t('common.fri'),t('common.sat'),t('common.sun')][i];}
@@ -6433,7 +6434,7 @@ function switchTab(tab, btn){
   else                { _markNoticesAsSeen(); }
   if(tab==='tasks')   renderTasksTab();
   if(tab==='rooms')   { renderRoomTimeline(); renderFacility(); try{ renderDevices(); }catch(e){} loadEvents().then(()=>{ if(_currentTab==='rooms'){ renderDevices(); renderFacMine(); renderFacAvail(); renderFacGrid(); } }); loadRentalMasters().then(()=>{ if(_currentTab==='rooms'){ renderFacAvail(); renderFacGrid(); } }).catch(()=>{}); _facLoadCar(); }
-  if(tab==='team')    { _teamLastActive=Date.now(); renderTeam(); loadPlaces().then(()=>{ if(_currentTab==='team') renderTeam(); }); _teamAutoStart(); }
+  if(tab==='team')    { _teamLastActive=Date.now(); renderTeam(); Promise.all([loadPlaces(), loadLunch()]).then(()=>{ if(_currentTab==='team') renderTeam(); }); _teamAutoStart(); }
   else                _teamAutoStop();
   if(tab==='devices') { loadEvents().then(()=>renderDevices()); }
   if(tab==='cars')    { loadCarData().then(()=>{ renderCarView(); renderCarInUseBanner(); }); }
@@ -7324,8 +7325,26 @@ function _isUserInEvent(e, uid) {
   return (e.people || []).includes(uid);
 }
 // 会議室・打ち合わせは時刻チェックあり、それ以外は日付のみで判定
-const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','打ち合わせ','会議中'];
-const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢'};
+const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','打ち合わせ','会議中','休憩中'];
+const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢','休憩中':'🍙'};
+
+// ===== 在席ボード：休憩中（2026-11-17） =====
+// 新棟の昼休み（当番表 app1143 の前半・後半）の時間だけ、「在席」の人を「休憩中」にする。予定（会議・外出など）がある人はそちらのまま。
+// Worker の getLunchNow が、今日の時間と「社員番号 → 前半/後半」だけを返す（名前の判断はグループの画面と同じ）。5分ごとに読み直す
+let _lunch = null, _lunchAt = 0;
+async function loadLunch(force){
+  if(!GAS_URL || !currentUser) return;
+  if(!force && Date.now()-_lunchAt < 5*60*1000) return;
+  try { const d=await api('getLunchNow', {}, '', { quiet:true }); if(d){ _lunch=d; _lunchAt=Date.now(); } } catch(e) { /* 前の値のまま */ }
+}
+// その人が今、休憩の時間なら終わりの時刻（'12:50' など）。違えば ''
+function lunchEndNow(uid, ds, nowMins){
+  const L=_lunch;
+  if(!L || !L.active || L.today!==ds) return '';
+  const s=L.slots && L.slots[(L.members||{})[String(uid)]];
+  if(!s) return '';
+  return (timeToMins(s.start)<=nowMins && nowMins<timeToMins(s.end)) ? s.end : '';
+}
 
 // ===== 在席ボード：今いる場所（2026-11-06） =====
 // 本人が選ぶ「今日の場所」と「いつもの場所」。保存は Worker（getPlaces / setPlace、Durable Object）。他の人の場所は変えられない。
@@ -7385,6 +7404,7 @@ async function _teamTick(){
   _teamTicking = true;
   try {
     await loadPlaces(true);
+    await loadLunch(); // 休憩中（5分ごと。時間に入った・終わったは下の描き直しで切り替わる）
     // 予定のキャッシュが切れていれば静かに読み直す（読み直したときは中で描き直す。新しければ何もしない）
     await loadEvents({ centerDate: new Date(), quiet: true });
     if(_currentTab==='team') renderTeam();
@@ -7443,6 +7463,11 @@ function teamStatusNow(u, ds, nowMins){
         placeId=mine; placeText=placeLabel(mine);
       }
     }
+  }
+  // 昼休みの時間（新棟の当番表）なら「休憩中」。予定も自分で選んだ外出も無い「在席」の人だけ。場所はそのまま持つ（マップは休憩中のマスへ）
+  if(status==='在席'){
+    const lEnd=lunchEndNow(u.id, ds, nowMins);
+    if(lEnd){ status='休憩中'; subInfo=t('team.lunch.until',{t:lEnd}); }
   }
   return {status, baseStatus, subInfo, placeId, placeText, placeUnset: status==='在席'&&!placeText, myEvs};
 }
@@ -7721,6 +7746,7 @@ function _syncTeamView(){
 // 社内にいて場所を選んでいない人はマップに描かず、上の一覧の最後に「社内（場所未設定）」の行で出す
 let _zmapReady=false, _zmapPayload=null, _zmapSentJson='';
 function _zmapZone(m){
+  if(m.status==='休憩中') return 'kyukei'; // 2026-11-17 昼休みの時間は席から「休憩中」のマスへ
   if(m.placeId==='out' || m.status==='外出') return 'gaishutsu';
   if(m.placeId && PLACES.some(p=>p.id===m.placeId)) return m.placeId;
   if(m.status==='出張') return 'shuccho';
@@ -7735,7 +7761,7 @@ function renderTeamMap(members){
     frame=document.createElement('iframe');
     frame.id='team-map-frame';
     frame.title=t('team.map.title');
-    frame.src='zaiseki-map.html?v=1';
+    frame.src='zaiseki-map.html?v=2'; // 2026-11-17 休憩中のマスを足したので 2 に（古いマップが残ると休憩中の人が消えるため）
     frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
     wrap.appendChild(frame);
   }
@@ -7778,7 +7804,7 @@ function renderTeamMap(members){
       cmdAsk:t('map.cmd.ask',{name:mapName(me)||currentUser.name}), cmdOther:t('map.cmd.other'), pick:t('map.pick'), nowShort:t('map.now.short'),
       moved:t('map.moved'), moving:t('map.moving'),
       summary:{all:t('map.sum.all'), away:t('map.sum.away'), rest:t('map.sum.rest'), people:t('map.people')},
-      zones:{shuccho:t('map.z.shuccho'), gaishutsu:t('place.out'), zaitaku:tType('在宅'), rest:t('map.z.rest')},
+      zones:{shuccho:t('map.z.shuccho'), gaishutsu:t('place.out'), zaitaku:tType('在宅'), rest:t('map.z.rest'), kyukei:tType('休憩中')},
     },
   };
   _zmapSend();
