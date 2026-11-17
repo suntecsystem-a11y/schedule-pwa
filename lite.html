@@ -212,7 +212,7 @@ const TIMED_TYPES = ['会議室','打ち合わせ','外出','来社'];
 const ALLDAY_TOGGLE_TYPES = ['出張','休暇','在宅','外出'];
 const RENTAL_TYPES = ['外出','出張','在宅','その他'];
 const APPROVAL_DEPT_ALIAS = {'事務':'製造','設計':'製造','検査':'製造'};
-const COLOR = {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','作業':'#4dd0e1'};
+const COLOR = {'会議室':'#5C7FB0','外出':'#C08A55','出張':'#6F9A7E','休暇':'#BC7C90','休み':'#C9937F','在宅':'#5E9A9E','打ち合わせ':'#8C80B0','来社':'#8A8440','その他':'#9A9F98','作業':'#7B7368'}; // 本体と同じ色（11/17）
 const WD = ['日','月','火','水','木','金','土'];
 // 今いる場所（index.html の PLACES と同じ。id は Worker の places.js の PLACE_CODES と同じ。足すときは3か所）
 const PLACES = [
@@ -226,7 +226,7 @@ const PLACES = [
 const PLACE_GRP_NAME = {honsha:'本社', shinto:'新棟'};
 const placeLabel = id => { if(id==='out') return '外出中'; const p=PLACES.find(x=>x.id===id); if(!p) return ''; return PLACE_GRP_NAME[p.grp] ? PLACE_GRP_NAME[p.grp]+' '+p.short : p.short; };
 const STATUS_ORDER = ['在席','会議中','打ち合わせ','来社','外出','出張','在宅','休暇','休み'];
-const STATUS_COLOR = Object.assign({}, COLOR, {'在席':'#66bb6a','会議中':'#9fa8da','休み':'#ff8a65'});
+const STATUS_COLOR = Object.assign({}, COLOR, {'在席':'#B8BDB6','会議中':'#5C7FB0'});
 const isManager = () => !!(me && me.role && me.role!=='一般');
 
 // ============================================================ 状態
