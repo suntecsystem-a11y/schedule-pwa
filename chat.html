@@ -107,6 +107,10 @@ body.embed .side-head{display:none}
 
 .m.halo .bub{background:var(--surface-1)}
 .m.halo .bub .h-title{display:block;font-weight:600;margin-bottom:2px}
+.h-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;white-space:normal}
+.h-btns button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.h-btns button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.h-result{display:block;margin-top:6px;font-size:12px;color:var(--text2);white-space:normal}
 .ro-note{flex-shrink:0;border-top:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:12px;padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
 .composer{flex-shrink:0;border-top:1px solid var(--border);background:var(--surface);padding:8px 12px calc(10px + env(safe-area-inset-bottom));position:relative}
 .rule{font-size:11px;color:var(--text2);margin:0 4px 6px}
@@ -318,6 +322,7 @@ const S = {
   token: '', me: '', users: {}, channels: [], cur: null, msgs: [], hasMore: false, loadingOlder: false,
   firstUnreadSeq: null, thread: null, threadMsgs: [], ws: null, wsTry: 0, readTimer: null,
   pendingDel: null, emojiTarget: null,
+  answered: {}, // HALO お知らせの安否確認に、この画面で答えた結果（seq → 文）。人ごとなので投稿には残らない
   // HALO 本体のタブの中では、チャットのタブを開いているときだけ「見ている」（親が知らせる。2026-11-18）
   active: !EMBED, sleeping: false, lastFocus: null, lastUnread: null,
 };
@@ -363,7 +368,44 @@ const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString
 function haloBody(m) {
   const [title, ...rest] = String(m.body || '').split('\n');
   const link = (t) => esc(t).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
-  return `<span class="h-title">${link(title)}</span>${link(rest.join('\n'))}`;
+  return `<span class="h-title">${link(title)}</span>${link(rest.join('\n'))}` + haloButtons(m);
+}
+
+/**
+ * HALO の投稿のボタン（2026-11-18、A-4b）。押すと Worker の chatButton がいつもの処理を呼ぶ（権限もそちらで確かめる）。
+ * 予定の承認依頼（自分の HALO 通知）＝承認・却下。安否確認（HALO お知らせ）＝無事・被害あり・その他。
+ * bub は white-space:pre-wrap なので、タグの間に空白・改行を入れない
+ */
+function haloButtons(m) {
+  const meta = m.meta || {};
+  const ch = S.channels.find((c) => c.id === S.cur);
+  const btn = (a, label, primary) => `<button type="button" data-act="hbtn" data-a="${a}"${primary ? ' class="primary"' : ''}>${label}</button>`;
+  if (meta.result) {
+    const who = meta.result.by && meta.result.by !== S.me ? '（' + esc(nameOf(meta.result.by)) + '）' : '';
+    return `<span class="h-result">${esc(meta.result.text)}${who}・${hm(meta.result.at)}</span>`;
+  }
+  if (meta.type === 'approval_request' && ch && ch.kind === 'inbox') {
+    if (LITE) return '<span class="h-result">承認・却下は会社の端末の HALO でできます</span>';
+    return `<span class="h-btns">${btn('approve', '承認', true)}${btn('reject', '却下')}</span>`;
+  }
+  if (meta.type === 'notice' && meta.safetyId && ch && ch.kind === 'system') {
+    const done = S.answered[m.seq];
+    return `<span class="h-btns">${btn('safe', '無事', true)}${btn('damaged', '被害あり')}${btn('other', 'その他')}</span>`
+      + (done ? `<span class="h-result">${esc(done)}</span>` : '');
+  }
+  return '';
+}
+
+async function pressHalo(m, a) {
+  let note = '';
+  if (a === 'approve' && !confirm('この予定を承認しますか？')) return;
+  if (a === 'reject') { const r = prompt('却下の理由（空でもかまいません）'); if (r === null) return; note = r; }
+  if (a === 'damaged' || a === 'other') { const r = prompt('状況を書いてください（空でもかまいません）'); if (r === null) return; note = r; }
+  try {
+    const r = await api('chatButton', { channelId: S.cur, seq: m.seq, act: a, note });
+    if (r.msg && r.msg.meta && r.msg.meta.result) applyUpdate(S.cur, r.msg);
+    else { S.answered[m.seq] = r.text; renderMsgs('keep'); }
+  } catch (e) { toast(e.message); }
 }
 
 /** 本文：リンクとメンション（@名前）を目立たせる */
@@ -619,7 +661,7 @@ function onListClick(where) {
     const fileEl = e.target.closest('[data-file]');
     if (fileEl) { openFileAct(fileEl.dataset.file); return; }
     const btn = e.target.closest('[data-act]');
-    if (btn) { doAct(btn.dataset.act, m, where, btn.dataset.emoji); return; }
+    if (btn) { doAct(btn.dataset.act, m, where, btn.dataset.emoji || btn.dataset.a); return; }
     if (m._failed) { sendMsg(m); return; }
     // スマホ（マウスが無い）は、メッセージを押すと操作を下から出す
     if (!window.matchMedia('(hover:hover)').matches && !e.target.closest('a') && !m.deleted && !m._pending) openSheet(m, where);
@@ -636,6 +678,7 @@ function doAct(act, m, where, emoji) {
   else if (act === 'toggle') react(m, emoji);
   else if (act === 'edit') setComposer(where, { edit: m, text: m.body, mentions: m.mentions });
   else if (act === 'del') { S.pendingDel = m; $('confirmDel').classList.remove('hidden'); }
+  else if (act === 'hbtn') pressHalo(m, emoji);
 }
 
 function openSheet(m, where) {
