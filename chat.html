@@ -176,6 +176,20 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .pending-files button{border:0;background:none;color:var(--text2);margin-left:4px}
 .ch .tag{font-size:10px;color:var(--text2);border:1px solid var(--border);border-radius:999px;padding:0 6px;margin-left:4px;font-weight:400}
 .emojis{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+/* 顔写真・スタンプ・本文の中の画像（2026-11-18） */
+.av{width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:6px;display:inline-flex;align-items:center;justify-content:center;background:var(--primary-light);color:var(--primary);font-size:11px;font-weight:600;flex-shrink:0}
+.av-big{width:96px;height:96px;font-size:36px;margin:4px auto 8px;display:flex}
+.stamp-inl{height:1.6em;vertical-align:middle}
+.stamp-big{display:block;max-width:150px;max-height:150px}
+.m.stamp-only .bub{background:none!important;border:0;padding:2px 0}
+.bub img.inl{display:block;max-width:min(320px,100%);max-height:320px;border-radius:8px;margin:4px 0;cursor:pointer}
+.stamps{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;max-height:240px;overflow-y:auto}
+.stamps button{border:0;background:var(--surface-1);border-radius:10px;padding:6px;position:relative;font-size:11px;color:var(--text2)}
+.stamps button img{display:block;width:100%;height:64px;object-fit:contain}
+.stamps.del button.mine{outline:2px solid var(--red)}
+.pending-files img{height:40px;border-radius:6px;vertical-align:middle;margin-right:4px}
+.stamp-btn{border:0;background:none;color:var(--text2);height:42px;padding:0 4px}
+.stamp-btn:hover{color:var(--primary)}
 .emojis button{border:0;background:var(--surface-1);border-radius:10px;font-size:22px;padding:8px 0}
 .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:16px 16px 0 0;padding:8px 8px calc(12px + env(safe-area-inset-bottom));z-index:60;box-shadow:0 -4px 20px rgba(37,48,45,.15)}
 .sheet button{display:block;width:100%;text-align:left;border:0;background:none;padding:13px 16px;font-size:15px;border-radius:10px}
@@ -216,7 +230,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="side-head"><span class="t">チャット</span><span class="me" id="meName"></span></div>
     <div class="side-tools">
       <form id="searchForm"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"></form>
-      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button></div>
+      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">顔写真</button></div>
     </div>
     <div id="chList"></div>
     <div id="searchList" class="hidden"></div>
@@ -256,9 +270,23 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 
 <div id="emojiPick" class="overlay hidden">
   <div class="box">
-    <h2>リアクション</h2>
+    <h2 id="emojiTitle">リアクション</h2>
     <div class="emojis" id="emojiGrid"></div>
-    <div class="btns"><button type="button" class="btn" id="emojiClose">閉じる</button></div>
+    <div class="stamps" id="stampGrid"></div>
+    <input type="file" id="stampFile" accept="image/*" class="hidden">
+    <div class="err" id="stampErr"></div>
+    <div class="btns wrap"><button type="button" class="btn" id="stampAdd">スタンプを登録</button><button type="button" class="btn" id="stampDelMode">自分のスタンプを消す</button><button type="button" class="btn primary" id="emojiClose">閉じる</button></div>
+  </div>
+</div>
+
+<div id="avatarSet" class="overlay hidden">
+  <div class="box">
+    <h2>顔写真</h2>
+    <div id="avPreview"></div>
+    <p>チャットで名前の横に出ます。正方形に切り取って小さくしてから送ります。</p>
+    <input type="file" id="avFile" accept="image/*" class="hidden">
+    <div class="err" id="avErr"></div>
+    <div class="btns"><button type="button" class="btn" id="avDel">外す</button><button type="button" class="btn" id="avPick">写真を選ぶ</button><button type="button" class="btn primary" id="avClose">閉じる</button></div>
   </div>
 </div>
 
@@ -322,6 +350,7 @@ const S = {
   token: '', me: '', users: {}, channels: [], cur: null, msgs: [], hasMore: false, loadingOlder: false,
   firstUnreadSeq: null, thread: null, threadMsgs: [], ws: null, wsTry: 0, readTimer: null,
   pendingDel: null, emojiTarget: null,
+  avatars: {}, stamps: [], stampMode: null, // 顔写真（社員番号 → 画像の id）・スタンプの一覧・スタンプの窓の使い方（2026-11-18）
   answered: {}, // HALO お知らせの安否確認に、この画面で答えた結果（seq → 文）。人ごとなので投稿には残らない
   // HALO 本体のタブの中では、チャットのタブを開いているときだけ「見ている」（親が知らせる。2026-11-18）
   active: !EMBED, sleeping: false, lastFocus: null, lastUnread: null,
@@ -408,9 +437,15 @@ async function pressHalo(m, a) {
   } catch (e) { toast(e.message); }
 }
 
-/** 本文：リンクとメンション（@名前）を目立たせる */
+/** 本文：リンクとメンション（@名前）を目立たせる。スタンプと、本文の中の画像（［画像1］）も出す */
 function renderBody(m) {
+  if (isStampOnly(m)) return stampHtml(String(m.body).trim().slice(1, -1), true);
   let h = esc(m.body).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+  h = h.replace(STAMP_RE, (_, id) => stampHtml(id, false));
+  if (!m._pending) {
+    const imgs = (m.files || []).filter(isImage);
+    h = h.replace(/［画像(\d+)］/g, (t, n) => { const f = imgs[Number(n) - 1]; return f && f.itemId ? `<img class="thumb inl" alt="${esc(f.name)}" data-file="${esc(f.itemId)}">` : t; });
+  }
   for (const id of m.mentions || []) {
     const label = esc('@' + (id === 'all' ? '全員' : nameOf(id)));
     h = h.split(label).join(`<span class="at">${label}</span>`);
@@ -450,6 +485,7 @@ async function start() {
     S.filesEnabled = !!init.filesEnabled;
     S.onlyDepts = init.onlyDepts || []; // 試す人だけに絞っているときの部署（会話の相手・メンションの候補もその人たちだけ）
     S.maxFileBytes = init.maxFileBytes || 250 * 1024 * 1024;
+    S.avatars = init.avatars || {}; S.stamps = init.stamps || [];
     document.querySelectorAll('.attach').forEach((b) => b.classList.toggle('hidden', !S.filesEnabled));
     $('meName').textContent = nameOf(S.me);
     renderChannels();
@@ -479,7 +515,7 @@ function renderChannels() {
   S.channels.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
   const row = (c) => `
     <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}" data-id="${esc(c.id)}">
-      <div class="nm"><b>${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? '<span class="tag">部署</span>' : c.kind === 'private' ? '<span class="tag">招待のみ</span>' : ''}</b><small>${esc(c.lastPreview || '')}</small></div>
+      <div class="nm"><b>${c.kind === 'dm' ? avatarHtml((c.members || []).find((x) => x !== S.me) || S.me) : ''}${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? '<span class="tag">部署</span>' : c.kind === 'private' ? '<span class="tag">招待のみ</span>' : ''}</b><small>${esc(previewText(c.lastPreview))}</small></div>
       ${c.muted ? '<span class="mute">通知オフ</span>' : ''}
       ${c.unread ? `<span class="badge">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}
     </div>`;
@@ -491,6 +527,7 @@ function renderChannels() {
     + (dms.length ? '<div class="sec">会話</div>' + dms.map(row).join('') : '')
     || '<div class="empty">チャンネルがありません</div>';
   postUnread();
+  loadImgs();
 }
 $('chList').addEventListener('click', (e) => { const el = e.target.closest('.ch'); if (el) openChannel(el.dataset.id); });
 $('back').addEventListener('click', () => { document.body.classList.remove('in-ch'); closeThread(); sendFocus(); });
@@ -542,13 +579,13 @@ function msgHtml(m, prev, where) {
   const unread = where === 'main' && S.firstUnreadSeq && m.seq === firstUnreadShown() ? '<div class="unread-line">ここから未読</div>' : '';
   const sameWho = prev && prev.empId === m.empId && !day && !unread && m.createdAt - prev.createdAt < 5 * 60 * 1000;
   const mentioned = !mine && (m.mentions || []).some((id) => id === S.me || id === 'all');
-  const cls = 'm' + (mine ? ' mine' : '') + (halo ? ' halo' : '') + (mentioned ? ' mentioned' : '') + (m.deleted ? ' deleted' : '')
+  const cls = 'm' + (mine ? ' mine' : '') + (halo ? ' halo' : '') + (isStampOnly(m) ? ' stamp-only' : '') + (mentioned ? ' mentioned' : '') + (m.deleted ? ' deleted' : '')
     + (m._pending ? ' pending' : '') + (m._failed ? ' failed' : '');
-  const quote = m.quote ? `<span class="quote">${esc(nameOf(m.quote.empId))}：${m.quote.deleted ? '（削除されました）' : esc(m.quote.body)}</span>` : '';
+  const quote = m.quote ? `<span class="quote">${esc(nameOf(m.quote.empId))}：${m.quote.deleted ? '（削除されました）' : esc(previewText(m.quote.body))}</span>` : '';
   const stamps = (m.reactions || []).find((r) => r.emoji === STAMP);
   const emo = (m.reactions || []).filter((r) => r.emoji !== STAMP);
   const reacts = m.deleted ? '' : [
-    ...emo.map((r) => `<button class="chip${r.empIds.includes(S.me) ? ' on' : ''}" data-act="toggle" data-emoji="${esc(r.emoji)}" title="${esc(r.empIds.map(nameOf).join('、'))}">${esc(r.emoji)} ${r.empIds.length}</button>`),
+    ...emo.map((r) => `<button class="chip${r.empIds.includes(S.me) ? ' on' : ''}" data-act="toggle" data-emoji="${esc(r.emoji)}" title="${esc(r.empIds.map(nameOf).join('、'))}">${/^:s_[0-9a-f-]{36}:$/.test(r.emoji) ? stampHtml(r.emoji.slice(1, -1), false) : esc(r.emoji)} ${r.empIds.length}</button>`),
     ...(stamps ? [`<button class="chip stamp${stamps.empIds.includes(S.me) ? ' on' : ''}" data-act="stamp" title="押すと付ける／外す">確認しました：${esc(stamps.empIds.map(nameOf).join('、'))}</button>`] : []),
   ].join('');
   const replies = where === 'main' && m.replyCount ? `<button class="replies" data-act="thread">返信 ${m.replyCount}件${m.lastReplyAt ? '・' + hm(m.lastReplyAt) : ''}</button>` : '';
@@ -559,9 +596,9 @@ function msgHtml(m, prev, where) {
       <button data-act="stamp" title="確認しました">${ICON.stamp}</button>
       ${mine ? `<button data-act="edit" title="直す">${ICON.edit}</button><button data-act="del" title="消す">${ICON.del}</button>` : ''}
     </div>`;
-  const status = m._failed ? '送れませんでした（押すともう一度送ります）' : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? '・編集済み' : '');
+  const status = m._failed ? '送れませんでした' + (m._err ? '：' + m._err : '') + '（押すともう一度送ります）' : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? '・編集済み' : '');
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
-    ${!mine && !sameWho ? `<div class="who">${esc(nameOf(m.empId))}</div>` : ''}
+    ${!mine && !sameWho ? `<div class="who">${halo ? '' : avatarHtml(m.empId)}${esc(nameOf(m.empId))}</div>` : ''}
     ${acts}
     <div class="bub">${m.deleted ? '削除されました' : halo ? haloBody(m) : quote + renderBody(m) + filesHtml(m)}</div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
@@ -574,7 +611,9 @@ function msgHtml(m, prev, where) {
 const sizeText = (n) => (n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + 'MB' : Math.max(1, Math.round(n / 1024)) + 'KB');
 const isImage = (f) => /^image\/(png|jpe?g|gif|webp)$/i.test(f.mime || '');
 function filesHtml(m) {
-  const fs = m.files || [];
+  // 本文の中に置いた画像（［画像1］）は下には出さない
+  let k = 0;
+  const fs = (m.files || []).filter((f) => !(isImage(f) && (k += 1) && String(m.body || '').includes('［画像' + k + '］') && !m._pending));
   if (!fs.length) return '';
   return '<div class="files">' + fs.map((f) => (isImage(f) && !m._pending
     ? `<img class="thumb" alt="${esc(f.name)}" title="${esc(f.name)}" data-file="${esc(f.itemId)}">`
@@ -589,7 +628,45 @@ async function fileUrl(itemId) {
   fileUrlCache.set(itemId, v);
   return v;
 }
+const imgMem = new Map();
+const IMG_CACHE = 'halo-chat-img-v1';
+async function loadImgs() {
+  const els = [...document.querySelectorAll('img[data-img]:not([src])')];
+  if (!els.length) return;
+  const missing = [];
+  for (const id of new Set(els.map((e) => e.dataset.img))) {
+    if (imgMem.has(id)) continue;
+    try { const hit = await (await caches.open(IMG_CACHE)).match('/img/' + id); if (hit) { imgMem.set(id, await hit.text()); continue; } } catch {}
+    missing.push(id);
+  }
+  for (let i = 0; i < missing.length; i += 40) {
+    try {
+      const r = await api('chatImages', { ids: missing.slice(i, i + 40) });
+      for (const [id, data] of Object.entries(r.images || {})) {
+        imgMem.set(id, data);
+        try { await (await caches.open(IMG_CACHE)).put('/img/' + id, new Response(data)); } catch {}
+      }
+    } catch {}
+  }
+  document.querySelectorAll('img[data-img]:not([src])').forEach((e) => { const d = imgMem.get(e.dataset.img); if (d) e.src = d; });
+}
+/** 顔写真（無ければ名前の1文字目） */
+function avatarHtml(id, cls) {
+  const a = S.avatars[id];
+  return a ? `<img class="av ${cls || ''}" data-img="${esc(a)}" alt="">` : `<span class="av ${cls || ''}">${esc(String(nameOf(id) || '?').slice(0, 1))}</span>`;
+}
+const STAMP_RE = /:(s_[0-9a-f-]{36}):/g;
+const stampName = (id) => (S.stamps.find((x) => x.id === id) || {}).name || '';
+const previewText = (t) => String(t || '').replace(STAMP_RE, '[スタンプ]').replace(/［画像\d+］/g, '[画像]');
+/** スタンプ（:s_<id>:）を画像に。消されたスタンプは [スタンプ] のまま */
+function stampHtml(id, big) {
+  if (!S.stamps.some((x) => x.id === id)) return '[スタンプ]';
+  return `<img class="${big ? 'stamp-big' : 'stamp-inl'}" data-img="${esc(id)}" alt="${esc(stampName(id))}" title="${esc(stampName(id))}">`;
+}
+const isStampOnly = (m) => !(m.files || []).length && /^:s_[0-9a-f-]{36}:$/.test(String(m.body || '').trim());
+
 function loadThumbs(root) {
+  loadImgs();
   root.querySelectorAll('img.thumb[data-file]:not([src])').forEach(async (img) => {
     try { img.src = (await fileUrl(img.dataset.file)).url; } catch { img.alt = '（画像を開けませんでした）'; }
   });
@@ -673,7 +750,7 @@ $('threadMsgs').addEventListener('click', onListClick('thread'));
 function doAct(act, m, where, emoji) {
   if (act === 'thread') openThread(m.parentSeq || m.seq);
   else if (act === 'quote') setComposer(where, { quote: m });
-  else if (act === 'react') { S.emojiTarget = m; $('emojiPick').classList.remove('hidden'); }
+  else if (act === 'react') openStampPick({ target: m });
   else if (act === 'stamp') react(m, STAMP);
   else if (act === 'toggle') react(m, emoji);
   else if (act === 'edit') setComposer(where, { edit: m, text: m.body, mentions: m.mentions });
@@ -696,7 +773,130 @@ function closeSheet() { $('sheet').classList.add('hidden'); $('sheetBg').classLi
 $('sheetBg').addEventListener('click', closeSheet);
 
 $('emojiGrid').innerHTML = EMOJIS.map((e) => `<button type="button">${e}</button>`).join('');
-$('emojiGrid').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b || !S.emojiTarget) return; $('emojiPick').classList.add('hidden'); react(S.emojiTarget, b.textContent); });
+$('emojiGrid').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b || !S.stampMode) return;
+  const mode = S.stampMode;
+  $('emojiPick').classList.add('hidden');
+  if (mode.target) react(mode.target, b.textContent);
+  else insertText(mode.where, b.textContent); // 入力欄から開いたときは、絵文字を入力欄に入れる
+});
+/**
+ * 絵文字・スタンプの窓（2026-11-18）。{ target: メッセージ } ならリアクション、{ where } なら入力欄から（スタンプは送る）
+ */
+function openStampPick(mode) {
+  S.stampMode = mode; S.emojiTarget = mode.target || null;
+  $('emojiTitle').textContent = mode.target ? 'リアクション' : 'スタンプ・絵文字';
+  $('stampGrid').classList.remove('del'); $('stampDelMode').textContent = '自分のスタンプを消す';
+  $('stampErr').textContent = '';
+  renderStampGrid();
+  $('emojiPick').classList.remove('hidden');
+}
+function renderStampGrid() {
+  $('stampGrid').innerHTML = S.stamps.map((x) => `<button type="button" data-stamp="${esc(x.id)}" class="${x.owner === S.me ? 'mine' : ''}" title="${esc(x.name)}"><img data-img="${esc(x.id)}" alt="${esc(x.name)}">${esc(x.name)}</button>`).join('')
+    || '<p style="grid-column:1/-1;font-size:12px">まだスタンプがありません。「スタンプを登録」から足せます。</p>';
+  loadImgs();
+}
+$('stampGrid').addEventListener('click', async (e) => {
+  const b = e.target.closest('button[data-stamp]');
+  if (!b || !S.stampMode) return;
+  const id = b.dataset.stamp;
+  if ($('stampGrid').classList.contains('del')) {
+    if (!confirm('スタンプ「' + stampName(id) + '」を消しますか？（もう送ったものも [スタンプ] になります）')) return;
+    try { await api('chatStampDelete', { id }); S.stamps = S.stamps.filter((x) => x.id !== id); renderStampGrid(); } catch (er) { $('stampErr').textContent = er.message; }
+    return;
+  }
+  const mode = S.stampMode;
+  $('emojiPick').classList.add('hidden');
+  if (mode.target) react(mode.target, ':' + id + ':');
+  else sendStamp(mode.where, id);
+});
+$('stampDelMode').addEventListener('click', () => {
+  const on = $('stampGrid').classList.toggle('del');
+  $('stampDelMode').textContent = on ? '消すのをやめる' : '自分のスタンプを消す';
+  $('stampErr').textContent = on ? '消すスタンプを押してください（赤い枠が自分のもの。人のものは管理者だけ消せます）' : '';
+});
+$('stampAdd').addEventListener('click', () => $('stampFile').click());
+$('stampFile').addEventListener('change', async () => {
+  const f = $('stampFile').files[0];
+  $('stampFile').value = '';
+  if (!f) return;
+  const name = prompt('スタンプの名前（20文字まで）', f.name.replace(/\.[^.]+$/, '').slice(0, 20));
+  if (name === null) return;
+  try {
+    const data = await shrinkImage(f, 256, false);
+    const r = await api('chatStampSave', { name, data });
+    S.stamps.push(r.stamp); renderStampGrid();
+  } catch (er) { $('stampErr').textContent = er.message; }
+});
+/** スタンプを1つ送る（入力欄の書きかけはそのまま） */
+function sendStamp(where, id) {
+  if (!S.cur) return;
+  const msg = {
+    id: uid(), empId: S.me, body: ':' + id + ':', createdAt: Date.now(), mentions: [], reactions: [], files: [], _raw: [],
+    parentSeq: where === 'thread' && S.thread ? S.thread.parent.seq : null, quote: null, _pending: true, _ch: S.cur, _quoteSeq: null,
+  };
+  if (where === 'thread') { S.threadMsgs.push(msg); renderThread(true); } else { S.msgs.push(msg); renderMsgs(true); }
+  sendMsg(msg);
+}
+function insertText(where, t) {
+  const c = C[where]; if (!c) return;
+  const pos = c.input.selectionStart ?? c.input.value.length;
+  c.input.value = c.input.value.slice(0, pos) + t + c.input.value.slice(pos);
+  c.input.setSelectionRange(pos + t.length, pos + t.length);
+  autosize(where); c.input.focus();
+}
+/**
+ * 画像を小さくして data URL にする。square なら真ん中を正方形に切り取る（顔写真）。
+ * 透ける画像（PNG・GIF・WebP）は PNG のまま、写真は JPEG。200KB をこえたら画質を下げる
+ */
+async function shrinkImage(file, max, square) {
+  if (!/^image\//.test(file.type || '')) throw new Error('画像を選んでください');
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, ng) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ng(new Error('画像を読めませんでした')); i.src = url; });
+    let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+    if (square) { const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = sh = m; }
+    const k = Math.min(1, max / Math.max(sw, sh));
+    const cv = document.createElement('canvas');
+    cv.width = Math.max(1, Math.round(sw * k)); cv.height = Math.max(1, Math.round(sh * k));
+    cv.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+    const clear = !square && /png|gif|webp/.test(file.type);
+    let data = cv.toDataURL(clear ? 'image/png' : 'image/jpeg', 0.85);
+    if (data.length > 190 * 1024) data = cv.toDataURL('image/webp', 0.8);
+    if (data.length > 190 * 1024 || !data.startsWith('data:image/')) data = cv.toDataURL('image/jpeg', 0.7);
+    if (data.length > 190 * 1024) throw new Error('画像が大きすぎます。小さい画像を選んでください');
+    return data;
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// ---------- 顔写真 ----------
+function openAvatar() {
+  $('avErr').textContent = '';
+  $('avPreview').innerHTML = avatarHtml(S.me, 'av-big');
+  $('avDel').classList.toggle('hidden', !S.avatars[S.me]);
+  $('avatarSet').classList.remove('hidden');
+  loadImgs();
+}
+$('myPhoto').addEventListener('click', openAvatar);
+$('avClose').addEventListener('click', () => $('avatarSet').classList.add('hidden'));
+$('avPick').addEventListener('click', () => $('avFile').click());
+$('avFile').addEventListener('change', async () => {
+  const f = $('avFile').files[0];
+  $('avFile').value = '';
+  if (!f) return;
+  try {
+    const data = await shrinkImage(f, 160, true);
+    const r = await api('chatAvatarSave', { data });
+    imgMem.set(r.id, data);
+    S.avatars[S.me] = r.id;
+    openAvatar(); renderChannels(); renderMsgs('keep');
+  } catch (er) { $('avErr').textContent = er.message; }
+});
+$('avDel').addEventListener('click', async () => {
+  if (!confirm('顔写真を外しますか？')) return;
+  try { await api('chatAvatarDelete'); delete S.avatars[S.me]; openAvatar(); renderChannels(); renderMsgs('keep'); } catch (er) { $('avErr').textContent = er.message; }
+});
 $('emojiClose').addEventListener('click', () => $('emojiPick').classList.add('hidden'));
 
 async function react(m, emoji) {
@@ -734,7 +934,7 @@ function bumpChannel(channelId, msg) {
   if (!ch) return false;
   ch.lastSeq = Math.max(ch.lastSeq || 0, msg.seq);
   ch.lastAt = msg.createdAt;
-  ch.lastPreview = msg.body.replace(/\s+/g, ' ').slice(0, 40);
+  ch.lastPreview = previewText(msg.body).replace(/\s+/g, ' ').slice(0, 40);
   if (msg.empId === S.me) ch.readSeq = Math.max(ch.readSeq || 0, msg.seq);
   ch.unread = Math.max(0, ch.lastSeq - (ch.readSeq || 0));
   return true;
@@ -839,17 +1039,28 @@ function buildComposer(rootId, where) {
     <div class="ctx hidden"><span></span><button type="button">やめる</button></div>
     <div class="rule">住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください</div>
     <div class="pending-files hidden"></div>
-    <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ で名前）'}"></textarea><button class="send" type="button" disabled>送信</button></div>
+    <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><button class="stamp-btn" type="button" title="スタンプ・絵文字"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></svg></button><textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ か ＠ で名前）'}"></textarea><button class="send" type="button" disabled>送信</button></div>
     <div class="mention-box hidden"></div>`;
   const c = { root, input: root.querySelector('textarea'), send: root.querySelector('.send'), ctx: root.querySelector('.ctx'), box: root.querySelector('.mention-box'), state: { mentions: new Map() },
     fileInput: root.querySelector('input[type=file]'), pendingEl: root.querySelector('.pending-files'), files: [] };
   C[where] = c;
   root.querySelector('.attach').addEventListener('click', () => c.fileInput.click());
+  root.querySelector('.stamp-btn').addEventListener('click', () => openStampPick({ where }));
   c.fileInput.addEventListener('change', () => { addFiles(where, [...c.fileInput.files]); c.fileInput.value = ''; });
   c.input.addEventListener('paste', (e) => { const fs = [...((e.clipboardData && e.clipboardData.files) || [])]; if (fs.length && S.filesEnabled) { e.preventDefault(); addFiles(where, fs); } });
   root.addEventListener('dragover', (e) => { if (S.filesEnabled) e.preventDefault(); });
   root.addEventListener('drop', (e) => { if (!S.filesEnabled) return; e.preventDefault(); addFiles(where, [...((e.dataTransfer && e.dataTransfer.files) || [])]); });
-  c.pendingEl.addEventListener('click', (e) => { const b = e.target.closest('button[data-i]'); if (b) { c.files.splice(Number(b.dataset.i), 1); renderPendingFiles(where); autosize(where); } });
+  c.pendingEl.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-i]');
+    if (!b) return;
+    const i = Number(b.dataset.i);
+    const f = c.files[i];
+    if (f && /^image\//.test(f.type || '')) {
+      const n = c.files.slice(0, i + 1).filter((x) => /^image\//.test(x.type || '')).length;
+      c.input.value = c.input.value.split('［画像' + n + '］').join('').replace(/［画像(\d+)］/g, (t, x) => (Number(x) > n ? '［画像' + (Number(x) - 1) + '］' : t));
+    }
+    c.files.splice(i, 1); renderPendingFiles(where); autosize(where);
+  });
   c.input.addEventListener('input', () => { autosize(where); mentionSearch(where); });
   c.input.addEventListener('keydown', (e) => {
     if (!c.box.classList.contains('hidden')) {
@@ -887,7 +1098,7 @@ function setComposer(where, o) {
   // 直すのをやめたときは、直していた文を消す（書きかけには戻さない）
   if (o.text !== undefined) c.input.value = o.text;
   else if (wasEditing && !o.edit) c.input.value = '';
-  const label = o.edit ? '直しています' : o.quote ? `引用：${nameOf(o.quote.empId)}「${o.quote.body.replace(/\s+/g, ' ').slice(0, 40)}」` : '';
+  const label = o.edit ? '直しています' : o.quote ? `引用：${nameOf(o.quote.empId)}「${previewText(o.quote.body).replace(/\s+/g, ' ').slice(0, 40)}」` : '';
   c.ctx.classList.toggle('hidden', !label);
   c.ctx.querySelector('span').textContent = label;
   c.send.textContent = o.edit ? '保存' : '送信';
@@ -906,7 +1117,7 @@ function mentionSearch(where) {
   const c = C[where];
   const pos = c.input.selectionStart;
   const before = c.input.value.slice(0, pos);
-  const m = before.match(/(^|\s)@([^\s@]{0,20})$/);
+  const m = before.match(/(^|[^A-Za-z0-9_.])[@＠]([^\s@＠]{0,20})$/);
   if (!m) { c.box.classList.add('hidden'); return; }
   const q = m[2].toLowerCase();
   const list = mentionCandidates().filter((id) => {
@@ -921,7 +1132,7 @@ function mentionSearch(where) {
 function pickMention(where, id) {
   const c = C[where];
   const pos = c.input.selectionStart;
-  const before = c.input.value.slice(0, pos).replace(/@([^\s@]{0,20})$/, '');
+  const before = c.input.value.slice(0, pos).replace(/[@＠]([^\s@＠]{0,20})$/, '');
   const label = '@' + nameOf(id);
   c.input.value = before + label + ' ' + c.input.value.slice(pos);
   const p = before.length + label.length + 1;
@@ -944,13 +1155,27 @@ function addFiles(where, list) {
     if (f.size > S.maxFileBytes) { toast('「' + f.name + '」は大きすぎます（1つ250MBまで）。SharePoint に置いてリンクを貼ってください'); continue; }
     if (c.files.length >= 10) { toast('添付は1回に10個までです'); break; }
     c.files.push(f);
+    // 画像は、入力欄のいまの位置に［画像1］を入れる（送ると本文のその場所に出る。消せば下にまとめて出る。2026-11-18）
+    if (/^image\//.test(f.type || '')) {
+      const n = c.files.filter((x) => /^image\//.test(x.type || '')).length;
+      const pos = c.input.selectionStart ?? c.input.value.length;
+      const tok = '［画像' + n + '］';
+      c.input.value = c.input.value.slice(0, pos) + tok + c.input.value.slice(pos);
+      c.input.setSelectionRange(pos + tok.length, pos + tok.length);
+    }
   }
   renderPendingFiles(where);
   autosize(where);
 }
 function renderPendingFiles(where) {
   const c = C[where];
-  c.pendingEl.innerHTML = c.files.map((f, i) => '<span>' + esc(f.name) + '（' + sizeText(f.size) + '）<button type="button" data-i="' + i + '" title="外す">×</button></span>').join('');
+  // 画像は小さく見せる（［画像n］の番号も）
+  let k = 0;
+  c.pendingEl.innerHTML = c.files.map((f, i) => {
+    const img = /^image\//.test(f.type || '');
+    if (img) { k += 1; if (!f._url) f._url = URL.createObjectURL(f); }
+    return '<span>' + (img ? `<img src="${f._url}" alt="">［画像${k}］` : esc(f.name)) + '（' + sizeText(f.size) + '）<button type="button" data-i="' + i + '" title="外す">×</button></span>';
+  }).join('');
   c.pendingEl.classList.toggle('hidden', !c.files.length);
 }
 
@@ -1013,7 +1238,7 @@ async function sendMsg(msg) {
     addMsg(msg._ch, r.msg);
     if (r.parent) applyUpdate(msg._ch, r.parent);
   } catch (e) {
-    msg._pending = false; msg._failed = true;
+    msg._pending = false; msg._failed = true; msg._err = e && e.message ? String(e.message).slice(0, 80) : '';
     rerenderFor(msg);
   }
 }
@@ -1220,7 +1445,7 @@ $('searchForm').addEventListener('submit', async (e) => {
     $('searchList').innerHTML = `<div class="sec">「${esc(q)}」の結果 ${r.hits.length}件　<button class="txt-btn" type="button" id="searchClose">閉じる</button></div>`
       + (r.hits.map((h) => {
         const ch = S.channels.find((c) => c.id === h.channelId);
-        const text = h.msg.body || (h.msg.files || []).map((f) => f.name).join('、');
+        const text = previewText(h.msg.body) || (h.msg.files || []).map((f) => f.name).join('、');
         return `<div class="hit" data-ch="${esc(h.channelId)}" data-seq="${h.msg.seq}" data-parent="${h.msg.parentSeq || ''}">
           <div class="where">${esc(chTitle(ch))}・${esc(nameOf(h.msg.empId))}・${ymd(h.msg.createdAt)} ${hm(h.msg.createdAt)}${h.msg.parentSeq ? '・スレッド' : ''}</div>
           <div class="body">${mark(text)}</div></div>`;
@@ -1260,6 +1485,7 @@ function connect() {
     if (p.type === 'msg') addMsg(p.channelId, p.msg);
     else if (p.type === 'update') applyUpdate(p.channelId, p.msg);
     else if (p.type === 'channel') reloadChannels(true);
+    else if (p.type === 'images') reloadChannels().then(() => { renderMsgs('keep'); if (S.thread) renderThread(false); if (!$('emojiPick').classList.contains('hidden')) renderStampGrid(); });
   };
   ws.onclose = (e) => {
     clearInterval(ping);
@@ -1275,6 +1501,7 @@ async function reloadChannels(checkCur) {
   try {
     const init = await api('chatInit');
     S.channels = init.channels;
+    S.avatars = init.avatars || S.avatars; S.stamps = init.stamps || S.stamps;
     renderChannels();
     const ch = S.channels.find((c) => c.id === S.cur);
     if (checkCur && S.cur && !ch) {
