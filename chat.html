@@ -350,7 +350,7 @@ function toast(msg) { alert(msg); }
 // ---------- 表示の道具 ----------
 // HALO が書くチャンネル（2026-11-18、A-4a）。inbox＝本人だけの「HALO 通知」、system＝全員の「HALO お知らせ」。人は書き込めない
 const HALO = 'HALO';
-const isHaloCh = (c) => !!c && (c.kind === 'inbox' || c.kind === 'system');
+const isHaloCh = (c) => !!c && (c.kind === 'inbox' || c.kind === 'system' || c.kind === 'feed'); // feed＝決まった人だけが読む HALO のチャンネル（お弁当など）
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nameOf = (id) => { if (id === 'all') return '全員'; if (id === HALO) return 'HALO'; const u = S.users[id]; return u ? (u.dispName || u.name) : id; };
 const fullNameOf = (id) => { const u = S.users[id]; return u ? u.name : id; };
