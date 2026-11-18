@@ -172,6 +172,9 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .file{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-1);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer;text-align:left;max-width:320px}
 .file b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file small{color:var(--text2);white-space:nowrap}
+.file-row{display:flex;gap:4px;align-items:stretch;max-width:360px}
+.file-dl{border:1px solid var(--border);background:var(--surface);border-radius:10px;padding:0 9px;color:var(--text2);cursor:pointer}
+.file-dl:hover{color:var(--primary)}
 /* 画像を大きく見る窓（2026-11-18） */
 #imgView{z-index:60;flex-direction:column;gap:12px;background:rgba(20,26,24,.88)}
 #imgView img{max-width:min(96vw,1400px);max-height:calc(100dvh - 120px);border-radius:8px;background:#fff;object-fit:contain}
@@ -632,7 +635,8 @@ function filesHtml(m) {
   if (!fs.length) return '';
   return '<div class="files">' + fs.map((f) => (isImage(f) && !m._pending
     ? `<img class="thumb" alt="${esc(f.name)}" title="${esc(f.name)}" data-file="${esc(f.itemId)}">`
-    : `<button type="button" class="file" data-file="${esc(f.itemId || '')}"><b>${esc(f.name)}</b><small>${sizeText(f.size || 0)}${f._progress !== undefined ? '・' + f._progress + '%' : ''}</small></button>`)).join('') + '</div>';
+    : `<span class="file-row"><button type="button" class="file" data-file="${esc(f.itemId || '')}" title="押すとブラウザで開きます"><b>${esc(f.name)}</b><small>${sizeText(f.size || 0)}${f._progress !== undefined ? '・' + f._progress + '%' : ''}</small></button>`
+      + (f.itemId ? `<button type="button" class="file-dl" data-dl="${esc(f.itemId)}" title="ダウンロード"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>` : '') + '</span>')).join('') + '</div>';
 }
 const fileUrlCache = new Map(); // itemId → { url, webUrl, until }
 async function fileUrl(itemId) {
@@ -705,6 +709,22 @@ $('imgView').addEventListener('click', (e) => { if (e.target.id === 'imgView') c
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('imgView').classList.contains('hidden')) closeImageView(); });
 $('ivDl').addEventListener('click', () => { if (ivItem) openFileAct(ivItem); });
 
+/**
+ * 画像以外の添付（PDF・Excel・Word など）をブラウザで開く（2026-11-18 ユーザー要望。前は押すとダウンロードだった）。
+ * SharePoint のプレビューのアドレスを Worker からもらう。開けない種類のときはダウンロードにする
+ */
+async function openPreview(itemId) {
+  if (!itemId) return;
+  const w = window.open('', '_blank'); // 先に窓を開ける（ポップアップを止められないように）
+  try {
+    const r = await api('chatFileOpen', { channelId: S.cur, itemId, mode: 'preview' });
+    if (w) w.location = r.previewUrl; else location.href = r.previewUrl;
+  } catch (e) {
+    if (w) w.close();
+    if (confirm(e.message + '\nダウンロードしますか？')) openFileAct(itemId);
+  }
+}
+
 async function openFileAct(itemId) {
   if (!itemId) return;
   const w = window.open('', '_blank'); // 先に窓を開ける（ポップアップを止められないように）
@@ -769,8 +789,10 @@ function onListClick(where) {
     const m = findMsg(where, Number(el.dataset.seq) || 0, el.dataset.id);
     if (!m) return;
     if (m._failed) { sendMsg(m); return; } // 送れなかったものは、どこを押しても送り直す
+    const dlEl = e.target.closest('[data-dl]');
+    if (dlEl) { openFileAct(dlEl.dataset.dl); return; } // ダウンロード
     const fileEl = e.target.closest('[data-file]');
-    if (fileEl) { if (fileEl.tagName === 'IMG') openImageView(fileEl.dataset.file, fileEl.alt); else openFileAct(fileEl.dataset.file); return; }
+    if (fileEl) { if (fileEl.tagName === 'IMG') openImageView(fileEl.dataset.file, fileEl.alt); else openPreview(fileEl.dataset.file); return; }
     const btn = e.target.closest('[data-act]');
     if (btn) { doAct(btn.dataset.act, m, where, btn.dataset.emoji || btn.dataset.a); return; }
     if (m._failed) { sendMsg(m); return; }
