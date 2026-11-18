@@ -79,6 +79,10 @@ body.embed .side-head{display:none}
 
 .m{position:relative;display:flex;flex-direction:column;align-items:flex-start;margin:4px 0;padding:2px 0}
 .m.mine{align-items:flex-end}
+.m:not(.mine){padding-left:44px}
+.m .m-av{position:absolute;left:0;top:6px}
+.m .m-av .av{width:34px;height:34px;margin:0;font-size:14px}
+.m.halo .m-av .av{background:var(--primary);color:#fff}
 .m .who{font-size:12px;color:var(--text2);margin:6px 6px 2px}
 .m .bub{max-width:min(560px,82%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;line-height:1.55}
 .m.mine .bub{background:var(--primary-light);border-color:#CFDDD1}
@@ -145,7 +149,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .side-tools{padding:8px 10px 4px;border-bottom:1px solid var(--border)}
 .side-tools input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface-1);font-size:14px}
 .side-btns{display:flex;justify-content:space-between;margin-top:2px}
-.side-btns .txt-btn{font-size:13px}
+.side-btns .txt-btn{font-size:12.5px;white-space:nowrap;padding:6px 4px}
 #searchList{flex:1;overflow-y:auto;padding:4px 0 8px}
 .hit{padding:9px 16px;cursor:pointer;border-bottom:1px solid var(--surface-1)}
 .hit:hover{background:var(--surface-1)}
@@ -230,7 +234,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="side-head"><span class="t">チャット</span><span class="me" id="meName"></span></div>
     <div class="side-tools">
       <form id="searchForm"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"></form>
-      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">顔写真</button></div>
+      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button></div>
     </div>
     <div id="chList"></div>
     <div id="searchList" class="hidden"></div>
@@ -281,9 +285,9 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 
 <div id="avatarSet" class="overlay hidden">
   <div class="box">
-    <h2>顔写真</h2>
+    <h2>アイコン</h2>
     <div id="avPreview"></div>
-    <p>チャットで名前の横に出ます。正方形に切り取って小さくしてから送ります。</p>
+    <p>ほかの人の画面で、あなたのメッセージの左と会話の一覧に出ます。顔写真でも好きな画像でもかまいません。正方形に切り取って小さくしてから送ります。</p>
     <input type="file" id="avFile" accept="image/*" class="hidden">
     <div class="err" id="avErr"></div>
     <div class="btns"><button type="button" class="btn" id="avDel">外す</button><button type="button" class="btn" id="avPick">写真を選ぶ</button><button type="button" class="btn primary" id="avClose">閉じる</button></div>
@@ -598,7 +602,7 @@ function msgHtml(m, prev, where) {
     </div>`;
   const status = m._failed ? '送れませんでした' + (m._err ? '：' + m._err : '') + '（押すともう一度送ります）' : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? '・編集済み' : '');
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
-    ${!mine && !sameWho ? `<div class="who">${halo ? '' : avatarHtml(m.empId)}${esc(nameOf(m.empId))}</div>` : ''}
+    ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
     ${acts}
     <div class="bub">${m.deleted ? '削除されました' : halo ? haloBody(m) : quote + renderBody(m) + filesHtml(m)}</div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
@@ -650,7 +654,7 @@ async function loadImgs() {
   }
   document.querySelectorAll('img[data-img]:not([src])').forEach((e) => { const d = imgMem.get(e.dataset.img); if (d) e.src = d; });
 }
-/** 顔写真（無ければ名前の1文字目） */
+/** アイコン（顔写真など。無ければ名前の1文字目） */
 function avatarHtml(id, cls) {
   const a = S.avatars[id];
   return a ? `<img class="av ${cls || ''}" data-img="${esc(a)}" alt="">` : `<span class="av ${cls || ''}">${esc(String(nameOf(id) || '?').slice(0, 1))}</span>`;
@@ -870,7 +874,7 @@ async function shrinkImage(file, max, square) {
   } finally { URL.revokeObjectURL(url); }
 }
 
-// ---------- 顔写真 ----------
+// ---------- アイコン（2026-11-18。はじめは「顔写真」と呼んでいた） ----------
 function openAvatar() {
   $('avErr').textContent = '';
   $('avPreview').innerHTML = avatarHtml(S.me, 'av-big');
@@ -894,7 +898,7 @@ $('avFile').addEventListener('change', async () => {
   } catch (er) { $('avErr').textContent = er.message; }
 });
 $('avDel').addEventListener('click', async () => {
-  if (!confirm('顔写真を外しますか？')) return;
+  if (!confirm('アイコンを外しますか？')) return;
   try { await api('chatAvatarDelete'); delete S.avatars[S.me]; openAvatar(); renderChannels(); renderMsgs('keep'); } catch (er) { $('avErr').textContent = er.message; }
 });
 $('emojiClose').addEventListener('click', () => $('emojiPick').classList.add('hidden'));
