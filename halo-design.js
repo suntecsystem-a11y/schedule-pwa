@@ -157,6 +157,7 @@
         '<span class="hn-menu" role="menu">' +
           '<span class="hn-menu-who"></span>' +
           '<button type="button" role="menuitem" data-go="mypage"><i class="ti ti-user" aria-hidden="true"></i>マイページ</button>' +
+          '<button type="button" role="menuitem" data-go="avatar"><i class="ti ti-photo" aria-hidden="true"></i>アイコンを変える</button>' +
           '<button type="button" role="menuitem" data-go="settings"><i class="ti ti-settings" aria-hidden="true"></i>設定</button>' +
           '<button type="button" role="menuitem" data-go="logout" class="hn-menu-out"><i class="ti ti-logout" aria-hidden="true"></i>ログアウト</button>' +
         '</span>' +
@@ -177,6 +178,7 @@
       if (!b) return;
       close();
       if (b.dataset.go === 'logout') { if (typeof doLogout === 'function') doLogout(); return; }
+      if (b.dataset.go === 'avatar') { if (typeof openAvatarDialog === 'function') openAvatarDialog(); return; } // 2026-11-18 アイコン（index.html）
       if (typeof switchTab === 'function') switchTab(b.dataset.go);
     });
     wrap.querySelector('.hn-bell').addEventListener('click', () => {

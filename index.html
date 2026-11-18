@@ -270,7 +270,22 @@ input,select{font-family:inherit;outline:none}
 body:not(.chat-on) .chat-only{display:none!important}
 #tab-chat{padding:0!important;max-width:none!important}
 #chat-frame{display:block;width:100%;border:0;height:calc(100dvh - 56px)}
-body[data-tab="chat"] .fab{display:none!important} /* チャットの送信ボタンと重ならないように */
+body[data-tab="chat"] .fab{display:none!important}
+/* アイコン（2026-11-18）。右上の丸・在席ボードの丸・マイページの丸に画像を敷く（頭文字は隠す。在席の色の点はそのまま） */
+.hn-avatar.has-img,.tm-av.has-img,.ios-av.has-img{background-size:cover!important;background-position:center!important;color:transparent!important}
+.ios-av[data-av]{cursor:pointer}
+.av-link{border:0;background:none;color:var(--primary);font-size:0.8em;font-weight:600;padding:4px 0 0;cursor:pointer}
+.av-dlg-bg{position:fixed;inset:0;background:rgba(37,48,45,.35);display:flex;align-items:center;justify-content:center;padding:16px;z-index:3000}
+.av-dlg-bg[hidden]{display:none}
+.av-dlg{background:var(--surface,#fff);border-radius:16px;max-width:380px;width:100%;padding:20px}
+.av-dlg h3{font-size:1em;margin:0 0 10px}
+.av-dlg p{font-size:0.85em;color:var(--text2);line-height:1.6;margin:8px 0 0}
+.av-dlg-pv{width:96px;height:96px;border-radius:50%;margin:4px auto;background:var(--primary-light);color:var(--primary);font-size:2.2em;font-weight:700;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
+.av-dlg-pv.has-img{color:transparent}
+.av-dlg-err{color:var(--red);font-size:0.82em;min-height:1em;margin-top:8px}
+.av-dlg-btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.av-dlg-btns button{border-radius:999px;padding:8px 16px;font-weight:600;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;font:inherit}
+.av-dlg-btns button.primary{background:var(--primary);border-color:var(--primary);color:#fff} /* チャットの送信ボタンと重ならないように */
 @media(max-width:599px){
   body.chat-on #bottom-nav .bn-add{display:none}
   body.chat-on[data-tab="calendar"] .fab{display:flex!important;bottom:calc(76px + env(safe-area-inset-bottom,0px))}
@@ -2248,6 +2263,8 @@ ja:{
 'nav.preparing':'（準備中）',
 'nav.team.short':'在席','nav.devices.short':'端末','nav.cars.short':'車',
 'nav.more':'その他','nav.add':'予定を追加','nav.chat':'チャット',
+'av.title':'アイコン','av.change':'アイコンを変える','av.note':'在席ボード・右上の丸・チャットに出ます。顔写真でも好きな画像でもかまいません。正方形に切り取って小さくしてから保存します。',
+'av.pick':'写真を選ぶ','av.del':'外す','av.close':'閉じる','av.del.confirm':'アイコンを外しますか？','av.err.type':'画像を選んでください','av.err.big':'画像が大きすぎます。小さい画像を選んでください','av.saved':'アイコンを変えました',
 'devices.title':'📱 端末貸出','devices.all':'すべて','devices.available':'空き','devices.rented':'貸出中','devices.pending':'申請中','devices.reserved':'予約中','devices.empty':'端末マスタが登録されていません',
 // アプリ
 'app.title':'スケジュール管理',
@@ -2663,6 +2680,8 @@ vi:{
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
 'nav.more':'Thêm','nav.add':'Thêm lịch','nav.chat':'Trò chuyện',
+'av.title':'Ảnh đại diện','av.change':'Đổi ảnh đại diện','av.note':'Hiển thị trên bảng có mặt, vòng tròn góc trên bên phải và trò chuyện. Có thể dùng ảnh khuôn mặt hoặc bất kỳ hình nào. Ảnh sẽ được cắt vuông và thu nhỏ trước khi lưu.',
+'av.pick':'Chọn ảnh','av.del':'Gỡ','av.close':'Đóng','av.del.confirm':'Gỡ ảnh đại diện?','av.err.type':'Vui lòng chọn một hình ảnh','av.err.big':'Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn','av.saved':'Đã đổi ảnh đại diện',
 'devices.title':'📱 Mượn thiết bị','devices.all':'Tất cả','devices.available':'Trống','devices.rented':'Đang mượn','devices.pending':'Chờ duyệt','devices.reserved':'Đã đặt','devices.empty':'Chưa có thiết bị nào',
 'app.title':'Quản lý lịch trình',
 'login.title':'Quản lý lịch trình','login.subtitle':'Đăng nhập bằng mã nhân viên và PIN',
@@ -3054,6 +3073,8 @@ ne:{
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
 'nav.more':'थप','nav.add':'कार्यक्रम थप्नुहोस्','nav.chat':'च्याट',
+'av.title':'आइकन','av.change':'आइकन बदल्नुहोस्','av.note':'उपस्थिति बोर्ड, माथि दायाँको गोलो र च्याटमा देखिन्छ। अनुहारको फोटो वा कुनै पनि तस्बिर राख्न सकिन्छ। वर्गाकार काटेर सानो बनाएर सुरक्षित गरिन्छ।',
+'av.pick':'फोटो छान्नुहोस्','av.del':'हटाउनुहोस्','av.close':'बन्द गर्नुहोस्','av.del.confirm':'आइकन हटाउने हो?','av.err.type':'तस्बिर छान्नुहोस्','av.err.big':'तस्बिर धेरै ठूलो छ। सानो तस्बिर छान्नुहोस्','av.saved':'आइकन बदलियो',
 'devices.title':'📱 उपकरण भाडा','devices.all':'सबै','devices.available':'खाली','devices.rented':'भाडामा','devices.pending':'बिचाराधीन','devices.reserved':'आरक्षित','devices.empty':'कुनै उपकरण दर्ता छैन',
 'app.title':'तालिका व्यवस्थापन',
 'login.title':'तालिका व्यवस्थापन','login.subtitle':'कर्मचारी नम्बर र PIN ले लग इन गर्नुहोस्',
@@ -4071,6 +4092,7 @@ function showApp(opts){
   _applyNavLabels();
   if(typeof tkFetchAccess==='function')tkFetchAccess();
   _initChatAccess();
+  loadAvatars(true); // アイコン（2026-11-18）
   buildFilterUI();
   const _retTab=sessionStorage.getItem('sch_return_tab');
   const _fromIncident=document.referrer&&document.referrer.includes('incident-report');
@@ -4086,6 +4108,120 @@ function showApp(opts){
   Promise.all([loadHolidays(), loadRentalMasters(), loadSafetyCheck(), loadNotices(), loadIssueCheck(), loadKotLink(), loadCleaning(), loadTrash(), loadMyLayout()]);
   if(!opts?.skipReleaseNotes) showReleaseNotes();
 }
+// ===== アイコン（2026-11-18 ユーザー要望）=====
+// 在席ボードの丸（.tm-av）・右上の丸（.hn-avatar）・マイページの丸（.ios-av）に、data-av の人のアイコンを敷く。
+// 中身は Worker の getAvatars（社員番号 → 画像の id）・getAvatarImages（id → 画像）。チャットのアイコンと同じもの。
+// 画像は id ごとにブラウザに覚える（チャットと同じ Cache Storage。id は画像が変わると変わる）
+let _avatars = {}, _avatarsAt = 0;
+const _avMem = new Map();
+const _AV_CACHE = 'halo-chat-img-v1';
+async function loadAvatars(force){
+  if(!currentUser) return;
+  if(!force && Date.now()-_avatarsAt < 5*60*1000){ applyAvatars(); return; }
+  try{ const r=await _apiQuiet('getAvatars',{}); _avatars=r.avatars||{}; _avatarsAt=Date.now(); }catch(e){ /* アイコンが無くても画面は動く */ }
+  applyAvatars();
+}
+async function _avData(ids){
+  const missing=[];
+  for(const id of ids){
+    if(_avMem.has(id)) continue;
+    try{ const hit=await (await caches.open(_AV_CACHE)).match('/img/'+id); if(hit){ _avMem.set(id, await hit.text()); continue; } }catch(e){}
+    missing.push(id);
+  }
+  for(let i=0;i<missing.length;i+=40){
+    try{
+      const r=await _apiQuiet('getAvatarImages',{ ids: missing.slice(i,i+40) });
+      for(const [id,data] of Object.entries(r.images||{})){
+        _avMem.set(id,data);
+        try{ await (await caches.open(_AV_CACHE)).put('/img/'+id, new Response(data)); }catch(e){}
+      }
+    }catch(e){}
+  }
+}
+async function applyAvatars(){
+  const top=document.querySelector('.hn-avatar');
+  if(top && currentUser) top.dataset.av=currentUser.id;
+  const els=[...document.querySelectorAll('[data-av]')];
+  const ids=[...new Set(els.map(e=>_avatars[e.dataset.av]).filter(Boolean))];
+  if(ids.length) await _avData(ids);
+  els.forEach(e=>{
+    const d=_avMem.get(_avatars[e.dataset.av]);
+    if(d){ e.style.backgroundImage='url("'+d+'")'; e.classList.add('has-img'); }
+    else if(e.classList.contains('has-img')){ e.style.backgroundImage=''; e.classList.remove('has-img'); }
+  });
+}
+/** 画像を真ん中で正方形に切り取り、160px の JPEG にする */
+async function _shrinkAvatar(file){
+  if(!/^image\//.test(file.type||'')) throw new Error(t('av.err.type'));
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((ok,ng)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>ng(new Error(t('av.err.type'))); i.src=url; });
+    const m=Math.min(img.naturalWidth,img.naturalHeight);
+    const cv=document.createElement('canvas'); cv.width=cv.height=160;
+    cv.getContext('2d').drawImage(img,(img.naturalWidth-m)/2,(img.naturalHeight-m)/2,m,m,0,0,160,160);
+    let data=cv.toDataURL('image/jpeg',0.85);
+    if(data.length>190*1024) data=cv.toDataURL('image/jpeg',0.6);
+    if(data.length>190*1024) throw new Error(t('av.err.big'));
+    return data;
+  }finally{ URL.revokeObjectURL(url); }
+}
+/** アイコンを変える窓（マイページの自分のカード・右上の丸のメニューから） */
+function openAvatarDialog(){
+  if(!currentUser) return;
+  let bg=document.getElementById('av-dialog');
+  if(!bg){
+    bg=document.createElement('div');
+    bg.id='av-dialog'; bg.className='av-dlg-bg'; bg.hidden=true;
+    bg.innerHTML='<div class="av-dlg" role="dialog" aria-modal="true"><h3></h3><div class="av-dlg-pv"></div><p></p>'
+      +'<input type="file" accept="image/*" hidden><div class="av-dlg-err"></div>'
+      +'<div class="av-dlg-btns"><button type="button" data-a="del"></button><button type="button" data-a="pick"></button><button type="button" data-a="close" class="primary"></button></div></div>';
+    document.body.appendChild(bg);
+    const file=bg.querySelector('input[type=file]'), err=bg.querySelector('.av-dlg-err');
+    bg.addEventListener('click',async e=>{
+      if(e.target===bg){ bg.hidden=true; return; }
+      const a=e.target.closest('button[data-a]')?.dataset.a;
+      if(a==='close') bg.hidden=true;
+      else if(a==='pick') file.click();
+      else if(a==='del'){
+        if(!confirm(t('av.del.confirm'))) return;
+        try{ await _apiQuiet('deleteMyAvatar',{}); delete _avatars[currentUser.id]; err.textContent=''; _avDialogRefresh(); applyAvatars(); }catch(er){ err.textContent=er.message; }
+      }
+    });
+    file.addEventListener('change',async()=>{
+      const f=file.files[0]; file.value='';
+      if(!f) return;
+      try{
+        const data=await _shrinkAvatar(f);
+        const r=await _apiQuiet('saveMyAvatar',{ data });
+        _avMem.set(r.id,data); _avatars[currentUser.id]=r.id; err.textContent='';
+        _avDialogRefresh(); applyAvatars();
+        try{ showToast(t('av.saved')); }catch(e){}
+      }catch(er){ err.textContent=er.message; }
+    });
+  }
+  bg.querySelector('h3').textContent=t('av.title');
+  bg.querySelector('p').textContent=t('av.note');
+  bg.querySelector('[data-a=del]').textContent=t('av.del');
+  bg.querySelector('[data-a=pick]').textContent=t('av.pick');
+  bg.querySelector('[data-a=close]').textContent=t('av.close');
+  bg.querySelector('.av-dlg-err').textContent='';
+  _avDialogRefresh();
+  bg.hidden=false;
+}
+function _avDialogRefresh(){
+  const bg=document.getElementById('av-dialog'); if(!bg) return;
+  const pv=bg.querySelector('.av-dlg-pv');
+  const d=_avMem.get(_avatars[currentUser.id]);
+  pv.textContent=String(currentUser.name||'?').replace(/[\s\u3000]/g,'').charAt(0);
+  pv.style.backgroundImage=d?'url("'+d+'")':''; pv.classList.toggle('has-img',!!d);
+  bg.querySelector('[data-a=del]').hidden=!d;
+}
+// 在席ボード・マイページを描いたあとにアイコンを敷く（描き方は変えない）
+(function(){
+  const wrap=(name)=>{ const f=window[name]; if(typeof f!=='function') return; window[name]=function(){ const r=f.apply(this,arguments); applyAvatars(); return r; }; };
+  wrap('renderTeam'); wrap('renderMyPage');
+})();
+
 // HALO チャット（2026-11-17）。Worker の chatAccess が「使える」と返した人だけ入口を出す（今は部署「ソフト設計」の人。
 // 守りは Worker 側。ここは見せるかどうかだけ）。使えない人・失敗したときは何も変えない
 async function _initChatAccess(){
@@ -7734,7 +7870,7 @@ function renderTeam(){
         const ini=String(m.name||'?').replace(/[\s\u3000]/g,'').charAt(0);
         const line2=[m.subInfo?esc(m.subInfo):'', m.placeText?'📍'+esc(m.placeText):(m.placeUnset&&GAS_URL?`<span class="tm-unset">${esc(t('place.unset'))}</span>`:'')].filter(Boolean).join('<span class="tm-sep">・</span>');
         return`<button type="button" class="tm-row" onclick="openMemberDetail('${m.id}')">
-          <span class="tm-av">${esc(ini)}<span class="tm-dot" style="background:${col}"></span></span>
+          <span class="tm-av" data-av="${esc(m.id)}">${esc(ini)}<span class="tm-dot" style="background:${col}"></span></span>
           <span class="tm-main"><span class="tm-l1"><span class="tm-name">${esc(m.name)}</span><span class="status-badge status-${m.status} tm-st">${tType(m.status)}</span></span>
             ${line2?`<span class="tm-l2">${line2}</span>`:''}</span>
         </button>`;}).join('')}
@@ -12227,10 +12363,11 @@ function renderMyPage() {
     <!-- 自分のカード（新デザイン 3a：一番上に。iPhone の設定の Apple ID のカードの形） -->
     <div class="ios-group ios-me-wrap" style="margin-bottom:12px">
       <div class="ios-me">
-        <div class="ios-av">${esc(initials)}</div>
+        <div class="ios-av" data-av="${esc(currentUser.id)}" onclick="openAvatarDialog()" title="${esc(t('av.change'))}">${esc(initials)}</div>
         <div style="flex:1;min-width:0">
           <div class="ios-name">${esc(currentUser.name)}</div>
           <div class="ios-sub">${esc(currentUser.dept||'')}　${t('my.empId')} ${esc(currentUser.id)}</div>
+          <button type="button" class="av-link" onclick="openAvatarDialog()">${esc(t('av.change'))}</button>
         </div>
       </div>
     </div>
@@ -14330,6 +14467,6 @@ async function initPushNotifications(opts) {
 })();
 </script>
 <script src="peer-memo.js"></script>
-<script src="halo-design.js?v=14"></script>
+<script src="halo-design.js?v=15"></script>
 </body>
 </html>
