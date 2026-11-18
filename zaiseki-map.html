@@ -675,6 +675,8 @@ body{margin:0}
 
   function fmtL(key,fallback,place){var s=(lastData&&lastData.labels&&lastData.labels[key])||fallback;return s.replace('{place}',place);}
   function afterMove(id){
+    // 歩いている間は押せなくしていた「行き先を選ぶ」を戻す（2026-11-17）
+    var mps=document.querySelector('.mobile-picker select');if(mps)mps.disabled=false;
     // 歩いている間に届いて待たせていたデータがあれば、歩き終わってから並べる
     if(pendingData){var p=pendingData;pendingData=null;setTimeout(function(){placePeople(p);},0);}
     document.getElementById('now-label').textContent=byId[id].name;
@@ -856,6 +858,7 @@ function createTravelGraph(layout) {
     var PHONE=Math.min(screen.width,screen.height)<600;
     if(!animate||RM||PHONE||!origin||origin===zone){var empty=chars.querySelector('.empty');if(empty)empty.remove();chars.appendChild(you);if(animate&&origin!==zone){you.classList.remove('arrive');void you.offsetWidth;you.classList.add('arrive');}you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
     var em=chars.querySelector('.empty');if(em)em.remove();
+    var mps=document.querySelector('.mobile-picker select');if(mps){mps.blur();mps.disabled=true;}
     // Reserve the exact arrival dimensions without counting a second person.
     var first=pageRect(you),start=footPoint(you),offsetX=start.x-first.left,offsetY=start.y-first.top;
     var slot=document.createElement('span');slot.className='arrival-slot';slot.setAttribute('aria-hidden','true');slot.style.width=(first.right-first.left)+'px';slot.style.height=(first.bottom-first.top)+'px';chars.appendChild(slot);

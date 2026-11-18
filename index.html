@@ -7470,6 +7470,7 @@ document.addEventListener('visibilitychange', ()=>{
 //                自分で選んだ外出中は 'out'。社外・お休みの人は ''
 //   placeText  … 📍に出す名前（PLACES に無い会議室は会議室の名前）
 const PLACE_STATUSES = ['在席','打ち合わせ','来社','会議中']; // 社内にいる状態（場所を出す）
+const AWAY_STATUSES = ['出張','休暇','外出','在宅']; // 会社にいない予定。会議の予定より優先（2026-11-18）
 function placeIdOfRoom(room){ return (PLACES.find(p=>p.room&&p.room===room)||{}).id||''; }
 function teamStatusNow(u, ds, nowMins){
   const myEvs=events.filter(e=>eventIncludesDate(e,ds)&&_isUserInEvent(e,u.id)&&e.approvalStatus!=='申請中'&&e.approvalStatus!=='否認');
@@ -7486,8 +7487,11 @@ function teamStatusNow(u, ds, nowMins){
   const inMeeting=activeEvs.some(e=>e.type==='会議室');
   const statusBase=STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>activeEvs.some(e=>e.type===s));
   const hasVacEv=activeEvs.some(e=>e.type==='休暇');
-  const baseStatus=(yasumiUsers.has(u.id)&&!hasVacEv)?'休み':inMeeting?'会議中':(statusBase||'在席');
-  const ev=inMeeting ? activeEvs.find(e=>e.type==='会議室') : activeEvs.find(e=>e.type===baseStatus);
+  // 会社にいない予定（出張・休暇・外出・在宅）は会議より優先する（2026-11-18）。会議に入っていても、その会議室にはいないため。
+  // 会議中にするのは、社内にいる人（予定なし・来社・打ち合わせ）だけ。HALO Lite（Worker の lite.js）も同じ順番
+  const away=AWAY_STATUSES.includes(statusBase);
+  const baseStatus=(yasumiUsers.has(u.id)&&!hasVacEv)?'休み':away?statusBase:inMeeting?'会議中':(statusBase||'在席');
+  const ev=baseStatus==='会議中' ? activeEvs.find(e=>e.type==='会議室') : activeEvs.find(e=>e.type===baseStatus);
   let status=baseStatus, subInfo=ev?.title||'', placeId='', placeText='';
   if(PLACE_STATUSES.includes(baseStatus)){
     if(ev && usesRoom(ev)){
@@ -7801,7 +7805,7 @@ function renderTeamMap(members){
     frame=document.createElement('iframe');
     frame.id='team-map-frame';
     frame.title=t('team.map.title');
-    frame.src='zaiseki-map.html?v=4'; // 2026-11-17 休憩中のマス（v=2）、タブレットでも歩く（v=3・v=4 は縦向きも）。古いマップが残らないよう直したら上げる
+    frame.src='zaiseki-map.html?v=5'; // 2026-11-17 休憩中のマス（v=2）、タブレットでも歩く（v=3・v=4 は縦向きも）、歩いている間は行き先の選択欄を止める（v=5）。古いマップが残らないよう直したら上げる
     frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
     wrap.appendChild(frame);
   }
