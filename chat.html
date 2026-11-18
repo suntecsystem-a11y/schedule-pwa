@@ -388,7 +388,7 @@ function haloButtons(m) {
     if (LITE) return '<span class="h-result">承認・却下は会社の端末の HALO でできます</span>';
     return `<span class="h-btns">${btn('approve', '承認', true)}${btn('reject', '却下')}</span>`;
   }
-  if (meta.type === 'notice' && meta.safetyId && ch && ch.kind === 'system') {
+  if (meta.type === 'notice' && meta.safetyId && ch && ch.id === 'system:notice') {
     const done = S.answered[m.seq];
     return `<span class="h-btns">${btn('safe', '無事', true)}${btn('damaged', '被害あり')}${btn('other', 'その他')}</span>`
       + (done ? `<span class="h-result">${esc(done)}</span>` : '');
@@ -506,7 +506,7 @@ async function openChannel(id) {
   const ro = isHaloCh(ch);
   $('mainComposer').classList.toggle('hidden', ro);
   $('roNote').classList.toggle('hidden', !ro);
-  $('setBtn').classList.toggle('hidden', ro);
+  $('setBtn').classList.toggle('hidden', !!ch && ch.kind === 'inbox');
   document.body.classList.add('in-ch');
   renderChannels();
   sendFocus();
@@ -1146,13 +1146,15 @@ async function openSettings() {
   if (!ch) return;
   $('setErr').textContent = '';
   $('setName').value = ch.name || '';
-  const canName = ch.kind !== 'dm' && !ch.dept && ch.id !== 'general';
-  const canMembers = (ch.kind === 'private' || ch.kind === 'group') && !ch.dept;
+  const feed = ch.kind === 'feed' || ch.kind === 'system'; // HALO が書くチャンネル（日報・お弁当・HALO お知らせ）
+  const canName = ch.kind !== 'dm' && !ch.dept && ch.id !== 'general' && !feed;
+  const canMembers = ((ch.kind === 'private' || ch.kind === 'group') && !ch.dept) || feed;
   $('setNameRow').classList.toggle('hidden', !canName && ch.kind !== 'group');
   $('setAdd').classList.toggle('hidden', !canMembers);
   $('setLeave').classList.toggle('hidden', !canMembers);
-  $('setArchive').classList.toggle('hidden', ch.kind === 'dm' || ch.id === 'general');
-  $('setNote').textContent = ch.dept ? '部署のチャンネルです。メンバーは名簿の部署で決まります（異動すると自動で入れ替わります）。'
+  $('setArchive').classList.toggle('hidden', ch.kind === 'dm' || ch.id === 'general' || feed);
+  $('setNote').textContent = feed ? 'HALO が書くチャンネルです。メンバーを足す・外すのは管理者です（自分で抜けることはできます）。'
+    : ch.dept ? '部署のチャンネルです。メンバーは名簿の部署で決まります（異動すると自動で入れ替わります）。'
     : ch.kind === 'public' ? '全員が見られるチャンネルです。'
     : ch.kind === 'dm' ? '1対1の会話です。'
     : '招かれた人だけが見られます。名前・メンバーを変えられるのは、作った人と管理者です。';
@@ -1161,6 +1163,14 @@ async function openSettings() {
   if (ch.kind === 'public') return;
   try {
     const r = await api('chatMembers', { id: ch.id });
+    if (r.feed) {
+      // はじめの決まりで入る人＋管理者が足した人−外した人。新しく入った人も決まりどおり自動で入る
+      const names = (ids) => ids.map(fullNameOf).join('、');
+      $('setNote').textContent = `HALO が書くチャンネルです。はじめは「${r.feed.rule}」が入り、新しく入った人も自動で入ります。`
+        + 'メンバーを足す・外すのは管理者です（自分で抜けることはできます）。'
+        + (r.feed.removed.length ? `外した人：${names(r.feed.removed)}（足すと戻ります）。` : '')
+        + (r.feed.added.length ? `足した人：${names(r.feed.added)}。` : '');
+    }
     $('setMembers').innerHTML = r.members.map((m) => `<div><span>${esc(fullNameOf(m.empId))} <small>${esc(S.users[m.empId]?.dept || '')}${m.role === 'owner' ? '・作った人' : ''}</small></span>${canMembers && m.empId !== S.me ? `<button type="button" data-rm="${esc(m.empId)}">外す</button>` : ''}</div>`).join('');
   } catch (e) { $('setErr').textContent = e.message; }
 }
