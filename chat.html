@@ -172,6 +172,12 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .file{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--surface-1);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer;text-align:left;max-width:320px}
 .file b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file small{color:var(--text2);white-space:nowrap}
+/* 画像を大きく見る窓（2026-11-18） */
+#imgView{z-index:60;flex-direction:column;gap:12px;background:rgba(20,26,24,.88)}
+#imgView img{max-width:min(96vw,1400px);max-height:calc(100dvh - 120px);border-radius:8px;background:#fff;object-fit:contain}
+#imgView .iv-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;color:#fff;font-size:13px}
+#imgView .iv-bar .btn:not(.primary){color:var(--text)}
+#imgView .iv-bar span{max-width:50vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85}
 .thumb{display:block;max-width:240px;max-height:200px;border-radius:10px;border:1px solid var(--border);cursor:pointer;background:var(--surface-1);min-width:80px;min-height:60px}
 .attach{border:0;background:none;color:var(--text2);height:42px;padding:0 4px}
 .attach:hover{color:var(--primary)}
@@ -281,6 +287,11 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="err" id="stampErr"></div>
     <div class="btns wrap"><button type="button" class="btn" id="stampAdd">スタンプを登録</button><button type="button" class="btn" id="stampDelMode">自分のスタンプを消す</button><button type="button" class="btn primary" id="emojiClose">閉じる</button></div>
   </div>
+</div>
+
+<div id="imgView" class="overlay hidden">
+  <img id="ivImg" alt="">
+  <div class="iv-bar"><span id="ivName"></span><button type="button" class="btn" id="ivDl">ダウンロード</button><button type="button" class="btn primary" id="ivClose">閉じる</button></div>
 </div>
 
 <div id="avatarSet" class="overlay hidden">
@@ -675,6 +686,25 @@ function loadThumbs(root) {
     try { img.src = (await fileUrl(img.dataset.file)).url; } catch { img.alt = '（画像を開けませんでした）'; }
   });
 }
+/**
+ * 画像を大きく見る（押すとダウンロードになっていたのを、まず見るだけにした。2026-11-18 ユーザー要望）。
+ * ダウンロードは窓の「ダウンロード」か、画像の右クリック（ブラウザの「名前を付けて画像を保存」）
+ */
+let ivItem = null;
+async function openImageView(itemId, name) {
+  if (!itemId) return;
+  ivItem = itemId;
+  $('ivName').textContent = name || '';
+  $('ivImg').removeAttribute('src');
+  $('imgView').classList.remove('hidden');
+  try { const r = await fileUrl(itemId); if (ivItem === itemId) $('ivImg').src = r.url; } catch (e) { toast(e.message); closeImageView(); }
+}
+function closeImageView() { ivItem = null; $('imgView').classList.add('hidden'); $('ivImg').removeAttribute('src'); }
+$('ivClose').addEventListener('click', closeImageView);
+$('imgView').addEventListener('click', (e) => { if (e.target.id === 'imgView') closeImageView(); }); // 画像の外を押しても閉じる
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('imgView').classList.contains('hidden')) closeImageView(); });
+$('ivDl').addEventListener('click', () => { if (ivItem) openFileAct(ivItem); });
+
 async function openFileAct(itemId) {
   if (!itemId) return;
   const w = window.open('', '_blank'); // 先に窓を開ける（ポップアップを止められないように）
@@ -740,7 +770,7 @@ function onListClick(where) {
     if (!m) return;
     if (m._failed) { sendMsg(m); return; } // 送れなかったものは、どこを押しても送り直す
     const fileEl = e.target.closest('[data-file]');
-    if (fileEl) { openFileAct(fileEl.dataset.file); return; }
+    if (fileEl) { if (fileEl.tagName === 'IMG') openImageView(fileEl.dataset.file, fileEl.alt); else openFileAct(fileEl.dataset.file); return; }
     const btn = e.target.closest('[data-act]');
     if (btn) { doAct(btn.dataset.act, m, where, btn.dataset.emoji || btn.dataset.a); return; }
     if (m._failed) { sendMsg(m); return; }
