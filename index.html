@@ -4354,6 +4354,20 @@ function _mergeToday(fetchedMonths){
     }
   });
 }
+// 在宅の申請理由は予定（getEvents）には載らない（2026-11-19。健康のことが入りうるため）。
+// 自分の在宅・自分が承認者の在宅・承認できそうな申請中の在宅があるときだけ、Worker に取りに行って重ねる。
+// 見てよいかの最終判断は Worker（getRemoteReasons）がする
+async function _attachRemoteReasons(list, rangeStart, rangeEnd){
+  if(!currentUser) return;
+  const me=String(currentUser.id);
+  const mayApprove=!!currentUser.role&&currentUser.role!=='一般';
+  const need=list.some(e=>e.type==='在宅'&&(String(e.userId)===me||String(e.approvedBy)===me||(mayApprove&&e.approvalStatus==='申請中'&&!e.approvedBy)));
+  if(!need) return;
+  try{
+    const reasons=await api('getRemoteReasons',{rangeStart,rangeEnd},undefined,{quiet:true})||{};
+    list.forEach(e=>{if(reasons[e.id]!==undefined)e.remoteReason=reasons[e.id];});
+  }catch(_){/* 理由が取れなくても予定の表示は続ける */}
+}
 // レースコンディション防止：最新のリクエストだけ画面に反映する
 let _loadToken = 0;
 
@@ -4392,6 +4406,8 @@ async function loadEvents({ force = false, centerDate, quiet = false } = {}){
     if(!quiet) showLoading(t('ev.loading'));
     // タスクから作った予定（種別「作業」・メモが「タスク#番号」）は、カレンダーに出さない（見づらくなるため）。タスク管理のかんばんのカレンダーだけに出す
     const data = (await api('getEvents', { rangeStart, rangeEnd }, undefined, { quiet })).filter(e => !(e.type === '作業' && /^タスク#\d+/.test(e.memo || '')));
+    if(token !== _loadToken){ if(!quiet) hideLoading(); return; }
+    await _attachRemoteReasons(data, rangeStart, rangeEnd);
     if(token !== _loadToken){ if(!quiet) hideLoading(); return; }
     events = data;
     // 月別にキャッシュへ振り分け（各イベントの開始月で分類）
