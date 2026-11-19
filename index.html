@@ -1285,7 +1285,9 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <div id="fac-main-area">
       <div class="fac-datenav">
         <button type="button" class="nav-arrow" onclick="facNav(-1)" aria-label="前の日">‹</button>
-        <span class="fac-date" id="fac-date"></span>
+        <!-- 日付を押すとカレンダーで選べる（遠い日へ ‹ › を何度も押さなくてよいように。2026-11-19） -->
+        <span style="position:relative;display:inline-flex"><span class="fac-date" id="fac-date"></span>
+          <input type="date" id="fac-date-input" onchange="facSetDate(this.value)" onclick="try{this.showPicker()}catch(e){}" aria-label="日付を選ぶ" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0"></span>
         <button type="button" class="today-btn" onclick="facToday()" id="fac-today">今日</button>
         <button type="button" class="nav-arrow" onclick="facNav(1)" aria-label="次の日">›</button>
       </div>
@@ -1933,7 +1935,9 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
         <div class="ev-row-icon">🕔</div>
         <div class="ev-row-content">
           <div class="ev-row-label" id="car-return-label">帰社予定日時</div>
-          <input type="datetime-local" id="car-end" oninput="checkCarConflict()" style="width:100%;border:none;outline:none;font-size:0.92em;font-family:inherit;background:transparent">
+          <input type="datetime-local" id="car-end" oninput="checkCarConflict();_paintCarEndQuick()" style="width:100%;border:none;outline:none;font-size:0.92em;font-family:inherit;background:transparent">
+          <!-- 今すぐ使うときだけ：帰社予定をボタンで選ぶ -->
+          <div id="car-end-quick" class="fac-whens" style="display:none;margin:6px 0 0;flex-wrap:wrap"></div>
         </div>
       </div>
       <!-- 実際の終了日時（帰社時に記入） -->
@@ -2277,7 +2281,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.dev.part':'{t} は貸出あり','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席・当番',
+'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.dev.part':'{t} は貸出あり','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','car.now.btn':'今すぐ使う','car.now.evtitle':'{dest}（社用車 {car}）','car.now.h':'＋{n}時間','car.now.today':'今日中','car.now.notfound':'車の予約が見つかりません。画面を更新してから、自分の予約の「出発」を押してください','car.now.departfail':'予約はできました。出発の記録に失敗したので、もう一度「出発する」を押してください（{msg}）','fac.car.busy':'{name} 〜{t}','fac.car.depart':'出発','fac.car.return':'帰社','nav.rooms':'会議室','nav.team':'在席・当番',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -2695,7 +2699,7 @@ vi:{
 'dr.err.empty':'Chưa có nội dung',
 'dr.sending':'Đang gửi...',
 'dr.saved':'Đã ghi Kaizen Step',
-'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.dev.part':'Đã có người mượn {t}','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh・Trực nhật',
+'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.dev.part':'Đã có người mượn {t}','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','car.now.btn':'Dùng ngay','car.now.evtitle':'{dest} (xe công ty {car})','car.now.h':'+{n} giờ','car.now.today':'Trong hôm nay','car.now.notfound':'Không tìm thấy đặt xe. Hãy làm mới màn hình rồi bấm "Khởi hành" ở đặt xe của bạn','car.now.departfail':'Đã đặt xe, nhưng ghi nhận khởi hành thất bại. Hãy bấm "Khởi hành" lần nữa ({msg})','fac.car.busy':'{name} đến {t}','fac.car.depart':'Khởi hành','fac.car.return':'Về công ty','nav.rooms':'Phòng họp','nav.team':'Điểm danh・Trực nhật',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
@@ -3088,7 +3092,7 @@ ne:{
 'dr.err.empty':'केही लेखिएको छैन',
 'dr.sending':'पठाउँदै...',
 'dr.saved':'Kaizen Step रेकर्ड गरियो',
-'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.dev.part':'{t} भाडामा छ','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति・पालो',
+'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.dev.part':'{t} भाडामा छ','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','car.now.btn':'अहिले प्रयोग गर्नुहोस्','car.now.evtitle':'{dest} (कम्पनीको गाडी {car})','car.now.h':'+{n} घण्टा','car.now.today':'आजभित्र','car.now.notfound':'गाडी बुकिङ भेटिएन। पृष्ठ रिफ्रेस गरेर आफ्नो बुकिङमा "प्रस्थान" थिच्नुहोस्','car.now.departfail':'बुकिङ भयो, तर प्रस्थान दर्ता असफल भयो। फेरि "प्रस्थान" थिच्नुहोस् ({msg})','fac.car.busy':'{name} {t} सम्म','fac.car.depart':'प्रस्थान','fac.car.return':'फिर्ती','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति・पालो',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
@@ -7170,10 +7174,11 @@ function renderFacility() {
   const ok = typeof carAllowed === 'function' && carAllowed();
   const prep = document.getElementById('fac-car-prep'), body = document.getElementById('fac-car-body');
   if (prep) { prep.style.display = ok ? 'none' : ''; prep.textContent = t('fac.car.prep'); }
-  if (body) body.style.display = ok ? '' : 'none';
+  // 車も会議室・端末と同じ「今すぐ使える＋空き状況」の形で出す（2026-11-19）。前の月・日の表示は使わない
+  if (body) body.style.display = 'none';
   // 「すべて」のときだけ、会議室・端末の見出しを出す
   [rh, dh, ch].forEach(h => { if (h) h.style.display = _facFilter === 'all' ? '' : 'none'; });
-  const main = document.getElementById('fac-main-area'); if (main) main.style.display = _facFilter === 'car' ? 'none' : '';
+  const main = document.getElementById('fac-main-area'); if (main) main.style.display = _facFilter === 'car' && !ok ? 'none' : '';
   const td = document.getElementById('fac-today'); if (td) td.textContent = t('common.today');
   renderFacMine();
   renderFacAvail();
@@ -7224,6 +7229,24 @@ function renderFacMine() {
         ${lent ? `<button type="button" class="fac-btn primary" onclick="returnDevice('${e.id}')">${t('my.rental.return')}</button>` : ''}
       </span></div>`);
   });
+  // 自分の車の予約（まだ帰社していないもの）。出発・帰社もここから（2026-11-19）
+  if (typeof carAllowed === 'function' && carAllowed()) {
+    const nowMs = Date.now(), day0 = new Date(today + 'T00:00:00').getTime();
+    carEvents.filter(c => _isMyCar(c) && !c.endAt && _carHolds(c) && (c.status === '使用中' || new Date(c.endScheduled || c.startAt).getTime() >= day0))
+      .sort((a, b) => a.startAt.localeCompare(b.startAt)).slice(0, 5).forEach(c => {
+        const canDepart = c.status === '申請中' || c.status === '予約中';
+        const canReturn = c.status === '使用中' || !c.status;
+        const over = canReturn && c.endScheduled && new Date(c.endScheduled).getTime() < nowMs;
+        rows.push(`<div class="fac-row fac-dev${over ? ' over' : ''}">
+          <span class="fac-ic">🚗</span>
+          <span class="fac-main" style="cursor:pointer" onclick="openCarDetail('${esc(String(c.id))}')"><span class="fac-l1">${esc(c.carName)} → ${esc(c.destination || '')} <span class="fac-st">${esc(carStatusText(c.status) || t('car.st.inuse'))}</span></span>
+            <span class="fac-l2">${fmtDt(c.startAt)}〜${fmtDt(c.endScheduled)}${over ? `<span class="fac-left">${t('my.car.overdue')}</span>` : ''}</span></span>
+          <span class="fac-btns">
+            ${canDepart ? `<button type="button" class="fac-btn primary" onclick="openCarEditModal('${esc(String(c.id))}','depart')">${t('fac.car.depart')}</button>` : ''}
+            ${canReturn ? `<button type="button" class="fac-btn primary" onclick="doCarReturn('${esc(String(c.id))}')">${t('fac.car.return')}</button>` : ''}
+          </span></div>`);
+      });
+  }
   el.innerHTML = `<div class="fac-mine">
     <div class="fac-mine-head"><span class="hn-next-eb">MY BOOKINGS</span><span class="fac-mine-title">${t('fac.mine')}</span></div>
     ${rows.length ? rows.join('') : `<div class="fac-empty">${t('fac.mine.none')}</div>`}
@@ -7239,6 +7262,60 @@ const _facHM = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m
 const _facMin = hm => { const [h, m] = String(hm || '0:0').split(':').map(Number); return h * 60 + (m || 0); };
 function facNav(d) { roomDate = addDays(roomDate, d); _facWhen = 'day'; renderFacAvail(); renderFacGrid(); }
 function facToday() { roomDate = new Date(); _facWhen = 'now'; renderFacAvail(); renderFacGrid(); }
+// 日付を押してカレンダーで選んだとき
+function facSetDate(v) {
+  if (!v) return;
+  roomDate = new Date(v + 'T00:00:00');
+  _facWhen = v === fmtDate(new Date()) ? 'now' : 'day';
+  renderFacAvail(); renderFacGrid();
+}
+
+// ----- 車（2026-11-19）：会議室・端末と同じ形で、今空いている車と、その日の時間ごとの空きを出す -----
+// 車を押さえている予約の期間（ミリ秒）。使用中のまま帰社予定を過ぎた車は、帰社するまで今も使用中として扱う
+function _facCarSpans(carName) {
+  const now = Date.now();
+  return carEvents.filter(c => c.carName === carName && _carHolds(c)).map(c => {
+    const s = new Date(c.startAt).getTime();
+    let e = new Date(c.endScheduled || c.startAt).getTime();
+    if (c.status === '使用中' && e <= now) e = now + 60000;
+    return { s, e, c };
+  }).sort((a, b) => a.s - b.s);
+}
+const _facCarAt = (carName, ms) => _facCarSpans(carName).find(x => x.s <= ms && ms < x.e) || null;
+// 時刻の表示。その日のうちなら 15:00、日をまたぐなら 11/20 15:00
+function _facCarHM(ms, ds) {
+  const d = new Date(ms);
+  return fmtDate(d) === ds ? _facHM(d.getHours() * 60 + d.getMinutes()) : fmtDt(d.toISOString());
+}
+let _carLastPick = (() => { try { return JSON.parse(localStorage.getItem('halo_car_last') || '{}') || {}; } catch (e) { return {}; } })();
+// 前回の行先・承認者を覚えておき、次に開いたときに最初から入れる
+function _carRemember(o) {
+  Object.assign(_carLastPick, o);
+  try { localStorage.setItem('halo_car_last', JSON.stringify(_carLastPick)); } catch (e) {}
+}
+// 日付と時刻を決めて車の予約（予定の登録の窓：外出・その車・前回の行先）を開く
+async function openCarBook(carName, ds, st, en) {
+  openAddModal(ds, st, en);
+  _cg('ev-type').value = '外出';
+  _cg('ev-allday').checked = false;
+  onTypeChange();
+  _setEvCarToggle(true);
+  await onEvCarToggle(carName);
+  const d = _cg('evcar-dest'), last = _carLastPick.dest;
+  if (d && !d.value && last && carDestinations.some(x => x.name === last)) { d.value = last; onEvCarDestChange(); }
+}
+// 時間の表の空いている所を押したら、その時刻から1時間（次の予約があればその手前まで）で予約の窓を開く
+function facCarGridBook(ev, carName, ds) {
+  const r = ev.currentTarget.getBoundingClientRect();
+  let m = FAC_H0 * 60 + Math.floor(((ev.clientX - r.left) / r.width) * (FAC_H1 - FAC_H0) * 2) * 30;
+  const now = new Date();
+  if (ds === fmtDate(now)) m = Math.max(m, Math.ceil((now.getHours() * 60 + now.getMinutes()) / 30) * 30);
+  const day0 = new Date(ds + 'T00:00:00').getTime();
+  const next = _facCarSpans(carName).find(x => x.s > day0 + m * 60000);
+  let en = Math.min(m + 60, 24 * 60 - 1);
+  if (next) { const nm = Math.round((next.s - day0) / 60000); if (nm > m) en = Math.min(en, nm); }
+  openCarBook(carName, ds, _facHM(Math.min(m, 23 * 60)), _facHM(en));
+}
 function setFacWhen(w) {
   _facWhen = w;
   roomDate = w === 'tmr' ? addDays(new Date(), 1) : new Date();
@@ -7333,6 +7410,28 @@ function renderFacAvail() {
         <button type="button" class="fac-go" onclick="roomDate=new Date('${ds}T00:00:00');openRoomBookingModal('${esc(r.id)}','${_facHM(st)}','${_facHM(en)}')">${t('fac.book')}</button></div>`);
     });
   }
+  // 車：今日は「今すぐ使う」（予定・予約・出発を1回で）、ほかの日は 9:00 から1時間の「予約」
+  if (_facFilter === 'car' && carAllowed()) {
+    const day0 = new Date(ds + 'T00:00:00').getTime();
+    const baseMs = day0 + baseMin * 60000;
+    if (!carMasters.length) rows.push(`<div class="fac-empty">${t('car.loading')}</div>`);
+    carMasters.forEach(car => {
+      const busy = _facCarAt(car.name, ds === today ? Date.now() : baseMs);
+      if (busy) {
+        rows.push(`<div class="fac-av-row"><span class="fac-tile">🚗</span>
+          <span class="fac-main"><span class="fac-l1">${esc(car.name)}</span><span class="fac-l2">${esc(t('fac.car.busy', {name: busy.c.applicant || '', t: _facCarHM(busy.e, ds)}))}</span></span>
+          <span class="fac-none">${t('fac.grp.none')}</span></div>`);
+        return;
+      }
+      const next = _facCarSpans(car.name).find(x => x.s > baseMs);
+      const until = next ? t('fac.free.until', {t: _facCarHM(next.s, ds)}) : t('fac.free.rest');
+      const go = ds === today
+        ? `<button type="button" class="fac-go" data-car="${esc(car.name)}" onclick="openCarNow(this.dataset.car)">${t('car.now.btn')}</button>`
+        : `<button type="button" class="fac-go" data-car="${esc(car.name)}" onclick="openCarBook(this.dataset.car,'${ds}','${_facHM(baseMin)}','${_facHM(baseMin + 60)}')">${t('fac.book')}</button>`;
+      rows.push(`<div class="fac-av-row"><span class="fac-tile">🚗</span>
+        <span class="fac-main"><span class="fac-l1">${esc(car.name)}</span><span class="fac-l2">${car.number ? esc(car.number) + '・' : ''}${esc(until)}</span></span>${go}</div>`);
+    });
+  }
   if (showDev) {
     _facDevGroups().forEach(([k, list]) => {
       // 今日は選んだ時刻（今・1時間後）に空いているもの、ほかの日は借りられる時間があるもの
@@ -7359,6 +7458,7 @@ function renderFacAvail() {
   const dt = document.getElementById('fac-date'); if (dt) {
     const d = roomDate; dt.textContent = t('cal.day.title', {month: d.getMonth() + 1, day: d.getDate(), dow: tDow((d.getDay() + 6) % 7)});
   }
+  const di = document.getElementById('fac-date-input'); if (di) di.value = ds;
 }
 // 右：空き状況（会議室＝時間の表、端末＝7日分の表）
 function renderFacGrid() {
@@ -7403,6 +7503,23 @@ function renderFacGrid() {
       }).join('')}</div>`).join('');
     }).join('');
     parts.push(`<div class="fg-block">${_facFilter === 'all' ? `<div class="fg-sub">${t('fac.device')}</div>` : ''}${rentalMasters.length ? head + rows : `<div class="fac-empty">${t('devices.empty')}</div>`}</div>`);
+  }
+  // 車：会議室と同じ時間の表。帯を押すとその予約の詳細、空いている所を押すとその時刻で予約
+  if (_facFilter === 'car' && carAllowed()) {
+    const hours = Array.from({length: FAC_H1 - FAC_H0 + 1}, (_, i) => FAC_H0 + i);
+    const head = `<div class="fg-row fg-hours"><span class="fg-name"></span><span class="fg-track">${hours.map(h => `<span style="left:${pct(h * 60)}%">${h}</span>`).join('')}</span></div>`;
+    const day0 = new Date(ds + 'T00:00:00').getTime(), day1 = day0 + 86400000;
+    const rows = carMasters.map(car => {
+      const bars = _facCarSpans(car.name).filter(x => x.s < day1 && x.e > day0).map(x => {
+        const s = (x.s - day0) / 60000, en = (x.e - day0) / 60000, c = x.c;
+        const label = (c.applicant || '') + (c.status === '申請中' ? ' ' + t('car.st.pending') : '');
+        const tip = fmtDt(c.startAt) + '〜' + fmtDt(c.endScheduled) + ' ' + (c.applicant || '') + ' → ' + (c.destination || '');
+        return `<button type="button" class="fg-bar" style="left:${pct(s)}%;width:${Math.max(2, pct(en) - pct(s))}%" title="${esc(tip)}" onclick="event.stopPropagation();openCarDetail('${esc(String(c.id))}')">${esc(label)}</button>`;
+      }).join('');
+      return `<div class="fg-row"><span class="fg-name">${esc(car.name)}${car.number ? `<small>${esc(car.number)}</small>` : ''}</span>
+        <span class="fg-track" data-car="${esc(car.name)}" onclick="facCarGridBook(event,this.dataset.car,'${ds}')">${bars}${ds === today && nowMin >= FAC_H0 * 60 && nowMin <= FAC_H1 * 60 ? `<span class="fg-now" style="left:${pct(nowMin)}%"></span>` : ''}</span></div>`;
+    }).join('');
+    parts.push(`<div class="fg-block">${carMasters.length ? head + rows : `<div class="fac-empty">${t('car.loading')}</div>`}</div>`);
   }
   el.innerHTML = `<div class="fac-card">
     <div class="fac-card-head"><span class="hn-next-eb">AVAILABILITY</span><span class="fac-card-title">${t('fac.grid')}</span></div>
@@ -9903,7 +10020,9 @@ async function doSaveEvent(){
     if(evCar!==undefined){
       carDataLastFetched=0;
       if(result.carError) showToast(t('evcar.save.fail',{msg:result.carError}));
-      if(_currentTab==='cars') loadCarData({force:true}).then(()=>{ renderCarView(); });
+      if(!result.carError&&evCar&&evCar.destination) _carRemember({dest:evCar.destination});
+      // 車は設備予約タブの中（2026-11-19 修正：前は無くなった「車」タブを見ていて、保存しても表示が変わらなかった）
+      if(_currentTab==='rooms'||_currentTab==='mypage') loadCarData({force:true}).then(()=>{ renderCarView(); if(_currentTab==='mypage') renderMyPage(); });
     }
   } catch(err){ showToast(t('common.error.toast',{msg:err.message})) }
 }
@@ -10262,7 +10381,7 @@ function haloDraft(o){
 }
 
 // ----- 車予約（出発・記録の編集）の下書き。予約ごと・出発/編集ごとに残す -----
-var _CAR_DRAFT_IDS=['car-end','car-alcohol','car-memo','car-endat'];
+var _CAR_DRAFT_IDS=['car-select','car-dest','car-approver','car-end','car-alcohol','car-memo','car-endat']; // 車・行先・承認者は「今すぐ使う」のとき（2026-11-19）
 var _carDraft=haloDraft({
   chip:'car-draft-chip',
   snap:()=>{
@@ -10276,7 +10395,7 @@ var _carDraft=haloDraft({
     _CAR_DRAFT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el&&v[id]!==undefined) el.value=v[id]; });
     document.getElementById('car-confirmation').checked=!!v.confirmation;
     carPhotos=JSON.parse(JSON.stringify(v.photos||[]));
-    renderCarPhotos(); checkCarConflict(); checkCarAlcohol(); updateCarSaveButtonState();
+    onCarDestChange(); renderCarPhotos(); checkCarConflict(); checkCarAlcohol(); _paintCarEndQuick(); updateCarSaveButtonState();
   },
 });
 function cancelCarModal(){ _carDraft.keep(); closeCarModal(); }
@@ -13528,7 +13647,11 @@ function switchCarView(v, btn) {
   document.getElementById('car-timeline').style.display  = v === 'day'   ? 'block' : 'none';
   renderCarView();
 }
-function renderCarView() { if (carView === 'month') renderCarMonth(); else renderCarTimeline(); }
+function renderCarView() {
+  if (carView === 'month') renderCarMonth(); else renderCarTimeline();
+  // 車は設備予約タブの「今すぐ使える＋空き状況」に出す（2026-11-19）。予約・出発・帰社のあとはここで描き直す
+  if (_currentTab === 'rooms') { renderFacMine(); if (_facFilter === 'car') { renderFacAvail(); renderFacGrid(); } }
+}
 function navCarDate(dir) {
   if (carView === 'month') carDate = new Date(carDate.getFullYear(), carDate.getMonth() + dir, 1);
   else carDate = addDays(carDate, dir);
@@ -13788,10 +13911,142 @@ function openCarEditModal(id, mode) {
   checkCarAlcohol();
   document.getElementById('car-schedule-row').style.display = 'none';
   document.getElementById('car-approver-row').style.display = 'none';
+  document.getElementById('car-end-quick').style.display = 'none';
   updateCarSaveButtonState();
   closeModal('car-detail-backdrop');
   openModal('car-modal-backdrop');
   _carDraft.start(id+':'+(carEditMode||'edit'));
+}
+
+// 今すぐ使う（2026-11-19）：予定（外出）・車の予約・出発（アルコールチェック）を1つの窓で一度に記録する
+// 車・行先・帰社予定・濃度・写真（一般の人は承認者も）を入れて「出発する」
+function _carNowLocal(ms) {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+// 車の選択肢。今から帰社予定までに予約がある車は選べないようにする
+function _fillCarNowSelect(selected) {
+  const s = new Date(document.getElementById('car-start').value).getTime();
+  const e = new Date(document.getElementById('car-end').value || document.getElementById('car-start').value).getTime() || s;
+  document.getElementById('car-select').innerHTML = `<option value="">${t('car.select')}</option>` + carMasters.map(c => {
+    const busy = _facCarSpans(c.name).some(x => x.s < Math.max(e, s + 60000) && x.e > s);
+    return `<option value="${esc(c.name)}"${c.name === selected ? ' selected' : ''}${busy ? ' disabled' : ''}>${esc(c.name)}${busy ? ' ' + t('evcar.busy') : ''}</option>`;
+  }).join('');
+}
+const _CAR_NOW_QUICK = [60, 120, 180, 'day'];
+function _carNowQuickEnd(q) {
+  const s = new Date(document.getElementById('car-start').value);
+  if (q !== 'day') return _carNowLocal(s.getTime() + q * 60000);
+  const d = new Date(s); d.setHours(18, 0, 0, 0);   // 今日中＝18:00（もう過ぎていれば 23:59）
+  if (d <= s) d.setHours(23, 59, 0, 0);
+  return _carNowLocal(d.getTime());
+}
+function setCarEndQuick(i) {
+  document.getElementById('car-end').value = _carNowQuickEnd(_CAR_NOW_QUICK[i]);
+  checkCarConflict(); _paintCarEndQuick();
+}
+function _paintCarEndQuick() {
+  const box = document.getElementById('car-end-quick');
+  if (!box || carEditMode !== 'now') return;
+  const cur = document.getElementById('car-end').value;
+  box.innerHTML = _CAR_NOW_QUICK.map((q, i) => `<button type="button" class="fac-when${_carNowQuickEnd(q) === cur ? ' on' : ''}" onclick="setCarEndQuick(${i})">${q === 'day' ? t('car.now.today') : t('car.now.h', {n: q / 60})}</button>`).join('');
+}
+function openCarNow(carName) {
+  if (!carAllowed()) return;
+  carEditingId = ''; carEditMode = 'now'; carPhotos = [];
+  document.getElementById('car-modal-title-text').textContent = t('car.now.btn');
+  document.getElementById('car-btn-save').textContent = t('car.depart.save');
+  document.getElementById('car-btn-delete').style.display = 'none';
+  ['car-select', 'car-dest'].forEach(k => { document.getElementById(k).disabled = false; });
+  document.getElementById('car-start').disabled = true;
+  ['car-confirm-row', 'car-endat-row', 'car-schedule-row', 'car-conflict-warn', 'car-alcohol-warn'].forEach(k => { document.getElementById(k).style.display = 'none'; });
+  stopCarCamera();
+  const now = Date.now();
+  document.getElementById('car-start').value = _carNowLocal(now);
+  document.getElementById('car-end').value = _carNowQuickEnd(60);
+  _fillCarNowSelect(carName || '');
+  const last = _carLastPick.dest;
+  populateDestSelect(last && carDestinations.some(x => x.name === last) ? last : '');
+  document.getElementById('car-confirmation').checked = false;
+  document.getElementById('car-alcohol').value = '';
+  document.getElementById('car-alcohol-badge').style.display = 'none';
+  document.getElementById('car-memo').value = '';
+  document.getElementById('car-endat').value = '';
+  // 一般の人は承認者を選ぶ（予定の登録と同じ決まり）。前回選んだ人を最初から入れる
+  const need = _needsApproverFor('外出');
+  document.getElementById('car-approver-row').style.display = need ? 'flex' : 'none';
+  if (need) {
+    renderApproverSelect('外出');
+    const ap = document.getElementById('car-approver');
+    ap.innerHTML = document.getElementById('ev-approver').innerHTML;
+    ap.value = '';
+    if (_carLastPick.approver && [...ap.options].some(o => o.value === String(_carLastPick.approver))) ap.value = String(_carLastPick.approver);
+  }
+  document.getElementById('car-end-quick').style.display = 'flex';
+  _paintCarEndQuick();
+  renderCarPhotos(); checkCarConflict(); checkCarAlcohol();
+  updateCarSaveButtonState();
+  closeModal('car-detail-backdrop');
+  openModal('car-modal-backdrop');
+  _carDraft.start('now');
+  // 前の下書き（写真・濃度など）を戻しても、出発は今。帰社予定が今より前になったら1時間後に直す
+  if (document.getElementById('car-end').value <= document.getElementById('car-start').value) setCarEndQuick(0);
+  if (carName && document.getElementById('car-select').value !== carName && !document.getElementById('car-select').querySelector(`option[value="${CSS.escape(carName)}"]`)?.disabled) {
+    document.getElementById('car-select').value = carName; checkCarConflict();
+  }
+}
+async function doCarNow() {
+  const g = id => document.getElementById(id);
+  const carName = g('car-select').value, dest = g('car-dest').value;
+  const s = g('car-start').value, e = g('car-end').value;
+  const alcohol = g('car-alcohol').value, memo = g('car-memo').value.trim();
+  if (!carName || !dest || !e) { showToast(t('evcar.required')); return; }
+  if (e <= s) { showToast(t('evcar.order')); return; }
+  const sMs = new Date(s).getTime(), eMs = new Date(e).getTime();
+  if (_facCarSpans(carName).some(x => x.s < eMs && x.e > sMs)) { showToast(t('evcar.conflict')); return; }
+  const need = _needsApproverFor('外出'), approver = need ? g('car-approver').value : '';
+  if (need && !approver) { showToast(t('ev.approver.required.msg')); return; }
+  if (alcohol === '' || !carPhotos.length) { showToast(t('car.depart.need')); return; }
+  const startAt = datetimeLocalToUtc(s), endScheduled = datetimeLocalToUtc(e);
+  const sd = s.slice(0, 10), ed = e.slice(0, 10);
+  // 日をまたいで使うときは出張（日付の範囲を持てる種類）にする
+  const ev = {
+    type: ed > sd ? '出張' : '外出', title: t('car.now.evtitle', {dest, car: carName}),
+    date: sd, startDate: sd, endDate: ed, start: s.slice(11, 16), end: e.slice(11, 16),
+    room: null, people: [currentUser.id], rentals: [], rentalStart: '', rentalEnd: '', rentalStartTime: '', rentalEndTime: '',
+    rentalPurpose: '', remoteReason: '', memo: '', userId: currentUser.id, selectedApprover: approver, repeat: '', repeatEnd: '',
+    car: {carName, destination: dest, startAt, endScheduled},
+  };
+  if (!GAS_URL) {
+    carEvents.push({id: 'c' + Date.now(), applicant: currentUser.name, applicantId: currentUser.id, carName, destination: dest, startAt, endScheduled,
+      endAt: '', alcohol, photos: carPhotos.slice(), memo, status: '使用中', scheduleId: ''});
+    _carDraft.done(); closeCarModal(); renderCarView(); showToast(t('car.departed')); return;
+  }
+  try {
+    const res = await api('saveEvent', {event: ev}, t('car.updating'));
+    if (res.carError) { showToast(t('evcar.save.fail', {msg: res.carError})); loadEvents({force: true}); return; }
+    _carRemember({dest, approver});
+    await loadCarData({force: true});
+    const car = carEvents.find(c => String(c.scheduleId) === String(res.id));
+    if (!car) throw new Error(t('car.now.notfound'));
+    try {
+      await api('departCarEvent', {eventId: car.id, alcohol, photos: carPhotos, memo}, t('car.updating'));
+    } catch (err) {
+      // 予定と予約はできている。出発の記録だけ、入れた濃度・写真のままもう一度押してもらう
+      const ph = carPhotos.slice();
+      _carDraft.done(); closeCarModal();
+      openCarEditModal(car.id, 'depart');
+      carPhotos = ph; renderCarPhotos();
+      g('car-alcohol').value = alcohol; g('car-memo').value = memo; checkCarAlcohol();
+      renderCarView(); loadEvents({force: true});
+      showToast(t('car.now.departfail', {msg: err.message}));
+      return;
+    }
+    _carDraft.done(); closeCarModal();
+    await loadCarData({force: true}); renderCarView(); loadEvents({force: true});
+    if (_currentTab === 'mypage') renderMyPage();
+    showToast(t('car.departed'));
+  } catch (err) { showToast(t('common.error.toast', {msg: err.message})); }
 }
 
 function closeCarModal() { stopCarCamera(); closeModal('car-modal-backdrop'); }
@@ -13799,9 +14054,8 @@ function closeCarModal() { stopCarCamera(); closeModal('car-modal-backdrop'); }
 function updateCarSaveButtonState() {
   const btn = document.getElementById('car-btn-save');
   if (!btn) return;
-  const schedRow = document.getElementById('car-schedule-row');
-  const isNew = schedRow && schedRow.style.display !== 'none';
-  const need = isNew && currentUser && currentUser.role === '一般';
+  // 承認者が要るのは「今すぐ使う」で一般の人のとき（予定の登録と同じ決まり）
+  const need = carEditMode === 'now' && _needsApproverFor('外出');
   const ok = !need || !!document.getElementById('car-approver')?.value;
   btn.disabled = !ok;
   btn.style.opacity = ok ? '1' : '0.4';
@@ -13838,6 +14092,17 @@ function onCarDestChange() {
 
 // ----- バリデーション -----
 function checkCarConflict() {
+  if (carEditMode === 'now') {
+    // 帰社予定を変えたら、その間に予約がある車を選べないようにし直す。選んでいた車が重なったら警告
+    const cur = document.getElementById('car-select').value;
+    _fillCarNowSelect(cur);
+    document.getElementById('car-select').value = cur;
+    const s = new Date(document.getElementById('car-start').value).getTime();
+    const e = new Date(document.getElementById('car-end').value).getTime();
+    const hit = !!cur && !!e && _facCarSpans(cur).some(x => x.s < e && x.e > s);
+    document.getElementById('car-conflict-warn').style.display = hit ? 'block' : 'none';
+    return;
+  }
   const car   = document.getElementById('car-select').value;
   const start = document.getElementById('car-start').value;
   const end   = document.getElementById('car-end').value;
@@ -13868,6 +14133,7 @@ function checkCarAlcohol() {
 
 // ----- 保存・削除 -----
 async function doSaveCarEvent() {
+  if (carEditMode === 'now') return doCarNow();
   if (!carEditingId) return;
   const ev0 = carEvents.find(e => e.id === carEditingId);
   if (!ev0) return;
