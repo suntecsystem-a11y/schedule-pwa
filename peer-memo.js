@@ -201,7 +201,7 @@
       <div style="display:flex;flex-direction:column;gap:10px">
         <label style="font-size:0.8em;font-weight:700">対象者
           <select id="pm-target" style="${INP};margin-top:4px"><option value="">選択してください</option>${opts}</select></label>
-        <label style="font-size:0.8em;font-weight:700">記入日
+        <label style="font-size:0.8em;font-weight:700">発生日
           <input id="pm-date" type="date" value="${E(today)}" max="${E(today)}" style="${INP};margin-top:4px"></label>
         <label style="font-size:0.8em;font-weight:700">評価項目（任意）
           <input id="pm-item" type="text" maxlength="200" placeholder="例: 報告、連絡（わからなければ空欄でOK）" style="${INP};margin-top:4px"></label>
@@ -224,7 +224,7 @@
     const item = document.getElementById('pm-item').value.trim();
     const body = document.getElementById('pm-body').value.trim();
     if (!target) { showToast('対象者を選択してください'); return; }
-    if (!date) { showToast('記入日を入力してください'); return; }
+    if (!date) { showToast('発生日を入力してください'); return; }
     const sentEl = document.querySelector('input[name="pm-sent"]:checked');
     if (!sentEl) { showToast('評価（肯定・否定・どちらでもない・不明）を選択してください'); return; }
     if (!body) { showToast('評価内容（メモ）を入力してください'); return; }
@@ -404,7 +404,7 @@
   }
   function csvEsc(v) { const s = String(v == null ? '' : v); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function downloadCsv(filename, rows) {
-    const lines = [['対象者', '記入日', '入力者', '評価項目', '評価', '内容'].join(',')]
+    const lines = [['対象者', '発生日', '入力者', '評価項目', '評価', '内容'].join(',')]
       .concat(rows.map((r) => [r.target, r.date, r.creatorName, r.item, r.sentiment, r.content].map(csvEsc).join(',')));
     const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });   // ExcelでUTF-8として開けるようBOM付き
     const a = document.createElement('a');
@@ -440,7 +440,7 @@
       rows.sort((a, b) => a.target.localeCompare(b.target, 'ja'));
       window._pmVpRows = rows;   // 画面を閉じるまでのメモリ上だけ。保存しない
       state.vpLabel = `${per.label}_${creatorLabel}`;
-      const th = ['対象者', '記入日', '入力者', '評価項目', '評価', '内容'].map((h) => `<th style="position:sticky;top:0;background:var(--primary-light);padding:5px 6px;text-align:left;white-space:nowrap">${h}</th>`).join('');
+      const th = ['対象者', '発生日', '入力者', '評価項目', '評価', '内容'].map((h) => `<th style="position:sticky;top:0;background:var(--primary-light);padding:5px 6px;text-align:left;white-space:nowrap">${h}</th>`).join('');
       const td = 'padding:4px 6px;border-top:1px solid var(--border);';
       box.innerHTML = `
         <div style="padding:6px 10px;background:var(--primary-light);border-radius:8px;color:var(--primary-dark);font-weight:700;margin-bottom:8px">${E(per.label)} ／ ${E(creatorLabel)}: ${rows.length}件を復号しました</div>
