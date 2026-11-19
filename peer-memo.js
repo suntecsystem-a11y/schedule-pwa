@@ -150,7 +150,7 @@
   const BTN = 'padding:10px;border-radius:10px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.95em;cursor:pointer';
   const INP = 'width:100%;box-sizing:border-box;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;font-family:inherit';
 
-  let state = { init: null, tab: 'input', month: '', records: null, pKind: 'month', pFy: 0, pQ: 1, vp: null, vpLabel: '' };
+  let state = { init: null, tab: 'input', month: '', records: null, pKind: 'month', pFy: 0, pQ: 1, vp: null, vpLabel: '', sKind: 'range', sFrom: '', sTo: '', sFy: 0, sQ: 1 };
 
   function monthRange(ym) {
     const [y, m] = ym.split('-').map(Number);
@@ -186,7 +186,7 @@
     else if (state.tab === 'cov') inner = covHtml();
     else inner = vpHtml();
     openDrModal(head + inner);
-    document.getElementById('dr-modal-body').style.maxWidth = (state.tab === 'cov' || state.tab === 'vp') ? 'min(1000px, 96vw)' : '560px';
+    document.getElementById('dr-modal-body').style.maxWidth = (state.tab === 'cov' || state.tab === 'vp' || state.tab === 'status') ? 'min(1000px, 96vw)' : '560px';
     if (state.tab === 'status' && state.records === null) loadStatus();
   }
 
@@ -249,38 +249,94 @@
     }
   }
 
+  // ---------- 自分の入力状況（期間指定／四半期。期間内の自分の記入を、対象者ごとに全件復号して並べる） ----------
+  const SPACE_RE = /[\s　]+/g;
+  const normName = (s) => String(s == null ? '' : s).replace(SPACE_RE, '');
+  function statusPeriod() {
+    if (state.sKind === 'quarter') return fiscalRange(Number(state.sFy), Number(state.sQ));
+    const f = state.sFrom, t = state.sTo;
+    if (!/^\d{4}-\d{2}$/.test(f || '') || !/^\d{4}-\d{2}$/.test(t || '') || f > t) return null;
+    const lab = (ym) => { const [y, m] = ym.split('-'); return `${y}年${Number(m)}月`; };
+    return { from: `${f}-01`, to: monthRange(t).to, label: `${lab(f)}〜${lab(t)}` };
+  }
   function statusHtml() {
+    initFiscal();
+    if (!state.sFrom) { state.sFrom = `${state.pFy}-07`; state.sTo = state.month; }   // 会計年度は7月開始（既定は今年度の7月〜今月）
+    if (!state.sFy) { state.sFy = state.pFy; state.sQ = state.pQ; }
+    const fy0 = Number(state.sFy);
+    const years = [fy0 - 1, fy0, fy0 + 1].map((y) => `<option value="${y}"${y === fy0 ? ' selected' : ''}>${y}年度</option>`).join('');
+    const qs = [1, 2, 3, 4].map((q) => `<option value="${q}"${q === Number(state.sQ) ? ' selected' : ''}>Q${q}（${fiscalRange(fy0, q).label.replace(/^.*（|）$/g, '')}）</option>`).join('');
     return `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <input id="pm-month" type="month" value="${E(state.month)}" onchange="pmMonth(this.value)" style="${INP};width:auto">
-        <span style="font-size:0.75em;color:var(--text2)">自分が入力した分だけ表示されます</span>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <select onchange="pmSKind(this.value)" style="${INP};width:auto">
+          <option value="range"${state.sKind === 'range' ? ' selected' : ''}>期間を指定</option>
+          <option value="quarter"${state.sKind === 'quarter' ? ' selected' : ''}>四半期（7月開始）</option></select>
+        ${state.sKind === 'quarter'
+          ? `<select onchange="pmSVal('fy',this.value)" style="${INP};width:auto">${years}</select>
+             <select onchange="pmSVal('q',this.value)" style="${INP};width:auto">${qs}</select>`
+          : `<input type="month" value="${E(state.sFrom)}" onchange="pmSVal('from',this.value)" style="${INP};width:auto"> 〜
+             <input type="month" value="${E(state.sTo)}" onchange="pmSVal('to',this.value)" style="${INP};width:auto">`}
+        <button onclick="pmStatusRun()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--primary);color:white;font-weight:700;font-size:0.85em;cursor:pointer">表示</button>
       </div>
+      <div style="font-size:0.75em;color:var(--text2);margin-bottom:6px">自分が入力した分だけ表示されます。内容は、入力したこのブラウザでだけ読めます。</div>
       <div id="pm-status-body" style="font-size:0.85em;color:var(--text2)">読み込み中…</div>`;
   }
 
   async function loadStatus() {
     const box = () => document.getElementById('pm-status-body');
+    const per = statusPeriod();
+    if (!per) { if (box()) box().textContent = '開始月と終了月を正しく選んでください（開始月が終了月より後になっています）。'; return; }
+    if (box()) box().textContent = '読み込み中…';
+    let recs;
     try {
-      const { from, to } = monthRange(state.month);
-      const res = await pmApi('getMyPeerMemos', { from, to }, '読み込み中…');
-      state.records = res.records || [];
+      const res = await pmApi('getMyPeerMemos', { from: per.from, to: per.to }, '読み込み中…');
+      recs = res.records || [];
     } catch (e) { if (box()) box().textContent = e.message || '読み込みに失敗しました'; return; }
+    let key = null;
+    try { key = await getOrCreateOwnerKey(false); } catch (e) { key = null; }
+    const items = [];
+    for (const r of recs) {
+      let ok = false, body = '', sent = '';
+      if (key && r.owner) {
+        try { const m = unpackMemo(await decryptForOwner(key, r.owner)); body = m.body; sent = m.sentiment || '評価 未設定'; ok = true; } catch (e) { ok = false; }
+      }
+      items.push({ target: r.target, date: r.date, item: r.item, ok, body, sent });
+    }
+    state.records = recs;
     if (!box()) return;
-    const recs = state.records;
-    if (!recs.length) { box().textContent = 'この月の入力はありません。'; return; }
+    const targets = (state.init && state.init.targets) || [];
+    const myName = (typeof currentUser !== 'undefined' && currentUser && currentUser.name) ? normName(currentUser.name) : '';
     const by = {};
-    recs.forEach((r) => { (by[r.target] = by[r.target] || []).push(r); });
-    box().innerHTML = `<div style="margin-bottom:6px;color:var(--text)">合計 <b>${recs.length}</b> 件 / ${Object.keys(by).length} 名</div>` +
-      Object.keys(by).map((name) => `
-        <div style="border:1.5px solid var(--border);border-radius:10px;padding:8px;margin-bottom:6px;background:white">
-          <div style="font-weight:700;color:var(--text)">${E(name)} <span style="font-weight:600;color:var(--text2);font-size:0.85em">${by[name].length}件</span></div>
-          ${by[name].map((r) => `
-            <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
-              <div style="font-size:0.8em;color:var(--text2)">${E(r.date)}${r.item ? ' ／ ' + E(r.item) : ''}
-                <button onclick="pmDecrypt('${E(r.id)}')" style="margin-left:6px;padding:2px 8px;border-radius:6px;border:1.5px solid var(--primary);background:white;color:var(--primary);font-weight:700;font-size:0.9em;cursor:pointer">復号して表示</button></div>
-              <div id="pm-dec-${E(r.id)}" style="white-space:pre-wrap;word-break:break-word;color:var(--text);margin-top:4px"></div>
-            </div>`).join('')}
-        </div>`).join('');
+    items.forEach((it) => { (by[it.target] = by[it.target] || []).push(it); });
+    const order = targets.map((t) => t.name);
+    Object.keys(by).forEach((n) => { if (!order.includes(n)) order.push(n); });
+    const written = order.filter((n) => by[n]);
+    const coveredSet = new Set(written.map(normName));
+    const uncovered = targets.filter((t) => !coveredSet.has(normName(t.name)) && normName(t.name) !== myName);
+    const byOrg = {};
+    uncovered.forEach((t) => { const k = t.org || '（組織未設定）'; (byOrg[k] = byOrg[k] || []).push(t.name); });
+    const unreadable = items.filter((it) => !it.ok).length;
+    box().innerHTML = `
+      <div style="padding:6px 10px;background:var(--primary-light);border-radius:8px;color:var(--primary-dark);font-weight:700;margin-bottom:8px">
+        対象期間: ${E(per.label)} ／ 合計 ${recs.length}件 ／ 記入した対象者 ${written.length}名 ／ 未記入の対象者 ${uncovered.length}名</div>
+      ${unreadable ? `<div style="color:#e65100;margin-bottom:6px">${unreadable}件は、このブラウザでは内容を読めません（別の端末・ブラウザで入力した分です）。</div>` : ''}
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px">記入済み（内容）</div>
+      ${written.length ? written.map((name) => `
+        <div style="display:flex;flex-wrap:wrap;gap:8px;border:1.5px solid var(--border);border-radius:10px;padding:8px;margin-bottom:6px;background:white">
+          <div style="min-width:110px;font-weight:700;color:var(--text)">${E(name)}<div style="font-weight:600;color:var(--text2);font-size:0.85em">${by[name].length}件</div></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:200px">
+            ${by[name].slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).map((it) => `
+              <div style="flex:1 1 240px;max-width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg)">
+                <div style="font-size:0.78em;color:var(--text2)">${E(it.date)}${it.item ? ' ／ ' + E(it.item) : ''}</div>
+                <div style="white-space:pre-wrap;word-break:break-word;color:var(--text);margin-top:2px">${it.ok ? `<b>【${E(it.sent)}】</b> ${E(it.body)}` : '<span style="color:var(--text2)">（このブラウザでは読めません）</span>'}</div>
+              </div>`).join('')}
+          </div>
+        </div>`).join('') : '<div>この期間の記入はありません。</div>'}
+      <div style="font-weight:700;color:var(--text);margin:10px 0 4px">未記入の対象者（${uncovered.length}名）</div>
+      ${uncovered.length ? Object.keys(byOrg).map((org) => `
+        <div style="margin-bottom:6px"><span style="font-size:0.8em;color:var(--text2)">${E(org)}</span>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">${byOrg[org].map((n) => `<span style="padding:3px 8px;border-radius:12px;background:#fff8e1;color:#e65100;font-size:0.85em">${E(n)}</span>`).join('')}</div></div>`).join('')
+        : '<div>全員分の記入があります。</div>'}`;
   }
 
   async function decrypt(id) {
@@ -465,6 +521,14 @@
   window.openPeerMemo = openPeerMemo;
   window.pmTab = (id) => { state.tab = id; render(); };
   window.pmMonth = (v) => { if (!/^\d{4}-\d{2}$/.test(v)) return; state.month = v; state.records = null; const b = document.getElementById('pm-status-body'); if (b) b.textContent = '読み込み中…'; loadStatus(); };
+  window.pmSKind = (v) => { state.sKind = v; state.records = null; render(); };
+  window.pmSVal = (which, v) => {
+    if (which === 'from') { if (/^\d{4}-\d{2}$/.test(v)) state.sFrom = v; }
+    else if (which === 'to') { if (/^\d{4}-\d{2}$/.test(v)) state.sTo = v; }
+    else if (which === 'fy') { state.sFy = Number(v); state.records = null; render(); }
+    else if (which === 'q') { state.sQ = Number(v); state.records = null; render(); }
+  };
+  window.pmStatusRun = () => { state.records = null; loadStatus(); };
   window.pmSave = save;
   window.pmDecrypt = decrypt;
 })();
