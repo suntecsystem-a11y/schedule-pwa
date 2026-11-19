@@ -250,7 +250,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .vote-btn{border:0;background:none;color:var(--text2);height:42px;padding:0 4px}
 .vote-btn:hover{color:var(--primary)}
 .vdate{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:-4px 0 8px}
-.vdate input{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.vdate input,.vdate select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
 #voteSet .box{overflow-y:auto}
 #voteSet textarea.field{resize:vertical;font:inherit}
 .pin-mark{color:var(--primary-dark);font-weight:600}
@@ -332,7 +332,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div><label class="opt"><input type="radio" name="vmode" value="poll" checked> 投票</label><label class="opt"><input type="radio" name="vmode" value="sched"> 日程調整（○△×）</label></div>
     <input id="voteQ" class="field" maxlength="300" placeholder="聞きたいこと（例：忘年会の場所）">
     <textarea id="voteOpts" class="field" rows="5" placeholder="選ぶもの（1行に1つ。2つ以上）"></textarea>
-    <div id="voteDateRow" class="vdate hidden"><input type="date" id="voteDate"><input type="time" id="voteTime" step="900"><button type="button" class="btn" id="voteDateAdd">候補に足す</button></div>
+    <div id="voteDateRow" class="vdate hidden"><input type="date" id="voteDate"><select id="voteTime"></select><button type="button" class="btn" id="voteDateAdd">候補に足す</button></div>
     <label class="opt" id="voteMultiRow"><input type="checkbox" id="voteMulti"> いくつでも選べる</label>
     <div class="err" id="voteErr"></div>
     <div class="btns"><button type="button" class="btn" id="voteNo">やめる</button><button type="button" class="btn primary" id="voteYes">送る</button></div>
@@ -450,6 +450,7 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    '時刻なし': "Không có giờ",
     // B-1（投票・ピン留め・保存。2026-11-19）
     '保存したもの': "Đã lưu",
     'ピン留め': "Ghim",
@@ -568,6 +569,7 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    '時刻なし': "समय बिना",
     // B-1（投票・ピン留め・保存。2026-11-19）
     '保存したもの': "सुरक्षित गरिएका",
     'ピン留め': "पिन",
@@ -1286,6 +1288,11 @@ function openVoteSet() {
   $('voteSet').classList.remove('hidden');
   $('voteQ').focus();
 }
+// 時刻は自分の一覧にする（ブラウザの時刻の入力は、今の時刻の分（例：12分）が混ざって分かりにくい。11/19 ユーザー指摘）
+$('voteTime').innerHTML = '<option value="">時刻なし</option>' + Array.from({ length: (22 - 7) * 4 }, (_, k) => {
+  const t = String(7 + Math.floor(k / 4)).padStart(2, '0') + ':' + String((k % 4) * 15).padStart(2, '0');
+  return `<option value="${t}">${t}</option>`;
+}).join('');
 document.querySelectorAll('input[name="vmode"]').forEach((x) => x.addEventListener('change', syncVoteForm));
 $('voteNo').addEventListener('click', () => $('voteSet').classList.add('hidden'));
 $('voteDateAdd').addEventListener('click', () => {
