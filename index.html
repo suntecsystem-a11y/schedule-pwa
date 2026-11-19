@@ -1080,7 +1080,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <link rel="stylesheet" id="hn-tabler" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link rel="stylesheet" href="halo-design.css?v=16">
+<link rel="stylesheet" href="halo-design.css?v=17">
 </head>
 <body>
 <script>/* 新デザインを当てる。この端末だけ前の見た目に戻すときは localStorage の halo_old_design を '1' にする */try{if(localStorage.getItem('halo_old_design')!=='1')document.body.classList.add('hn')}catch(e){document.body.classList.add('hn')}try{var _fs={l:'17.5px',xl:'19px'}[localStorage.getItem('sch_font_size')];if(_fs)document.body.style.fontSize=_fs}catch(e){}</script>
@@ -1743,11 +1743,27 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
       <div class="ev-row" id="rental-dates-row" style="display:none">
         <div class="ev-row-icon">📆</div>
         <div class="ev-row-content">
-          <div style="font-size:0.72em;color:var(--text2);font-weight:600;margin-bottom:3px" id="rental-dates-label">貸出期間</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px">
+            <span style="font-size:0.72em;color:var(--text2);font-weight:600" id="rental-dates-label">貸出期間</span>
+            <!-- 終日／時間指定（2026-11-19）。オン＝終日、オフ＝時刻も選ぶ -->
+            <span style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:0.78em;color:var(--text2)" id="ev-rental-allday-label">終日</span>
+              <label style="position:relative;width:44px;height:24px;cursor:pointer;flex-shrink:0">
+                <input type="checkbox" id="ev-rental-allday" onchange="onRentalAlldayChange()" checked style="opacity:0;width:0;height:0">
+                <span style="position:absolute;inset:0;background:var(--primary);border-radius:12px;transition:.2s"></span>
+                <span id="rental-allday-knob" style="position:absolute;top:2px;left:22px;width:20px;height:20px;background:white;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></span>
+              </label>
+            </span>
+          </div>
           <div class="ev-date-block">
             <input type="date" id="ev-rental-start" style="flex:1" onchange="_rentalDatesTouched=true;renderRentalPicker()">
             <span class="ev-date-sep">〜</span>
             <input type="date" id="ev-rental-end" style="flex:1" onchange="_rentalDatesTouched=true;renderRentalPicker()">
+          </div>
+          <div class="ev-time-block" id="rental-time-block" style="display:none">
+            <input type="time" id="ev-rental-stime" value="09:00" oninput="renderRentalPicker()" onclick="this.showPicker&&this.showPicker()">
+            <span class="ev-date-sep">〜</span>
+            <input type="time" id="ev-rental-etime" value="17:00" oninput="renderRentalPicker()" onclick="this.showPicker&&this.showPicker()">
           </div>
         </div>
       </div>
@@ -1828,7 +1844,11 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <div style="font-size:1em;font-weight:700;margin-bottom:12px" id="extend-title">📱 貸出を延長</div>
     <div style="font-size:0.82em;color:var(--text2);margin-bottom:6px"><span id="extend-curlabel">現在の返却予定日：</span><strong id="extend-current">—</strong></div>
     <label style="font-size:0.82em;color:var(--text2);display:block;margin-bottom:4px" id="extend-newlabel">新しい返却予定日</label>
-    <input type="date" id="extend-date" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;box-sizing:border-box;margin-bottom:14px">
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <input type="date" id="extend-date" style="flex:1;min-width:0;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;box-sizing:border-box">
+      <!-- 時間で借りているときだけ出す（2026-11-19） -->
+      <input type="time" id="extend-time" style="display:none;width:7.5em;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9em;box-sizing:border-box">
+    </div>
     <div style="display:flex;gap:8px">
       <button class="btn-outline" style="flex:1" onclick="closeModal('extend-modal-backdrop')" id="extend-cancel">キャンセル</button>
       <button class="btn-primary" style="flex:1" onclick="doExtendRental()" id="extend-submit">延長する</button>
@@ -2257,7 +2277,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席・当番',
+'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.dev.part':'{t} は貸出あり','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','nav.rooms':'会議室','nav.team':'在席・当番',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -2367,7 +2387,7 @@ ja:{
 'ev.repeat.weekly':'毎週','ev.repeat.weekly_nohol':'毎週（土日祝除く）','ev.repeat.monthly':'毎月（同日）','ev.repeat.end':'終了日',
 'ev.room':'会議室','ev.room.optional':'会議室（任意）','ev.conflict':'⚠️ この時間帯はすでに予約があります',
 'ev.people':'参加者 / 対象者','ev.people.search':'名前で検索...',
-'ev.people.schedule':'参加者の当日予定','ev.rental':'端末貸出（任意）','ev.rental.dates':'貸出期間','ev.rental.start':'貸出開始日','ev.rental.end':'返却予定日',
+'ev.people.schedule':'参加者の当日予定','ev.rental':'端末貸出（任意）','ev.rental.dates':'貸出期間','ev.rental.time.required':'貸出の時刻を入れてください','ev.rental.start':'貸出開始日','ev.rental.end':'返却予定日',
 'ev.approver':'承認者を選択','ev.approver.required':'（必須）','ev.approver.select':'選択してください',
 'ev.memo':'メモを追加（任意）','ev.delete':'🗑 この予定を削除する',
 'ev.only.owner':'⚠️ 自分が登録した予定のみ編集できます',
@@ -2675,7 +2695,7 @@ vi:{
 'dr.err.empty':'Chưa có nội dung',
 'dr.sending':'Đang gửi...',
 'dr.saved':'Đã ghi Kaizen Step',
-'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh・Trực nhật',
+'nav.home':'Trang chủ','nav.tasks':'Công việc','nav.calendar':'Lịch','fac.avail':'Dùng được ngay','fac.avail.day':'Dùng được ngày này','fac.grid':'Tình trạng trống','fac.when.now':'Ngay','fac.when.1h':'Sau 1 giờ','fac.when.tmr':'Ngày mai','fac.free.until':'Trống đến {t}','fac.free.all':'Trống cả ngày','fac.free.rest':'Trống từ giờ','fac.book':'Đặt','fac.rent':'Mượn','fac.cap':'{n} người','fac.dev.free':'Ngày này trống','fac.grid.hint':'Chạm vào chỗ trống để đặt','fac.none':'Không có chỗ trống','fac.grp.free':'{f}/{n} máy trống','fac.grp.cnt':'{n} máy','fac.grp.none':'Hết chỗ','fac.dev.part':'Đã có người mượn {t}','fac.grp.total':'Tổng {n} máy','cal.view.3day':'3 ngày','cal.day.of':'Lịch ngày {date}','cal.day.add':'Thêm vào ngày này','cal.day.none':'Không có lịch ngày này','cal.day.more':'và {n} người khác','fac.car':'Xe','fac.car.prep':'Đặt xe đang được chuẩn bị. Khi sẵn sàng, bạn có thể đặt từ đây.','nav.facility':'Đặt thiết bị','nav.facility.short':'Đặt chỗ','fac.title':'Đặt phòng và thiết bị','fac.all':'Tất cả','fac.room':'Phòng họp','fac.device':'Thiết bị','fac.mine':'Đặt chỗ và đồ đang mượn của tôi','fac.mine.none':'Không có đặt chỗ sắp tới hay đồ đang mượn','fac.left':'Còn {n} ngày','fac.today':'Trả hôm nay','fac.over':'Quá {n} ngày','nav.rooms':'Phòng họp','nav.team':'Điểm danh・Trực nhật',
 'nav.cars':'Đặt xe','nav.devices':'Thiết bị','nav.inquiry':'Hỏi đáp','nav.apply':'Đơn từ',
 'nav.mypage':'Trang cá nhân','nav.settings':'Cài đặt','nav.admin':'Quản lý','nav.logout':'Đăng xuất',
 'nav.preparing':'(Chuẩn bị)','nav.team.short':'Điểm danh','nav.devices.short':'TB','nav.cars.short':'Xe',
@@ -2770,7 +2790,7 @@ vi:{
 'ev.repeat.weekly':'Hàng tuần','ev.repeat.weekly_nohol':'Hàng tuần (trừ T7/CN/lễ)','ev.repeat.monthly':'Hàng tháng','ev.repeat.end':'Ngày kết thúc',
 'ev.room':'Phòng họp','ev.room.optional':'Phòng họp (tùy chọn)','ev.conflict':'⚠️ Thời gian này đã có đặt',
 'ev.people':'Người tham gia','ev.people.search':'Tìm theo tên...',
-'ev.people.schedule':'Lịch hôm nay của người tham gia','ev.rental':'Mượn thiết bị (tùy chọn)','ev.rental.dates':'Thời gian mượn','ev.rental.start':'Ngày mượn','ev.rental.end':'Ngày trả dự kiến',
+'ev.people.schedule':'Lịch hôm nay của người tham gia','ev.rental':'Mượn thiết bị (tùy chọn)','ev.rental.dates':'Thời gian mượn','ev.rental.time.required':'Vui lòng nhập giờ mượn','ev.rental.start':'Ngày mượn','ev.rental.end':'Ngày trả dự kiến',
 'ev.approver':'Chọn người phê duyệt','ev.approver.required':'(Bắt buộc)','ev.approver.select':'Vui lòng chọn',
 'ev.memo':'Thêm ghi chú (tùy chọn)','ev.delete':'🗑 Xóa lịch này',
 'ev.only.owner':'⚠️ Chỉ người tạo mới được sửa',
@@ -3068,7 +3088,7 @@ ne:{
 'dr.err.empty':'केही लेखिएको छैन',
 'dr.sending':'पठाउँदै...',
 'dr.saved':'Kaizen Step रेकर्ड गरियो',
-'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति・पालो',
+'nav.home':'गृहपृष्ठ','nav.tasks':'कार्य','nav.calendar':'पात्रो','fac.avail':'अहिले प्रयोग गर्न मिल्ने','fac.avail.day':'यो दिन मिल्ने','fac.grid':'खाली स्थिति','fac.when.now':'अहिले','fac.when.1h':'१ घण्टापछि','fac.when.tmr':'भोलि','fac.free.until':'{t} सम्म खाली','fac.free.all':'दिनभर खाली','fac.free.rest':'अबदेखि खाली','fac.book':'बुक','fac.rent':'लिनुहोस्','fac.cap':'{n} जना','fac.dev.free':'यो दिन खाली','fac.grid.hint':'खाली ठाउँ थिचेर बुक गर्नुहोस्','fac.none':'खाली सुविधा छैन','fac.grp.free':'{n} मध्ये {f} खाली','fac.grp.cnt':'{n} वटा','fac.grp.none':'खाली छैन','fac.dev.part':'{t} भाडामा छ','fac.grp.total':'जम्मा {n} वटा','cal.view.3day':'३ दिन','cal.day.of':'{date} को तालिका','cal.day.add':'यो दिनमा थप्नुहोस्','cal.day.none':'यो दिनको तालिका छैन','cal.day.more':'र अरू {n} जना','fac.car':'गाडी','fac.car.prep':'गाडी बुकिङ तयारीमा छ। तयार भएपछि यहाँबाट बुक गर्न सकिन्छ।','nav.facility':'सुविधा बुकिङ','nav.facility.short':'बुकिङ','fac.title':'सुविधा बुकिङ','fac.all':'सबै','fac.room':'बैठक कोठा','fac.device':'उपकरण','fac.mine':'मेरो बुकिङ र लिएका सामान','fac.mine.none':'आगामी बुकिङ वा लिएका सामान छैनन्','fac.left':'फिर्ता गर्न {n} दिन','fac.today':'आज फिर्ता','fac.over':'{n} दिन नाघ्यो','nav.rooms':'बैठक कोठा','nav.team':'उपस्थिति・पालो',
 'nav.cars':'गाडी','nav.devices':'उपकरण','nav.inquiry':'सोधपुछ','nav.apply':'निवेदन',
 'nav.mypage':'मेरो पृष्ठ','nav.settings':'सेटिङ','nav.admin':'प्रशासन','nav.logout':'लग आउट',
 'nav.preparing':'(तयारी भइरहेको)','nav.team.short':'उपस्थिति','nav.devices.short':'उपकरण','nav.cars.short':'गाडी',
@@ -3163,7 +3183,7 @@ ne:{
 'ev.repeat.weekly':'साप्ताहिक','ev.repeat.weekly_nohol':'साप्ताहिक (शनि/आइत/बिदा बाहेक)','ev.repeat.monthly':'मासिक','ev.repeat.end':'अन्त्य मिति',
 'ev.room':'बैठक कोठा','ev.room.optional':'बैठक कोठा (ऐच्छिक)','ev.conflict':'⚠️ यो समयमा पहिले नै बुक छ',
 'ev.people':'सहभागी','ev.people.search':'नामले खोज्नुहोस्...',
-'ev.people.schedule':'सहभागीको आजको तालिका','ev.rental':'उपकरण भाडा (ऐच्छिक)','ev.rental.dates':'भाडा अवधि','ev.rental.start':'भाडा सुरु मिति','ev.rental.end':'फिर्ता मिति',
+'ev.people.schedule':'सहभागीको आजको तालिका','ev.rental':'उपकरण भाडा (ऐच्छिक)','ev.rental.dates':'भाडा अवधि','ev.rental.time.required':'भाडाको समय राख्नुहोस्','ev.rental.start':'भाडा सुरु मिति','ev.rental.end':'फिर्ता मिति',
 'ev.approver':'स्वीकृतकर्ता छान्नुहोस्','ev.approver.required':'(आवश्यक)','ev.approver.select':'छान्नुहोस्',
 'ev.memo':'टिप्पणी थप्नुहोस् (ऐच्छिक)','ev.delete':'🗑 यो तालिका मेट्नुहोस्',
 'ev.only.owner':'⚠️ सिर्जनाकर्ताले मात्र सम्पादन गर्न सक्छन्',
@@ -3539,6 +3559,7 @@ function applyLanguage(lang){
   const _erll=document.getElementById('ev-rental-label');if(_erll)_erll.textContent=t('ev.rental');
   const _ers=document.getElementById('rental-search');if(_ers)_ers.placeholder=t('ev.rental.search');
   const _erdl=document.getElementById('rental-dates-label');if(_erdl)_erdl.textContent=t('ev.rental.dates');
+  const _eral=document.getElementById('ev-rental-allday-label');if(_eral)_eral.textContent=t('ev.allday');
   const _eapl=document.getElementById('ev-approver-label');if(_eapl)_eapl.innerHTML=t('ev.approver')+' <span style="color:#e53935;font-size:0.8em">'+t('ev.approver.required')+'</span>';
   const _emo=document.getElementById('ev-memo');if(_emo)_emo.placeholder=t('ev.memo');
   const _ebd=document.getElementById('btn-delete');if(_ebd)_ebd.textContent=t('ev.delete');
@@ -7197,7 +7218,7 @@ function renderFacMine() {
     rows.push(`<div class="fac-row fac-dev${over ? ' over' : ''}">
       <span class="fac-ic">📱</span>
       <span class="fac-main"><span class="fac-l1">${esc(names)} <span class="fac-st">${esc(e.rentalStatus)}</span></span>
-        <span class="fac-l2">${md(e.rentalStart)} 〜 ${md(e.rentalEnd)}${left ? `<span class="fac-left">${esc(left)}</span>` : ''}</span></span>
+        <span class="fac-l2">${esc(rentalPeriodText(e, md))}${left ? `<span class="fac-left">${esc(left)}</span>` : ''}</span></span>
       <span class="fac-btns">
         ${canExtend ? `<button type="button" class="fac-btn" onclick="openExtendModal('${e.id}','${e.rentalEnd || ''}')">${t('my.rental.extend')}</button>` : ''}
         ${lent ? `<button type="button" class="fac-btn primary" onclick="returnDevice('${e.id}')">${t('my.rental.return')}</button>` : ''}
@@ -7228,12 +7249,29 @@ function _facRoomEvs(roomId, ds) {
   return events.filter(e => usesRoom(e) && e.room === roomId && e.approvalStatus !== '否認' && eventIncludesDate(e, ds) && e.start)
     .sort((a, b) => a.start.localeCompare(b.start));
 }
-// その日に端末が空いているか（申請中・予約中・貸出中の期間と重なれば使えない）
-function _facDevFree(mid, ds) {
-  const busy = (rentalDetails[mid] || []).some(d => d.rentalStart && d.rentalEnd && d.status !== '返却済' && ds >= d.rentalStart && ds <= d.rentalEnd);
-  if (busy) return false;
-  if (ds === fmtDate(new Date()) && rentedDeviceIds.includes(mid)) return false;
-  return true;
+// その日の端末の空き（申請中・予約中・貸出中の期間と比べる。2026-11-19 から時間単位の貸出も見る）
+//   'free'＝その日は1件も無い、'part'＝時間で借りられていて空いている時間もある、'busy'＝1日まるごと埋まっている
+function _facDevState(mid, ds) {
+  const day = [ds + ' 00:00', ds + ' 24:00'];
+  const hits = _devBusySpans(mid).filter(s => rentalOverlap(s, day))
+    .map(s => [s[0] < day[0] ? day[0] : s[0], s[1] > day[1] ? day[1] : s[1]]).sort((a, b) => a[0].localeCompare(b[0]));
+  if (!hits.length) return 'free';
+  let reach = day[0];
+  for (const [s, e] of hits) { if (s > reach) return 'part'; if (e > reach) reach = e; }
+  return reach >= day[1] ? 'busy' : 'part';
+}
+// その日に借りられる時間があるか
+function _facDevFree(mid, ds) { return _facDevState(mid, ds) !== 'busy'; }
+// その日時（分）に空いているか（「今すぐ使える」の今日の分）
+function _facDevFreeAt(mid, ds, min) {
+  const at = ds + ' ' + _facHM(Math.min(min, 24 * 60 - 1));
+  return !_devBusySpans(mid).some(s => s[0] <= at && at < s[1]);
+}
+// その日の時間の貸出の一覧（マスの上にのせる説明）
+function _facDevDayText(mid, ds) {
+  const day = [ds + ' 00:00', ds + ' 24:00'];
+  return _devBusySpans(mid).filter(s => rentalOverlap(s, day))
+    .map(s => (s[0] < day[0] ? '' : s[0].slice(11)) + '〜' + (s[1] > day[1] ? '' : s[1].slice(11))).join('、');
 }
 // 端末は種別ごとにまとめて、押した種別だけ開く（台数が多いため。2026-11-13）
 const _facDevOpen = new Set();   // 'a:種別'＝今すぐ使える、'g:種別'＝空き状況
@@ -7251,6 +7289,23 @@ function openFacRent(mid, ds) {
   if (ty) { ty.value = 'その他'; onTypeChange(); }
   const rs = document.getElementById('ev-rental-start'), re = document.getElementById('ev-rental-end');
   if (rs) rs.value = ds; if (re) re.value = ds;
+  // その日がすでに時間で借りられている（△）なら、時間指定で開く（今日なら今から1時間。2026-11-19）
+  const today = fmtDate(new Date());
+  if (_facDevState(String(mid), ds) === 'part') {
+    document.getElementById('ev-rental-allday').checked = false;
+    // 空いている最初の1時間（9時から30分おき。今日は今から）。見つからなければ 9:00〜10:00
+    const n = new Date();
+    const from = ds === today ? Math.max(9 * 60, Math.ceil((n.getHours() * 60 + n.getMinutes()) / 30) * 30) : 9 * 60;
+    const spans = _devBusySpans(String(mid));
+    let st = 9 * 60;
+    for (let m = from; m + 60 <= 24 * 60; m += 30) {
+      const s = [ds + ' ' + _facHM(m), ds + ' ' + _facHM(Math.min(m + 60, 24 * 60))];
+      if (!spans.some(x => rentalOverlap(s, x))) { st = m; break; }
+    }
+    document.getElementById('ev-rental-stime').value = _facHM(st);
+    document.getElementById('ev-rental-etime').value = _facHM(Math.min(st + 60, 23 * 60 + 59));
+    updateRentalAlldayVisual();
+  }
   if (!selectedRentals.some(r => String(r.id) === String(mid))) toggleRentalItem(String(mid));
   updateRentalSummary();
 }
@@ -7280,14 +7335,16 @@ function renderFacAvail() {
   }
   if (showDev) {
     _facDevGroups().forEach(([k, list]) => {
-      const free = list.filter(m => _facDevFree(String(m.id), ds));
+      // 今日は選んだ時刻（今・1時間後）に空いているもの、ほかの日は借りられる時間があるもの
+      const free = list.filter(m => ds === today ? _facDevFreeAt(String(m.id), ds, baseMin) : _facDevFree(String(m.id), ds));
       const key = 'a:' + k, open = _facDevOpen.has(key) && free.length > 0;
       rows.push(`<button type="button" class="fac-av-row fac-grp${open ? ' open' : ''}" aria-expanded="${open}" ${free.length ? `data-key="${esc(key)}" onclick="toggleFacDevGroup(this.dataset.key)"` : 'disabled'}>
         <span class="fac-tile">${_facDevIcon(k)}</span>
         <span class="fac-main"><span class="fac-l1">${esc(k)}</span><span class="fac-l2">${t('fac.grp.free', {n: list.length, f: free.length})}</span></span>
         ${free.length ? `<span class="fac-cnt">${t('fac.grp.cnt', {n: free.length})}</span><span class="fac-chev">›</span>` : `<span class="fac-none">${t('fac.grp.none')}</span>`}</button>`);
       if (open) free.forEach(m => {
-        rows.push(`<div class="fac-av-row fac-sub-row"><span class="fac-main"><span class="fac-l1">${esc(m.purpose || '')}</span></span>
+        const busyText = _facDevDayText(String(m.id), ds);
+        rows.push(`<div class="fac-av-row fac-sub-row"><span class="fac-main"><span class="fac-l1">${esc(m.purpose || '')}</span>${busyText ? `<span class="fac-l2">${esc(t('fac.dev.part', {t: busyText}))}</span>` : ''}</span>
           <button type="button" class="fac-go" onclick="openFacRent('${esc(String(m.id))}','${ds}')">${t('fac.rent')}</button></div>`);
       });
     });
@@ -7337,9 +7394,12 @@ function renderFacGrid() {
           return `<span class="fd-cell${f ? ' free' : ' busy'}">${f ? t('fac.grp.cnt', {n: f}) : '—'}</span>`;
         }).join('')}</button>`;
       if (!open) return head;
+      // ○＝空き、△＝時間で借りられている（空いている時間もある。押せる）、—＝1日埋まっている
       return head + list.map(m => `<div class="fd-row fd-item"><span class="fg-name">${esc(m.purpose || '')}</span>${days.map(d => {
-        const free = _facDevFree(String(m.id), d);
-        return free ? `<button type="button" class="fd-cell free" title="${t('fac.rent')}" onclick="openFacRent('${esc(String(m.id))}','${d}')">○</button>` : `<span class="fd-cell busy">—</span>`;
+        const st = _facDevState(String(m.id), d);
+        if (st === 'busy') return `<span class="fd-cell busy">—</span>`;
+        const tip = st === 'part' ? t('fac.dev.part', {t: _facDevDayText(String(m.id), d)}) : t('fac.rent');
+        return `<button type="button" class="fd-cell free${st === 'part' ? ' part' : ''}" title="${esc(tip)}" onclick="openFacRent('${esc(String(m.id))}','${d}')">${st === 'part' ? '△' : '○'}</button>`;
       }).join('')}</div>`).join('');
     }).join('');
     parts.push(`<div class="fg-block">${_facFilter === 'all' ? `<div class="fg-sub">${t('fac.device')}</div>` : ''}${rentalMasters.length ? head + rows : `<div class="fac-empty">${t('devices.empty')}</div>`}</div>`);
@@ -8749,26 +8809,43 @@ function openExtendModal(eventId, currentEnd){
   document.getElementById('extend-newlabel').textContent=t('my.rental.extend.newlabel');
   document.getElementById('extend-cancel').textContent=t('common.cancel');
   document.getElementById('extend-submit').textContent=t('my.rental.extend.submit');
-  document.getElementById('extend-current').textContent=currentEnd||'—';
   const inp=document.getElementById('extend-date');
-  // 最小値は現在の返却予定日の翌日
-  let min=currentEnd;
-  if(currentEnd){ const d=new Date(currentEnd+'T00:00:00'); d.setDate(d.getDate()+1); min=fmtDate(d); }
-  inp.min=min||'';
-  inp.value=min||'';
+  const tin=document.getElementById('extend-time');
+  // 時間で借りているとき（2026-11-19）は時刻も選べて、同じ日のうちに延ばすこともできる
+  const ev=events.find(x=>String(x.id)===String(eventId));
+  _extendOldTime=ev&&ev.rentalStartTime&&ev.rentalEndTime?ev.rentalEndTime:'';
+  document.getElementById('extend-current').textContent=(currentEnd||'—')+(_extendOldTime?' '+_extendOldTime:'');
+  tin.style.display=_extendOldTime?'':'none';
+  if(_extendOldTime){
+    // 最小値は今の返却予定日。初めは1時間後（日をまたぐなら翌日の同じ時刻）
+    inp.min=currentEnd||'';
+    const m=_facMin(_extendOldTime)+60;
+    if(m<24*60){ inp.value=currentEnd||''; tin.value=_facHM(m); }
+    else { const d=new Date(currentEnd+'T00:00:00'); d.setDate(d.getDate()+1); inp.value=fmtDate(d); tin.value=_extendOldTime; }
+  } else {
+    // 最小値は現在の返却予定日の翌日
+    let min=currentEnd;
+    if(currentEnd){ const d=new Date(currentEnd+'T00:00:00'); d.setDate(d.getDate()+1); min=fmtDate(d); }
+    inp.min=min||'';
+    inp.value=min||'';
+  }
   openModal('extend-modal-backdrop');
 }
+let _extendOldTime='';
 async function doExtendRental(){
   const newEnd=document.getElementById('extend-date').value;
-  if(!newEnd){ showToast(t('my.rental.extend.required')); return; }
-  if(_extendOldEnd && newEnd<=_extendOldEnd){ showToast(t('my.rental.extend.order')); return; }
+  const newEndTime=_extendOldTime?document.getElementById('extend-time').value:'';
+  if(!newEnd||(_extendOldTime&&!newEndTime)){ showToast(t('my.rental.extend.required')); return; }
+  if(_extendOldEnd && (newEnd+' '+newEndTime)<=(_extendOldEnd+' '+_extendOldTime)){ showToast(t('my.rental.extend.order')); return; }
   try {
-    const res=await api('extendRental', {eventId:_extendId, newEnd}, t('common.saving'));
+    const res=await api('extendRental', {eventId:_extendId, newEnd, newEndTime}, t('common.saving'));
     closeModal('extend-modal-backdrop');
     await Promise.all([loadEvents({force:true}), loadRentalMasters()]);
     renderMyPage();
     if(_currentTab==='rooms'){ renderFacMine(); renderDevices(); } // 設備予約から延長したとき（3e-1）
-    showToast(t('my.rental.extend.done',{from:res.oldEnd||_extendOldEnd, to:res.newEnd||newEnd}));
+    const from=(res.oldEnd||_extendOldEnd)+(res.oldEndTime?' '+res.oldEndTime:'');
+    const to=(res.newEnd||newEnd)+(res.newEndTime?' '+res.newEndTime:'');
+    showToast(t('my.rental.extend.done',{from, to}));
   } catch(e){ showToast(t('common.error.toast',{msg:e.message})); }
 }
 
@@ -8893,6 +8970,7 @@ function openAddModal(dateStr, startTime, endTime){
   selectedRentals=[];
   document.getElementById('ev-rental-start').value=ds;
   document.getElementById('ev-rental-end').value=ds;
+  _setRentalTimes(null);
   _rentalDatesTouched=false;
   _resetEvCar();
   document.getElementById('ev-approver').value='';
@@ -8942,6 +9020,7 @@ function openEditModal(id){
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
   document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
+  _setRentalTimes(e);
   _rentalDatesTouched=_rentalDatesCustomized(e);
   _initEvCarForEdit(e);
   document.getElementById('ev-remote-reason').value=e.remoteReason||'';
@@ -8989,6 +9068,7 @@ function copyEvent(id){
   document.getElementById('ev-rental-start').value=e.rentalStart||e.startDate||e.date||'';
   document.getElementById('ev-rental-end').value=e.rentalEnd||e.endDate||e.date||'';
   document.getElementById('ev-rental-purpose').value=e.rentalPurpose||'';
+  _setRentalTimes(e);
   _rentalDatesTouched=_rentalDatesCustomized(e);
   _resetEvCar();  // 車は複製しない（同じ車・時間は重なるため）
   document.getElementById('ev-remote-reason').value=e.remoteReason||'';
@@ -9086,6 +9166,54 @@ function syncRentalDates(){
   document.getElementById('ev-rental-start').value=r.start;
   document.getElementById('ev-rental-end').value=r.end&&r.end>=r.start?r.end:r.start;
   renderRentalPicker();
+}
+
+// ----- 端末を時間で借りる（2026-11-19）-----
+// 959 の「開始時刻」「終了時刻」。両方あるときだけ時間指定、どちらも空＝終日（今までどおり）
+function _rentalTimed(){ return !document.getElementById('ev-rental-allday').checked; }
+function updateRentalAlldayVisual(){
+  const c=document.getElementById('ev-rental-allday').checked;
+  const knob=document.getElementById('rental-allday-knob');
+  const bg=document.getElementById('ev-rental-allday').nextElementSibling;
+  if(knob) knob.style.left=c?'22px':'2px';
+  if(bg) bg.style.background=c?'var(--primary)':'#ccc';
+  document.getElementById('rental-time-block').style.display=c?'none':'flex';
+}
+function onRentalAlldayChange(){ updateRentalAlldayVisual(); renderRentalPicker(); }
+function _setRentalTimes(e){
+  const timed=!!(e&&e.rentalStartTime&&e.rentalEndTime);
+  document.getElementById('ev-rental-allday').checked=!timed;
+  document.getElementById('ev-rental-stime').value=timed?e.rentalStartTime:'09:00';
+  document.getElementById('ev-rental-etime').value=timed?e.rentalEndTime:'17:00';
+  updateRentalAlldayVisual();
+}
+// 貸出の期間を ['日付 時刻','日付 時刻'] に（Worker の rentalSpan と同じ。終日は 00:00〜24:00。文字列のまま比べられる）
+function rentalSpan(sd,st,ed,et){ const timed=!!(st&&et); return [sd+' '+(timed?st:'00:00'),(ed||sd)+' '+(timed?et:'24:00')]; }
+// 重なるか（12:00 返却・12:00 貸出は重ならない）
+const rentalOverlap=(a,b)=>a[0]<b[1]&&b[0]<a[1];
+const _nowStamp=()=>{ const n=new Date(); return fmtDate(n)+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); };
+// 端末を押さえている期間の一覧。貸出中で返却予定を過ぎてまだ返していないものは「今」まで押さえている扱い
+function _devBusySpans(mid, excludeEventId){
+  const now=_nowStamp();
+  return (rentalDetails[mid]||[]).filter(d=>d.rentalStart&&d.rentalEnd&&d.status!=='返却済'&&(!excludeEventId||String(d.eventId)!==String(excludeEventId)))
+    .map(d=>{ const s=rentalSpan(d.rentalStart,d.rentalStartTime,d.rentalEnd,d.rentalEndTime); if(d.status==='貸出中'&&s[1]<now) s[1]=now; return s; });
+}
+// フォームで選んでいる貸出の期間（日付が無ければ null）
+function _rentalFormSpan(){
+  const sd=document.getElementById('ev-rental-start')?.value||'';
+  if(!sd) return null;
+  const ed=document.getElementById('ev-rental-end')?.value||sd;
+  const timed=_rentalTimed();
+  return rentalSpan(sd, timed?document.getElementById('ev-rental-stime').value:'', ed, timed?document.getElementById('ev-rental-etime').value:'');
+}
+// 表示用の期間。fmt は日付の書き方（省略時はそのまま）
+function rentalPeriodText(e, fmt){
+  const f=fmt||(d=>d||'');
+  const s=e.rentalStart||'', en=e.rentalEnd||'';
+  if(e.rentalStartTime&&e.rentalEndTime){
+    return s===en ? `${f(s)} ${e.rentalStartTime}〜${e.rentalEndTime}` : `${f(s)} ${e.rentalStartTime} 〜 ${f(en)} ${e.rentalEndTime}`;
+  }
+  return `${f(s)} 〜 ${f(en)}`;
 }
 
 // ----- 社用車（外出・出張の予定から申し込む。2026-10-29）-----
@@ -9271,6 +9399,7 @@ function renderRentalPicker(){
     return true;
   });
   const selIds=new Set(selectedRentals.map(r=>String(r.id)));
+  const selSpan=_rentalFormSpan();
   document.getElementById('rental-picker').innerHTML=visible.map(m=>{
     const mid=String(m.id);
     const isSel=selIds.has(mid);
@@ -9282,10 +9411,10 @@ function renderRentalPicker(){
     if(isRented) badge='<span style="font-size:0.72em;background:#e53935;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">'+t('devices.rented')+'</span>';
     else if(isPending&&latestDetail?.status==='予約中') badge='<span style="font-size:0.72em;background:#1565c0;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">'+t('devices.reserved')+'</span>';
     else if(isPending) badge='<span style="font-size:0.72em;background:#fb8c00;color:#fff;padding:1px 5px;border-radius:4px;margin-left:5px">'+t('devices.pending')+'</span>';
-    const selStart=document.getElementById('ev-rental-start')?.value||'';
-    const selEnd=document.getElementById('ev-rental-end')?.value||selStart;
-    const hasDateOverlap=selStart&&details.some(d=>d.rentalStart&&d.rentalEnd&&selStart<=d.rentalEnd&&selEnd>=d.rentalStart&&String(d.eventId)!==String(editingId));
-    const disabled=(isRented||(isPending&&hasDateOverlap))&&!isSel;
+    // 選んでいる期間（時間指定なら時刻まで）にほかの貸出・予約が重なるときだけ選べない（2026-11-19）。
+    // 貸出中で返却予定を過ぎたものは「今」まで押さえている扱い（_devBusySpans）
+    const hasDateOverlap=!!selSpan&&_devBusySpans(mid, editingId).some(s=>rentalOverlap(selSpan,s));
+    const disabled=hasDateOverlap&&!isSel;
     return`<div class="people-chip${isSel?' selected':''}${disabled?' disabled':''}" style="${disabled?'opacity:.5;pointer-events:none':''}" onclick="toggleRentalItem('${mid}')">${esc(m.purpose)}<span style="font-size:0.85em;opacity:.6;margin-left:4px">(${esc(m.deviceType)})</span>${badge}</div>`;
   }).join('')||`<div style="font-size:0.82em;color:var(--text3);padding:8px 0">${t('ev.rental.none')}</div>`;
   updateRentalSummary();
@@ -9719,6 +9848,12 @@ async function doSaveEvent(){
   const rentalStart=isRental&&selectedRentals.length?document.getElementById('ev-rental-start').value:'';
   const rentalEnd=isRental&&selectedRentals.length?document.getElementById('ev-rental-end').value:'';
   if(isRental&&selectedRentals.length&&rentalStart&&rentalEnd&&rentalEnd<rentalStart){showToast(t('ev.date.order'));return}
+  // 時間指定（2026-11-19）。終日のときは時刻を送らない（空＝終日）
+  const rentalTimed=!!(isRental&&selectedRentals.length&&_rentalTimed());
+  const rentalStartTime=rentalTimed?document.getElementById('ev-rental-stime').value:'';
+  const rentalEndTime=rentalTimed?document.getElementById('ev-rental-etime').value:'';
+  if(rentalTimed&&(!rentalStartTime||!rentalEndTime)){showToast(t('ev.rental.time.required'));return}
+  if(rentalTimed&&rentalStart&&rentalEnd&&(rentalEnd+' '+rentalEndTime)<=(rentalStart+' '+rentalStartTime)){showToast(t('ev.time.order'));return}
   if(selectedRentals.length&&!document.getElementById('ev-rental-purpose').value.trim()){showToast('使用目的を入力してください');return}
   const needsApprover=_needsApproverFor(type);
   const selectedApprover=needsApprover?document.getElementById('ev-approver').value:'';
@@ -9732,7 +9867,7 @@ async function doSaveEvent(){
     room:ROOM_TYPES.includes(type)?(selectedRoom||null):null,
     people:[...selectedPeople],
     rentals:isRental?[...selectedRentals]:[],
-    rentalStart, rentalEnd,
+    rentalStart, rentalEnd, rentalStartTime, rentalEndTime,
     rentalPurpose:selectedRentals.length?document.getElementById('ev-rental-purpose').value.trim():'',
     remoteReason:type==='在宅'?document.getElementById('ev-remote-reason').value.trim():'',
     memo:document.getElementById('ev-memo').value.trim(),
@@ -9827,7 +9962,7 @@ function openDetail(id){
       ${e.room?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.place')}</td><td><strong>${esc(roomName(e.room))}</strong></td></tr>`:''}
       ${(e.people||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.people')}</td><td>${(e.people||[]).map(userName).join('、')}</td></tr>`:''}
       ${(e.rentals||[]).length?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.rental')}</td><td>📱 ${(e.rentals||[]).map(r=>typeof r==='string'?r:r.label).join('、')}</td></tr>`:''}
-      ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${e.rentalStart} 〜 ${e.rentalEnd||''}</td></tr>`:''}
+      ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${esc(rentalPeriodText(e))}</td></tr>`:''}
       ${e.rentalPurpose?`<tr><td style="color:var(--text2);padding:7px 0">使用目的</td><td>${esc(e.rentalPurpose)}</td></tr>`:''}
       ${e.remoteReason&&(String(e.userId)===String(currentUser.id)||String(e.approvedBy)===String(currentUser.id)||canApprove)?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
       ${e.teamsUrl?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(e.teamsUrl)}" target="_blank" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
@@ -10046,13 +10181,14 @@ function closeModal(id){ document.getElementById(id).classList.remove('open'); _
 // ----- 予定入力の下書き（閉じても、直前まで入力していた内容を残す）-----
 // 新しい予定は 'new'、編集はその予定の id ごとに残す。保存できたら消す。ページを読み直すと消える。
 // 車の欄は残さない（車予約は準備中のため）。
-var _EV_DRAFT_IDS=['ev-type','ev-title','ev-date','ev-start-date','ev-end-date','ev-start','ev-end','ev-memo','ev-repeat','ev-repeat-end','ev-rental-start','ev-rental-end','ev-rental-purpose','ev-remote-reason'];
+var _EV_DRAFT_IDS=['ev-type','ev-title','ev-date','ev-start-date','ev-end-date','ev-start','ev-end','ev-memo','ev-repeat','ev-repeat-end','ev-rental-start','ev-rental-end','ev-rental-stime','ev-rental-etime','ev-rental-purpose','ev-remote-reason'];
 var _evDrafts={}, _evDraftKey=null, _evDraftBase=null;
 function _evSnap(){
   const v={};
   _EV_DRAFT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el) v[id]=el.value; });
   v.approver=document.getElementById('ev-approver').value;
   v.allday=document.getElementById('ev-allday').checked;
+  v.rentalAllday=document.getElementById('ev-rental-allday').checked;
   v.room=selectedRoom||null;
   v.people=[...selectedPeople].sort();
   v.rentals=JSON.parse(JSON.stringify(selectedRentals||[]));
@@ -10062,6 +10198,7 @@ function _evSnap(){
 function _evApply(v){
   _EV_DRAFT_IDS.forEach(id=>{ const el=document.getElementById(id); if(el&&v[id]!==undefined) el.value=v[id]; });
   document.getElementById('ev-allday').checked=!!v.allday; updateAlldayToggleVisual();
+  document.getElementById('ev-rental-allday').checked=v.rentalAllday!==false; updateRentalAlldayVisual();
   selectedRoom=v.room; selectedPeople=new Set(v.people); selectedRentals=v.rentals; _rentalDatesTouched=v.rentalTouched;
   document.getElementById('repeat-end-wrap').style.display=v['ev-repeat']?'block':'none';
   onTypeChange(); renderPeoplePicker(); renderRoomPicker(); updatePeopleSummary(); renderPeopleSchedule();
@@ -12649,7 +12786,7 @@ function renderMyPage() {
               <span style="font-size:1.2em">📱</span>
               <div style="flex:1;min-width:0">
                 <div style="font-size:0.88em;font-weight:700">${esc(devNames)}</div>
-                <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${e.rentalStart||''} 〜 ${e.rentalEnd||''}</div>
+                <div style="font-size:0.75em;color:var(--text2);margin-top:2px">${esc(rentalPeriodText(e))}</div>
                 ${e.rentalPurpose?`<div style="font-size:0.75em;color:var(--text2);margin-top:2px">📋 ${esc(e.rentalPurpose)}</div>`:''}
                 ${isOverdue?`<div style="font-size:0.75em;color:#e53935;font-weight:700;margin-top:4px">${t('my.rental.overdue')}</div>`:''}
               </div>

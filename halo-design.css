@@ -455,6 +455,7 @@ button.fac-row:hover{background:var(--surface-1)}
 .fd-cell.free{color:var(--green);font-weight:700;cursor:pointer;border-radius:8px}
 .fd-cell.free:hover{background:color-mix(in srgb,var(--hn-tint,#C6D8C2) 35%,transparent)}
 .fd-cell.busy{color:var(--text3)}
+.fd-cell.free.part{color:var(--orange,#b7791f);font-weight:600}
 /* 設備予約：端末を種別ごとにたたむ（11/13） */
 button.fac-grp{width:100%;background:transparent;border:none;border-top:1px solid var(--border);text-align:left;color:var(--text);cursor:pointer}
 button.fac-grp:hover:not(:disabled){background:var(--surface-1)}
