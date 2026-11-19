@@ -5937,6 +5937,19 @@ function tkkMonthHtml(kc,mine,b,todayStr,LEAVE){
 function tkkDragCard(ev,id){_tkkDrag={kind:'card',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
 function tkkDragEv(ev,id){_tkkDrag={kind:'ev',id:String(id)};ev.dataTransfer.setData('text/plain',String(id));ev.dataTransfer.effectAllowed='move';}
 function tkkOver(e){if(_tkkDrag){e.preventDefault();e.dataTransfer.dropEffect='move';}}
+// つまんで動かしている間、カレンダーの枠の上端・下端（上は見出しの上も含む）に近づいたら、自動でスクロールする（ノートPCで早い時間へ動かすため）
+document.addEventListener('dragover',e=>{
+  if(!_tkkDrag)return;
+  const body=document.querySelector('#tkk-right .week-body');if(!body)return;
+  let sc=body.parentElement;
+  while(sc&&sc!==document.body){const oy=getComputedStyle(sc).overflowY;if((oy==='auto'||oy==='scroll')&&sc.scrollHeight>sc.clientHeight)break;sc=sc.parentElement;}
+  if(!sc||sc===document.body)return;
+  const r=sc.getBoundingClientRect(),EDGE=48;
+  if(e.clientX<r.left||e.clientX>r.right)return;
+  const up=(r.top+EDGE)-e.clientY,down=e.clientY-(r.bottom-EDGE);
+  if(up>0&&e.clientY>r.top-160)sc.scrollTop-=Math.min(24,4+up/3);
+  else if(down>0&&e.clientY<r.bottom+160)sc.scrollTop+=Math.min(24,4+down/3);
+});
 // 重なりの確認：表示している時間（8:00〜20:00）の外だけは入れられない。ほかは、重なる予定を知らせて、本人が「入れる」を選べば入る
 function tkkCheckSlot(d,a,b,excludeId){
   if(a<KC_S*60||b>KC_E*60){showToast('表示している時間（8:00〜20:00）の外には入れられません');return false;}
