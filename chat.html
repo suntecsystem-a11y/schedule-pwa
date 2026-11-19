@@ -60,6 +60,19 @@ body.embed .side-head{display:none}
 .ch .mute{font-size:11px;color:var(--text3)}
 .badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
 .ch.muted .badge{background:var(--text3)}
+/* お気に入り・まとまり・並べ替え（2026-11-19） */
+.list-tools{display:flex;gap:6px;justify-content:flex-end;padding:2px 10px 0}
+.list-tools .txt-btn{font-size:12px;padding:4px 6px}
+.sec.grp{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.sec.grp .fold{display:inline-block;width:10px;transition:transform .15s}
+.sec.grp.closed .fold{transform:rotate(-90deg)}
+.sec.grp .sec-ed{margin-left:auto;display:flex;gap:2px}
+.sec.grp .sec-ed button,.ch .ed button{border:0;background:none;color:var(--text2);padding:2px 5px;font-size:13px;cursor:pointer;border-radius:6px}
+.sec.grp .sec-ed button:hover,.ch .ed button:hover{background:var(--surface-1);color:var(--text)}
+.ch .ed{display:flex;gap:1px;align-items:center;flex-shrink:0}
+.ch .ed button.on{color:#C9A227}
+.ch .ed select{font:inherit;font-size:11px;max-width:88px;padding:2px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text2)}
+.ch.editing .mute{display:none}
 .conn{font-size:11px;color:var(--text2);padding:8px 16px;border-top:1px solid var(--border)}
 .conn.off{color:var(--red)}
 
@@ -148,7 +161,9 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 #picked{font-size:12px;color:var(--text2);min-height:1.2em}
 .side-tools{padding:8px 10px 4px;border-bottom:1px solid var(--border)}
 .side-tools input{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface-1);font-size:14px}
-.side-btns{display:flex;justify-content:space-between;margin-top:2px}
+.people-bulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.people-bulk select{font:inherit;font-size:13px;padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.side-btns{display:flex;justify-content:space-between;flex-wrap:wrap;column-gap:4px;margin-top:2px}
 .side-btns .txt-btn{font-size:12.5px;white-space:nowrap;padding:6px 4px}
 #searchList{flex:1;overflow-y:auto;padding:4px 0 8px}
 .hit{padding:9px 16px;cursor:pointer;border-bottom:1px solid var(--surface-1)}
@@ -335,6 +350,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <h2 id="peopleTitle">新しい会話</h2>
     <p id="peopleNote">相手を選んでください（2人以上でグループ）。</p>
     <input id="peopleQ" placeholder="名前・部署で探す">
+    <div class="people-bulk"><button type="button" class="txt-btn" id="peopleAll">表示している人を全員選ぶ</button><select id="peopleDept"><option value="">部署ごとに選ぶ…</option></select><button type="button" class="txt-btn" id="peopleClear">選び直す</button></div>
     <div id="peopleList"></div>
     <div id="picked"></div>
     <div class="btns"><button type="button" class="btn" id="peopleNo">やめる</button><button type="button" class="btn primary" id="peopleGo" disabled>開く</button></div>
@@ -364,11 +380,205 @@ const ICON = {
 };
 
 const $ = (id) => document.getElementById(id);
+// ---------- 画面の言葉（日本語・ベトナム語・ネパール語。2026-11-19、H-06） ----------
+// HALO 本体と同じ設定（localStorage の sch_lang）を使う。辞書は日本語の文をそのまま鍵にする。
+// 決まった文は、画面に出たときに自動で置き換える（trTree・MutationObserver）。人が書いた本文・名前・チャンネル名は置き換えない。
+// 名前や数が入る文は、コードで tf('…{n}…', { n }) と書く。辞書に無い文は日本語のまま出る。
+const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
+const I18N = {
+  vi: {
+    'HALO チャット': 'HALO Trò chuyện', 'チャット': 'Trò chuyện', '社員番号': 'Mã nhân viên', 'ログイン': 'Đăng nhập',
+    'チャンネルを作る': 'Tạo kênh', '会話を始める': 'Bắt đầu trò chuyện', 'アイコン': 'Ảnh đại diện', '接続しています…': 'Đang kết nối…',
+    '‹ 一覧': '‹ Danh sách', '設定': 'Cài đặt', 'スレッド': 'Chuỗi trả lời', '閉じる': 'Đóng',
+    'HALO からの通知です。ここには書き込めません（リアクション・確認しましたは付けられます）': 'Đây là thông báo từ HALO. Không thể viết tại đây (có thể thả cảm xúc và "Đã xác nhận").',
+    '個人情報が入っていませんか？': 'Có thông tin cá nhân không?', '次のようなものが見つかりました。': 'Đã tìm thấy những mục sau.',
+    '直す': 'Sửa', 'このまま送る': 'Vẫn gửi', 'このメッセージを消しますか？': 'Xóa tin nhắn này?', '「削除されました」と表示されます。': 'Sẽ hiển thị "Đã bị xóa".',
+    'やめる': 'Hủy', '消す': 'Xóa', 'リアクション': 'Cảm xúc', 'スタンプを登録': 'Đăng ký nhãn dán', '自分のスタンプを消す': 'Xóa nhãn dán của tôi',
+    'ダウンロード': 'Tải xuống', '外す': 'Gỡ', '写真を選ぶ': 'Chọn ảnh',
+    'ほかの人の画面で、あなたのメッセージの左と会話の一覧に出ます。顔写真でも好きな画像でもかまいません。正方形に切り取って小さくしてから送ります。': 'Hiển thị bên trái tin nhắn của bạn và trong danh sách trò chuyện trên màn hình người khác. Có thể dùng ảnh khuôn mặt hoặc bất kỳ hình nào. Ảnh sẽ được cắt vuông và thu nhỏ trước khi gửi.',
+    '全員が見られる': 'Mọi người đều xem được', '招いた人だけ（作ったあとでメンバーを選びます）': 'Chỉ người được mời (chọn thành viên sau khi tạo)', '作る': 'Tạo',
+    'チャンネルの設定': 'Cài đặt kênh', '名前を変える': 'Đổi tên', 'メンバーを足す': 'Thêm thành viên', '抜ける': 'Rời kênh', 'しまう': 'Lưu trữ',
+    '新しい会話': 'Trò chuyện mới', '相手を選んでください（2人以上でグループ）。': 'Chọn người để trò chuyện (từ 2 người trở lên là nhóm).',
+    '表示している人を全員選ぶ': 'Chọn tất cả người đang hiển thị', '部署ごとに選ぶ…': 'Chọn theo bộ phận…', '選び直す': 'Chọn lại', '開く': 'Mở',
+    'メッセージを探す': 'Tìm tin nhắn', 'チャンネルの名前': 'Tên kênh', '名前・部署で探す': 'Tìm theo tên, bộ phận',
+    'ログインし直してください': 'Vui lòng đăng nhập lại', '失敗しました': 'Thất bại', '全員': 'Mọi người', '全体': 'Toàn công ty',
+    '承認・却下は会社の端末の HALO でできます': 'Có thể duyệt/từ chối trên HALO của thiết bị công ty',
+    '承認': 'Duyệt', '却下': 'Từ chối', '無事': 'An toàn', '被害あり': 'Có thiệt hại', 'その他': 'Khác',
+    'この予定を承認しますか？': 'Duyệt lịch này?', '却下の理由（空でもかまいません）': 'Lý do từ chối (có thể để trống)', '状況を書いてください（空でもかまいません）': 'Mô tả tình trạng (có thể để trống)',
+    '承認しました': 'Đã duyệt', '却下しました': 'Đã từ chối', 'ほかの人が先に処理したか、取り下げられています': 'Người khác đã xử lý trước hoặc yêu cầu đã bị rút lại', 'この予定はもうありません': 'Lịch này không còn nữa',
+    '回答しました：無事': 'Đã trả lời: An toàn', '回答しました：被害あり': 'Đã trả lời: Có thiệt hại', '回答しました：その他': 'Đã trả lời: Khác',
+    'HALO 通知': 'Thông báo HALO', 'HALO お知らせ': 'Tin tức HALO', '日報': 'Báo cáo ngày', 'お弁当': 'Cơm hộp',
+    '（自分だけ）': '(Chỉ mình tôi)', '（名前なし）': '(Không tên)', 'ログインできませんでした': 'Không thể đăng nhập',
+    '部署': 'Bộ phận', '招待のみ': 'Chỉ người được mời', '通知オフ': 'Tắt thông báo',
+    'お気に入り': 'Yêu thích', '上へ': 'Lên', '下へ': 'Xuống', 'まとまりに入れる': 'Cho vào nhóm', 'まとまり…': 'Nhóm…', '＋新しいまとまり': '+ Nhóm mới', 'まとまりから出す': 'Bỏ khỏi nhóm',
+    'まとまりを作る': 'Tạo nhóm', '整理を終わる': 'Xong', '一覧を整理': 'Sắp xếp danh sách', '★ お気に入り': '★ Yêu thích', 'まとまりを消す': 'Xóa nhóm',
+    'HALO': 'HALO', 'チャンネル': 'Kênh', '会話': 'Trò chuyện', 'チャンネルがありません': 'Chưa có kênh nào', 'まとまりの名前（20文字まで）': 'Tên nhóm (tối đa 20 ký tự)',
+    '通知を戻す': 'Bật lại thông báo', '通知を切る': 'Tắt thông báo', '読み込んでいます…': 'Đang tải…', 'ここから未読': 'Chưa đọc từ đây',
+    '（削除されました）': '(Đã bị xóa)', '押すと付ける／外す': 'Nhấn để thêm / bỏ', 'スレッドで返信': 'Trả lời trong chuỗi', '引用して返信': 'Trích dẫn và trả lời',
+    '確認しました': 'Đã xác nhận', '送っています…': 'Đang gửi…', '・編集済み': '・Đã sửa', '削除されました': 'Đã bị xóa',
+    '押すとブラウザで開きます': 'Nhấn để mở trên trình duyệt', '（画像を開けませんでした）': '(Không mở được ảnh)',
+    '上へ戻るとさらに読みます': 'Cuộn lên để tải thêm', 'まだメッセージがありません': 'Chưa có tin nhắn', 'まだ返信がありません': 'Chưa có trả lời',
+    'スタンプ・絵文字': 'Nhãn dán・Biểu tượng', 'まだスタンプがありません。「スタンプを登録」から足せます。': 'Chưa có nhãn dán. Có thể thêm từ "Đăng ký nhãn dán".',
+    '消すのをやめる': 'Thôi xóa', '消すスタンプを押してください（赤い枠が自分のもの。人のものは管理者だけ消せます）': 'Nhấn nhãn dán muốn xóa (khung đỏ là của bạn; nhãn dán của người khác chỉ quản trị viên mới xóa được)',
+    'スタンプの名前（20文字まで）': 'Tên nhãn dán (tối đa 20 ký tự)', '画像を読めませんでした': 'Không đọc được ảnh', '画像が大きすぎます。小さい画像を選んでください': 'Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn',
+    'アイコンを外しますか？': 'Gỡ ảnh đại diện?', '画像を選んでください': 'Vui lòng chọn một hình ảnh',
+    '住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください': 'Không viết địa chỉ, số điện thoại, tài khoản ngân hàng, mã số cá nhân, số thẻ, tên bệnh hay bản vẽ của khách hàng',
+    'ファイルを付ける（1つ250MBまで）': 'Đính kèm tệp (tối đa 250MB mỗi tệp)', '返信を入力': 'Nhập trả lời', 'メッセージを入力（@ か ＠ で名前）': 'Nhập tin nhắn (@ để gọi tên)',
+    '送信': 'Gửi', '直しています': 'Đang sửa', '保存': 'Lưu', 'このチャンネルの全員に知らせる': 'Thông báo cho mọi người trong kênh',
+    '添付は1回に10個までです': 'Tối đa 10 tệp đính kèm mỗi lần', 'ファイルを送れませんでした': 'Không gửi được tệp',
+    'マイナンバーらしい12けたの数字': 'Dãy 12 chữ số giống mã số cá nhân', 'カード番号らしい数字': 'Dãy số giống số thẻ', '口座番号らしい数字': 'Dãy số giống số tài khoản',
+    '電話番号らしい数字': 'Dãy số giống số điện thoại', '住所らしい文': 'Câu giống địa chỉ', '・協力会社': '・Công ty đối tác', '見つかりません': 'Không tìm thấy',
+    'HALO が書くチャンネルです。メンバーを足す・外すのは管理者です（自分で抜けることはできます）。': 'Đây là kênh do HALO viết. Quản trị viên thêm/gỡ thành viên (bạn có thể tự rời kênh).',
+    '部署のチャンネルです。メンバーは名簿の部署で決まります（異動すると自動で入れ替わります）。': 'Đây là kênh của bộ phận. Thành viên theo bộ phận trong danh sách nhân viên (tự động thay đổi khi chuyển bộ phận).',
+    '全員が見られるチャンネルです。': 'Kênh mọi người đều xem được.', '1対1の会話です。': 'Trò chuyện 1-1.',
+    '招かれた人だけが見られます。名前・メンバーを変えられるのは、作った人と管理者です。': 'Chỉ người được mời mới xem được. Người tạo và quản trị viên có thể đổi tên và thành viên.',
+    '・作った人': '・Người tạo', '足す人を選んでください。': 'Chọn người muốn thêm.', '足す': 'Thêm',
+    'このチャンネルから抜けますか？（もう一度入るには、メンバーに足してもらう必要があります）': 'Rời kênh này? (Muốn vào lại cần được thành viên thêm vào)',
+    'このチャンネルをしまいますか？（一覧から消え、読み書きできなくなります。中身は消えません）': 'Lưu trữ kênh này? (Kênh sẽ biến mất khỏi danh sách và không thể đọc/viết. Nội dung không bị xóa)',
+    '探しています…': 'Đang tìm…', '見つかりませんでした': 'Không tìm thấy', 'つながっています': 'Đã kết nối', 'つながっていません（つなぎ直しています）': 'Mất kết nối (đang kết nối lại)',
+    'このチャンネルは見られなくなりました': 'Bạn không còn xem được kênh này', '閉じる ': 'Đóng',
+    // Worker から返る主なエラー
+    'このチャンネルには書き込めません': 'Không thể viết vào kênh này', 'チャンネルが見つかりません': 'Không tìm thấy kênh', 'メッセージが空です': 'Tin nhắn trống',
+    'メッセージが見つかりません': 'Không tìm thấy tin nhắn', '管理者権限がありません': 'Bạn không có quyền quản trị', 'チャットはまだ使えません': 'Chưa thể dùng trò chuyện',
+    'この安否確認は終わっています': 'Xác nhận an toàn này đã kết thúc', '承認者権限がありません': 'Bạn không có quyền duyệt',
+    // 書式（{…} に名前や数が入る）
+    '返信 {n}件': '{n} trả lời', '{n}人': '{n} người', '確認しました：{names}': 'Đã xác nhận: {names}',
+    '選んだ人：{names}': 'Đã chọn: {names}', '選んだ人：{n}人（{names} ほか）': 'Đã chọn: {n} người ({names} và những người khác)',
+    '引用：{name}「{text}」': 'Trích dẫn: {name} "{text}"', '「{q}」の結果 {n}件': 'Kết quả cho "{q}": {n}',
+    '送れませんでした{err}（押すともう一度送ります）': 'Không gửi được{err} (nhấn để gửi lại)',
+    'まとまり「{name}」を消しますか？（中のチャンネルは元の場所に戻ります）': 'Xóa nhóm "{name}"? (Các kênh bên trong sẽ trở về vị trí cũ)',
+    'スタンプ「{name}」を消しますか？（もう送ったものも [スタンプ] になります）': 'Xóa nhãn dán "{name}"? (Những nhãn đã gửi sẽ thành [Nhãn dán])',
+    '「{name}」は大きすぎます（1つ250MBまで）。SharePoint に置いてリンクを貼ってください': '"{name}" quá lớn (tối đa 250MB). Hãy đặt lên SharePoint và dán liên kết',
+    'ファイルを送れませんでした（{status}）': 'Không gửi được tệp ({status})', '{msg}\nダウンロードしますか？': '{msg}\nTải xuống?',
+    'HALO が書くチャンネルです。はじめは「{rule}」が入り、新しく入った人も自動で入ります。': 'Đây là kênh do HALO viết. Ban đầu gồm "{rule}", người mới vào cũng tự động được thêm.',
+    'メンバーを足す・外すのは管理者です（自分で抜けることはできます）。': 'Quản trị viên thêm/gỡ thành viên (bạn có thể tự rời kênh).',
+    '外した人：{names}（足すと戻ります）。': 'Đã gỡ: {names} (thêm lại để khôi phục).', '足した人：{names}。': 'Đã thêm: {names}.',
+    '全員（協力会社も）': 'Mọi người (cả công ty đối tác)', '社員全員': 'Toàn bộ nhân viên', '総務の人と管理者': 'Phòng tổng vụ và quản trị viên',
+    '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
+  },
+  ne: {
+    'HALO チャット': 'HALO च्याट', 'チャット': 'च्याट', '社員番号': 'कर्मचारी नम्बर', 'ログイン': 'लगइन',
+    'チャンネルを作る': 'च्यानल बनाउनुहोस्', '会話を始める': 'कुराकानी सुरु गर्नुहोस्', 'アイコン': 'आइकन', '接続しています…': 'जडान हुँदैछ…',
+    '‹ 一覧': '‹ सूची', '設定': 'सेटिङ', 'スレッド': 'थ्रेड', '閉じる': 'बन्द गर्नुहोस्',
+    'HALO からの通知です。ここには書き込めません（リアクション・確認しましたは付けられます）': 'यो HALO को सूचना हो। यहाँ लेख्न मिल्दैन (प्रतिक्रिया र "पुष्टि गरें" दिन मिल्छ)।',
+    '個人情報が入っていませんか？': 'व्यक्तिगत जानकारी त छैन?', '次のようなものが見つかりました。': 'यस्ता कुरा भेटिए।',
+    '直す': 'सच्याउनुहोस्', 'このまま送る': 'यसै पठाउनुहोस्', 'このメッセージを消しますか？': 'यो सन्देश मेटाउने हो?', '「削除されました」と表示されます。': '"मेटाइयो" भनेर देखिन्छ।',
+    'やめる': 'रद्द गर्नुहोस्', '消す': 'मेटाउनुहोस्', 'リアクション': 'प्रतिक्रिया', 'スタンプを登録': 'स्टिकर दर्ता गर्नुहोस्', '自分のスタンプを消す': 'आफ्नो स्टिकर मेटाउनुहोस्',
+    'ダウンロード': 'डाउनलोड', '外す': 'हटाउनुहोस्', '写真を選ぶ': 'फोटो छान्नुहोस्',
+    'ほかの人の画面で、あなたのメッセージの左と会話の一覧に出ます。顔写真でも好きな画像でもかまいません。正方形に切り取って小さくしてから送ります。': 'अरूको स्क्रिनमा तपाईंको सन्देशको बायाँ र कुराकानी सूचीमा देखिन्छ। अनुहारको फोटो वा कुनै पनि तस्बिर राख्न सकिन्छ। वर्गाकार काटेर सानो बनाएर पठाइन्छ।',
+    '全員が見られる': 'सबैले हेर्न सक्ने', '招いた人だけ（作ったあとでメンバーを選びます）': 'निमन्त्रणा गरिएकाले मात्र (बनाएपछि सदस्य छानिन्छ)', '作る': 'बनाउनुहोस्',
+    'チャンネルの設定': 'च्यानल सेटिङ', '名前を変える': 'नाम बदल्नुहोस्', 'メンバーを足す': 'सदस्य थप्नुहोस्', '抜ける': 'छोड्नुहोस्', 'しまう': 'संग्रह गर्नुहोस्',
+    '新しい会話': 'नयाँ कुराकानी', '相手を選んでください（2人以上でグループ）。': 'कुराकानी गर्ने व्यक्ति छान्नुहोस् (२ जना वा बढी भए समूह)।',
+    '表示している人を全員選ぶ': 'देखिएका सबैलाई छान्नुहोस्', '部署ごとに選ぶ…': 'विभाग अनुसार छान्नुहोस्…', '選び直す': 'फेरि छान्नुहोस्', '開く': 'खोल्नुहोस्',
+    'メッセージを探す': 'सन्देश खोज्नुहोस्', 'チャンネルの名前': 'च्यानलको नाम', '名前・部署で探す': 'नाम वा विभागले खोज्नुहोस्',
+    'ログインし直してください': 'फेरि लगइन गर्नुहोस्', '失敗しました': 'असफल भयो', '全員': 'सबै', '全体': 'सम्पूर्ण कम्पनी',
+    '承認・却下は会社の端末の HALO でできます': 'स्वीकृति/अस्वीकृति कम्पनीको उपकरणको HALO मा गर्न सकिन्छ',
+    '承認': 'स्वीकृत', '却下': 'अस्वीकृत', '無事': 'सुरक्षित', '被害あり': 'क्षति भयो', 'その他': 'अन्य',
+    'この予定を承認しますか？': 'यो तालिका स्वीकृत गर्ने हो?', '却下の理由（空でもかまいません）': 'अस्वीकृतिको कारण (खाली छोड्न सकिन्छ)', '状況を書いてください（空でもかまいません）': 'अवस्था लेख्नुहोस् (खाली छोड्न सकिन्छ)',
+    '承認しました': 'स्वीकृत गरियो', '却下しました': 'अस्वीकृत गरियो', 'ほかの人が先に処理したか、取り下げられています': 'अरूले पहिले नै गरिसके वा फिर्ता लिइयो', 'この予定はもうありません': 'यो तालिका अब छैन',
+    '回答しました：無事': 'जवाफ दिइयो: सुरक्षित', '回答しました：被害あり': 'जवाफ दिइयो: क्षति भयो', '回答しました：その他': 'जवाफ दिइयो: अन्य',
+    'HALO 通知': 'HALO सूचना', 'HALO お知らせ': 'HALO जानकारी', '日報': 'दैनिक रिपोर्ट', 'お弁当': 'खाजा बक्स',
+    '（自分だけ）': '(म मात्र)', '（名前なし）': '(नाम छैन)', 'ログインできませんでした': 'लगइन हुन सकेन',
+    '部署': 'विभाग', '招待のみ': 'निमन्त्रणा मात्र', '通知オフ': 'सूचना बन्द',
+    'お気に入り': 'मनपर्ने', '上へ': 'माथि', '下へ': 'तल', 'まとまりに入れる': 'समूहमा राख्नुहोस्', 'まとまり…': 'समूह…', '＋新しいまとまり': '+ नयाँ समूह', 'まとまりから出す': 'समूहबाट निकाल्नुहोस्',
+    'まとまりを作る': 'समूह बनाउनुहोस्', '整理を終わる': 'सकियो', '一覧を整理': 'सूची मिलाउनुहोस्', '★ お気に入り': '★ मनपर्ने', 'まとまりを消す': 'समूह मेटाउनुहोस्',
+    'HALO': 'HALO', 'チャンネル': 'च्यानल', '会話': 'कुराकानी', 'チャンネルがありません': 'च्यानल छैन', 'まとまりの名前（20文字まで）': 'समूहको नाम (२० अक्षरसम्म)',
+    '通知を戻す': 'सूचना फेरि खोल्नुहोस्', '通知を切る': 'सूचना बन्द गर्नुहोस्', '読み込んでいます…': 'लोड हुँदैछ…', 'ここから未読': 'यहाँबाट नपढिएको',
+    '（削除されました）': '(मेटाइयो)', '押すと付ける／外す': 'थिचेर थप्नुहोस् / हटाउनुहोस्', 'スレッドで返信': 'थ्रेडमा जवाफ', '引用して返信': 'उद्धरण गरेर जवाफ',
+    '確認しました': 'पुष्टि गरें', '送っています…': 'पठाउँदै…', '・編集済み': '・सम्पादित', '削除されました': 'मेटाइयो',
+    '押すとブラウザで開きます': 'थिचेर ब्राउजरमा खोल्नुहोस्', '（画像を開けませんでした）': '(तस्बिर खोल्न सकिएन)',
+    '上へ戻るとさらに読みます': 'माथि जाँदा थप लोड हुन्छ', 'まだメッセージがありません': 'अहिलेसम्म सन्देश छैन', 'まだ返信がありません': 'अहिलेसम्म जवाफ छैन',
+    'スタンプ・絵文字': 'स्टिकर・इमोजी', 'まだスタンプがありません。「スタンプを登録」から足せます。': 'अहिलेसम्म स्टिकर छैन। "स्टिकर दर्ता गर्नुहोस्" बाट थप्न सकिन्छ।',
+    '消すのをやめる': 'मेटाउन रोक्नुहोस्', '消すスタンプを押してください（赤い枠が自分のもの。人のものは管理者だけ消せます）': 'मेटाउने स्टिकर थिच्नुहोस् (रातो फ्रेम तपाईंको हो; अरूको स्टिकर व्यवस्थापकले मात्र मेटाउन सक्छ)',
+    'スタンプの名前（20文字まで）': 'स्टिकरको नाम (२० अक्षरसम्म)', '画像を読めませんでした': 'तस्बिर पढ्न सकिएन', '画像が大きすぎます。小さい画像を選んでください': 'तस्बिर धेरै ठूलो छ। सानो तस्बिर छान्नुहोस्',
+    'アイコンを外しますか？': 'आइकन हटाउने हो?', '画像を選んでください': 'तस्बिर छान्नुहोस्',
+    '住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください': 'ठेगाना, फोन नम्बर, बैंक खाता, व्यक्तिगत नम्बर, कार्ड नम्बर, रोगको नाम वा ग्राहकको ड्रइङ नलेख्नुहोस्',
+    'ファイルを付ける（1つ250MBまで）': 'फाइल संलग्न गर्नुहोस् (प्रति फाइल २५०MB सम्म)', '返信を入力': 'जवाफ लेख्नुहोस्', 'メッセージを入力（@ か ＠ で名前）': 'सन्देश लेख्नुहोस् (@ ले नाम)',
+    '送信': 'पठाउनुहोस्', '直しています': 'सच्याउँदै', '保存': 'सुरक्षित गर्नुहोस्', 'このチャンネルの全員に知らせる': 'यो च्यानलका सबैलाई सूचना दिनुहोस्',
+    '添付は1回に10個までです': 'एक पटकमा १० वटा संलग्नसम्म', 'ファイルを送れませんでした': 'फाइल पठाउन सकिएन',
+    'マイナンバーらしい12けたの数字': 'व्यक्तिगत नम्बर जस्तो १२ अङ्कको संख्या', 'カード番号らしい数字': 'कार्ड नम्बर जस्तो संख्या', '口座番号らしい数字': 'खाता नम्बर जस्तो संख्या',
+    '電話番号らしい数字': 'फोन नम्बर जस्तो संख्या', '住所らしい文': 'ठेगाना जस्तो वाक्य', '・協力会社': '・साझेदार कम्पनी', '見つかりません': 'भेटिएन',
+    'HALO が書くチャンネルです。メンバーを足す・外すのは管理者です（自分で抜けることはできます）。': 'यो HALO ले लेख्ने च्यानल हो। सदस्य थप्ने/हटाउने व्यवस्थापकले गर्छ (आफैं छोड्न सकिन्छ)।',
+    '部署のチャンネルです。メンバーは名簿の部署で決まります（異動すると自動で入れ替わります）。': 'यो विभागको च्यानल हो। सदस्य कर्मचारी सूचीको विभाग अनुसार हुन्छ (सरुवा हुँदा आफैं बदलिन्छ)।',
+    '全員が見られるチャンネルです。': 'सबैले हेर्न सक्ने च्यानल।', '1対1の会話です。': '१-१ कुराकानी।',
+    '招かれた人だけが見られます。名前・メンバーを変えられるのは、作った人と管理者です。': 'निमन्त्रणा गरिएकाले मात्र हेर्न सक्छन्। नाम र सदस्य बनाउने व्यक्ति र व्यवस्थापकले बदल्न सक्छन्।',
+    '・作った人': '・बनाउने व्यक्ति', '足す人を選んでください。': 'थप्ने व्यक्ति छान्नुहोस्।', '足す': 'थप्नुहोस्',
+    'このチャンネルから抜けますか？（もう一度入るには、メンバーに足してもらう必要があります）': 'यो च्यानल छोड्ने हो? (फेरि आउन सदस्यले थप्नुपर्छ)',
+    'このチャンネルをしまいますか？（一覧から消え、読み書きできなくなります。中身は消えません）': 'यो च्यानल संग्रह गर्ने हो? (सूचीबाट हराउँछ र पढ्न/लेख्न मिल्दैन। सामग्री मेटिँदैन)',
+    '探しています…': 'खोज्दै…', '見つかりませんでした': 'भेटिएन', 'つながっています': 'जडान भयो', 'つながっていません（つなぎ直しています）': 'जडान छैन (फेरि जोड्दै)',
+    'このチャンネルは見られなくなりました': 'अब यो च्यानल हेर्न सकिँदैन',
+    'このチャンネルには書き込めません': 'यो च्यानलमा लेख्न मिल्दैन', 'チャンネルが見つかりません': 'च्यानल भेटिएन', 'メッセージが空です': 'सन्देश खाली छ',
+    'メッセージが見つかりません': 'सन्देश भेटिएन', '管理者権限がありません': 'व्यवस्थापकको अनुमति छैन', 'チャットはまだ使えません': 'च्याट अझै प्रयोग गर्न मिल्दैन',
+    'この安否確認は終わっています': 'यो सुरक्षा पुष्टि सकिएको छ', '承認者権限がありません': 'स्वीकृत गर्ने अनुमति छैन',
+    '返信 {n}件': '{n} जवाफ', '{n}人': '{n} जना', '確認しました：{names}': 'पुष्टि गरे: {names}',
+    '選んだ人：{names}': 'छानिएका: {names}', '選んだ人：{n}人（{names} ほか）': 'छानिएका: {n} जना ({names} र अन्य)',
+    '引用：{name}「{text}」': 'उद्धरण: {name} "{text}"', '「{q}」の結果 {n}件': '"{q}" को नतिजा: {n}',
+    '送れませんでした{err}（押すともう一度送ります）': 'पठाउन सकिएन{err} (फेरि पठाउन थिच्नुहोस्)',
+    'まとまり「{name}」を消しますか？（中のチャンネルは元の場所に戻ります）': 'समूह "{name}" मेटाउने हो? (भित्रका च्यानल पुरानो ठाउँमा फर्किन्छन्)',
+    'スタンプ「{name}」を消しますか？（もう送ったものも [スタンプ] になります）': 'स्टिकर "{name}" मेटाउने हो? (पठाइसकेका पनि [स्टिकर] हुन्छन्)',
+    '「{name}」は大きすぎます（1つ250MBまで）。SharePoint に置いてリンクを貼ってください': '"{name}" धेरै ठूलो छ (२५०MB सम्म)। SharePoint मा राखेर लिङ्क टाँस्नुहोस्',
+    'ファイルを送れませんでした（{status}）': 'फाइल पठाउन सकिएन ({status})', '{msg}\nダウンロードしますか？': '{msg}\nडाउनलोड गर्ने हो?',
+    'HALO が書くチャンネルです。はじめは「{rule}」が入り、新しく入った人も自動で入ります。': 'यो HALO ले लेख्ने च्यानल हो। सुरुमा "{rule}" हुन्छन्, नयाँ आउनेहरू पनि आफैं थपिन्छन्।',
+    'メンバーを足す・外すのは管理者です（自分で抜けることはできます）。': 'सदस्य थप्ने/हटाउने व्यवस्थापकले गर्छ (आफैं छोड्न सकिन्छ)।',
+    '外した人：{names}（足すと戻ります）。': 'हटाइएका: {names} (थपेमा फर्किन्छ)।', '足した人：{names}。': 'थपिएका: {names}।',
+    '全員（協力会社も）': 'सबै (साझेदार कम्पनी पनि)', '社員全員': 'सबै कर्मचारी', '総務の人と管理者': 'सामान्य प्रशासन र व्यवस्थापक',
+    '[スタンプ]': '[स्टिकर]', '[画像]': '[तस्बिर]',
+  },
+}[LANG] || null;
+/** 決まった文を今の言葉にする（辞書に無ければそのまま） */
+function tr(s) {
+  if (!I18N || typeof s !== 'string') return s;
+  const k = s.trim();
+  return k && I18N[k] ? s.replace(k, I18N[k]) : s;
+}
+/** 名前や数が入る文。tf('返信 {n}件', { n: 3 }) */
+function tf(key, vars) {
+  const base = (I18N && I18N[key]) || key;
+  return base.replace(/\{(\w+)\}/g, (_, v) => (vars && vars[v] !== undefined ? String(vars[v]) : ''));
+}
+// 人が書いたもの（本文・名前・チャンネル名・探した言葉）は置き換えない
+const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where';
+const NO_TR_ATTR = NO_TR.replace(',textarea', ''); // 入力欄の「入力してください」の文（placeholder）は訳す
+function trTree(root) {
+  if (!I18N || !root) return;
+  if (root.nodeType === 3) { if (!(root.parentElement && root.parentElement.closest(NO_TR))) { const v = tr(root.nodeValue); if (v !== root.nodeValue) root.nodeValue = v; } return; }
+  if (root.nodeType !== 1) return;
+  if (root.closest(NO_TR)) { if (root.matches('textarea')) { const v = tr(root.getAttribute('placeholder')); if (v && v !== root.getAttribute('placeholder')) root.setAttribute('placeholder', v); } return; }
+  for (const a of ['placeholder', 'title', 'aria-label']) {
+    root.querySelectorAll('[' + a + ']').forEach((el) => { if (!el.closest(NO_TR_ATTR)) { const v = tr(el.getAttribute(a)); if (v !== el.getAttribute(a)) el.setAttribute(a, v); } });
+    if (root.hasAttribute && root.hasAttribute(a)) { const v = tr(root.getAttribute(a)); if (v !== root.getAttribute(a)) root.setAttribute(a, v); }
+  }
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const list = [];
+  for (let n = w.nextNode(); n; n = w.nextNode()) list.push(n);
+  for (const n of list) {
+    if (n.parentElement && n.parentElement.closest(NO_TR)) continue;
+    const v = tr(n.nodeValue);
+    if (v !== n.nodeValue) n.nodeValue = v;
+  }
+}
+if (I18N) {
+  document.documentElement.lang = LANG;
+  trTree(document.body);
+  new MutationObserver((ms) => {
+    for (const m of ms) {
+      if (m.type === 'characterData') trTree(m.target);
+      else m.addedNodes.forEach((n) => trTree(n));
+    }
+  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  // 確かめる・聞く・知らせる窓の文も
+  const _c = window.confirm.bind(window), _p = window.prompt.bind(window), _a = window.alert.bind(window);
+  window.confirm = (m) => _c(tr(m));
+  window.prompt = (m, d) => _p(tr(m), d);
+  window.alert = (m) => _a(tr(m));
+}
+
 const S = {
   token: '', me: '', users: {}, channels: [], cur: null, msgs: [], hasMore: false, loadingOlder: false,
   firstUnreadSeq: null, thread: null, threadMsgs: [], ws: null, wsTry: 0, readTimer: null,
   pendingDel: null, emojiTarget: null,
   avatars: {}, stamps: [], stampMode: null, // 顔写真（社員番号 → 画像の id）・スタンプの一覧・スタンプの窓の使い方（2026-11-18）
+  prefs: { fav: [], cats: [] }, listEdit: false, // お気に入り・まとまり（人ごと。Worker の chatPrefsSave）・一覧を整理している最中か
   answered: {}, // HALO お知らせの安否確認に、この画面で答えた結果（seq → 文）。人ごとなので投稿には残らない
   // HALO 本体のタブの中では、チャットのタブを開いているときだけ「見ている」（親が知らせる。2026-11-18）
   active: !EMBED, sleeping: false, lastFocus: null, lastUnread: null,
@@ -429,16 +639,16 @@ function haloButtons(m) {
   const btn = (a, label, primary) => `<button type="button" data-act="hbtn" data-a="${a}"${primary ? ' class="primary"' : ''}>${label}</button>`;
   if (meta.result) {
     const who = meta.result.by && meta.result.by !== S.me ? '（' + esc(nameOf(meta.result.by)) + '）' : '';
-    return `<span class="h-result">${esc(meta.result.text)}${who}・${hm(meta.result.at)}</span>`;
+    return `<span class="h-result">${esc(tr(meta.result.text))}${who}・${hm(meta.result.at)}</span>`;
   }
   if (meta.type === 'approval_request' && ch && ch.kind === 'inbox') {
-    if (LITE) return '<span class="h-result">承認・却下は会社の端末の HALO でできます</span>';
-    return `<span class="h-btns">${btn('approve', '承認', true)}${btn('reject', '却下')}</span>`;
+    if (LITE) return `<span class="h-result">${esc(tr('承認・却下は会社の端末の HALO でできます'))}</span>`;
+    return `<span class="h-btns">${btn('approve', tr('承認'), true)}${btn('reject', tr('却下'))}</span>`;
   }
   if (meta.type === 'notice' && meta.safetyId && ch && ch.id === 'system:notice') {
     const done = S.answered[m.seq];
-    return `<span class="h-btns">${btn('safe', '無事', true)}${btn('damaged', '被害あり')}${btn('other', 'その他')}</span>`
-      + (done ? `<span class="h-result">${esc(done)}</span>` : '');
+    return `<span class="h-btns">${btn('safe', tr('無事'), true)}${btn('damaged', tr('被害あり'))}${btn('other', tr('その他'))}</span>`
+      + (done ? `<span class="h-result">${esc(tr(done))}</span>` : '');
   }
   return '';
 }
@@ -473,12 +683,13 @@ function renderBody(m) {
 
 function chTitle(c) {
   if (!c) return '';
-  if (c.kind === 'inbox') return 'HALO 通知';
+  if (c.kind === 'inbox') return tr('HALO 通知');
+  if (c.kind === 'system' || c.kind === 'feed' || c.id === 'general') return tr(c.name || ''); // HALO が付けた名前は今の言葉で
   if (c.kind === 'dm' || c.kind === 'group') {
     const others = (c.members || []).filter((id) => id !== S.me).map(nameOf);
-    return others.join('、') || '（自分だけ）';
+    return others.join('、') || tr('（自分だけ）');
   }
-  return c.name || '（名前なし）';
+  return c.name || tr('（名前なし）');
 }
 
 /** チャットを使える人か（試す人だけに絞っているときは、その部署の人だけ） */
@@ -504,6 +715,7 @@ async function start() {
     S.onlyDepts = init.onlyDepts || []; // 試す人だけに絞っているときの部署（会話の相手・メンションの候補もその人たちだけ）
     S.maxFileBytes = init.maxFileBytes || 250 * 1024 * 1024;
     S.avatars = init.avatars || {}; S.stamps = init.stamps || [];
+    S.prefs = init.prefs || { fav: [], cats: [] };
     document.querySelectorAll('.attach').forEach((b) => b.classList.toggle('hidden', !S.filesEnabled));
     $('meName').textContent = nameOf(S.me);
     renderChannels();
@@ -529,25 +741,125 @@ $('loginForm').addEventListener('submit', async (ev) => {
 });
 
 // ---------- チャンネルの一覧 ----------
+/**
+ * チャンネルの一覧（2026-11-19：お気に入り・まとまり・並べ替え。R-05）
+ *   ★お気に入り → 自分で作ったまとまり（たためる）→ HALO → チャンネル → 会話。
+ *   お気に入り・まとまりの中は自分で決めた順（「一覧を整理」で ↑↓）。ほかは新しい順。
+ */
 function renderChannels() {
   S.channels.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
-  const row = (c) => `
-    <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}" data-id="${esc(c.id)}">
-      <div class="nm"><b>${c.kind === 'dm' ? avatarHtml((c.members || []).find((x) => x !== S.me) || S.me) : ''}${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? '<span class="tag">部署</span>' : c.kind === 'private' ? '<span class="tag">招待のみ</span>' : ''}</b><small>${esc(previewText(c.lastPreview))}</small></div>
+  const byId = new Map(S.channels.map((c) => [c.id, c]));
+  const pr = S.prefs || { fav: [], cats: [] };
+  const used = new Set();
+  const favs = pr.fav.map((id) => byId.get(id)).filter(Boolean);
+  favs.forEach((c) => used.add(c.id));
+  const cats = pr.cats.map((cat) => {
+    const list = cat.ids.map((id) => byId.get(id)).filter((c) => c && !used.has(c.id));
+    list.forEach((c) => used.add(c.id));
+    return { cat, list };
+  });
+  const rest = S.channels.filter((c) => !used.has(c.id));
+  const ed = S.listEdit;
+  const catOf = (id) => (pr.cats.find((x) => x.ids.includes(id)) || {}).id || '';
+  const row = (c, where) => `
+    <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}${ed ? ' editing' : ''}" data-id="${esc(c.id)}">
+      <div class="nm"><b>${c.kind === 'dm' ? avatarHtml((c.members || []).find((x) => x !== S.me) || S.me) : ''}${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? `<span class="tag">${tr('部署')}</span>` : c.kind === 'private' ? `<span class="tag">${tr('招待のみ')}</span>` : ''}</b><small>${esc(previewText(c.lastPreview))}</small></div>
       ${c.muted ? '<span class="mute">通知オフ</span>' : ''}
       ${c.unread ? `<span class="badge">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}
+      ${ed ? `<span class="ed">
+        <button type="button" data-ed="fav" class="${pr.fav.includes(c.id) ? 'on' : ''}" title="お気に入り">${pr.fav.includes(c.id) ? '★' : '☆'}</button>
+        ${where ? `<button type="button" data-ed="up" title="上へ">↑</button><button type="button" data-ed="down" title="下へ">↓</button>` : ''}
+        ${pr.fav.includes(c.id) ? '' : `<select data-ed="cat" title="まとまりに入れる"><option value="">まとまり…</option>${pr.cats.map((x) => `<option value="${esc(x.id)}"${catOf(c.id) === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}<option value="+">＋新しいまとまり</option>${catOf(c.id) ? '<option value="-">まとまりから出す</option>' : ''}</select>`}
+      </span>` : ''}
     </div>`;
-  const halo = S.channels.filter(isHaloCh);
-  const chs = S.channels.filter((c) => c.kind !== 'dm' && c.kind !== 'group' && !isHaloCh(c));
-  const dms = S.channels.filter((c) => c.kind === 'dm' || c.kind === 'group');
-  $('chList').innerHTML = (halo.length ? '<div class="sec">HALO</div>' + halo.map(row).join('') : '')
-    + (chs.length ? '<div class="sec">チャンネル</div>' + chs.map(row).join('') : '')
-    + (dms.length ? '<div class="sec">会話</div>' + dms.map(row).join('') : '')
-    || '<div class="empty">チャンネルがありません</div>';
+  const grp = (key, title, n, open, tools) => `<div class="sec grp${open ? '' : ' closed'}" data-grp="${esc(key)}"><span class="fold">▾</span><span>${title}</span><span>${n}</span>${tools || ''}</div>`;
+  const halo = rest.filter(isHaloCh);
+  const chs = rest.filter((c) => c.kind !== 'dm' && c.kind !== 'group' && !isHaloCh(c));
+  const dms = rest.filter((c) => c.kind === 'dm' || c.kind === 'group');
+  const favOpen = !(pr.closed || []).includes('fav');
+  const tools = `<div class="list-tools">${ed ? '<button type="button" class="txt-btn" data-ed="newcat">まとまりを作る</button>' : ''}<button type="button" class="txt-btn" data-ed="toggle">${ed ? '整理を終わる' : '一覧を整理'}</button></div>`;
+  $('chList').innerHTML = tools
+    + (favs.length ? grp('fav', '★ お気に入り', '', favOpen) + (favOpen ? favs.map((c) => row(c, 'fav')).join('') : '') : '')
+    + cats.map(({ cat, list }) => grp('cat:' + cat.id, esc(cat.name), list.length ? `（${list.length}）` : '', cat.open,
+      ed ? `<span class="sec-ed"><button type="button" data-ed="catname" data-cat="${esc(cat.id)}" title="名前を変える">✎</button><button type="button" data-ed="catdel" data-cat="${esc(cat.id)}" title="まとまりを消す">×</button></span>` : '')
+      + (cat.open ? list.map((c) => row(c, 'cat:' + cat.id)).join('') : '')).join('')
+    + (halo.length ? '<div class="sec">HALO</div>' + halo.map((c) => row(c, '')).join('') : '')
+    + (chs.length ? '<div class="sec">チャンネル</div>' + chs.map((c) => row(c, '')).join('') : '')
+    + (dms.length ? '<div class="sec">会話</div>' + dms.map((c) => row(c, '')).join('') : '')
+    + (S.channels.length ? '' : '<div class="empty">チャンネルがありません</div>');
   postUnread();
   loadImgs();
 }
-$('chList').addEventListener('click', (e) => { const el = e.target.closest('.ch'); if (el) openChannel(el.dataset.id); });
+/** 並べ方を残す（続けて押しても1回にまとめる） */
+let prefsTimer = null;
+function savePrefsSoon() {
+  clearTimeout(prefsTimer);
+  prefsTimer = setTimeout(() => api('chatPrefsSave', { prefs: S.prefs }).then((r) => { if (r && r.prefs) S.prefs = r.prefs; }).catch((e) => toast(e.message)), 600);
+  renderChannels();
+}
+const newCatId = () => Math.random().toString(36).slice(2, 10);
+function addCat() {
+  const name = prompt('まとまりの名前（20文字まで）');
+  if (!name || !name.trim()) return null;
+  const cat = { id: newCatId(), name: name.trim().slice(0, 20), ids: [], open: true };
+  S.prefs.cats.push(cat);
+  return cat;
+}
+function moveIn(list, id, d) {
+  const i = list.indexOf(id), j = i + d;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
+}
+$('chList').addEventListener('click', (e) => {
+  const edEl = e.target.closest('[data-ed]');
+  if (edEl) {
+    if (edEl.tagName === 'SELECT') return; // まとまりの選択は change で
+    e.stopPropagation();
+    const a = edEl.dataset.ed, pr = S.prefs;
+    const id = edEl.closest('.ch')?.dataset.id;
+    if (a === 'toggle') { S.listEdit = !S.listEdit; renderChannels(); }
+    else if (a === 'newcat') { if (addCat()) savePrefsSoon(); }
+    else if (a === 'fav' && id) {
+      if (pr.fav.includes(id)) pr.fav = pr.fav.filter((x) => x !== id);
+      else { pr.fav.push(id); pr.cats.forEach((x) => { x.ids = x.ids.filter((y) => y !== id); }); }
+      savePrefsSoon();
+    } else if ((a === 'up' || a === 'down') && id) {
+      const d = a === 'up' ? -1 : 1;
+      if (pr.fav.includes(id)) moveIn(pr.fav, id, d);
+      else { const cat = pr.cats.find((x) => x.ids.includes(id)); if (cat) moveIn(cat.ids, id, d); }
+      savePrefsSoon();
+    } else if (a === 'catname') {
+      const cat = pr.cats.find((x) => x.id === edEl.dataset.cat);
+      const name = cat && prompt('まとまりの名前（20文字まで）', cat.name);
+      if (cat && name && name.trim()) { cat.name = name.trim().slice(0, 20); savePrefsSoon(); }
+    } else if (a === 'catdel') {
+      const cat = pr.cats.find((x) => x.id === edEl.dataset.cat);
+      if (cat && confirm(tf('まとまり「{name}」を消しますか？（中のチャンネルは元の場所に戻ります）', { name: cat.name }))) { pr.cats = pr.cats.filter((x) => x !== cat); savePrefsSoon(); }
+    }
+    return;
+  }
+  const g = e.target.closest('.sec.grp');
+  if (g) {
+    // まとまり・お気に入りをたたむ／ひらく
+    const key = g.dataset.grp;
+    if (key === 'fav') { const cl = new Set(S.prefs.closed || []); cl.has('fav') ? cl.delete('fav') : cl.add('fav'); S.prefs.closed = [...cl]; }
+    else { const cat = S.prefs.cats.find((x) => 'cat:' + x.id === key); if (cat) cat.open = !cat.open; }
+    savePrefsSoon();
+    return;
+  }
+  const el = e.target.closest('.ch');
+  if (el) openChannel(el.dataset.id);
+});
+$('chList').addEventListener('change', (e) => {
+  const sel = e.target.closest('select[data-ed="cat"]');
+  if (!sel) return;
+  const id = sel.closest('.ch').dataset.id, v = sel.value, pr = S.prefs;
+  let cat = null;
+  if (v === '+') { cat = addCat(); if (!cat) { renderChannels(); return; } }
+  pr.cats.forEach((x) => { x.ids = x.ids.filter((y) => y !== id); });
+  if (v && v !== '-') { cat = cat || pr.cats.find((x) => x.id === v); if (cat) cat.ids.push(id); }
+  savePrefsSoon();
+});
 $('back').addEventListener('click', () => { document.body.classList.remove('in-ch'); closeThread(); sendFocus(); });
 
 async function openChannel(id) {
@@ -556,7 +868,7 @@ async function openChannel(id) {
   S.cur = id;
   S.msgs = [];
   const ch = S.channels.find((c) => c.id === id);
-  $('chName').innerHTML = esc(chTitle(ch)) + (ch && ch.kind === 'group' ? `<span class="sub">${(ch.members || []).length}人</span>` : '');
+  $('chName').innerHTML = esc(chTitle(ch)) + (ch && ch.kind === 'group' ? `<span class="sub">${esc(tf('{n}人', { n: (ch.members || []).length }))}</span>` : '');
   $('muteBtn').textContent = ch && ch.muted ? '通知を戻す' : '通知を切る';
   const ro = isHaloCh(ch);
   $('mainComposer').classList.toggle('hidden', ro);
@@ -599,14 +911,14 @@ function msgHtml(m, prev, where) {
   const mentioned = !mine && (m.mentions || []).some((id) => id === S.me || id === 'all');
   const cls = 'm' + (mine ? ' mine' : '') + (halo ? ' halo' : '') + (isStampOnly(m) ? ' stamp-only' : '') + (mentioned ? ' mentioned' : '') + (m.deleted ? ' deleted' : '')
     + (m._pending ? ' pending' : '') + (m._failed ? ' failed' : '');
-  const quote = m.quote ? `<span class="quote">${esc(nameOf(m.quote.empId))}：${m.quote.deleted ? '（削除されました）' : esc(previewText(m.quote.body))}</span>` : '';
+  const quote = m.quote ? `<span class="quote">${esc(nameOf(m.quote.empId))}：${m.quote.deleted ? tr('（削除されました）') : esc(previewText(m.quote.body))}</span>` : '';
   const stamps = (m.reactions || []).find((r) => r.emoji === STAMP);
   const emo = (m.reactions || []).filter((r) => r.emoji !== STAMP);
   const reacts = m.deleted ? '' : [
     ...emo.map((r) => `<button class="chip${r.empIds.includes(S.me) ? ' on' : ''}" data-act="toggle" data-emoji="${esc(r.emoji)}" title="${esc(r.empIds.map(nameOf).join('、'))}">${/^:s_[0-9a-f-]{36}:$/.test(r.emoji) ? stampHtml(r.emoji.slice(1, -1), false) : esc(r.emoji)} ${r.empIds.length}</button>`),
-    ...(stamps ? [`<button class="chip stamp${stamps.empIds.includes(S.me) ? ' on' : ''}" data-act="stamp" title="押すと付ける／外す">確認しました：${esc(stamps.empIds.map(nameOf).join('、'))}</button>`] : []),
+    ...(stamps ? [`<button class="chip stamp${stamps.empIds.includes(S.me) ? ' on' : ''}" data-act="stamp" title="押すと付ける／外す">${esc(tf('確認しました：{names}', { names: stamps.empIds.map(nameOf).join('、') }))}</button>`] : []),
   ].join('');
-  const replies = where === 'main' && m.replyCount ? `<button class="replies" data-act="thread">返信 ${m.replyCount}件${m.lastReplyAt ? '・' + hm(m.lastReplyAt) : ''}</button>` : '';
+  const replies = where === 'main' && m.replyCount ? `<button class="replies" data-act="thread">${esc(tf('返信 {n}件', { n: m.replyCount }))}${m.lastReplyAt ? '・' + hm(m.lastReplyAt) : ''}</button>` : '';
   const acts = m.deleted || m._pending || m._failed ? '' : `<div class="acts">
       ${where === 'main' && !halo ? `<button data-act="thread" title="スレッドで返信">${ICON.reply}</button>` : ''}
       ${halo ? '' : `<button data-act="quote" title="引用して返信">${ICON.quote}</button>`}
@@ -614,11 +926,11 @@ function msgHtml(m, prev, where) {
       <button data-act="stamp" title="確認しました">${ICON.stamp}</button>
       ${mine ? `<button data-act="edit" title="直す">${ICON.edit}</button><button data-act="del" title="消す">${ICON.del}</button>` : ''}
     </div>`;
-  const status = m._failed ? '送れませんでした' + (m._err ? '：' + m._err : '') + '（押すともう一度送ります）' : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? '・編集済み' : '');
+  const status = m._failed ? tf('送れませんでした{err}（押すともう一度送ります）', { err: m._err ? '：' + tr(m._err) : '' }) : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? tr('・編集済み') : '');
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
     ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
     ${acts}
-    <div class="bub">${m.deleted ? '削除されました' : halo ? haloBody(m) : quote + renderBody(m) + filesHtml(m)}</div>
+    <div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : quote + renderBody(m) + filesHtml(m)}</div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
     ${replies}
     <div class="meta">${status}</div>
@@ -635,8 +947,8 @@ function filesHtml(m) {
   if (!fs.length) return '';
   return '<div class="files">' + fs.map((f) => (isImage(f) && !m._pending
     ? `<img class="thumb" alt="${esc(f.name)}" title="${esc(f.name)}" data-file="${esc(f.itemId)}">`
-    : `<span class="file-row"><button type="button" class="file" data-file="${esc(f.itemId || '')}" title="押すとブラウザで開きます"><b>${esc(f.name)}</b><small>${sizeText(f.size || 0)}${f._progress !== undefined ? '・' + f._progress + '%' : ''}</small></button>`
-      + (f.itemId ? `<button type="button" class="file-dl" data-dl="${esc(f.itemId)}" title="ダウンロード"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>` : '') + '</span>')).join('') + '</div>';
+    : `<span class="file-row"><button type="button" class="file" data-file="${esc(f.itemId || '')}" title="${esc(tr('押すとブラウザで開きます'))}"><b>${esc(f.name)}</b><small>${sizeText(f.size || 0)}${f._progress !== undefined ? '・' + f._progress + '%' : ''}</small></button>`
+      + (f.itemId ? `<button type="button" class="file-dl" data-dl="${esc(f.itemId)}" title="${esc(tr('ダウンロード'))}"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>` : '') + '</span>')).join('') + '</div>';
 }
 const fileUrlCache = new Map(); // itemId → { url, webUrl, until }
 async function fileUrl(itemId) {
@@ -676,10 +988,10 @@ function avatarHtml(id, cls) {
 }
 const STAMP_RE = /:(s_[0-9a-f-]{36}):/g;
 const stampName = (id) => (S.stamps.find((x) => x.id === id) || {}).name || '';
-const previewText = (t) => String(t || '').replace(STAMP_RE, '[スタンプ]').replace(/［画像\d+］/g, '[画像]');
+const previewText = (t) => String(t || '').replace(STAMP_RE, tr('[スタンプ]')).replace(/［画像\d+］/g, tr('[画像]'));
 /** スタンプ（:s_<id>:）を画像に。消されたスタンプは [スタンプ] のまま */
 function stampHtml(id, big) {
-  if (!S.stamps.some((x) => x.id === id)) return '[スタンプ]';
+  if (!S.stamps.some((x) => x.id === id)) return tr('[スタンプ]');
   return `<img class="${big ? 'stamp-big' : 'stamp-inl'}" data-img="${esc(id)}" alt="${esc(stampName(id))}" title="${esc(stampName(id))}">`;
 }
 const isStampOnly = (m) => !(m.files || []).length && /^:s_[0-9a-f-]{36}:$/.test(String(m.body || '').trim());
@@ -721,7 +1033,7 @@ async function openPreview(itemId) {
     if (w) w.location = r.previewUrl; else location.href = r.previewUrl;
   } catch (e) {
     if (w) w.close();
-    if (confirm(e.message + '\nダウンロードしますか？')) openFileAct(itemId);
+    if (confirm(tf('{msg}\nダウンロードしますか？', { msg: tr(e.message) }))) openFileAct(itemId);
   }
 }
 
@@ -858,7 +1170,7 @@ $('stampGrid').addEventListener('click', async (e) => {
   if (!b || !S.stampMode) return;
   const id = b.dataset.stamp;
   if ($('stampGrid').classList.contains('del')) {
-    if (!confirm('スタンプ「' + stampName(id) + '」を消しますか？（もう送ったものも [スタンプ] になります）')) return;
+    if (!confirm(tf('スタンプ「{name}」を消しますか？（もう送ったものも [スタンプ] になります）', { name: stampName(id) }))) return;
     try { await api('chatStampDelete', { id }); S.stamps = S.stamps.filter((x) => x.id !== id); renderStampGrid(); } catch (er) { $('stampErr').textContent = er.message; }
     return;
   }
@@ -1154,7 +1466,7 @@ function setComposer(where, o) {
   // 直すのをやめたときは、直していた文を消す（書きかけには戻さない）
   if (o.text !== undefined) c.input.value = o.text;
   else if (wasEditing && !o.edit) c.input.value = '';
-  const label = o.edit ? '直しています' : o.quote ? `引用：${nameOf(o.quote.empId)}「${previewText(o.quote.body).replace(/\s+/g, ' ').slice(0, 40)}」` : '';
+  const label = o.edit ? tr('直しています') : o.quote ? tf('引用：{name}「{text}」', { name: nameOf(o.quote.empId), text: previewText(o.quote.body).replace(/\s+/g, ' ').slice(0, 40) }) : '';
   c.ctx.classList.toggle('hidden', !label);
   c.ctx.querySelector('span').textContent = label;
   c.send.textContent = o.edit ? '保存' : '送信';
@@ -1182,7 +1494,7 @@ function mentionSearch(where) {
     return [u.name, u.dispName, u.dept, id].some((s) => s && String(s).toLowerCase().includes(q));
   }).slice(0, 30);
   if (!list.length) { c.box.classList.add('hidden'); return; }
-  c.box.innerHTML = list.map((id, k) => `<div data-id="${esc(id)}" class="${k === 0 ? 'sel' : ''}">${esc(id === 'all' ? '全員' : fullNameOf(id))}<small>${esc(id === 'all' ? 'このチャンネルの全員に知らせる' : (S.users[id]?.dept || ''))}</small></div>`).join('');
+  c.box.innerHTML = list.map((id, k) => `<div data-id="${esc(id)}" class="${k === 0 ? 'sel' : ''}">${esc(id === 'all' ? tr('全員') : fullNameOf(id))}<small>${esc(id === 'all' ? tr('このチャンネルの全員に知らせる') : (S.users[id]?.dept || ''))}</small></div>`).join('');
   c.box.classList.remove('hidden');
 }
 function pickMention(where, id) {
@@ -1208,7 +1520,7 @@ let piiWhere = null;
 function addFiles(where, list) {
   const c = C[where];
   for (const f of list) {
-    if (f.size > S.maxFileBytes) { toast('「' + f.name + '」は大きすぎます（1つ250MBまで）。SharePoint に置いてリンクを貼ってください'); continue; }
+    if (f.size > S.maxFileBytes) { toast(tf('「{name}」は大きすぎます（1つ250MBまで）。SharePoint に置いてリンクを貼ってください', { name: f.name })); continue; }
     if (c.files.length >= 10) { toast('添付は1回に10個までです'); break; }
     c.files.push(f);
     // 画像は、入力欄のいまの位置に［画像1］を入れる（送ると本文のその場所に出る。消せば下にまとめて出る。2026-11-18）
@@ -1306,7 +1618,7 @@ async function uploadFile(channelId, file, onProgress) {
   for (let start = 0; start < file.size; start += chunk) {
     const end = Math.min(start + chunk, file.size);
     const res = await fetch(st.uploadUrl, { method: 'PUT', headers: { 'Content-Range': 'bytes ' + start + '-' + (end - 1) + '/' + file.size }, body: file.slice(start, end) });
-    if (!res.ok) throw new Error('ファイルを送れませんでした（' + res.status + '）');
+    if (!res.ok) throw new Error(tf('ファイルを送れませんでした（{status}）', { status: res.status }));
     if (res.status === 200 || res.status === 201) item = await res.json();
     onProgress(Math.round((end / file.size) * 100));
   }
@@ -1364,6 +1676,9 @@ function openPeople({ title, note, goLabel, exclude, onGo }) {
   $('peopleNote').textContent = note;
   $('peopleGo').textContent = goLabel;
   $('peopleQ').value = '';
+  // 部署ごとにまとめて選ぶ（2026-11-18 ユーザー要望：全社のチャンネルに一括で人を入れたい）
+  const depts = [...new Set(Object.values(S.users).filter((u) => !peopleExclude.has(u.id) && canChat(u.id)).map((u) => u.dept || ''))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ja'));
+  $('peopleDept').innerHTML = '<option value="">部署ごとに選ぶ…</option>' + depts.map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
   renderPeople();
   $('people').classList.remove('hidden');
   $('peopleQ').focus();
@@ -1380,14 +1695,26 @@ $('newDm').addEventListener('click', () => openPeople({
 }));
 $('peopleNo').addEventListener('click', () => $('people').classList.add('hidden'));
 $('peopleQ').addEventListener('input', renderPeople);
-function renderPeople() {
+$('peopleAll').addEventListener('click', () => { peopleCandidates().forEach((u) => picked.add(u.id)); renderPeople(); });
+$('peopleClear').addEventListener('click', () => { picked.clear(); renderPeople(); });
+$('peopleDept').addEventListener('change', () => {
+  const d = $('peopleDept').value;
+  if (d) Object.values(S.users).filter((u) => (u.dept || '') === d && !peopleExclude.has(u.id) && canChat(u.id)).forEach((u) => picked.add(u.id));
+  $('peopleDept').value = '';
+  renderPeople();
+});
+/** 選べる人（いまの絞り込みに合う人。並びは部署・名前） */
+function peopleCandidates() {
   const q = $('peopleQ').value.trim().toLowerCase();
-  const list = Object.values(S.users).filter((u) => !peopleExclude.has(u.id) && canChat(u.id))
+  return Object.values(S.users).filter((u) => !peopleExclude.has(u.id) && canChat(u.id))
     .filter((u) => !q || [u.name, u.dispName, u.dept, u.id].some((v) => v && String(v).toLowerCase().includes(q)))
-    .sort((a, b) => String(a.dept).localeCompare(String(b.dept), 'ja') || String(a.name).localeCompare(String(b.name), 'ja'))
+    .sort((a, b) => String(a.dept).localeCompare(String(b.dept), 'ja') || String(a.name).localeCompare(String(b.name), 'ja'));
+}
+function renderPeople() {
+  const list = peopleCandidates()
     .slice(0, 200);
-  $('peopleList').innerHTML = list.map((u) => `<label><input type="checkbox" value="${esc(u.id)}" ${picked.has(u.id) ? 'checked' : ''}><span>${esc(u.name)} <small>${esc(u.dept || '')}${u.isPartner ? '・協力会社' : ''}</small></span></label>`).join('') || '<div class="empty">見つかりません</div>';
-  $('picked').textContent = picked.size ? `選んだ人：${[...picked].map(fullNameOf).join('、')}` : '';
+  $('peopleList').innerHTML = list.map((u) => `<label><input type="checkbox" value="${esc(u.id)}" ${picked.has(u.id) ? 'checked' : ''}><span>${esc(u.name)} <small>${esc(u.dept || '')}${u.isPartner ? tr('・協力会社') : ''}</small></span></label>`).join('') || `<div class="empty">${tr('見つかりません')}</div>`;
+  $('picked').textContent = picked.size ? (picked.size > 15 ? tf('選んだ人：{n}人（{names} ほか）', { n: picked.size, names: [...picked].slice(0, 5).map(fullNameOf).join('、') }) : tf('選んだ人：{names}', { names: [...picked].map(fullNameOf).join('、') })) : '';
   $('peopleGo').disabled = !picked.size;
 }
 $('peopleList').addEventListener('change', (e) => { const cb = e.target; if (cb.checked) picked.add(cb.value); else picked.delete(cb.value); renderPeople(); });
@@ -1447,12 +1774,12 @@ async function openSettings() {
     if (r.feed) {
       // はじめの決まりで入る人＋管理者が足した人−外した人。新しく入った人も決まりどおり自動で入る
       const names = (ids) => ids.map(fullNameOf).join('、');
-      $('setNote').textContent = `HALO が書くチャンネルです。はじめは「${r.feed.rule}」が入り、新しく入った人も自動で入ります。`
-        + 'メンバーを足す・外すのは管理者です（自分で抜けることはできます）。'
-        + (r.feed.removed.length ? `外した人：${names(r.feed.removed)}（足すと戻ります）。` : '')
-        + (r.feed.added.length ? `足した人：${names(r.feed.added)}。` : '');
+      $('setNote').textContent = tf('HALO が書くチャンネルです。はじめは「{rule}」が入り、新しく入った人も自動で入ります。', { rule: tr(r.feed.rule) })
+        + tr('メンバーを足す・外すのは管理者です（自分で抜けることはできます）。')
+        + (r.feed.removed.length ? tf('外した人：{names}（足すと戻ります）。', { names: names(r.feed.removed) }) : '')
+        + (r.feed.added.length ? tf('足した人：{names}。', { names: names(r.feed.added) }) : '');
     }
-    $('setMembers').innerHTML = r.members.map((m) => `<div><span>${esc(fullNameOf(m.empId))} <small>${esc(S.users[m.empId]?.dept || '')}${m.role === 'owner' ? '・作った人' : ''}</small></span>${canMembers && m.empId !== S.me ? `<button type="button" data-rm="${esc(m.empId)}">外す</button>` : ''}</div>`).join('');
+    $('setMembers').innerHTML = r.members.map((m) => `<div><span>${esc(fullNameOf(m.empId))} <small>${esc(S.users[m.empId]?.dept || '')}${m.role === 'owner' ? tr('・作った人') : ''}</small></span>${canMembers && m.empId !== S.me ? `<button type="button" data-rm="${esc(m.empId)}">外す</button>` : ''}</div>`).join('');
   } catch (e) { $('setErr').textContent = e.message; }
 }
 $('setNameGo').addEventListener('click', async () => {
@@ -1498,7 +1825,7 @@ $('searchForm').addEventListener('submit', async (e) => {
     const r = await api('chatSearch', { q });
     const words = q.split(/[\s　]+/).filter(Boolean);
     const mark = (t) => { let h = esc(t); for (const w of words) h = h.split(esc(w)).join(`<mark>${esc(w)}</mark>`); return h; };
-    $('searchList').innerHTML = `<div class="sec">「${esc(q)}」の結果 ${r.hits.length}件　<button class="txt-btn" type="button" id="searchClose">閉じる</button></div>`
+    $('searchList').innerHTML = `<div class="sec">${esc(tf('「{q}」の結果 {n}件', { q, n: r.hits.length }))}　<button class="txt-btn" type="button" id="searchClose">閉じる</button></div>`
       + (r.hits.map((h) => {
         const ch = S.channels.find((c) => c.id === h.channelId);
         const text = previewText(h.msg.body) || (h.msg.files || []).map((f) => f.name).join('、');

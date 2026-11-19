@@ -3465,6 +3465,8 @@ function toggleMoreSheet(){
 function applyLanguage(lang){
   currentLang=lang;
   localStorage.setItem('sch_lang',lang);
+  // チャット（iframe）も同じ言葉で出し直す（2026-11-19。chat.html は sch_lang を読む）
+  try{ const cf=document.getElementById('chat-frame'); if(cf&&cf.getAttribute('src')&&cf.contentWindow) cf.contentWindow.location.reload(); }catch(e){}
   document.title=t('app.title');
   // サイドバーロゴはHALO（ブランド名なので言語切替で上書きしない）
   document.querySelector('.topbar-title').textContent='📅 '+t('app.title');
