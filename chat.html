@@ -265,6 +265,41 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 #panelList .hit button:hover{color:var(--primary)}
 #moreBtn{display:none}
 
+/* 文字の書式・確認してほしい・既読・在席・予約・タスク（2026-11-19） */
+.bub b{font-weight:700}
+.bub mark.hl,.fmt-prev mark.hl{background:#FBEA9A;color:inherit;border-radius:3px;padding:0 2px}
+.fc-red{color:#C0392B}.fc-orange{color:#C8650B}.fc-green{color:#2E7D32}.fc-blue{color:#1F5FBF}.fc-purple{color:#7B3FA0}.fc-gray{color:#6E7773}
+.fmt-btn,.ack-btn,.later-btn,.plus-btn{border:0;background:none;color:var(--text2);height:42px;padding:0 4px;flex-shrink:0}
+.fmt-btn:hover,.ack-btn:hover,.later-btn:hover,.plus-btn:hover{color:var(--primary)}
+.ack-btn.on,.fmt-btn.on{color:var(--primary)}
+.fmt-btn b{font-size:16px;font-family:Georgia,serif}
+.plus-btn{display:none;font-size:22px;line-height:1}
+.fmt-bar{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:0 0 6px}
+.fmt-bar button{border:1px solid var(--border);background:var(--surface);border-radius:8px;min-width:32px;height:30px;padding:0 8px;font-size:13px;color:var(--text);cursor:pointer}
+.fmt-bar button:hover{border-color:var(--primary)}
+.fmt-bar .dot{width:24px;height:24px;min-width:0;border-radius:50%;padding:0;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border)}
+.fmt-bar .sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.fmt-prev{font-size:13px;background:var(--surface-1);border-radius:8px;padding:6px 10px;margin:0 0 6px;white-space:pre-wrap;word-break:break-word;max-height:7em;overflow:auto}
+.fmt-prev small{display:block;font-size:11px;color:var(--text2)}
+.ack-on{font-size:12px;color:var(--primary-dark);background:var(--primary-light);border-radius:8px;padding:5px 10px;margin-bottom:6px}
+.ack-head{display:block;font-size:12px;font-weight:700;color:var(--red);margin-bottom:2px}
+.m.ack .bub{border-color:var(--red)}
+.ack-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 6px 0;font-size:12px;color:var(--text2)}
+.ack-row button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 12px;font-size:12px;color:var(--text);cursor:pointer}
+.ack-row button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.readlink{border:0;background:none;color:var(--text2);font-size:11px;padding:0;cursor:pointer;text-decoration:underline dotted}
+.avw{position:relative;display:inline-flex;vertical-align:middle}
+.pdot{position:absolute;right:4px;bottom:-1px;width:9px;height:9px;border-radius:50%;border:2px solid var(--surface)}
+.m .m-av .pdot{right:-2px;bottom:-2px;width:11px;height:11px;border-color:var(--bg)}
+.p-in{background:#4CAF50}.p-busy{background:#E0A526}.p-out{background:#5B8DD6}.p-off{background:#A9AEA9}
+.away-hint{font-size:12px;color:var(--text2);margin:0 4px 6px}
+#readersBox .box{overflow-y:auto}
+#readersBox h3{font-size:13px;margin:12px 0 4px;color:var(--text2);font-weight:600}
+#readersBox .names{font-size:14px;line-height:1.7}
+.later-quick{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.later-quick .btn{padding:6px 12px;font-size:13px}
+@media(min-width:700px){.sheet{left:auto;right:24px;bottom:24px;width:300px;border-radius:16px;max-height:80vh;overflow-y:auto}}
+
 /* タブレット：スレッドは画面の上にかぶせる */
 @media(max-width:1099px){
   #thread,#panel{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);z-index:40;box-shadow:-4px 0 20px rgba(37,48,45,.12)}
@@ -279,6 +314,8 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
   #thread,#panel{width:100%;border-left:0}
   #pinsBtn,#filesBtn,#muteBtn{display:none}
   #moreBtn{display:inline-block}
+  .composer .vote-btn,.composer .ack-btn,.composer .later-btn,.composer .fmt-btn{display:none}
+  .composer .plus-btn{display:inline-block}
 }
 </style>
 </head>
@@ -301,7 +338,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="side-head"><span class="t">チャット</span><span class="me" id="meName"></span></div>
     <div class="side-tools">
       <form id="searchForm"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"></form>
-      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button><button class="txt-btn" id="savedBtn" type="button">保存したもの</button></div>
+      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button><button class="txt-btn" id="savedBtn" type="button">保存したもの</button><button class="txt-btn" id="laterListBtn" type="button">予約</button></div>
     </div>
     <div id="chList"></div>
     <div id="searchList" class="hidden"></div>
@@ -337,6 +374,37 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <label class="opt" id="voteMultiRow"><input type="checkbox" id="voteMulti"> いくつでも選べる</label>
     <div class="err" id="voteErr"></div>
     <div class="btns"><button type="button" class="btn" id="voteNo">やめる</button><button type="button" class="btn primary" id="voteYes">送る</button></div>
+  </div>
+</div>
+
+<div id="readersBox" class="overlay hidden">
+  <div class="box">
+    <h2 id="readersTitle">読んだ人</h2>
+    <div id="readersBody"></div>
+    <div class="err" id="readersErr"></div>
+    <div class="btns wrap"><button type="button" class="btn hidden" id="readersRemind">まだ確認していない人に知らせる</button><button type="button" class="btn primary" id="readersClose">閉じる</button></div>
+  </div>
+</div>
+
+<div id="laterBox" class="overlay hidden">
+  <div class="box">
+    <h2 id="laterTitle">時間を決めて送る</h2>
+    <p id="laterNote"></p>
+    <div class="later-quick" id="laterQuick"></div>
+    <div class="vdate"><input type="date" id="laterDate"><select id="laterTime"></select></div>
+    <div class="err" id="laterErr"></div>
+    <div class="btns"><button type="button" class="btn" id="laterNo">やめる</button><button type="button" class="btn primary" id="laterYes">決める</button></div>
+  </div>
+</div>
+
+<div id="taskBox" class="overlay hidden">
+  <div class="box">
+    <h2>タスクにする</h2>
+    <input id="taskTitle" class="field" maxlength="100" placeholder="やること">
+    <label class="opt">期限 <input type="date" id="taskEnd" class="field" style="margin:0;width:auto"></label>
+    <p>HALO のタスクの「TODO」に入ります（見えるのは本人・同じ部署の上長・役員です）。元のメッセージは詳細に入ります。</p>
+    <div class="err" id="taskErr"></div>
+    <div class="btns"><button type="button" class="btn" id="taskNo">やめる</button><button type="button" class="btn primary" id="taskYes">入れる</button></div>
   </div>
 </div>
 
@@ -441,6 +509,9 @@ const ICON = {
   pin: '<svg class="i" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3zM12 13v7"/></svg>',
   save: '<svg class="i" viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg>',
   vote: '<svg class="i" viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>',
+  ack: '<svg class="i" viewBox="0 0 24 24"><path d="M5 21V4h11l-1.5 4L16 12H5"/></svg>',
+  clock: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  more: '<svg class="i" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01"/></svg>',
 };
 
 const $ = (id) => document.getElementById(id);
@@ -451,6 +522,89 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 書式・確認してほしい・既読・在席・予約・タスク（2026-11-19）
+    "予約": "Hẹn giờ",
+    "読んだ人": "Người đã đọc",
+    "確認状況": "Tình trạng xác nhận",
+    "まだ確認していない人に知らせる": "Nhắc người chưa xác nhận",
+    "時間を決めて送る": "Hẹn giờ gửi",
+    "決める": "Xác nhận",
+    "タスクにする": "Tạo công việc",
+    "やること": "Việc cần làm",
+    "期限": "Hạn",
+    "HALO のタスクの「TODO」に入ります（見えるのは本人・同じ部署の上長・役員です）。元のメッセージは詳細に入ります。": "Sẽ được thêm vào \"TODO\" trong Công việc của HALO (chỉ bản thân, cấp trên cùng bộ phận và ban lãnh đạo xem được). Tin nhắn gốc được ghi vào phần chi tiết.",
+    "入れる": "Thêm",
+    "太字（Ctrl+B）": "In đậm (Ctrl+B)",
+    "取り消し線": "Gạch ngang",
+    "マーカー": "Tô sáng",
+    "赤": "Đỏ",
+    "オレンジ": "Cam",
+    "緑": "Xanh lá",
+    "青": "Xanh dương",
+    "紫": "Tím",
+    "グレー": "Xám",
+    "選んだところの書式を外す": "Bỏ định dạng phần đã chọn",
+    "書式を外す": "Bỏ định dạng",
+    "確認してほしいメッセージとして送ります（全員に知らせ、だれが確認したか分かります）": "Gửi dưới dạng tin cần xác nhận (thông báo cho mọi người và biết ai đã xác nhận)",
+    "文字の書式（太字・色・マーカー）": "Định dạng chữ (đậm, màu, tô sáng)",
+    "確認してほしい（全員に知らせ、だれが確認したか分かる）": "Cần xác nhận (thông báo cho mọi người, biết ai đã xác nhận)",
+    "そのほか": "Khác",
+    "その他（あとで知らせる・タスクにする など）": "Khác (nhắc sau, tạo công việc…)",
+    "確認してください": "Vui lòng xác nhận",
+    "[確認してください]": "[Cần xác nhận]",
+    "確認 {n}人": "Đã xác nhận {n} người",
+    "既読": "Đã xem",
+    "既読 {n}": "Đã xem {n}",
+    "あとで知らせる": "Nhắc tôi sau",
+    "予定にする": "Tạo lịch",
+    "予約・リマインダー": "Hẹn giờ / Nhắc nhở",
+    "お知らせ": "Nhắc",
+    "取り消す": "Hủy",
+    "予約はありません（メッセージの「あとで知らせる」、入力欄の時計のボタンで足せます）": "Chưa có hẹn giờ (thêm bằng \"Nhắc tôi sau\" ở tin nhắn hoặc nút đồng hồ ở ô nhập)",
+    "この予約を取り消しますか？": "Hủy hẹn giờ này?",
+    "見え方": "Xem trước",
+    "文字の書式": "Định dạng chữ",
+    "文字の書式を閉じる": "Đóng định dạng chữ",
+    "確認してほしいをやめる": "Bỏ yêu cầu xác nhận",
+    "確認してほしい": "Cần xác nhận",
+    "確認しました（{n}人）": "Đã xác nhận ({n} người)",
+    "読んだが、まだ確認していない（{n}人）": "Đã xem nhưng chưa xác nhận ({n} người)",
+    "読んだ（{n}人）": "Đã xem ({n} người)",
+    "まだ読んでいない（{n}人）": "Chưa xem ({n} người)",
+    "{n}人に、もう一度知らせました": "Đã nhắc lại {n} người",
+    "在席": "Có mặt",
+    "会議中": "Đang họp",
+    "打ち合わせ": "Đang trao đổi",
+    "来社": "Có khách",
+    "休憩中": "Đang nghỉ",
+    "外出": "Ra ngoài",
+    "出張": "Công tác",
+    "在宅": "Làm tại nhà",
+    "休み": "Nghỉ",
+    "休暇": "Nghỉ phép",
+    "（{t}まで）": "(đến {t})",
+    "{name}さんは {status}": "{name}: {status}",
+    "直している最中は予約できません": "Không thể hẹn giờ khi đang sửa",
+    "添付のあるメッセージは予約できません（添付を外すか、今すぐ送ってください）": "Không thể hẹn giờ tin có tệp đính kèm (bỏ tệp hoặc gửi ngay)",
+    "先にメッセージを書いてください": "Hãy viết tin nhắn trước",
+    "決めた時間に、あなたの名前で送ります。送るまでは「予約」から取り消せます。": "Sẽ gửi dưới tên bạn vào giờ đã chọn. Có thể hủy trong \"Hẹn giờ\" trước khi gửi.",
+    "決めた時間に、このメッセージを「HALO 通知」とスマホ通知でお知らせします。": "Sẽ nhắc tin nhắn này qua \"Thông báo HALO\" và thông báo điện thoại vào giờ đã chọn.",
+    "明日 9:00": "Ngày mai 9:00",
+    "1時間後": "Sau 1 giờ",
+    "3時間後": "Sau 3 giờ",
+    "月曜 9:00": "Thứ Hai 9:00",
+    "時刻は今より先にしてください": "Hãy chọn thời gian sau hiện tại",
+    "{when} に送ります（「予約」から取り消せます）": "Sẽ gửi lúc {when} (có thể hủy trong \"Hẹn giờ\")",
+    "{when} に「HALO 通知」でお知らせします": "Sẽ nhắc qua \"Thông báo HALO\" lúc {when}",
+    "やることを書いてください": "Hãy nhập việc cần làm",
+    "HALO チャット「{ch}」の {name} さんのメッセージ（{at}）": "Tin nhắn của {name} trong HALO Trò chuyện \"{ch}\" ({at})",
+    "HALO のタスク（TODO）に入れました": "Đã thêm vào Công việc (TODO) của HALO",
+    "HALO チャット「{ch}」の {name} さんのメッセージから": "Từ tin nhắn của {name} trong HALO Trò chuyện \"{ch}\"",
+    "チャットで話せる参加者がいません": "Không có người tham gia nào có thể trò chuyện",
+    "予約は1人50個までです。いらないものを取り消してください": "Mỗi người tối đa 50 hẹn giờ. Hãy hủy bớt mục không cần",
+    "90日より先には決められません": "Không thể đặt quá 90 ngày",
+    "予約が見つかりません（もう送ったか、取り消されています）": "Không tìm thấy hẹn giờ (đã gửi hoặc đã hủy)",
+    "「確認してほしい」のメッセージではありません": "Đây không phải tin cần xác nhận",
     '自分あてのメンションがあります': "Có người nhắc đến bạn",
     '時刻なし': "Không có giờ",
     // B-1（投票・ピン留め・保存。2026-11-19）
@@ -571,6 +725,89 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 書式・確認してほしい・既読・在席・予約・タスク（2026-11-19）
+    "予約": "तालिका",
+    "読んだ人": "पढ्नेहरू",
+    "確認状況": "पुष्टि स्थिति",
+    "まだ確認していない人に知らせる": "पुष्टि नगर्नेलाई सम्झाउनुहोस्",
+    "時間を決めて送る": "समय तोकेर पठाउनुहोस्",
+    "決める": "तय गर्नुहोस्",
+    "タスクにする": "कार्य बनाउनुहोस्",
+    "やること": "गर्नुपर्ने काम",
+    "期限": "समयसीमा",
+    "HALO のタスクの「TODO」に入ります（見えるのは本人・同じ部署の上長・役員です）。元のメッセージは詳細に入ります。": "HALO को कार्यको \"TODO\" मा थपिन्छ (आफू, सोही विभागका माथिल्ला र अधिकारीले मात्र हेर्न सक्छन्)। मूल सन्देश विवरणमा राखिन्छ।",
+    "入れる": "थप्नुहोस्",
+    "太字（Ctrl+B）": "बोल्ड (Ctrl+B)",
+    "取り消し線": "काटिएको रेखा",
+    "マーカー": "हाइलाइट",
+    "赤": "रातो",
+    "オレンジ": "सुन्तला",
+    "緑": "हरियो",
+    "青": "निलो",
+    "紫": "बैजनी",
+    "グレー": "खैरो",
+    "選んだところの書式を外す": "छानिएको भागको ढाँचा हटाउनुहोस्",
+    "書式を外す": "ढाँचा हटाउनुहोस्",
+    "確認してほしいメッセージとして送ります（全員に知らせ、だれが確認したか分かります）": "पुष्टि चाहिने सन्देशको रूपमा पठाइन्छ (सबैलाई सूचना जान्छ, कसले पुष्टि गर्‍यो थाहा हुन्छ)",
+    "文字の書式（太字・色・マーカー）": "अक्षरको ढाँचा (बोल्ड, रङ, हाइलाइट)",
+    "確認してほしい（全員に知らせ、だれが確認したか分かる）": "पुष्टि चाहिन्छ (सबैलाई सूचना, कसले पुष्टि गर्‍यो थाहा हुन्छ)",
+    "そのほか": "अन्य",
+    "その他（あとで知らせる・タスクにする など）": "अन्य (पछि सम्झाउने, कार्य बनाउने आदि)",
+    "確認してください": "कृपया पुष्टि गर्नुहोस्",
+    "[確認してください]": "[पुष्टि चाहिन्छ]",
+    "確認 {n}人": "पुष्टि {n} जना",
+    "既読": "पढियो",
+    "既読 {n}": "पढियो {n}",
+    "あとで知らせる": "पछि सम्झाउनुहोस्",
+    "予定にする": "तालिका बनाउनुहोस्",
+    "予約・リマインダー": "तालिका / सम्झना",
+    "お知らせ": "सम्झना",
+    "取り消す": "रद्द गर्नुहोस्",
+    "予約はありません（メッセージの「あとで知らせる」、入力欄の時計のボタンで足せます）": "कुनै तालिका छैन (सन्देशको \"पछि सम्झाउनुहोस्\" वा लेख्ने ठाउँको घडी बटनबाट थप्न सकिन्छ)",
+    "この予約を取り消しますか？": "यो तालिका रद्द गर्ने हो?",
+    "見え方": "पूर्वावलोकन",
+    "文字の書式": "अक्षरको ढाँचा",
+    "文字の書式を閉じる": "अक्षरको ढाँचा बन्द गर्नुहोस्",
+    "確認してほしいをやめる": "पुष्टि अनुरोध हटाउनुहोस्",
+    "確認してほしい": "पुष्टि चाहिन्छ",
+    "確認しました（{n}人）": "पुष्टि गरे ({n} जना)",
+    "読んだが、まだ確認していない（{n}人）": "पढे तर पुष्टि गरेनन् ({n} जना)",
+    "読んだ（{n}人）": "पढे ({n} जना)",
+    "まだ読んでいない（{n}人）": "अझै पढेनन् ({n} जना)",
+    "{n}人に、もう一度知らせました": "{n} जनालाई फेरि सूचना पठाइयो",
+    "在席": "उपस्थित",
+    "会議中": "बैठकमा",
+    "打ち合わせ": "छलफलमा",
+    "来社": "आगन्तुक",
+    "休憩中": "विश्राममा",
+    "外出": "बाहिर",
+    "出張": "काजमा",
+    "在宅": "घरबाट काम",
+    "休み": "बिदा",
+    "休暇": "छुट्टी",
+    "（{t}まで）": "({t} सम्म)",
+    "{name}さんは {status}": "{name}: {status}",
+    "直している最中は予約できません": "सच्याउँदै गर्दा तालिका बनाउन सकिँदैन",
+    "添付のあるメッセージは予約できません（添付を外すか、今すぐ送ってください）": "संलग्न भएको सन्देशको तालिका बनाउन सकिँदैन (संलग्न हटाउनुहोस् वा अहिले पठाउनुहोस्)",
+    "先にメッセージを書いてください": "पहिले सन्देश लेख्नुहोस्",
+    "決めた時間に、あなたの名前で送ります。送るまでは「予約」から取り消せます。": "तोकिएको समयमा तपाईंको नाममा पठाइन्छ। पठाउनुअघि \"तालिका\" बाट रद्द गर्न सकिन्छ।",
+    "決めた時間に、このメッセージを「HALO 通知」とスマホ通知でお知らせします。": "तोकिएको समयमा यो सन्देश \"HALO सूचना\" र फोन सूचनाबाट सम्झाइन्छ।",
+    "明日 9:00": "भोलि ९:००",
+    "1時間後": "१ घण्टापछि",
+    "3時間後": "३ घण्टापछि",
+    "月曜 9:00": "सोमबार ९:००",
+    "時刻は今より先にしてください": "अहिलेभन्दा पछिको समय छान्नुहोस्",
+    "{when} に送ります（「予約」から取り消せます）": "{when} मा पठाइन्छ (\"तालिका\" बाट रद्द गर्न सकिन्छ)",
+    "{when} に「HALO 通知」でお知らせします": "{when} मा \"HALO सूचना\" बाट सम्झाइन्छ",
+    "やることを書いてください": "गर्नुपर्ने काम लेख्नुहोस्",
+    "HALO チャット「{ch}」の {name} さんのメッセージ（{at}）": "HALO च्याट \"{ch}\" मा {name} को सन्देश ({at})",
+    "HALO のタスク（TODO）に入れました": "HALO को कार्य (TODO) मा थपियो",
+    "HALO チャット「{ch}」の {name} さんのメッセージから": "HALO च्याट \"{ch}\" मा {name} को सन्देशबाट",
+    "チャットで話せる参加者がいません": "च्याट गर्न सकिने सहभागी छैनन्",
+    "予約は1人50個までです。いらないものを取り消してください": "प्रति व्यक्ति ५० वटा तालिकासम्म। नचाहिनेलाई रद्द गर्नुहोस्",
+    "90日より先には決められません": "९० दिनभन्दा पछि तोक्न सकिँदैन",
+    "予約が見つかりません（もう送ったか、取り消されています）": "तालिका भेटिएन (पठाइसकियो वा रद्द भयो)",
+    "「確認してほしい」のメッセージではありません": "यो पुष्टि चाहिने सन्देश होइन",
     '自分あてのメンションがあります': "तपाईंलाई उल्लेख गरिएको छ",
     '時刻なし': "समय बिना",
     // B-1（投票・ピン留め・保存。2026-11-19）
@@ -701,7 +938,7 @@ function tf(key, vars) {
   return base.replace(/\{(\w+)\}/g, (_, v) => (vars && vars[v] !== undefined ? String(vars[v]) : ''));
 }
 // 人が書いたもの（本文・名前・チャンネル名・探した言葉）は置き換えない
-const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where';
+const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where,.fmt-prev,#readersBody .names';
 const NO_TR_ATTR = NO_TR.replace(',textarea', ''); // 入力欄の「入力してください」の文（placeholder）は訳す
 function trTree(root) {
   if (!I18N || !root) return;
@@ -745,6 +982,9 @@ const S = {
   prefs: { fav: [], cats: [] }, listEdit: false, // お気に入り・まとまり（人ごと。Worker の chatPrefsSave）・一覧を整理している最中か
   saved: new Set(), panel: null, // 保存したもの（'チャンネル#番号'）・横の一覧（ピン留め・ファイル・保存。B-1）
   answered: {}, // HALO お知らせの安否確認に、この画面で答えた結果（seq → 文）。人ごとなので投稿には残らない
+  readSeqs: null, // 開いているチャンネルの、ほかの人の読んだ番号（自分のメッセージの「既読 n」。2026-11-19）
+  presence: {}, presenceAt: 0, // 在席（社員番号 → { s: 状態, u: 何時まで }。在席ボードと同じ決め方。2026-11-19）
+  taskOk: false, pendingDm: null, // HALO のタスクを使える人か・HALO 本体から頼まれた会話（読み込み前に来たとき）
   // HALO 本体のタブの中では、チャットのタブを開いているときだけ「見ている」（親が知らせる。2026-11-18）
   active: !EMBED, sleeping: false, lastFocus: null, lastUnread: null,
 };
@@ -815,10 +1055,12 @@ function haloButtons(m) {
     return `<span class="h-btns">${btn('safe', tr('無事'), true)}${btn('damaged', tr('被害あり'))}${btn('other', tr('その他'))}</span>`
       + (done ? `<span class="h-result">${esc(tr(done))}</span>` : '');
   }
+  if (meta.type === 'chat_remind' && meta.channelId) return `<span class="h-btns">${btn('goto', tr('メッセージへ'), true)}</span>`; // あとで知らせる（2026-11-19）
   return '';
 }
 
 async function pressHalo(m, a) {
+  if (a === 'goto') { const x = m.meta || {}; jumpTo(x.channelId, Number(x.seq), Number(x.parentSeq) || 0); return; }
   let note = '';
   if (a === 'approve' && !confirm('この予定を承認しますか？')) return;
   if (a === 'reject') { const r = prompt('却下の理由（空でもかまいません）'); if (r === null) return; note = r; }
@@ -830,10 +1072,24 @@ async function pressHalo(m, a) {
   } catch (e) { toast(e.message); }
 }
 
-/** 本文：リンクとメンション（@名前）を目立たせる。スタンプと、本文の中の画像（［画像1］）も出す */
+/**
+ * 文字の書式（2026-11-19。前の版にあったもの）。本文に印を入れて残し、出すときに見た目にする。
+ *   **太字**・~~取り消し~~・[hl]マーカー[/hl]・[c:色]文字の色[/c]（色は FMT_COLORS だけ）。esc したあとの文に使う
+ * 一覧・通知・探した結果では印を外す（stripFmt。Worker の plainText と同じ）
+ */
+const FMT_COLORS = [['red', '赤'], ['orange', 'オレンジ'], ['green', '緑'], ['blue', '青'], ['purple', '紫'], ['gray', 'グレー']];
+const FMT_HEX = { red: '#C0392B', orange: '#C8650B', green: '#2E7D32', blue: '#1F5FBF', purple: '#7B3FA0', gray: '#6E7773' };
+const fmtHtml = (h) => h.replace(/\*\*([^\n]+?)\*\*/g, '<b>$1</b>').replace(/~~([^\n]+?)~~/g, '<s>$1</s>')
+  .replace(/\[hl\]([\s\S]*?)\[\/hl\]/g, '<mark class="hl">$1</mark>')
+  .replace(/\[c:(red|orange|green|blue|purple|gray)\]([\s\S]*?)\[\/c\]/g, '<span class="fc-$1">$2</span>');
+const stripFmt = (t) => String(t || '').replace(/\*\*([^\n]+?)\*\*/g, '$1').replace(/~~([^\n]+?)~~/g, '$1')
+  .replace(/\[hl\]([\s\S]*?)\[\/hl\]/g, '$1').replace(/\[c:[a-z]+\]([\s\S]*?)\[\/c\]/g, '$1');
+const hasFmt = (t) => /\*\*[^\n]+?\*\*|~~[^\n]+?~~|\[hl\]|\[c:[a-z]+\]/.test(t);
+
+/** 本文：リンクとメンション（@名前）を目立たせる。スタンプと、本文の中の画像（［画像1］）・文字の書式も出す */
 function renderBody(m) {
   if (isStampOnly(m)) return stampHtml(String(m.body).trim().slice(1, -1), true);
-  let h = esc(m.body).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+  let h = fmtHtml(esc(m.body)).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
   h = h.replace(STAMP_RE, (_, id) => stampHtml(id, false));
   if (!m._pending) {
     const imgs = (m.files || []).filter(isImage);
@@ -882,12 +1138,16 @@ async function start() {
     S.avatars = init.avatars || {}; S.stamps = init.stamps || [];
     S.saved = new Set(init.saved || []);
     S.prefs = init.prefs || { fav: [], cats: [] };
+    if (!LITE) api('getTaskAccess').then((r) => { S.taskOk = !!(r && r.allowed); }).catch(() => {}); // メッセージから HALO のタスクを作れる人か
     document.querySelectorAll('.attach').forEach((b) => b.classList.toggle('hidden', !S.filesEnabled));
     $('meName').textContent = nameOf(S.me);
     renderChannels();
     connect();
+    loadPresence(true);
+    setInterval(() => loadPresence(), 5 * 60 * 1000);
     const want = params.get('ch');
-    if (want && S.channels.some((c) => c.id === want)) openChannel(want);
+    if (S.pendingDm) { const x = S.pendingDm; S.pendingDm = null; openDmWith(x); }
+    else if (want && S.channels.some((c) => c.id === want)) openChannel(want);
     else if (window.innerWidth >= 700 && S.channels.length) openChannel(S.channels[0].id);
   } catch (e) {
     $('chList').innerHTML = `<div class="empty">${esc(e.message)}</div>`;
@@ -929,7 +1189,7 @@ function renderChannels() {
   const catOf = (id) => (pr.cats.find((x) => x.ids.includes(id)) || {}).id || '';
   const row = (c, where) => `
     <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}${ed ? ' editing' : ''}" data-id="${esc(c.id)}">
-      <div class="nm"><b>${c.kind === 'dm' ? avatarHtml((c.members || []).find((x) => x !== S.me) || S.me) : ''}${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? `<span class="tag">${tr('部署')}</span>` : c.kind === 'private' ? `<span class="tag">${tr('招待のみ')}</span>` : ''}</b><small>${esc(previewText(c.lastPreview))}</small></div>
+      <div class="nm"><b>${c.kind === 'dm' ? (() => { const o = (c.members || []).find((x) => x !== S.me) || S.me; return `<span class="avw">${avatarHtml(o)}${presDot(o)}</span>`; })() : ''}${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? `<span class="tag">${tr('部署')}</span>` : c.kind === 'private' ? `<span class="tag">${tr('招待のみ')}</span>` : ''}</b><small>${esc(previewText(c.lastPreview))}</small></div>
       ${c.muted ? '<span class="mute">通知オフ</span>' : ''}
       ${c.unread && (c.mentionSeq || 0) > (c.readSeq || 0) ? '<span class="badge at" title="自分あてのメンションがあります">＠</span>' : ''}
       ${c.unread ? `<span class="badge">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}
@@ -1035,7 +1295,8 @@ async function openChannel(id) {
   S.cur = id;
   S.msgs = [];
   const ch = S.channels.find((c) => c.id === id);
-  $('chName').innerHTML = esc(chTitle(ch)) + (ch && ch.kind === 'group' ? `<span class="sub">${esc(tf('{n}人', { n: (ch.members || []).length }))}</span>` : '');
+  S.readSeqs = null;
+  setChHeader(ch);
   $('muteBtn').textContent = ch && ch.muted ? '通知を戻す' : '通知を切る';
   const ro = isHaloCh(ch);
   $('mainComposer').classList.toggle('hidden', ro);
@@ -1047,7 +1308,7 @@ async function openChannel(id) {
   $('msgs').innerHTML = '<div class="more">読み込んでいます…</div>';
   setComposer('main', { text: loadDraft(id) });
   S.firstUnreadSeq = ch && ch.unread ? (ch.readSeq || 0) + 1 : null;
-  if (S.panel && S.panel.kind !== 'saved' && S.panel.channelId !== id) openPanel(S.panel.kind); // ピン留め・ファイルを開いていたら、新しいチャンネルの分に
+  if (S.panel && S.panel.kind !== 'saved' && S.panel.kind !== 'later' && S.panel.channelId !== id) openPanel(S.panel.kind); // ピン留め・ファイルを開いていたら、新しいチャンネルの分に
   try {
     const r = await api('chatHistory', { channelId: id });
     if (S.cur !== id) return;
@@ -1055,7 +1316,27 @@ async function openChannel(id) {
     S.hasMore = r.hasMore;
     renderMsgs('unread');
     markRead();
+    loadReadCounts(id);
+    updateAwayHint('main');
   } catch (e) { $('msgs').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+
+/** チャンネルの見出し。グループは人数、1対1は相手の在席（外出・15:00まで など） */
+function setChHeader(ch) {
+  let sub = '';
+  if (ch && ch.kind === 'group') sub = tf('{n}人', { n: (ch.members || []).length });
+  else if (ch && ch.kind === 'dm') sub = presText((ch.members || []).find((x) => x !== S.me) || '');
+  $('chName').innerHTML = esc(chTitle(ch)) + (sub ? `<span class="sub">${esc(sub)}</span>` : '');
+}
+
+/** 自分のメッセージの「既読 n」のもと（だれのものかは来ない）。HALO のチャンネルでは数えない */
+async function loadReadCounts(id) {
+  const ch = S.channels.find((c) => c.id === id);
+  if (!ch || isHaloCh(ch)) { S.readSeqs = null; return; }
+  try {
+    const r = await api('chatReadCounts', { channelId: id });
+    if (S.cur === id) { S.readSeqs = r.seqs || []; rerenderOpen(); }
+  } catch {}
 }
 
 $('muteBtn').addEventListener('click', async () => {
@@ -1077,7 +1358,8 @@ function msgHtml(m, prev, where) {
   const unread = where === 'main' && S.firstUnreadSeq && m.seq === firstUnreadShown() ? '<div class="unread-line">ここから未読</div>' : '';
   const sameWho = prev && prev.empId === m.empId && !day && !unread && m.createdAt - prev.createdAt < 5 * 60 * 1000;
   const mentioned = !mine && (m.mentions || []).some((id) => id === S.me || id === 'all');
-  const cls = 'm' + (mine ? ' mine' : '') + (halo ? ' halo' : '') + (isStampOnly(m) ? ' stamp-only' : '') + (mentioned ? ' mentioned' : '') + (m.deleted ? ' deleted' : '')
+  const ack = !!(m.meta && m.meta.ack) && !m.deleted; // 確認してほしい（2026-11-19）
+  const cls = 'm' + (mine ? ' mine' : '') + (halo ? ' halo' : '') + (ack ? ' ack' : '') + (isStampOnly(m) ? ' stamp-only' : '') + (mentioned ? ' mentioned' : '') + (m.deleted ? ' deleted' : '')
     + (m._pending ? ' pending' : '') + (m._failed ? ' failed' : '');
   const quote = m.quote ? `<span class="quote">${esc(nameOf(m.quote.empId))}：${m.quote.deleted ? tr('（削除されました）') : esc(previewText(m.quote.body))}</span>` : '';
   const stamps = (m.reactions || []).find((r) => r.emoji === STAMP);
@@ -1087,6 +1369,21 @@ function msgHtml(m, prev, where) {
     ...(stamps ? [`<button class="chip stamp${stamps.empIds.includes(S.me) ? ' on' : ''}" data-act="stamp" title="押すと付ける／外す">${esc(tf('確認しました：{names}', { names: stamps.empIds.map(nameOf).join('、') }))}</button>`] : []),
   ].join('');
   const replies = where === 'main' && m.replyCount ? `<button class="replies" data-act="thread">${esc(tf('返信 {n}件', { n: m.replyCount }))}${m.lastReplyAt ? '・' + hm(m.lastReplyAt) : ''}</button>` : '';
+  // 確認してほしい：まだの人には「確認しました」のボタン、送った人には「確認状況」
+  let ackRow = '';
+  if (ack && m.seq) {
+    const st = (m.reactions || []).find((r) => r.emoji === STAMP);
+    const ids = ((st && st.empIds) || []).filter((x) => x !== m.empId);
+    const me = mine ? '' : ids.includes(S.me) ? `<span>${esc(tr('確認しました'))} ✓</span>` : `<button type="button" class="primary" data-act="stamp">${esc(tr('確認しました'))}</button>`;
+    ackRow = `<div class="ack-row">${me}<span>${esc(tf('確認 {n}人', { n: ids.length }))}</span>${mine ? `<button type="button" data-act="readers">${esc(tr('確認状況'))}</button>` : ''}</div>`;
+  }
+  // 自分のメッセージの「既読 n」（1対1は「既読」だけ）。押すと読んだ人（M-08）
+  let readHtml = '';
+  if (mine && m.seq && !m.deleted && S.readSeqs) {
+    const n = S.readSeqs.filter((x) => x >= m.seq).length;
+    const dm = (S.channels.find((c) => c.id === S.cur) || {}).kind === 'dm';
+    if (n) readHtml = `・<button type="button" class="readlink" data-act="readers">${esc(dm ? tr('既読') : tf('既読 {n}', { n }))}</button>`;
+  }
   const acts = m.deleted || m._pending || m._failed ? '' : `<div class="acts">
       ${where === 'main' && !halo ? `<button data-act="thread" title="スレッドで返信">${ICON.reply}</button>` : ''}
       ${halo ? '' : `<button data-act="quote" title="引用して返信">${ICON.quote}</button>`}
@@ -1095,14 +1392,16 @@ function msgHtml(m, prev, where) {
       ${m.seq && canPin() ? `<button data-act="pin" class="${m.pinned ? 'on' : ''}" title="${m.pinned ? 'ピン留めを外す' : 'ピン留め'}">${ICON.pin}</button>` : ''}
       ${m.seq ? `<button data-act="save" class="${isSaved(m) ? 'on' : ''}" title="${isSaved(m) ? '保存を外す' : '保存（あとで見る）'}">${ICON.save}</button>` : ''}
       ${mine ? `<button data-act="edit" title="直す">${ICON.edit}</button><button data-act="del" title="消す">${ICON.del}</button>` : ''}
+      ${m.seq ? `<button data-act="more" title="その他（あとで知らせる・タスクにする など）">${ICON.more}</button>` : ''}
     </div>`;
   const status = m._failed ? tf('送れませんでした{err}（押すともう一度送ります）', { err: m._err ? '：' + tr(m._err) : '' }) : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? tr('・編集済み') : '')
-    + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '');
+    + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '') + readHtml;
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
-    ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
+    ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}${presDot(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
     ${acts}
-    <div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : quote + renderBody(m) + filesHtml(m)}</div>
+    <div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}</span>` : '') + quote + renderBody(m) + filesHtml(m)}</div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
+    ${ackRow}
     ${replies}
     <div class="meta">${status}</div>
   </div>`;
@@ -1177,11 +1476,11 @@ async function toggleSave(m, channelId) {
 }
 
 // ---------- 横の一覧：ピン留め・ファイル・保存したもの（B-1） ----------
-const PANEL_TITLE = { pins: 'このチャンネルのピン留め', files: 'このチャンネルのファイル', saved: '保存したもの' };
+const PANEL_TITLE = { pins: 'このチャンネルのピン留め', files: 'このチャンネルのファイル', saved: '保存したもの', later: '予約・リマインダー' };
 const narrow = () => window.innerWidth < 1100; // 一覧が画面にかぶさる幅
 function chNameOf(id) { const c = S.channels.find((x) => x.id === id); return c ? chTitle(c) : ''; }
 async function openPanel(kind) {
-  if (kind !== 'saved' && !S.cur) return;
+  if (kind !== 'saved' && kind !== 'later' && !S.cur) return;
   closeThread();
   const channelId = S.cur;
   S.panel = { kind, channelId, items: [] };
@@ -1192,6 +1491,7 @@ async function openPanel(kind) {
     let items;
     if (kind === 'pins') items = (await api('chatPins', { channelId })).msgs.map((m) => ({ channelId, msg: m }));
     else if (kind === 'saved') items = (await api('chatSaved')).items;
+    else if (kind === 'later') items = (await api('chatLaterList')).items;
     else items = (await api('chatFiles', { channelId })).files;
     if (!S.panel || S.panel.kind !== kind || S.panel.channelId !== channelId) return;
     S.panel.items = items;
@@ -1203,7 +1503,11 @@ function renderPanel() {
   if (!P) return;
   const when = (t) => ymd(t) + ' ' + hm(t);
   let html;
-  if (P.kind === 'files') {
+  if (P.kind === 'later') {
+    html = P.items.map((x, i) => `<div class="hit" data-i="${i}"><div><div class="where">${when(x.at)}・${esc(tr(x.kind === 'send' ? '送る' : 'お知らせ'))}・${esc(chNameOf(x.channelId))}</div>`
+      + `<div class="body">${esc(x.kind === 'send' ? previewText(x.data.body) : previewText(x.data.preview || ''))}</div></div><button type="button" data-p="cancel">${esc(tr('取り消す'))}</button></div>`).join('')
+      || `<div class="empty">${esc(tr('予約はありません（メッセージの「あとで知らせる」、入力欄の時計のボタンで足せます）'))}</div>`;
+  } else if (P.kind === 'files') {
     html = P.items.map((f, i) => `<div class="hit" data-i="${i}"><div><div class="where">${esc(nameOf(f.empId))}・${when(f.createdAt)}</div><div class="body">${esc(f.name)}　<small>${sizeText(f.size || 0)}</small></div></div>`
       + `<button type="button" data-p="dl">${esc(tr('ダウンロード'))}</button><button type="button" data-p="jump">${esc(tr('メッセージへ'))}</button></div>`).join('')
       || `<div class="empty">${esc(tr('ファイルはありません'))}</div>`;
@@ -1220,6 +1524,7 @@ $('closePanel').addEventListener('click', closePanel);
 $('pinsBtn').addEventListener('click', () => openPanel('pins'));
 $('filesBtn').addEventListener('click', () => openPanel('files'));
 $('savedBtn').addEventListener('click', () => openPanel('saved'));
+$('laterListBtn').addEventListener('click', () => openPanel('later'));
 $('moreBtn').addEventListener('click', () => {
   if (!S.cur) return;
   const items = [['pins', 'ピン留め'], ['files', 'ファイル'], ['mute', $('muteBtn').textContent]];
@@ -1234,6 +1539,17 @@ $('panelList').addEventListener('click', async (e) => {
   const x = P.items[Number(h.dataset.i)];
   if (!x) return;
   const b = e.target.closest('button[data-p]');
+  if (P.kind === 'later') {
+    if (b && b.dataset.p === 'cancel') {
+      if (!confirm(tr('この予約を取り消しますか？'))) return;
+      try { await api('chatLaterDelete', { id: x.id }); openPanel('later'); } catch (er) { toast(er.message); }
+      return;
+    }
+    if (narrow()) closePanel();
+    if (x.kind === 'remind') jumpTo(x.channelId, Number(x.data.seq), Number(x.data.parentSeq) || 0);
+    else if (S.channels.some((c) => c.id === x.channelId)) openChannel(x.channelId);
+    return;
+  }
   if (P.kind === 'files') {
     if (b && b.dataset.p === 'dl') { openFileAct(x.itemId); return; }
     if (b && b.dataset.p === 'jump') { if (narrow()) closePanel(); jumpTo(P.channelId, x.seq, x.parentSeq); return; }
@@ -1374,10 +1690,11 @@ function avatarHtml(id, cls) {
 }
 const STAMP_RE = /:(s_[0-9a-f-]{36}):/g;
 const stampName = (id) => (S.stamps.find((x) => x.id === id) || {}).name || '';
-const previewText = (t) => String(t || '').replace(STAMP_RE, tr('[スタンプ]')).replace(/［画像\d+］/g, tr('[画像]'))
-  .replace(/^\[(投票|日程調整)\] /, (x, k) => tr('[' + k + ']') + ' ');
+const previewText = (t) => stripFmt(t).replace(STAMP_RE, tr('[スタンプ]')).replace(/［画像\d+］/g, tr('[画像]'))
+  .replace(/^\[(投票|日程調整|確認してください)\] /, (x, k) => tr('[' + k + ']') + ' ');
 /** メッセージの短い文（投票は頭に [投票] などを付ける） */
-const msgPreview = (m) => (m.kind === 'vote' ? tr(m.meta && m.meta.vote && m.meta.vote.mode === 'sched' ? '[日程調整]' : '[投票]') + ' ' : '') + previewText(m.body || (m.files || []).map((f) => f.name).join('、'));
+const msgPreview = (m) => (m.kind === 'vote' ? tr(m.meta && m.meta.vote && m.meta.vote.mode === 'sched' ? '[日程調整]' : '[投票]') + ' ' : '')
+  + (m.meta && m.meta.ack ? tr('[確認してください]') + ' ' : '') + previewText(m.body || (m.files || []).map((f) => f.name).join('、'));
 /** スタンプ（:s_<id>:）を画像に。消されたスタンプは [スタンプ] のまま */
 function stampHtml(id, big) {
   if (!S.stamps.some((x) => x.id === id)) return tr('[スタンプ]');
@@ -1517,6 +1834,11 @@ function doAct(act, m, where, emoji) {
   else if (act === 'vclose') closeVote(m);
   else if (act === 'pin') togglePin(m);
   else if (act === 'save') toggleSave(m);
+  else if (act === 'more') openSheet(m, where);
+  else if (act === 'readers') openReaders(m);
+  else if (act === 'remind') openLater({ kind: 'remind', msg: m, where });
+  else if (act === 'task') openTask(m);
+  else if (act === 'event') makeEvent(m);
 }
 
 function openSheet(m, where) {
@@ -1527,6 +1849,10 @@ function openSheet(m, where) {
     ...(m.seq && canPin() ? [['pin', m.pinned ? 'ピン留めを外す' : 'ピン留め']] : []),
     ...(m.seq ? [['save', isSaved(m) ? '保存を外す' : '保存（あとで見る）']] : []),
     ...(m.kind === 'vote' && mine ? [['vclose', m.meta && m.meta.vote && m.meta.vote.closed ? '再開する' : '締め切る']] : []),
+    ...(m.seq ? [['remind', 'あとで知らせる']] : []),
+    ...(m.seq && S.taskOk && m.kind !== 'vote' ? [['task', 'タスクにする']] : []),
+    ...(m.seq && EMBED && !LITE && m.kind !== 'vote' ? [['event', '予定にする']] : []),
+    ...(mine && m.seq && S.readSeqs ? [['readers', m.meta && m.meta.ack ? '確認状況' : '読んだ人']] : []),
     ...(mine ? [['edit', '直す'], ['del', '消す']] : []),
   ];
   $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}" class="${a === 'del' ? 'danger' : ''}">${l}</button>`).join('');
@@ -1764,6 +2090,7 @@ function onViewChange() {
   if (S.sleeping && S.active) { logout(); return; }
   if (isViewing() && S.cur && nearBottom()) markRead();
   sendFocus();
+  loadPresence();
 }
 /**
  * どのチャンネルを見ているかを Worker（ChatHubDO）に知らせる。見ているチャンネルのメッセージだけ
@@ -1778,6 +2105,7 @@ function sendFocus() {
 window.addEventListener('message', (e) => {
   if (!EMBED || e.source !== window.parent || e.origin !== location.origin) return;
   const d = e.data || {};
+  if (d.haloChat === 'openDm') { openDmWith(d.empIds); return; } // 予定の参加者と話す（HALO 本体の予定の詳細から。2026-11-19）
   if (d.haloChat !== 'active') return;
   const was = S.active;
   S.active = !!d.on;
@@ -1808,12 +2136,23 @@ function buildComposer(rootId, where) {
   root.innerHTML = `
     <div class="ctx hidden"><span></span><button type="button">やめる</button></div>
     <div class="rule">住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください</div>
+    <div class="fmt-bar hidden"><button type="button" data-f="b" title="太字（Ctrl+B）"><b>B</b></button><button type="button" data-f="s" title="取り消し線"><s>S</s></button><button type="button" data-f="hl" title="マーカー"><mark class="hl">マーカー</mark></button><span class="sep"></span>${FMT_COLORS.map(([k, l]) => `<button type="button" class="dot" data-f="c:${k}" title="${l}" style="background:${FMT_HEX[k]}"></button>`).join('')}<span class="sep"></span><button type="button" data-f="x" title="選んだところの書式を外す">書式を外す</button></div>
+    <div class="fmt-prev hidden"></div>
+    <div class="ack-on hidden">確認してほしいメッセージとして送ります（全員に知らせ、だれが確認したか分かります）</div>
+    <div class="away-hint hidden"></div>
     <div class="pending-files hidden"></div>
-    <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><button class="stamp-btn" type="button" title="スタンプ・絵文字"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></svg></button>${where === 'main' ? `<button class="vote-btn" type="button" title="投票・日程調整">${ICON.vote}</button>` : ''}<textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ か ＠ で名前）'}"></textarea><button class="send" type="button" disabled>送信</button></div>
+    <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><button class="stamp-btn" type="button" title="スタンプ・絵文字"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></svg></button><button class="fmt-btn" type="button" title="文字の書式（太字・色・マーカー）"><b>A</b></button><button class="ack-btn" type="button" title="確認してほしい（全員に知らせ、だれが確認したか分かる）">${ICON.ack}</button>${where === 'main' ? `<button class="vote-btn" type="button" title="投票・日程調整">${ICON.vote}</button>` : ''}<button class="plus-btn" type="button" title="そのほか">＋</button><textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ か ＠ で名前）'}"></textarea><button class="later-btn" type="button" title="時間を決めて送る">${ICON.clock}</button><button class="send" type="button" disabled>送信</button></div>
     <div class="mention-box hidden"></div>`;
   const c = { root, input: root.querySelector('textarea'), send: root.querySelector('.send'), ctx: root.querySelector('.ctx'), box: root.querySelector('.mention-box'), state: { mentions: new Map() },
-    fileInput: root.querySelector('input[type=file]'), pendingEl: root.querySelector('.pending-files'), files: [] };
+    fileInput: root.querySelector('input[type=file]'), pendingEl: root.querySelector('.pending-files'), files: [],
+    fmtBar: root.querySelector('.fmt-bar'), fmtPrev: root.querySelector('.fmt-prev'), ackEl: root.querySelector('.ack-on'), awayEl: root.querySelector('.away-hint'), ack: false };
   C[where] = c;
+  root.querySelector('.fmt-btn').addEventListener('click', () => toggleFmtBar(where));
+  root.querySelector('.ack-btn').addEventListener('click', () => setAck(where, !c.ack));
+  root.querySelector('.later-btn').addEventListener('click', () => openLater({ kind: 'send', where }));
+  root.querySelector('.plus-btn').addEventListener('click', () => openPlus(where));
+  c.fmtBar.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); }); // 押しても入力欄の選んだところを消さない
+  c.fmtBar.addEventListener('click', (e) => { const b = e.target.closest('button[data-f]'); if (b) applyFmt(where, b.dataset.f); });
   root.querySelector('.attach').addEventListener('click', () => c.fileInput.click());
   root.querySelector('.stamp-btn').addEventListener('click', () => openStampPick({ where }));
   root.querySelector('.vote-btn')?.addEventListener('click', openVoteSet);
@@ -1832,8 +2171,9 @@ function buildComposer(rootId, where) {
     }
     c.files.splice(i, 1); renderPendingFiles(where); autosize(where);
   });
-  c.input.addEventListener('input', () => { autosize(where); mentionSearch(where); });
+  c.input.addEventListener('input', () => { autosize(where); mentionSearch(where); updateFmtPrev(where); updateAwayHint(where); });
   c.input.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); applyFmt(where, 'b'); return; }
     if (!c.box.classList.contains('hidden')) {
       const items = [...c.box.children];
       let i = items.findIndex((x) => x.classList.contains('sel'));
@@ -1874,7 +2214,10 @@ function setComposer(where, o) {
   c.ctx.querySelector('span').textContent = label;
   c.send.textContent = o.edit ? '保存' : '送信';
   c.input.dataset.editing = o.edit ? '1' : '';
+  if (o.edit) setAck(where, false);
   autosize(where);
+  updateFmtPrev(where);
+  updateAwayHint(where);
   if (o.quote || o.edit) c.input.focus();
 }
 
@@ -1897,7 +2240,7 @@ function mentionSearch(where) {
     return [u.name, u.dispName, u.dept, id].some((s) => s && String(s).toLowerCase().includes(q));
   }).slice(0, 30);
   if (!list.length) { c.box.classList.add('hidden'); return; }
-  c.box.innerHTML = list.map((id, k) => `<div data-id="${esc(id)}" class="${k === 0 ? 'sel' : ''}">${esc(id === 'all' ? tr('全員') : fullNameOf(id))}<small>${esc(id === 'all' ? tr('このチャンネルの全員に知らせる') : (S.users[id]?.dept || ''))}</small></div>`).join('');
+  c.box.innerHTML = list.map((id, k) => `<div data-id="${esc(id)}" class="${k === 0 ? 'sel' : ''}">${esc(id === 'all' ? tr('全員') : fullNameOf(id))}<small>${esc(id === 'all' ? tr('このチャンネルの全員に知らせる') : [S.users[id]?.dept || '', presText(id)].filter(Boolean).join('・'))}</small></div>`).join('');
   c.box.classList.remove('hidden');
 }
 function pickMention(where, id) {
@@ -1911,6 +2254,7 @@ function pickMention(where, id) {
   c.state.mentions.set(id, label);
   c.box.classList.add('hidden');
   autosize(where);
+  updateAwayHint(where);
   c.input.focus();
 }
 /** 送る本文に残っている @名前 だけをメンションにする */
@@ -1987,7 +2331,9 @@ async function doSend(where, body) {
     parentSeq: where === 'thread' && S.thread ? S.thread.parent.seq : null,
     quote: st.quote ? { seq: st.quote.seq, empId: st.quote.empId, body: st.quote.body.slice(0, 80) } : null,
     _pending: true, _ch: S.cur, _quoteSeq: st.quote ? st.quote.seq : null,
+    meta: c.ack ? { ack: true } : null, _ack: c.ack,
   };
+  setAck(where, false);
   c.input.value = '';
   if (where === 'main') clearDraft(S.cur);
   setComposer(where, {});
@@ -2005,7 +2351,7 @@ async function sendMsg(msg) {
       msg.files[i].itemId = await uploadFile(msg._ch, msg._raw[i], (p) => { msg.files[i]._progress = p; rerenderFor(msg); });
     }
     const files = (msg.files || []).filter((f) => f.itemId).map((f) => ({ itemId: f.itemId }));
-    const r = await api('chatSend', { channelId: msg._ch, clientId: msg.id, body: msg.body, parentSeq: msg.parentSeq || undefined, quoteSeq: msg._quoteSeq || undefined, mentions: msg.mentions, files: files.length ? files : undefined, vote: msg._vote || undefined });
+    const r = await api('chatSend', { channelId: msg._ch, clientId: msg.id, body: msg.body, parentSeq: msg.parentSeq || undefined, quoteSeq: msg._quoteSeq || undefined, mentions: msg.mentions, files: files.length ? files : undefined, vote: msg._vote || undefined, ack: msg._ack || undefined });
     addMsg(msg._ch, r.msg);
     if (r.parent) applyUpdate(msg._ch, r.parent);
   } catch (e) {
@@ -2267,6 +2613,7 @@ function connect() {
     if (p.type === 'msg') addMsg(p.channelId, p.msg);
     else if (p.type === 'update') applyUpdate(p.channelId, p.msg);
     else if (p.type === 'channel') reloadChannels(true);
+    else if (p.type === 'read' && p.channelId === S.cur) { clearTimeout(S.readCntTimer); S.readCntTimer = setTimeout(() => loadReadCounts(S.cur), 800); }
     else if (p.type === 'images') reloadChannels().then(() => { renderMsgs('keep'); if (S.thread) renderThread(false); if (!$('emojiPick').classList.contains('hidden')) renderStampGrid(); });
   };
   ws.onclose = (e) => {
@@ -2293,7 +2640,7 @@ async function reloadChannels(checkCur) {
       $('chName').textContent = '';
       $('msgs').innerHTML = '<div class="empty">このチャンネルは見られなくなりました</div>';
     } else if (ch) {
-      $('chName').innerHTML = esc(chTitle(ch)) + (ch.kind === 'group' ? '<span class="sub">' + (ch.members || []).length + '人</span>' : '');
+      setChHeader(ch);
     }
   } catch {}
 }
@@ -2306,6 +2653,272 @@ async function resync() {
     try { const r = await api('chatHistory', { channelId: S.cur }); r.msgs.forEach((m) => upsert(S.msgs, m)); renderMsgs('keep'); } catch {}
   }
   if (S.thread) openThread(S.thread.parent.seq);
+}
+
+// ---------- 文字の書式（2026-11-19。前の版にあったもの） ----------
+function toggleFmtBar(where) {
+  const c = C[where];
+  const on = !c.fmtBar.classList.toggle('hidden');
+  c.root.querySelector('.fmt-btn').classList.toggle('on', on);
+  if (on) c.input.focus();
+}
+/** 選んだところを印で囲む（もう同じ印で囲まれていれば外す）。選んでいなければ印だけ入れて、その間に書けるようにする */
+function applyFmt(where, f) {
+  const c = C[where], t = c.input;
+  const s0 = t.selectionStart, e0 = t.selectionEnd, v = t.value;
+  let sel = v.slice(s0, e0);
+  const done = (a, b) => { t.focus(); t.setSelectionRange(a, b); autosize(where); updateFmtPrev(where); };
+  if (f === 'x') { const plain = stripFmt(sel); t.value = v.slice(0, s0) + plain + v.slice(e0); done(s0, s0 + plain.length); return; }
+  const [open, close] = f === 'b' ? ['**', '**'] : f === 's' ? ['~~', '~~'] : f === 'hl' ? ['[hl]', '[/hl]'] : ['[' + f + ']', '[/c]'];
+  if (sel && v.slice(s0 - open.length, s0) === open && v.slice(e0, e0 + close.length) === close) {
+    t.value = v.slice(0, s0 - open.length) + sel + v.slice(e0 + close.length);
+    done(s0 - open.length, e0 - open.length);
+    return;
+  }
+  if (f.startsWith('c:')) {
+    sel = sel.replace(/\[c:[a-z]+\]([\s\S]*?)\[\/c\]/g, '$1'); // 前の色を外してから付け直す
+    // すでに色の中にいる（[c:red]ここ[/c]）なら、色だけ入れ替える
+    const before = v.slice(0, s0).match(/\[c:[a-z]+\]$/);
+    if (before && v.slice(e0, e0 + 4) === '[/c]') {
+      t.value = v.slice(0, s0 - before[0].length) + open + sel + v.slice(e0);
+      const a = s0 - before[0].length + open.length;
+      done(a, a + sel.length);
+      return;
+    }
+  }
+  if ((f === 'b' || f === 's') && sel.includes('\n')) { // 太字・取り消しは行をまたげないので、行ごとに付ける
+    const out = sel.split('\n').map((l) => (l.trim() ? open + l + close : l)).join('\n');
+    t.value = v.slice(0, s0) + out + v.slice(e0);
+    done(s0, s0 + out.length);
+    return;
+  }
+  t.value = v.slice(0, s0) + open + sel + close + v.slice(e0);
+  done(s0 + open.length, s0 + open.length + sel.length);
+}
+/** 印が入っているときだけ、入力欄の上に見え方を出す */
+function updateFmtPrev(where) {
+  const c = C[where];
+  if (!c || !c.fmtPrev) return;
+  const v = c.input.value;
+  const show = hasFmt(v);
+  c.fmtPrev.classList.toggle('hidden', !show);
+  if (show) c.fmtPrev.innerHTML = `<small>${esc(tr('見え方'))}</small>` + fmtHtml(esc(v));
+}
+
+// ---------- 確認してほしい・読んだ人（2026-11-19） ----------
+function setAck(where, on) {
+  const c = C[where];
+  if (!c) return;
+  c.ack = !!on;
+  c.ackEl.classList.toggle('hidden', !c.ack);
+  c.root.querySelector('.ack-btn').classList.toggle('on', c.ack);
+}
+/** スマホ：入力欄の「＋」（書式・確認してほしい・投票・時間を決めて送る） */
+function openPlus(where) {
+  const c = C[where];
+  const items = [['fmt', c.fmtBar.classList.contains('hidden') ? '文字の書式' : '文字の書式を閉じる'], ['ack', c.ack ? '確認してほしいをやめる' : '確認してほしい'],
+    ...(where === 'main' ? [['vote', '投票・日程調整']] : []), ['later', '時間を決めて送る']];
+  $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}">${esc(tr(l))}</button>`).join('');
+  $('sheet').onclick = (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    closeSheet();
+    const a = b.dataset.a;
+    if (a === 'fmt') toggleFmtBar(where); else if (a === 'ack') setAck(where, !c.ack); else if (a === 'vote') openVoteSet(); else openLater({ kind: 'send', where });
+  };
+  $('sheet').classList.remove('hidden'); $('sheetBg').classList.remove('hidden');
+}
+let readersMsg = null;
+async function openReaders(m) {
+  readersMsg = m;
+  const ack = !!(m.meta && m.meta.ack);
+  $('readersTitle').textContent = tr(ack ? '確認状況' : '読んだ人');
+  $('readersBody').innerHTML = `<div class="more">${esc(tr('読み込んでいます…'))}</div>`;
+  $('readersErr').textContent = '';
+  $('readersRemind').classList.add('hidden');
+  $('readersBox').classList.remove('hidden');
+  try {
+    const r = await api('chatReaders', { channelId: S.cur, seq: m.seq });
+    const names = (ids) => (ids.length ? ids.map(fullNameOf).sort((a, b) => a.localeCompare(b, 'ja')).map(esc).join('、') : '—');
+    const sec = (t, ids) => `<h3>${esc(tf(t, { n: ids.length }))}</h3><div class="names">${names(ids)}</div>`;
+    $('readersBody').innerHTML = (r.ack
+      ? sec('確認しました（{n}人）', r.acked) + sec('読んだが、まだ確認していない（{n}人）', r.read)
+      : sec('読んだ（{n}人）', [...r.acked, ...r.read])) + sec('まだ読んでいない（{n}人）', r.unread);
+    $('readersRemind').classList.toggle('hidden', !r.ack || !(r.read.length + r.unread.length));
+  } catch (e) { $('readersBody').innerHTML = ''; $('readersErr').textContent = e.message; }
+}
+$('readersClose').addEventListener('click', () => $('readersBox').classList.add('hidden'));
+$('readersRemind').addEventListener('click', async () => {
+  if (!readersMsg) return;
+  try {
+    const r = await api('chatAckRemind', { channelId: S.cur, seq: readersMsg.seq });
+    $('readersBox').classList.add('hidden');
+    toast(tf('{n}人に、もう一度知らせました', { n: r.n }));
+  } catch (e) { $('readersErr').textContent = e.message; }
+});
+
+// ---------- 在席（在席ボードと同じ決め方。2026-11-19、H-04） ----------
+const PRES_BUSY = ['会議中', '打ち合わせ', '来社', '休憩中'];
+const PRES_OUT = ['外出', '出張', '在宅'];
+const AWAY_HINT = ['外出', '出張', '休み', '休暇', '会議中']; // 送る前に「〜さんは外出（15:00まで）」と出す状態
+const presOf = (id) => S.presence[id] || null;
+function presText(id) {
+  const p = presOf(id);
+  if (!p) return '';
+  return tr(p.s) + (p.u ? tf('（{t}まで）', { t: p.u }) : '');
+}
+function presDot(id) {
+  const p = presOf(id);
+  if (!p) return '';
+  const cls = p.s === '在席' ? 'p-in' : PRES_BUSY.includes(p.s) ? 'p-busy' : PRES_OUT.includes(p.s) ? 'p-out' : 'p-off';
+  return `<i class="pdot ${cls}" title="${esc(presText(id))}"></i>`;
+}
+/** 5分ごと（見ているときだけ）に取り直す。force は起動のとき */
+async function loadPresence(force) {
+  if (!force && (!isViewing() || Date.now() - S.presenceAt < 4 * 60 * 1000)) return;
+  S.presenceAt = Date.now();
+  try {
+    const r = await api('chatPresence');
+    S.presence = r.people || {};
+    renderChannels();
+    const ch = S.channels.find((c) => c.id === S.cur);
+    if (ch) setChHeader(ch);
+    if (S.msgs.length) rerenderOpen();
+    updateAwayHint('main'); updateAwayHint('thread');
+  } catch { S.presenceAt = 0; }
+}
+/** 送る前の注意：1対1の相手・メンションした人が外出・休みなどなら、入力欄の上に出す（止めない） */
+function updateAwayHint(where) {
+  const c = C[where];
+  if (!c || !c.awayEl) return;
+  const ch = S.channels.find((x) => x.id === S.cur);
+  const ids = new Set([...c.state.mentions].filter(([id, label]) => id !== 'all' && c.input.value.includes(label)).map(([id]) => id));
+  if (ch && ch.kind === 'dm') (ch.members || []).filter((x) => x !== S.me).forEach((x) => ids.add(x));
+  const lines = [...ids].filter((id) => { const p = presOf(id); return p && AWAY_HINT.includes(p.s); })
+    .map((id) => tf('{name}さんは {status}', { name: nameOf(id), status: presText(id) }));
+  c.awayEl.textContent = lines.join('　');
+  c.awayEl.classList.toggle('hidden', !lines.length || isHaloCh(ch));
+}
+
+// ---------- 時間を決めて送る・あとで知らせる（2026-11-19、M-16） ----------
+let laterCtx = null;
+$('laterTime').innerHTML = Array.from({ length: 24 * 4 }, (_, k) => { const t = pad(Math.floor(k / 4)) + ':' + pad((k % 4) * 15); return `<option value="${t}">${t}</option>`; }).join('');
+const dateStr = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function setLaterAt(d) {
+  const q = new Date(d.getTime());
+  q.setSeconds(0, 0);
+  const mi = q.getMinutes();
+  if (mi % 15) q.setMinutes(mi + (15 - (mi % 15))); // 15分ごとに切り上げ
+  $('laterDate').value = dateStr(q);
+  $('laterTime').value = pad(q.getHours()) + ':' + pad(q.getMinutes());
+}
+function morning(addDays) { const d = new Date(); d.setDate(d.getDate() + addDays); d.setHours(9, 0, 0, 0); return d; }
+function openLater(o) {
+  const send = o.kind === 'send';
+  if (!S.cur) return;
+  if (send) {
+    const c = C[o.where];
+    if (c.state.edit) { toast(tr('直している最中は予約できません')); return; }
+    if (c.files.length) { toast(tr('添付のあるメッセージは予約できません（添付を外すか、今すぐ送ってください）')); return; }
+    if (!c.input.value.trim()) { toast(tr('先にメッセージを書いてください')); return; }
+  }
+  laterCtx = o;
+  $('laterTitle').textContent = tr(send ? '時間を決めて送る' : 'あとで知らせる');
+  $('laterNote').textContent = tr(send ? '決めた時間に、あなたの名前で送ります。送るまでは「予約」から取り消せます。' : '決めた時間に、このメッセージを「HALO 通知」とスマホ通知でお知らせします。');
+  const now = Date.now();
+  const quick = send
+    ? [['明日 9:00', morning(1)], ['1時間後', new Date(now + 60 * 60000)]]
+    : [['1時間後', new Date(now + 60 * 60000)], ['3時間後', new Date(now + 180 * 60000)], ['明日 9:00', morning(1)]];
+  const dow = new Date().getDay();
+  if (dow === 5 || dow === 6 || dow === 0) quick.push(['月曜 9:00', morning((8 - dow) % 7 || 7)]);
+  S.laterQuick = quick;
+  $('laterQuick').innerHTML = quick.map(([l], i) => `<button type="button" class="btn" data-q="${i}">${esc(tr(l))}</button>`).join('');
+  setLaterAt(quick[0][1]);
+  $('laterErr').textContent = '';
+  $('laterBox').classList.remove('hidden');
+}
+$('laterQuick').addEventListener('click', (e) => { const b = e.target.closest('[data-q]'); if (b) setLaterAt(S.laterQuick[Number(b.dataset.q)][1]); });
+$('laterNo').addEventListener('click', () => $('laterBox').classList.add('hidden'));
+$('laterYes').addEventListener('click', async () => {
+  const o = laterCtx;
+  if (!o) return;
+  const at = new Date(`${$('laterDate').value}T${$('laterTime').value}:00`).getTime();
+  if (!Number.isFinite(at)) { $('laterErr').textContent = tr('日付を選んでください'); return; }
+  if (at < Date.now() + 60 * 1000) { $('laterErr').textContent = tr('時刻は今より先にしてください'); return; }
+  const when = `${ymd(at)} ${hm(at)}`;
+  $('laterYes').disabled = true;
+  try {
+    if (o.kind === 'send') {
+      const c = C[o.where];
+      const body = c.input.value.trim();
+      const found = findPii(body);
+      if (found.length && !confirm(tr('個人情報が入っていませんか？') + '\n' + found.join('\n') + '\n\n' + tr('このまま送る') + '？')) return;
+      await api('chatLaterAdd', { later: {
+        kind: 'send', channelId: S.cur, at, body, mentions: collectMentions(o.where, body),
+        parentSeq: o.where === 'thread' && S.thread ? S.thread.parent.seq : undefined,
+        quoteSeq: c.state.quote ? c.state.quote.seq : undefined, ack: c.ack || undefined,
+      } });
+      c.input.value = '';
+      if (o.where === 'main') clearDraft(S.cur);
+      setComposer(o.where, {});
+      setAck(o.where, false);
+      toast(tf('{when} に送ります（「予約」から取り消せます）', { when }));
+    } else {
+      await api('chatLaterAdd', { later: { kind: 'remind', channelId: S.cur, seq: o.msg.seq, at } });
+      toast(tf('{when} に「HALO 通知」でお知らせします', { when }));
+    }
+    $('laterBox').classList.add('hidden');
+    if (S.panel && S.panel.kind === 'later') openPanel('later');
+  } catch (e) { $('laterErr').textContent = e.message; } finally { $('laterYes').disabled = false; }
+});
+
+// ---------- メッセージから HALO のタスク・予定を作る（2026-11-19、M-14） ----------
+let taskMsg = null;
+const msgText = (m) => previewText(m.body || (m.files || []).map((f) => f.name).join('、')).trim();
+function openTask(m) {
+  taskMsg = m;
+  $('taskTitle').value = (msgText(m).split('\n')[0] || '').slice(0, 100);
+  $('taskEnd').value = '';
+  $('taskErr').textContent = '';
+  $('taskBox').classList.remove('hidden');
+  $('taskTitle').focus();
+}
+$('taskNo').addEventListener('click', () => $('taskBox').classList.add('hidden'));
+$('taskYes').addEventListener('click', async () => {
+  const m = taskMsg;
+  const title = $('taskTitle').value.trim();
+  if (!m) return;
+  if (!title) { $('taskErr').textContent = tr('やることを書いてください'); return; }
+  const from = tf('HALO チャット「{ch}」の {name} さんのメッセージ（{at}）', { ch: chNameOf(S.cur), name: fullNameOf(m.empId), at: `${ymd(m.createdAt)} ${hm(m.createdAt)}` });
+  $('taskYes').disabled = true;
+  try {
+    await api('saveTask', { task: { type: 'Todo', title, status: '未着手', owner: fullNameOf(S.me), start: '', end: $('taskEnd').value, tag: '', parent: '', detail: (from + '\n' + msgText(m)).slice(0, 2000) } });
+    $('taskBox').classList.add('hidden');
+    toast(tr('HALO のタスク（TODO）に入れました'));
+  } catch (e) { $('taskErr').textContent = e.message; } finally { $('taskYes').disabled = false; }
+});
+/** HALO 本体の「予定を入れる」窓を、件名・メモ・参加者を入れた状態で開いてもらう（HALO のタブの中だけ） */
+function makeEvent(m) {
+  if (!EMBED) return;
+  const ch = S.channels.find((c) => c.id === S.cur);
+  const ids = new Set([S.me, m.empId, ...(m.mentions || []).filter((x) => x !== 'all')]);
+  if (ch && (ch.kind === 'dm' || ch.kind === 'group')) (ch.members || []).forEach((x) => ids.add(x));
+  const people = [...ids].filter((id) => S.users[id]);
+  const text = msgText(m);
+  const memo = tf('HALO チャット「{ch}」の {name} さんのメッセージから', { ch: chNameOf(S.cur), name: fullNameOf(m.empId) }) + '\n' + text;
+  try { window.parent.postMessage({ haloChat: 'newEvent', title: (text.split('\n')[0] || '').slice(0, 60), memo: memo.slice(0, 1000), people }, location.origin); } catch {}
+}
+/** 予定の参加者と話す（HALO 本体の予定の詳細から。2026-11-19、H-05）。チャットを使えない人は外す */
+async function openDmWith(ids) {
+  if (!S.me) { S.pendingDm = ids; return; } // まだ読み込み中。読み込めたら開く
+  const list = [...new Set((ids || []).map(String))].filter((id) => id !== S.me && S.users[id] && canChat(id));
+  if (!list.length) { toast(tr('チャットで話せる参加者がいません')); return; }
+  try {
+    const r = await api('chatOpenDm', { empIds: list });
+    if (!S.channels.some((c) => c.id === r.channel.id)) S.channels.push(r.channel);
+    renderChannels();
+    openChannel(r.channel.id);
+  } catch (e) { toast(e.message); }
 }
 
 start();

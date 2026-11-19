@@ -2417,7 +2417,7 @@ ja:{
 'detail.place':'場所','detail.people':'参加者','detail.rental':'レンタル',
 'detail.memo':'メモ','detail.creator':'登録者',
 'detail.you.approver':'あなたはこの申請の承認者です',
-'detail.copy':'📋 コピー','detail.reject':'❌ 却下する','detail.approve':'✅ 承認する',
+'detail.chat':'参加者とチャットで話す','detail.copy':'📋 コピー','detail.reject':'❌ 却下する','detail.approve':'✅ 承認する',
 'detail.pending.noedit':'申請中のため編集・削除できません',
 'detail.edit':'編集する','detail.owner.only':'編集・削除は登録者（{name}）のみ可能です',
 'detail.approved.msg':'✅ 承認しました','detail.rejected.msg':'❌ 却下しました',
@@ -2819,7 +2819,7 @@ vi:{
 'detail.place':'Địa điểm','detail.people':'Người tham gia','detail.rental':'Mượn thiết bị',
 'detail.memo':'Ghi chú','detail.creator':'Người tạo',
 'detail.you.approver':'Bạn là người phê duyệt đơn này',
-'detail.copy':'📋 Sao chép','detail.reject':'❌ Từ chối','detail.approve':'✅ Phê duyệt',
+'detail.chat':'Trò chuyện với người tham gia','detail.copy':'📋 Sao chép','detail.reject':'❌ Từ chối','detail.approve':'✅ Phê duyệt',
 'detail.pending.noedit':'Đang chờ duyệt, không thể sửa/xóa',
 'detail.edit':'Sửa','detail.owner.only':'Chỉ người tạo ({name}) mới được sửa/xóa',
 'detail.approved.msg':'✅ Đã phê duyệt','detail.rejected.msg':'❌ Đã từ chối',
@@ -3212,7 +3212,7 @@ ne:{
 'detail.place':'स्थान','detail.people':'सहभागी','detail.rental':'भाडा',
 'detail.memo':'टिप्पणी','detail.creator':'सिर्जनाकर्ता',
 'detail.you.approver':'तपाईं यो निवेदनको स्वीकृतकर्ता हुनुहुन्छ',
-'detail.copy':'📋 प्रतिलिपि','detail.reject':'❌ अस्वीकार','detail.approve':'✅ स्वीकृत गर्नुहोस्',
+'detail.chat':'सहभागीहरूसँग च्याट गर्नुहोस्','detail.copy':'📋 प्रतिलिपि','detail.reject':'❌ अस्वीकार','detail.approve':'✅ स्वीकृत गर्नुहोस्',
 'detail.pending.noedit':'प्रतीक्षामा छ, सम्पादन/मेट्न मिल्दैन',
 'detail.edit':'सम्पादन','detail.owner.only':'सिर्जनाकर्ता ({name}) ले मात्र सम्पादन/मेट्न सक्छन्',
 'detail.approved.msg':'✅ स्वीकृत भयो','detail.rejected.msg':'❌ अस्वीकृत भयो',
@@ -4283,8 +4283,30 @@ window.addEventListener('message',e=>{
   if(!f||e.source!==f.contentWindow||e.origin!==location.origin) return;
   const d=e.data||{};
   if(d.haloChat==='unread') _updateChatBadge(Number(d.n)||0);
-  else if(d.haloChat==='ready') _tellChatActive();
+  else if(d.haloChat==='ready'){ f.dataset.ready='1'; _tellChatActive(); if(_chatPendingDm){ const ids=_chatPendingDm; _chatPendingDm=null; f.contentWindow.postMessage({haloChat:'openDm',empIds:ids},location.origin); } }
+  else if(d.haloChat==='newEvent') _chatNewEvent(d);
 });
+// チャットのメッセージの「予定にする」（2026-11-19）。予定を入れる窓を、件名・メモ・参加者を入れた状態で開く
+function _chatNewEvent(d){
+  openAddModal();
+  const ti=document.getElementById('ev-title'); if(ti) ti.value=String(d.title||'').slice(0,100);
+  const me=document.getElementById('ev-memo'); if(me) me.value=String(d.memo||'').slice(0,1000);
+  const ids=(Array.isArray(d.people)?d.people:[]).map(String).filter(id=>USERS.some(u=>String(u.id)===id));
+  if(ids.length){ selectedPeople=new Set([currentUser.id,...ids]); renderPeoplePicker(); updatePeopleSummary(); renderPeopleSchedule(); }
+}
+// 予定の詳細の「参加者とチャットで話す」（2026-11-19、H-05）。チャットのタブを開いて、参加者との会話を開いてもらう
+let _chatPendingDm=null;
+function _chatTalkAbout(id){
+  const e=events.find(ev=>ev.id===id); if(!e) return;
+  const ids=[...new Set([String(e.userId),...(e.people||[]).map(String)])];
+  closeModal('detail-modal-backdrop');
+  switchTab('chat');
+  _loadChatFrame();
+  const f=document.getElementById('chat-frame');
+  // 読み込み済みならすぐ、まだなら「読み込めた」と言ってきたときに渡す
+  if(f&&f.contentWindow&&f.dataset.ready==='1') f.contentWindow.postMessage({haloChat:'openDm',empIds:ids},location.origin);
+  else _chatPendingDm=ids;
+}
 function showReleaseNotes(){
   if(!SHOW_RELEASE_NOTES||!RELEASE_NOTES.length) return;
   const seen=localStorage.getItem('release_seen');
@@ -10143,6 +10165,9 @@ function openDetail(id){
       </div>
       <p class="owner-only-note">${t('detail.owner.only',{name:userName(e.userId)})}</p>`;
   }
+  // チャットを使う人：参加者（自分のほかに1人以上）と話す（2026-11-19、H-05）
+  const chatPeers=[...new Set([String(e.userId),...(e.people||[]).map(String)])].filter(x=>x!==String(currentUser.id));
+  if(document.body.classList.contains('chat-on')&&chatPeers.length) actionsHTML=`<div style="margin-bottom:10px"><button class="btn-outline" style="width:100%" onclick="_chatTalkAbout('${id}')">${t('detail.chat')}</button></div>`+actionsHTML;
   document.getElementById('detail-actions').innerHTML = actionsHTML;
   openModal('detail-modal-backdrop');
   if (document.getElementById('minutes-row')) showMinutesBox(id, e);
