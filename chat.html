@@ -60,6 +60,7 @@ body.embed .side-head{display:none}
 .ch .mute{font-size:11px;color:var(--text3)}
 .badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--primary);color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center}
 .ch.muted .badge{background:var(--text3)}
+.ch .badge.at,.ch.muted .badge.at{background:var(--red);margin-right:4px;padding:0 5px} /* まだ読んでいない自分あてのメンション（11/19） */
 /* お気に入り・まとまり・並べ替え（2026-11-19） */
 .list-tools{display:flex;gap:6px;justify-content:flex-end;padding:2px 10px 0}
 .list-tools .txt-btn{font-size:12px;padding:4px 6px}
@@ -450,6 +451,7 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    '自分あてのメンションがあります': "Có người nhắc đến bạn",
     '時刻なし': "Không có giờ",
     // B-1（投票・ピン留め・保存。2026-11-19）
     '保存したもの': "Đã lưu",
@@ -569,6 +571,7 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    '自分あてのメンションがあります': "तपाईंलाई उल्लेख गरिएको छ",
     '時刻なし': "समय बिना",
     // B-1（投票・ピン留め・保存。2026-11-19）
     '保存したもの': "सुरक्षित गरिएका",
@@ -928,6 +931,7 @@ function renderChannels() {
     <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}${ed ? ' editing' : ''}" data-id="${esc(c.id)}">
       <div class="nm"><b>${c.kind === 'dm' ? avatarHtml((c.members || []).find((x) => x !== S.me) || S.me) : ''}${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? `<span class="tag">${tr('部署')}</span>` : c.kind === 'private' ? `<span class="tag">${tr('招待のみ')}</span>` : ''}</b><small>${esc(previewText(c.lastPreview))}</small></div>
       ${c.muted ? '<span class="mute">通知オフ</span>' : ''}
+      ${c.unread && (c.mentionSeq || 0) > (c.readSeq || 0) ? '<span class="badge at" title="自分あてのメンションがあります">＠</span>' : ''}
       ${c.unread ? `<span class="badge">${c.unread > 99 ? '99+' : c.unread}</span>` : ''}
       ${ed ? `<span class="ed">
         <button type="button" data-ed="fav" class="${pr.fav.includes(c.id) ? 'on' : ''}" title="お気に入り">${pr.fav.includes(c.id) ? '★' : '☆'}</button>
@@ -1697,6 +1701,7 @@ function bumpChannel(channelId, msg) {
   ch.lastAt = msg.createdAt;
   ch.lastPreview = msgPreview(msg).replace(/\s+/g, ' ').slice(0, 40);
   if (msg.empId === S.me) ch.readSeq = Math.max(ch.readSeq || 0, msg.seq);
+  else if ((msg.mentions || []).some((id) => id === S.me || id === 'all')) ch.mentionSeq = Math.max(ch.mentionSeq || 0, msg.seq); // 一覧の「＠」
   ch.unread = Math.max(0, ch.lastSeq - (ch.readSeq || 0));
   return true;
 }
