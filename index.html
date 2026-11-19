@@ -14024,7 +14024,8 @@ async function captureCarPhoto() {
   const fileName = `${currentUser.name}_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.jpg`;
   showLoading(t('car.uploading'));
   try {
-    const result = await new Promise((resolve, reject) => {
+    // token：写真の受け口（Worker の /photo）はログイン中の人だけ受け付ける（2026-11-19）
+    const sendPhoto = () => new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', PHOTO_GAS_URL);
       xhr.setRequestHeader('Content-Type', 'text/plain');
@@ -14033,8 +14034,16 @@ async function captureCarPhoto() {
         if (xhr.status === 200) { try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error(t('car.response.fail'))); } }
         else reject(new Error(t('car.comm.error') + ': ' + xhr.status));
       };
-      xhr.send(JSON.stringify({image: base64, fileName}));
+      xhr.send(JSON.stringify({image: base64, fileName, token: loadSession()?.token}));
     });
+    let result = await sendPhoto();
+    // ログインの期限切れ：いつもの再ログイン画面を出して、撮った写真をそのまま送り直す
+    if (String(result.error || '').includes('SESSION_EXPIRED')) {
+      hideLoading();
+      await showSessionExpiredDialog();
+      showLoading(t('car.uploading'));
+      result = await sendPhoto();
+    }
     if (result.url) {
       // KintoneのDATETIMEフィールドはUTC+Zサフィックス形式が必須
       carPhotos.push({url: result.url, takenAt: now.toISOString().slice(0,19) + 'Z'});

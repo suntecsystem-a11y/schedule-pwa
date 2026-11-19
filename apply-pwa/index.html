@@ -1969,7 +1969,8 @@ async function uploadReceiptFile(input) {
 async function uploadReceiptBase64(base64, fileName, now) {
   showToast('アップロード中...');
   try {
-    const result = await new Promise((resolve, reject) => {
+    // token：写真の受け口（Worker の /photo）はログイン中の人だけ受け付ける（2026-11-19）
+    const sendPhoto = () => new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', PHOTO_GAS_URL);
       xhr.setRequestHeader('Content-Type', 'text/plain');
@@ -1979,8 +1980,15 @@ async function uploadReceiptBase64(base64, fileName, now) {
         else reject(new Error('通信エラー: ' + xhr.status));
       };
       // folder:'expense' で領収書用フォルダに保存（写真GAS側で切り替え。未指定だとアルコール用に入る）
-      xhr.send(JSON.stringify({ image: base64, fileName, folder: 'expense' }));
+      xhr.send(JSON.stringify({ image: base64, fileName, folder: 'expense', token: currentToken }));
     });
+    let result = await sendPhoto();
+    // ログインの期限切れ：いつもの再ログイン画面を出して、そのまま送り直す
+    if (String(result.error || '').includes('SESSION_EXPIRED')) {
+      localStorage.removeItem('apply_session');
+      await _showReloginDialog();
+      result = await sendPhoto();
+    }
     if (result.url) {
       receiptPhotos.push({ url: result.url, takenAt: now.toISOString().slice(0, 19) + 'Z' });
       renderReceiptPhotos();
