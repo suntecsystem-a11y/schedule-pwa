@@ -680,13 +680,6 @@ body{margin:0}
     </div>
     <div class="hud">
       <div class="now">げんざいち： <b id="now-label">本社 1階</b> <span id="tod-label" style="margin-left:10px;color:#cdd6f5"></span></div>
-      <div class="legend">
-        <span><i style="background:#5379aa"></i>製造</span>
-        <span><i style="background:#b85c4b"></i>営業</span>
-        <span><i style="background:#649a9a"></i>総務</span>
-        <span><i style="background:#8b6aa4"></i>開発</span>
-        <span><i style="background:#e6c578"></i>あなた</span>
-      </div>
     </div>
     <div class="todctl">じかん：
       <button type="button" data-tod="auto" class="on">実時刻</button>
@@ -1635,7 +1628,6 @@ document.querySelectorAll('.proom').forEach(function(room,i){if(i%2===0){var el=
 var title=document.createElement('div');title.className='map-heading';title.textContent='◆ なかまたちの せかい';document.querySelector('.world').before(title);
 var cap=document.createElement('div');cap.className='world-caption';cap.textContent='';
 var help=document.createElement('p');help.className='map-help';help.textContent='＊ キャラクターを えらぶと なかまの じょうほうが みられます。';document.querySelector('.fieldrow').after(help);
-dialog.addEventListener('click',function(e){if(e.target===dialog){var r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
 })();
 </script><script>
 (function(){
