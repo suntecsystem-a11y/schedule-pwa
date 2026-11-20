@@ -313,6 +313,12 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .sq-dates input{flex:1;min-width:0}
 #searchOpts .btn{align-self:flex-end;padding:6px 16px}
 
+/* 自分あて・くり返し（2026-11-20） */
+.badge-s{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:var(--red);color:#fff;font-size:10px;padding:0 4px;margin-left:3px;text-align:center;font-weight:600}
+#panelList .hit.unread .body{font-weight:700}
+#laterRepeatRow{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:8px}
+#laterRepeatRow select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+
 /* タブレット：スレッドは画面の上にかぶせる */
 @media(max-width:1099px){
   #thread,#panel{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);z-index:40;box-shadow:-4px 0 20px rgba(37,48,45,.12)}
@@ -352,7 +358,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="side-tools">
       <form id="searchForm"><div class="sq-row"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"><button type="button" class="txt-btn" id="searchOptBtn" title="人・チャンネル・期間で絞る">絞り込み</button></div>
         <div id="searchOpts" class="hidden"><select id="sqWho" title="書いた人"></select><select id="sqCh" title="チャンネル"></select><div class="sq-dates"><input type="date" id="sqFrom" title="この日から"><span>〜</span><input type="date" id="sqTo" title="この日まで"></div><button type="submit" class="btn primary">探す</button></div></form>
-      <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button><button class="txt-btn" id="savedBtn" type="button">保存したもの</button><button class="txt-btn" id="laterListBtn" type="button">予約</button></div>
+      <div class="side-btns"><button class="txt-btn" id="forMeBtn" type="button" title="まだ確認していない確認依頼・自分へのメンション・返信・リマインダー">自分あて<span id="forMeN" class="badge-s hidden"></span></button><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button><button class="txt-btn" id="savedBtn" type="button">保存したもの</button><button class="txt-btn" id="laterListBtn" type="button">予約</button></div>
     </div>
     <div id="chList"></div>
     <div id="searchList" class="hidden"></div>
@@ -406,6 +412,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <p id="laterNote"></p>
     <div class="later-quick" id="laterQuick"></div>
     <div class="vdate"><input type="date" id="laterDate"><select id="laterTime"></select></div>
+    <div id="laterRepeatRow"><span>くり返し</span><select id="laterRepeat"><option value="">しない</option><option value="daily">毎日</option><option value="weekdays">平日（月〜金）</option><option value="weekly">毎週（同じ曜日）</option><option value="monthly">毎月（同じ日）</option></select></div>
     <div class="err" id="laterErr"></div>
     <div class="btns"><button type="button" class="btn" id="laterNo">やめる</button><button type="button" class="btn primary" id="laterYes">決める</button></div>
   </div>
@@ -536,6 +543,26 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 自分あて・くり返し（2026-11-20）
+    "自分あて": "Dành cho tôi",
+    "まだ確認していない確認依頼・自分へのメンション・返信・リマインダー": "Yêu cầu xác nhận chưa xác nhận, nhắc tên, trả lời và nhắc nhở",
+    "くり返し": "Lặp lại",
+    "しない": "Không",
+    "毎日": "Hằng ngày",
+    "平日（月〜金）": "Ngày thường (T2–T6)",
+    "毎週（同じ曜日）": "Hằng tuần (cùng thứ)",
+    "毎月（同じ日）": "Hằng tháng (cùng ngày)",
+    "メンション": "Nhắc tên",
+    "返信": "Trả lời",
+    "リマインダー": "Nhắc nhở",
+    "まだ確認していない（{n}）": "Chưa xác nhận ({n})",
+    "メンション・返信（{n}）": "Nhắc tên / trả lời ({n})",
+    "リマインダー（{n}）": "Nhắc nhở ({n})",
+    "この14日のあいだに、自分あてのものはありません": "Không có mục nào dành cho bạn trong 14 ngày qua",
+    "決めた時間に自分メモに届き、スマホにも知らせます（自分あてのリマインダーとして使えます）。「予約」から取り消せます。": "Vào giờ đã chọn sẽ gửi vào Ghi chú của tôi và báo trên điện thoại (dùng làm nhắc nhở cho bản thân). Có thể hủy trong \"Hẹn giờ\".",
+    "{when} から{rep}送ります（「予約」から取り消せます）": "Sẽ gửi {rep} từ {when} (có thể hủy trong \"Hẹn giờ\")",
+    "予約で届いたもの": "Gửi theo hẹn giờ",
+    "くり返しの決め方が正しくありません": "Cách lặp lại không đúng",
     // 自分メモ・探すときの絞り込み（2026-11-20）
     "自分メモ": "Ghi chú của tôi",
     "自分だけが見られるメモ": "Ghi chú chỉ mình bạn xem được",
@@ -752,6 +779,26 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 自分あて・くり返し（2026-11-20）
+    "自分あて": "मेरो लागि",
+    "まだ確認していない確認依頼・自分へのメンション・返信・リマインダー": "पुष्टि नगरेका अनुरोध, उल्लेख, जवाफ र सम्झना",
+    "くり返し": "दोहोर्याउनुहोस्",
+    "しない": "नगर्ने",
+    "毎日": "हरेक दिन",
+    "平日（月〜金）": "कार्यदिन (सोम–शुक्र)",
+    "毎週（同じ曜日）": "हरेक हप्ता (सोही बार)",
+    "毎月（同じ日）": "हरेक महिना (सोही दिन)",
+    "メンション": "उल्लेख",
+    "返信": "जवाफ",
+    "リマインダー": "सम्झना",
+    "まだ確認していない（{n}）": "पुष्टि नगरेको ({n})",
+    "メンション・返信（{n}）": "उल्लेख / जवाफ ({n})",
+    "リマインダー（{n}）": "सम्झना ({n})",
+    "この14日のあいだに、自分あてのものはありません": "पछिल्लो १४ दिनमा तपाईंका लागि केही छैन",
+    "決めた時間に自分メモに届き、スマホにも知らせます（自分あてのリマインダーとして使えます）。「予約」から取り消せます。": "तोकिएको समयमा मेरो नोटमा आउँछ र फोनमा पनि सूचना जान्छ (आफ्नै सम्झनाको रूपमा प्रयोग गर्न सकिन्छ)। \"तालिका\" बाट रद्द गर्न सकिन्छ।",
+    "{when} から{rep}送ります（「予約」から取り消せます）": "{when} देखि {rep} पठाइन्छ (\"तालिका\" बाट रद्द गर्न सकिन्छ)",
+    "予約で届いたもの": "तालिकाबाट आएको",
+    "くり返しの決め方が正しくありません": "दोहोर्याउने तरिका मिलेन",
     // 自分メモ・探すときの絞り込み（2026-11-20）
     "自分メモ": "मेरो नोट",
     "自分だけが見られるメモ": "तपाईंले मात्र हेर्न सक्ने नोट",
@@ -1024,6 +1071,7 @@ const S = {
   answered: {}, // HALO お知らせの安否確認に、この画面で答えた結果（seq → 文）。人ごとなので投稿には残らない
   readSeqs: null, // 開いているチャンネルの、ほかの人の読んだ番号（自分のメッセージの「既読 n」。2026-11-19）
   presence: {}, presenceAt: 0, // 在席（社員番号 → { s: 状態, u: 何時まで }。在席ボードと同じ決め方。2026-11-19）
+  forMe: [], // 自分あて（chatForMe の items。2026-11-20）
   taskOk: false, pendingDm: null, // HALO のタスクを使える人か・HALO 本体から頼まれた会話（読み込み前に来たとき）
   // HALO 本体のタブの中では、チャットのタブを開いているときだけ「見ている」（親が知らせる。2026-11-18）
   active: !EMBED, sleeping: false, lastFocus: null, lastUnread: null,
@@ -1188,6 +1236,7 @@ async function start() {
     connect();
     loadPresence(true);
     setInterval(() => loadPresence(), 5 * 60 * 1000);
+    refreshForMeSoon(1500);
     const want = params.get('ch');
     if (S.pendingDm) { const x = S.pendingDm; S.pendingDm = null; openDmWith(x); }
     else if (want && S.channels.some((c) => c.id === want)) openChannel(want);
@@ -1250,7 +1299,7 @@ function renderChannels() {
   const dms = rest.filter((c) => c.kind === 'dm' || c.kind === 'group');
   const favOpen = !(pr.closed || []).includes('fav');
   const tools = `<div class="list-tools">${ed ? '<button type="button" class="txt-btn" data-ed="newcat">まとまりを作る</button>' : ''}<button type="button" class="txt-btn" data-ed="toggle">${ed ? '整理を終わる' : '一覧を整理'}</button></div>`;
-  const selfRow = `<div class="ch self${self && self.id === S.cur ? ' on' : ''}${self && self.unread ? ' unread' : ''}" data-id="${esc(self ? self.id : '__self__')}"><div class="nm"><b>${esc(tr('自分メモ'))}</b><small>${esc(self && self.lastPreview ? previewText(self.lastPreview) : tr('自分だけが見られるメモ'))}</small></div></div>`;
+  const selfRow = `<div class="ch self${self && self.id === S.cur ? ' on' : ''}${self && self.unread ? ' unread' : ''}" data-id="${esc(self ? self.id : '__self__')}"><div class="nm"><b>${esc(tr('自分メモ'))}</b><small>${esc(self && self.lastPreview ? previewText(self.lastPreview) : tr('自分だけが見られるメモ'))}</small></div>${self && self.unread ? `<span class="badge">${self.unread}</span>` : ''}</div>`;
   $('chList').innerHTML = tools + selfRow
     + (favs.length ? grp('fav', '★ お気に入り', '', favOpen) + (favOpen ? favs.map((c) => row(c, 'fav')).join('') : '') : '')
     + cats.map(({ cat, list }) => grp('cat:' + cat.id, esc(cat.name), list.length ? `（${list.length}）` : '', cat.open,
@@ -1261,6 +1310,7 @@ function renderChannels() {
     + (dms.length ? '<div class="sec">会話</div>' + dms.map((c) => row(c, '')).join('') : '')
     + (S.channels.length ? '' : '<div class="empty">チャンネルがありません</div>');
   postUnread();
+  setForMeBadge();
   loadImgs();
 }
 /** 並べ方を残す（続けて押しても1回にまとめる） */
@@ -1363,7 +1413,7 @@ async function openChannel(id) {
   $('msgs').innerHTML = '<div class="more">読み込んでいます…</div>';
   setComposer('main', { text: loadDraft(id) });
   S.firstUnreadSeq = ch && ch.unread ? (ch.readSeq || 0) + 1 : null;
-  if (S.panel && S.panel.kind !== 'saved' && S.panel.kind !== 'later' && S.panel.channelId !== id) openPanel(S.panel.kind); // ピン留め・ファイルを開いていたら、新しいチャンネルの分に
+  if (S.panel && !['saved', 'later', 'forme'].includes(S.panel.kind) && S.panel.channelId !== id) openPanel(S.panel.kind); // ピン留め・ファイルを開いていたら、新しいチャンネルの分に
   try {
     const r = await api('chatHistory', { channelId: id });
     if (S.cur !== id) return;
@@ -1450,7 +1500,7 @@ function msgHtml(m, prev, where) {
       ${m.seq ? `<button data-act="more" title="その他（あとで知らせる・タスクにする など）">${ICON.more}</button>` : ''}
     </div>`;
   const status = m._failed ? tf('送れませんでした{err}（押すともう一度送ります）', { err: m._err ? '：' + tr(m._err) : '' }) : m._pending ? '送っています…' : hm(m.createdAt) + (m.editedAt && !m.deleted ? tr('・編集済み') : '')
-    + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '') + readHtml;
+    + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '') + (m.meta && m.meta.remind && !m.deleted ? '・' + tr('予約で届いたもの') : '') + readHtml;
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
     ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}${presDot(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
     <div class="bw">${acts}<div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}</span>` : '') + quote + renderBody(m) + filesHtml(m)}</div></div>
@@ -1530,11 +1580,11 @@ async function toggleSave(m, channelId) {
 }
 
 // ---------- 横の一覧：ピン留め・ファイル・保存したもの（B-1） ----------
-const PANEL_TITLE = { pins: 'このチャンネルのピン留め', files: 'このチャンネルのファイル', saved: '保存したもの', later: '予約・リマインダー' };
+const PANEL_TITLE = { pins: 'このチャンネルのピン留め', files: 'このチャンネルのファイル', saved: '保存したもの', later: '予約・リマインダー', forme: '自分あて' };
 const narrow = () => window.innerWidth < 1100; // 一覧が画面にかぶさる幅
 function chNameOf(id) { const c = S.channels.find((x) => x.id === id); return c ? chTitle(c) : ''; }
 async function openPanel(kind) {
-  if (kind !== 'saved' && kind !== 'later' && !S.cur) return;
+  if (kind !== 'saved' && kind !== 'later' && kind !== 'forme' && !S.cur) return;
   closeThread();
   const channelId = S.cur;
   S.panel = { kind, channelId, items: [] };
@@ -1546,6 +1596,7 @@ async function openPanel(kind) {
     if (kind === 'pins') items = (await api('chatPins', { channelId })).msgs.map((m) => ({ channelId, msg: m }));
     else if (kind === 'saved') items = (await api('chatSaved')).items;
     else if (kind === 'later') items = (await api('chatLaterList')).items;
+    else if (kind === 'forme') { items = (await api('chatForMe')).items; S.forMe = items; setForMeBadge(); }
     else items = (await api('chatFiles', { channelId })).files;
     if (!S.panel || S.panel.kind !== kind || S.panel.channelId !== channelId) return;
     S.panel.items = items;
@@ -1557,8 +1608,17 @@ function renderPanel() {
   if (!P) return;
   const when = (t) => ymd(t) + ' ' + hm(t);
   let html;
-  if (P.kind === 'later') {
-    html = P.items.map((x, i) => `<div class="hit" data-i="${i}"><div><div class="where">${when(x.at)}・${esc(tr(x.kind === 'send' ? '送る' : 'お知らせ'))}・${esc(chNameOf(x.channelId))}</div>`
+  if (P.kind === 'forme') {
+    const lab = { ack: '確認してほしい', mention: 'メンション', reply: '返信', remind: 'リマインダー' };
+    const row = (x) => `<div class="hit${x.why !== 'ack' && !isReadNow(x) ? ' unread' : ''}" data-i="${P.items.indexOf(x)}"><div><div class="where">${esc(tr(lab[x.why] || ''))}・${esc(chNameOf(x.channelId))}・${esc(nameOf(x.msg.empId))}・${when(x.msg.createdAt)}</div>`
+      + `<div class="body">${esc(msgPreview(x.msg))}</div></div></div>`;
+    const sec = (t, list) => (list.length ? `<div class="sec">${esc(tf(t, { n: list.length }))}</div>` + list.map(row).join('') : '');
+    html = sec('まだ確認していない（{n}）', P.items.filter((x) => x.why === 'ack'))
+      + sec('メンション・返信（{n}）', P.items.filter((x) => x.why === 'mention' || x.why === 'reply'))
+      + sec('リマインダー（{n}）', P.items.filter((x) => x.why === 'remind'))
+      || `<div class="empty">${esc(tr('この14日のあいだに、自分あてのものはありません'))}</div>`;
+  } else if (P.kind === 'later') {
+    html = P.items.map((x, i) => `<div class="hit" data-i="${i}"><div><div class="where">${when(x.at)}・${esc(tr(x.kind === 'send' ? '送る' : 'お知らせ'))}${x.data && x.data.repeat ? '・' + esc(tr(REPEAT_LABEL[x.data.repeat] || '')) : ''}・${esc(chNameOf(x.channelId))}</div>`
       + `<div class="body">${esc(x.kind === 'send' ? previewText(x.data.body) : previewText(x.data.preview || ''))}</div></div><button type="button" data-p="cancel">${esc(tr('取り消す'))}</button></div>`).join('')
       || `<div class="empty">${esc(tr('予約はありません（メッセージの「あとで知らせる」、入力欄の時計のボタンで足せます）'))}</div>`;
   } else if (P.kind === 'files') {
@@ -1579,6 +1639,7 @@ $('pinsBtn').addEventListener('click', () => openPanel('pins'));
 $('filesBtn').addEventListener('click', () => openPanel('files'));
 $('savedBtn').addEventListener('click', () => openPanel('saved'));
 $('laterListBtn').addEventListener('click', () => openPanel('later'));
+$('forMeBtn').addEventListener('click', () => openPanel('forme'));
 $('moreBtn').addEventListener('click', () => {
   if (!S.cur) return;
   const items = [['pins', 'ピン留め'], ['files', 'ファイル'], ['mute', $('muteBtn').textContent]];
@@ -1593,6 +1654,12 @@ $('panelList').addEventListener('click', async (e) => {
   const x = P.items[Number(h.dataset.i)];
   if (!x) return;
   const b = e.target.closest('button[data-p]');
+  if (P.kind === 'forme') {
+    if (narrow()) closePanel();
+    if (x.why === 'remind') { const mt = x.msg.meta || {}; jumpTo(mt.channelId, Number(mt.seq), Number(mt.parentSeq) || 0); }
+    else jumpTo(x.channelId, x.msg.seq, x.msg.parentSeq || 0);
+    return;
+  }
   if (P.kind === 'later') {
     if (b && b.dataset.p === 'cancel') {
       if (!confirm(tr('この予約を取り消しますか？'))) return;
@@ -2044,7 +2111,11 @@ $('avDel').addEventListener('click', async () => {
 $('emojiClose').addEventListener('click', () => $('emojiPick').classList.add('hidden'));
 
 async function react(m, emoji) {
-  try { const r = await api('chatReact', { channelId: S.cur, seq: m.seq, emoji }); applyUpdate(S.cur, r.msg); } catch (e) { toast(e.message); }
+  try {
+    const r = await api('chatReact', { channelId: S.cur, seq: m.seq, emoji });
+    applyUpdate(S.cur, r.msg);
+    if (emoji === STAMP) refreshForMeSoon(300); // 確認しましたで「まだ確認していない」から外れる
+  } catch (e) { toast(e.message); }
 }
 $('delNo').addEventListener('click', () => $('confirmDel').classList.add('hidden'));
 $('delYes').addEventListener('click', async () => {
@@ -2080,7 +2151,7 @@ function bumpChannel(channelId, msg) {
   ch.lastSeq = Math.max(ch.lastSeq || 0, msg.seq);
   ch.lastAt = msg.createdAt;
   ch.lastPreview = msgPreview(msg).replace(/\s+/g, ' ').slice(0, 40);
-  if (msg.empId === S.me) ch.readSeq = Math.max(ch.readSeq || 0, msg.seq);
+  if (msg.empId === S.me && !(msg.meta && msg.meta.remind)) ch.readSeq = Math.max(ch.readSeq || 0, msg.seq); // 自分メモへの予約（くり返し）は自分あての知らせなので未読のまま
   else if ((msg.mentions || []).some((id) => id === S.me || id === 'all')) ch.mentionSeq = Math.max(ch.mentionSeq || 0, msg.seq); // 一覧の「＠」
   ch.unread = Math.max(0, ch.lastSeq - (ch.readSeq || 0));
   return true;
@@ -2089,6 +2160,8 @@ function bumpChannel(channelId, msg) {
 /** 新しいメッセージ（自分が送ったものは「送っています」を置き換える） */
 function addMsg(channelId, msg) {
   if (!bumpChannel(channelId, msg)) { reloadChannels(); return; } // 新しい DM など、まだ一覧に無いチャンネル
+  // 自分あてになりそうなもの（確認してほしい・自分へのメンション・返信・リマインダー）が来たら、自分あてを取り直す
+  if (msg.empId !== S.me && ((msg.meta && (msg.meta.ack || msg.meta.type === 'chat_remind')) || (msg.mentions || []).includes(S.me) || msg.parentSeq)) refreshForMeSoon(3000);
   if (msg.parentSeq) {
     if (S.thread && S.thread.channelId === channelId && S.thread.parent.seq === msg.parentSeq) {
       const stick = nearBottom('threadMsgs') || msg.empId === S.me;
@@ -2903,8 +2976,13 @@ function openLater(o) {
     if (!c.input.value.trim()) { toast(tr('先にメッセージを書いてください')); return; }
   }
   laterCtx = o;
+  const selfNote = isSelfCh(S.channels.find((c) => c.id === S.cur));
   $('laterTitle').textContent = tr(send ? '時間を決めて送る' : 'あとで知らせる');
-  $('laterNote').textContent = tr(send ? '決めた時間に、あなたの名前で送ります。送るまでは「予約」から取り消せます。' : '決めた時間に、このメッセージを「HALO 通知」とスマホ通知でお知らせします。');
+  $('laterNote').textContent = tr(!send ? '決めた時間に、このメッセージを「HALO 通知」とスマホ通知でお知らせします。'
+    : selfNote ? '決めた時間に自分メモに届き、スマホにも知らせます（自分あてのリマインダーとして使えます）。「予約」から取り消せます。'
+    : '決めた時間に、あなたの名前で送ります。送るまでは「予約」から取り消せます。');
+  $('laterRepeatRow').classList.toggle('hidden', !send);
+  $('laterRepeat').value = '';
   const now = Date.now();
   const quick = send
     ? [['明日 9:00', morning(1)], ['1時間後', new Date(now + 60 * 60000)]]
@@ -2937,12 +3015,14 @@ $('laterYes').addEventListener('click', async () => {
         kind: 'send', channelId: S.cur, at, body, mentions: collectMentions(o.where, body),
         parentSeq: o.where === 'thread' && S.thread ? S.thread.parent.seq : undefined,
         quoteSeq: c.state.quote ? c.state.quote.seq : undefined, ack: c.ack || undefined,
+        repeat: $('laterRepeat').value || undefined,
       } });
       c.input.value = '';
       if (o.where === 'main') clearDraft(S.cur);
       setComposer(o.where, {});
       setAck(o.where, false);
-      toast(tf('{when} に送ります（「予約」から取り消せます）', { when }));
+      const rp = $('laterRepeat').value;
+      toast(rp ? tf('{when} から{rep}送ります（「予約」から取り消せます）', { when, rep: tr(REPEAT_LABEL[rp]) }) : tf('{when} に送ります（「予約」から取り消せます）', { when }));
     } else {
       await api('chatLaterAdd', { later: { kind: 'remind', channelId: S.cur, seq: o.msg.seq, at } });
       toast(tf('{when} に「HALO 通知」でお知らせします', { when }));
@@ -2999,6 +3079,27 @@ async function openDmWith(ids) {
     renderChannels();
     openChannel(r.channel.id);
   } catch (e) { toast(e.message); }
+}
+
+// ---------- 自分あて（2026-11-20） ----------
+const REPEAT_LABEL = { daily: '毎日', weekdays: '平日（月〜金）', weekly: '毎週（同じ曜日）', monthly: '毎月（同じ日）' };
+/** そのメッセージを、今はもう読んだか（読んだところは一覧の readSeq で分かる。取り直さなくてよい） */
+function isReadNow(x) { const c = S.channels.find((y) => y.id === x.channelId); return !!c && x.msg.seq <= (c.readSeq || 0); }
+/** 「自分あて」の数：まだ確認していない確認依頼と、まだ読んでいないメンション・返信・リマインダー */
+function setForMeBadge() {
+  const el = $('forMeN');
+  if (!el) return;
+  const n = (S.forMe || []).filter((x) => x.why === 'ack' || !isReadNow(x)).length;
+  el.textContent = n > 99 ? '99+' : String(n);
+  el.classList.toggle('hidden', !n);
+  if (S.panel && S.panel.kind === 'forme') { const t = $('panelList').scrollTop; renderPanel(); $('panelList').scrollTop = t; } // 読んだら太字を外す（読んでいた場所はそのまま）
+}
+let forMeTimer = null;
+function refreshForMeSoon(ms) {
+  clearTimeout(forMeTimer);
+  forMeTimer = setTimeout(async () => {
+    try { S.forMe = (await api('chatForMe')).items; if (S.panel && S.panel.kind === 'forme') S.panel.items = S.forMe; setForMeBadge(); } catch {}
+  }, ms || 0);
 }
 
 start();
