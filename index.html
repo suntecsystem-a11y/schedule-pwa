@@ -2102,9 +2102,9 @@ const ALL_TYPES = ['会議室','打ち合わせ','作業','外出','出張','休
 // 承認フローが必要な種別
 const APPROVAL_TYPES = ['外出', '出張', '在宅', 'その他'];
 const COLOR_PALETTES = {
-  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','作業':'#4dd0e1','在席':'#ccc','会議中':'#9fa8da','休憩中':'#bcaaa4'},
-  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','在宅':'#26c6da','打ち合わせ':'#ab47bc','来社':'#26a69a','その他':'#78909c','作業':'#fdd835','在席':'#ccc','会議中':'#90a4ae','休憩中':'#a1887f'},
-  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','在宅':'#66bb6a','打ち合わせ':'#ba68c8','来社':'#009688','その他':'#78909c','作業':'#ffb74d','在席':'#ccc','会議中':'#e57373','休憩中':'#bcaaa4'},
+  normal: {'会議室':'#9fa8da','外出':'#ffd54f','出張':'#64b5f6','休暇':'#f48fb1','休み':'#ffab91','早退':'#b0bec5','在宅':'#81c784','打ち合わせ':'#ce93d8','来社':'#4db6ac','その他':'#78909c','作業':'#4dd0e1','在席':'#ccc','会議中':'#9fa8da','休憩中':'#bcaaa4'},
+  protanopia: {'会議室':'#90a4ae','外出':'#ffb74d','出張':'#42a5f5','休暇':'#7e57c2','休み':'#ff8a65','早退':'#b0bec5','在宅':'#26c6da','打ち合わせ':'#ab47bc','来社':'#26a69a','その他':'#78909c','作業':'#fdd835','在席':'#ccc','会議中':'#90a4ae','休憩中':'#a1887f'},
+  tritanopia: {'会議室':'#e57373','外出':'#a1887f','出張':'#4db6ac','休暇':'#f06292','休み':'#ff8a65','早退':'#b0bec5','在宅':'#66bb6a','打ち合わせ':'#ba68c8','来社':'#009688','その他':'#78909c','作業':'#ffb74d','在席':'#ccc','会議中':'#e57373','休憩中':'#bcaaa4'},
 };
 let colorMode = localStorage.getItem('sch_color_mode') || 'normal';
 const STATUS_COLOR = {...COLOR_PALETTES.normal};
@@ -2322,7 +2322,7 @@ ja:{
 'common.error':'エラーが発生しました','common.timeout':'⚠️ 通信がタイムアウトしました',
 // 種別
 'type.room':'会議室','type.meeting':'打ち合わせ','type.out':'外出','type.trip':'出張',
-'type.leave':'休暇','type.rest':'休み','type.remote':'在宅','type.visit':'来社','type.work':'作業','type.other':'その他',
+'type.leave':'休暇','type.rest':'休み','type.early':'早退','type.remote':'在宅','type.visit':'来社','type.work':'作業','type.other':'その他',
 'type.busy':'会議中','type.present':'在席','type.lunch':'休憩中','team.lunch.until':'{t}まで',
 // ホーム
 'home.today.schedule':'📅 今日の予定','home.room.avail':'🏢 会議室の空き',
@@ -2375,13 +2375,13 @@ ja:{
 'map.roster':'■ いま どこに だれが いる','map.unset':'社内（場所未設定）','map.partner.pick':'パートナーの方が来られたら場所を選ぶ：','map.nobody':'だれもいない…','map.now':'げんざいち：','map.you':'あなた',
 'map.sum.all':'なかま','map.sum.away':'しゃがい','map.sum.rest':'おやすみ','map.people':'{n} にん',
 'map.heading':'◆ なかまたちの せかい','map.help':'＊ キャラクターを えらぶと なかまの じょうほうが みられます。いどうは とびら・ろうか・かいだんを とおります。','map.quest':'なかまたちは それぞれの ばしょで かつやくしている。',
-'map.z.shuccho':'出張中','map.z.rest':'休暇/休み',
+'map.z.shuccho':'出張中','map.z.rest':'休暇/休み/早退',
 'map.cmd.ask':'いま どこにいる？　{name} の いばしょを えらぶ','map.cmd.other':'そのほか','map.pick':'行き先を選ぶ','map.now.short':'現在地',
 'map.moved':'あなたは {place} に いどうした！','map.moving':'あなたは {place} へ いどうちゅう。','map.look.fail':'着せ替えを保存できませんでした。もう一度お試しください。','map.busy':'いまは よていの「{status}」が ひょうじされている。',
 'team.present':'{n}/{total}名在席','team.schedule':'予定なし','team.allday':'終日',
 'team.other':'その他','team.dept.header':'{month}月{day}日（{dow}）の予定',
 // メンバー詳細
-'member.rest.off':'🛌 休み解除','member.rest.on':'🛌 休みにする',
+'member.rest.off':'🛌 休み解除','member.early.on':'早退にする','member.early.off':'早退を取り消す','member.early.bad':'早退の時刻を入れてください','team.early.at':'{t} 早退','team.early.plan':'{t} 早退予定','member.rest.on':'🛌 休みにする',
 'member.add.event':'＋ この人の予定を追加','member.edit':'編集',
 // 予定モーダル
 'ev.draft':'下書き','ev.draft.discard':'消す','ev.add':'新しい予定を追加','ev.edit':'予定を編集','ev.copy':'予定をコピーして作成',
@@ -2734,7 +2734,7 @@ vi:{
 'common.offline.short':'📵 Ngoại tuyến',
 'common.error':'Đã xảy ra lỗi','common.timeout':'⚠️ Kết nối quá thời gian',
 'type.room':'Phòng họp','type.meeting':'Họp','type.out':'Ra ngoài','type.trip':'Công tác',
-'type.leave':'Nghỉ phép','type.rest':'Nghỉ','type.remote':'Tại nhà','type.visit':'Đến công ty','type.work':'Công việc','type.other':'Khác',
+'type.leave':'Nghỉ phép','type.rest':'Nghỉ','type.early':'Về sớm','type.remote':'Tại nhà','type.visit':'Đến công ty','type.work':'Công việc','type.other':'Khác',
 'type.busy':'Đang họp','type.present':'Có mặt','type.lunch':'Nghỉ trưa','team.lunch.until':'đến {t}',
 'home.today.schedule':'📅 Lịch hôm nay','home.room.avail':'🏢 Phòng họp trống',
 'home.car.avail':'🚗 Xe trống (hôm nay)','home.notice':'📢 Thông báo',
@@ -2780,12 +2780,12 @@ vi:{
 'map.roster':'■ Ai đang ở đâu','map.unset':'Trong công ty (chưa chọn vị trí)','map.partner.pick':'Khi người công ty đối tác đến, hãy chọn vị trí:','map.nobody':'Không có ai…','map.now':'Vị trí hiện tại:','map.you':'Bạn',
 'map.sum.all':'Mọi người','map.sum.away':'Bên ngoài','map.sum.rest':'Nghỉ','map.people':'{n} người',
 'map.heading':'◆ Thế giới của mọi người','map.help':'＊ Chọn nhân vật để xem thông tin. Khi di chuyển sẽ đi qua cửa, hành lang và cầu thang.','map.quest':'Mọi người đang làm việc ở nơi của mình.',
-'map.z.shuccho':'Đang công tác','map.z.rest':'Nghỉ phép/Nghỉ',
+'map.z.shuccho':'Đang công tác','map.z.rest':'Nghỉ phép/Nghỉ/Về sớm',
 'map.cmd.ask':'Bây giờ bạn ở đâu? Chọn vị trí của {name}','map.cmd.other':'Khác','map.pick':'Chọn nơi đến','map.now.short':'Vị trí',
 'map.moved':'Bạn đã đến {place}!','map.moving':'Bạn đang đi đến {place}.','map.look.fail':'Không lưu được trang phục. Vui lòng thử lại.','map.busy':'Hiện đang hiển thị lịch "{status}".',
 'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch','team.allday':'Cả ngày',
 'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
-'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
+'member.rest.off':'🛌 Hủy nghỉ','member.early.on':'Đánh dấu về sớm','member.early.off':'Hủy về sớm','member.early.bad':'Vui lòng nhập giờ về sớm','team.early.at':'Về sớm lúc {t}','team.early.plan':'Dự định về sớm lúc {t}','member.rest.on':'🛌 Đánh dấu nghỉ',
 'member.add.event':'＋ Thêm lịch cho người này','member.edit':'Sửa',
 'ev.draft':'Bản nháp','ev.draft.discard':'Xóa','ev.add':'Thêm lịch mới','ev.edit':'Sửa lịch','ev.copy':'Sao chép lịch',
 'ev.title.ph':'Thêm tiêu đề','ev.allday':'Cả ngày','ev.depart':'Ngày đi','ev.return':'Ngày về',
@@ -3127,7 +3127,7 @@ ne:{
 'common.offline.short':'📵 अफलाइन',
 'common.error':'त्रुटि भयो','common.timeout':'⚠️ जडान समय सकियो',
 'type.room':'बैठक कोठा','type.meeting':'बैठक','type.out':'बाहिर','type.trip':'व्यापार यात्रा',
-'type.leave':'बिदा','type.rest':'आराम','type.remote':'घरबाट काम','type.visit':'कार्यालय भ्रमण','type.work':'काम','type.other':'अन्य',
+'type.leave':'बिदा','type.rest':'आराम','type.early':'चाँडै घर','type.remote':'घरबाट काम','type.visit':'कार्यालय भ्रमण','type.work':'काम','type.other':'अन्य',
 'type.busy':'बैठकमा','type.present':'उपस्थित','type.lunch':'खाना विश्राम','team.lunch.until':'{t} सम्म',
 'home.today.schedule':'📅 आजको तालिका','home.room.avail':'🏢 खाली कोठा',
 'home.car.avail':'🚗 खाली गाडी (आज)','home.notice':'📢 सूचना',
@@ -3173,12 +3173,12 @@ ne:{
 'map.roster':'■ अहिले को कहाँ छ','map.unset':'कार्यालयमा (स्थान नछानिएको)','map.partner.pick':'साझेदार कम्पनीका व्यक्ति आएपछि स्थान छान्नुहोस्:','map.nobody':'कोही छैन…','map.now':'हालको स्थान:','map.you':'तपाईं',
 'map.sum.all':'सबै','map.sum.away':'बाहिर','map.sum.rest':'बिदा','map.people':'{n} जना',
 'map.heading':'◆ साथीहरूको संसार','map.help':'＊ पात्र छान्दा जानकारी हेर्न सकिन्छ। सर्दा ढोका, करिडोर र भर्याङ हुँदै जान्छ।','map.quest':'सबै आ-आफ्नो ठाउँमा काम गर्दैछन्।',
-'map.z.shuccho':'व्यापारिक यात्रामा','map.z.rest':'बिदा/आराम',
+'map.z.shuccho':'व्यापारिक यात्रामा','map.z.rest':'बिदा/आराम/चाँडै घर',
 'map.cmd.ask':'अहिले कहाँ हुनुहुन्छ? {name} को स्थान छान्नुहोस्','map.cmd.other':'अन्य','map.pick':'जाने ठाउँ छान्नुहोस्','map.now.short':'हालको स्थान',
 'map.moved':'तपाईं {place} पुग्नुभयो!','map.moving':'तपाईं {place} तर्फ जाँदै हुनुहुन्छ।','map.look.fail':'पोशाक सेभ गर्न सकिएन। फेरि प्रयास गर्नुहोस्।','map.busy':'अहिले तालिकाको "{status}" देखाइएको छ।',
 'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन','team.allday':'दिनभर',
 'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
-'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
+'member.rest.off':'🛌 आराम रद्द','member.early.on':'चाँडै घर जाने चिन्ह लगाउनुहोस्','member.early.off':'चाँडै घर रद्द','member.early.bad':'चाँडै घर जाने समय राख्नुहोस्','team.early.at':'{t} मा चाँडै घर','team.early.plan':'{t} मा चाँडै घर जाने योजना','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
 'member.add.event':'＋ यो व्यक्तिको तालिका थप्नुहोस्','member.edit':'सम्पादन',
 'ev.draft':'मस्यौदा','ev.draft.discard':'हटाउनुहोस्','ev.add':'नयाँ तालिका थप्नुहोस्','ev.edit':'तालिका सम्पादन','ev.copy':'तालिका प्रतिलिपि',
 'ev.title.ph':'शीर्षक थप्नुहोस्','ev.allday':'दिनभर','ev.depart':'प्रस्थान मिति','ev.return':'फिर्ती मिति',
@@ -3409,7 +3409,7 @@ function t(key,params){
   return s.replace(/\{(\w+)\}/g,(_,k)=>params[k]!=null?params[k]:_);
 }
 function tType(type){
-  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','在宅':'type.remote','来社':'type.visit','作業':'type.work','その他':'type.other','会議中':'type.busy','在席':'type.present','休憩中':'type.lunch'};
+  const m={'会議室':'type.room','打ち合わせ':'type.meeting','外出':'type.out','出張':'type.trip','休暇':'type.leave','休み':'type.rest','早退':'type.early','在宅':'type.remote','来社':'type.visit','作業':'type.work','その他':'type.other','会議中':'type.busy','在席':'type.present','休憩中':'type.lunch'};
   return m[type]?t(m[type]):type;
 }
 function tDow(i){return[t('common.mon'),t('common.tue'),t('common.wed'),t('common.thu'),t('common.fri'),t('common.sat'),t('common.sun')][i];}
@@ -3676,6 +3676,10 @@ let holidays = [];
 let allHolidays = [];
 let siteFilter = localStorage.getItem('sch_site') || '本社・茨城';
 let yasumiUsers = new Set(); // 休みマーク（ローカルのみ・Kintone保存なし）
+// 早退（2026-11-20）：今日の { 社員番号: 'HH:MM' }。Worker の getDailyRest の early。その時刻を過ぎたら「早退」と出す
+let earlyUsers = {};
+function earlyTimeOf(uid){ return earlyUsers[String(uid)]||''; }
+function isEarlyNow(uid, nowMins){ const tm=earlyTimeOf(uid); return !!tm && timeToMins(tm)<=nowMins; }
 let homeView = 'grid'; // ホームページの表示モード: 'grid' | 'cards'
 let rentalMasters = [];
 let rentedDeviceIds = [];
@@ -6775,7 +6779,7 @@ function renderDashboard() {
   if (activeUsers.length) {
     activeUsers.forEach(u => {
       const myEvs = events.filter(e => eventIncludesDate(e, ds) && _isUserInEvent(e, u.id));
-      const absent = yasumiUsers.has(u.id) || ['出張','休暇','休み'].some(s => myEvs.some(e => e.type === s));
+      const absent = yasumiUsers.has(u.id) || isEarlyNow(u.id, new Date().getHours()*60+new Date().getMinutes()) || ['出張','休暇','休み'].some(s => myEvs.some(e => e.type === s));
       if (!absent) presentCount++;
     });
   }
@@ -7733,7 +7737,7 @@ function _isUserInEvent(e, uid) {
 }
 // 会議室・打ち合わせは時刻チェックあり、それ以外は日付のみで判定
 const STATUS_PRIORITY = ['出張','休暇','休み','外出','在宅','来社','打ち合わせ','会議中','休憩中'];
-const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','会議中':'📋','在席':'🏢','休憩中':'🍙'};
+const STATUS_ICON = {...TYPE_ICON, '休み':'🛌','早退':'🏃','会議中':'📋','在席':'🏢','休憩中':'🍙'};
 
 // ===== 在席ボード：休憩中（2026-11-17） =====
 // 新棟の昼休み（当番表 app1143 の前半・後半）の時間だけ、「在席」の人を「休憩中」にする。予定（会議・外出など）がある人はそちらのまま。
@@ -7857,7 +7861,10 @@ function teamStatusNow(u, ds, nowMins){
   // 会社にいない予定（出張・休暇・外出・在宅）は会議より優先する（2026-11-18）。会議に入っていても、その会議室にはいないため。
   // 会議中にするのは、社内にいる人（予定なし・来社・打ち合わせ）だけ。HALO Lite（Worker の lite.js）も同じ順番
   const away=AWAY_STATUSES.includes(statusBase);
-  const baseStatus=(yasumiUsers.has(u.id)&&!hasVacEv)?'休み':away?statusBase:inMeeting?'会議中':(statusBase||'在席');
+  // 早退（2026-11-20）：その時刻を過ぎたら「早退」。休みの次に強い（予定より優先。帰ったあとなので）。HALO Lite（lite.js）も同じ
+  const isTodayDs=ds===fmtDate(new Date());
+  const earlyNow=isTodayDs&&isEarlyNow(u.id,nowMins);
+  const baseStatus=(yasumiUsers.has(u.id)&&!hasVacEv)?'休み':(earlyNow&&!hasVacEv)?'早退':away?statusBase:inMeeting?'会議中':(statusBase||'在席');
   const ev=baseStatus==='会議中' ? activeEvs.find(e=>e.type==='会議室') : activeEvs.find(e=>e.type===baseStatus);
   let status=baseStatus, subInfo=ev?.title||'', placeId='', placeText='';
   if(PLACE_STATUSES.includes(baseStatus)){
@@ -7880,6 +7887,10 @@ function teamStatusNow(u, ds, nowMins){
     const lEnd=lunchEndNow(u.id, ds, nowMins);
     if(lEnd){ status='休憩中'; subInfo=t('team.lunch.until',{t:lEnd}); }
   }
+  // 早退：過ぎたら「15:00 早退」、まだなら「15:00 早退予定」を添える
+  const eTime=isTodayDs?earlyTimeOf(u.id):'';
+  if(eTime && baseStatus==='早退') subInfo=t('team.early.at',{t:eTime});
+  else if(eTime && baseStatus!=='休み') subInfo=subInfo ? subInfo+' / '+t('team.early.plan',{t:eTime}) : t('team.early.plan',{t:eTime});
   return {status, baseStatus, subInfo, placeId, placeText, placeUnset: status==='在席'&&!placeText, myEvs};
 }
 // 場所の絞り込み（本社・新棟は建物ごと、それ以外は場所ごと）
@@ -8039,7 +8050,7 @@ function renderTeam(){
   // ステータスチップ（件数付き）
   const statusCounts={};
   members.forEach(m=>{statusCounts[m.status]=(statusCounts[m.status]||0)+1});
-  const existStatuses=[...STATUS_PRIORITY,'在席'].filter(s=>statusCounts[s]);
+  const existStatuses=[...STATUS_PRIORITY,'早退','在席'].filter(s=>statusCounts[s]); // 早退は 2026-11-20（予定の種類ではないので STATUS_PRIORITY には入れない）
   const chipsEl=document.getElementById('team-status-chips');
   if(chipsEl){
     chipsEl.innerHTML=existStatuses.map(s=>
@@ -8197,7 +8208,7 @@ function _zmapZone(m){
   if(m.placeId && PLACES.some(p=>p.id===m.placeId)) return m.placeId;
   if(m.status==='出張') return 'shuccho';
   if(m.status==='在宅') return 'zaitaku';
-  if(m.status==='休暇' || m.status==='休み') return 'rest';
+  if(m.status==='休暇' || m.status==='休み' || m.status==='早退') return 'rest'; // 早退は 2026-11-20
   return '';
 }
 function renderTeamMap(members){
@@ -8455,7 +8466,8 @@ function openMemberDetail(userId){
   const isHol = holidays.some(h=>h.date===ds)||jpNationalHolidays(new Date().getFullYear()).has(ds);
   const statusBase = STATUS_PRIORITY.filter(s=>s!=='会議中'&&s!=='休み').find(s=>myEvs.some(e=>e.type===s));
   const hasVacationEv = myEvs.some(e=>e.type==='休暇');
-  const status = yasumiUsers.has(userId)&&!hasVacationEv?'休み':(statusBase||(isHol?'休暇':'在席'));
+  const _mpNowM = new Date().getHours()*60+new Date().getMinutes();
+  const status = yasumiUsers.has(userId)&&!hasVacationEv?'休み':(isEarlyNow(userId,_mpNowM)&&!hasVacationEv)?'早退':(statusBase||(isHol?'休暇':'在席'));
   const color = STATUS_COLOR[status]||'#9e9e9e';
   document.getElementById('mp-avatar').textContent = STATUS_ICON[status]||u.name.slice(-1);
   document.getElementById('mp-avatar').style.background = color;
@@ -8482,6 +8494,7 @@ function openMemberDetail(userId){
           ? `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#fbe9e7;color:#ff7043;font-weight:700;font-size:0.85em;border:1.5px solid #ff7043">`+t('member.rest.off')+`</button>`
           : `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#ff7043;color:white;font-weight:700;font-size:0.85em">`+t('member.rest.on')+`</button>`
         }
+        ${earlyControlsHtml(userId)}
         <button onclick="closeMemberPopup();openAddModalForUser('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:var(--primary);color:white;font-weight:700;font-size:0.85em">`+t('member.add.event')+`</button>
       </div>`;
   } else if(String(userId)===String(currentUser.id)){
@@ -8493,6 +8506,7 @@ function openMemberDetail(userId){
           ? `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#fbe9e7;color:#ff7043;font-weight:700;font-size:0.85em;border:1.5px solid #ff7043">`+t('member.rest.off')+`</button>`
           : `<button onclick="doToggleYasumi('${userId}')" style="width:100%;padding:9px;border-radius:10px;background:#ff7043;color:white;font-weight:700;font-size:0.85em">`+t('member.rest.on')+`</button>`
         }
+        ${earlyControlsHtml(userId)}
       </div>`;
   } else {
     adminEl.innerHTML = '';
@@ -8504,6 +8518,16 @@ function openMemberDetail(userId){
   document.getElementById('member-popup').style.display = 'flex';
 }
 function closeMemberPopup(){ document.getElementById('member-popup').style.display='none'; }
+// 早退の欄（メンバーの小窓。休みと同じく本人と管理者。2026-11-20）。付いていれば取り消し、無ければ時刻（初めは今の時刻）＋「早退にする」
+function earlyControlsHtml(userId){
+  const et=earlyTimeOf(userId);
+  if(et) return `<button onclick="doSetEarly('${userId}','')" style="width:100%;padding:9px;border-radius:10px;background:#eceff1;color:#546e7a;font-weight:700;font-size:0.85em;border:1.5px solid #90a4ae">${esc(t('member.early.off'))}（${esc(et)}）</button>`;
+  const n=new Date(), hm=pad(n.getHours())+':'+pad(n.getMinutes());
+  return `<div style="display:flex;gap:6px;align-items:stretch">
+    <input type="time" id="mp-early-time" value="${hm}" aria-label="${esc(t('type.early'))}" style="flex:0 0 112px;padding:8px;border-radius:10px;border:1.5px solid var(--border);font-size:0.9em">
+    <button onclick="doSetEarly('${userId}',document.getElementById('mp-early-time').value)" style="flex:1;padding:9px;border-radius:10px;background:#78909c;color:white;font-weight:700;font-size:0.85em">${esc(t('member.early.on'))}</button>
+  </div>`;
+}
 
 // ===== ホーム（週間スタッフビュー） =====
 function renderHomeDayWidgets(){
@@ -8550,6 +8574,13 @@ function renderHomeDayWidgets(){
           <span style="font-size:0.82em"><span style="color:var(--text2)">${timeStr}</span><strong>${e.type}</strong>${e.title?' '+e.title:''}${e.room?`<span style="color:var(--text2)">　📍${esc(roomName(e.room))}</span>`:''}</span>
         </div>`;
       }).join('');
+    }
+    // 自分の早退（2026-11-20）。予定の上に「15:00 早退（予定）」を出す
+    const myEarly = !isYasumi ? earlyTimeOf(currentUser.id) : '';
+    if(myEarly){
+      const nowM = now.getHours()*60+now.getMinutes();
+      const txt = timeToMins(myEarly)<=nowM ? t('team.early.at',{t:myEarly}) : t('team.early.plan',{t:myEarly});
+      schedEl.innerHTML = `<div style="font-size:0.85em;color:#546e7a;font-weight:700;margin-bottom:6px">${esc(txt)}</div>` + (myEvs.length ? schedEl.innerHTML : '');
     }
   }
 
@@ -8736,6 +8767,7 @@ function renderHome(){
         _isUserInEvent(e, u.id)
       ).forEach(e => evs.push(e));
       if(d === today && yasumiUsers.has(u.id) && !evs.some(e=>e.type==='休暇')) evs.unshift({type:'休み', _yasumi:true});
+      else if(d === today && earlyTimeOf(u.id) && !evs.some(e=>e.type==='休暇')) evs.push({type:'早退', start:earlyTimeOf(u.id), end:''}); // 2026-11-20「早退 15:00〜」
       dayMap[d] = evs;
     });
     const hasAny = days.some(d => dayMap[d].length > 0);
@@ -8886,11 +8918,35 @@ async function doToggleYasumi(targetUserId){
   }
 }
 
+async function doSetEarly(targetUserId, time){
+  time=String(time||'').slice(0,5);
+  const remove=!time;
+  if(!remove && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){ showToast(t('member.early.bad')); return; }
+  const key=String(targetUserId), prev=earlyUsers[key]||'';
+  if(remove) delete earlyUsers[key]; else earlyUsers[key]=time;
+  closeMemberPopup();
+  renderTeam();
+  renderDashboard();
+  showToast(remove ? t('member.early.off') : t('team.early.at',{t:time}));
+  if(GAS_URL){
+    try {
+      const res = await api('setDailyEarly', { empId: targetUserId, time: remove ? '' : time, date: fmtDate(new Date()) }, '');
+      if(res && res.early) earlyUsers = res.early;
+    } catch(e) {
+      // 保存できなかったら画面も元に戻す
+      if(prev) earlyUsers[key]=prev; else delete earlyUsers[key];
+      renderTeam(); renderDashboard();
+      showToast(t('common.error.toast',{msg:e.message}));
+    }
+  }
+}
+
 async function loadDailyRest(quiet){
   if(!GAS_URL || !currentUser) return;
   try {
     const res = await api('getDailyRest', { date: fmtDate(new Date()) }, '', { quiet: !!quiet });
     yasumiUsers = new Set(res.restIds || []);
+    earlyUsers = (res.early && typeof res.early==='object') ? res.early : {};
   } catch(e) { /* 無視 */ }
 }
 

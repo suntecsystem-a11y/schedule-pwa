@@ -639,6 +639,7 @@ const I18N = {
     "出張": "Công tác",
     "在宅": "Làm tại nhà",
     "休み": "Nghỉ",
+    "早退": "Về sớm",
     "休暇": "Nghỉ phép",
     "（{t}まで）": "(đến {t})",
     "{name}さんは {status}": "{name}: {status}",
@@ -879,6 +880,7 @@ const I18N = {
     "出張": "काजमा",
     "在宅": "घरबाट काम",
     "休み": "बिदा",
+    "早退": "चाँडै घर गएको",
     "休暇": "छुट्टी",
     "（{t}まで）": "({t} सम्म)",
     "{name}さんは {status}": "{name}: {status}",
@@ -2920,7 +2922,7 @@ $('readersRemind').addEventListener('click', async () => {
 // ---------- 在席（在席ボードと同じ決め方。2026-11-19、H-04） ----------
 const PRES_BUSY = ['会議中', '打ち合わせ', '来社', '休憩中'];
 const PRES_OUT = ['外出', '出張', '在宅'];
-const AWAY_HINT = ['外出', '出張', '休み', '休暇', '会議中']; // 送る前に「〜さんは外出（15:00まで）」と出す状態
+const AWAY_HINT = ['外出', '出張', '休み', '休暇', '早退', '会議中']; // 送る前に「〜さんは外出（15:00まで）」と出す状態
 const presOf = (id) => S.presence[id] || null;
 function presText(id) {
   const p = presOf(id);

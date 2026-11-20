@@ -228,8 +228,8 @@ const PLACES = [
 ];
 const PLACE_GRP_NAME = {honsha:'本社', shinto:'新棟'};
 const placeLabel = id => { if(id==='out') return '外出中'; const p=PLACES.find(x=>x.id===id); if(!p) return ''; return PLACE_GRP_NAME[p.grp] ? PLACE_GRP_NAME[p.grp]+' '+p.short : p.short; };
-const STATUS_ORDER = ['在席','会議中','打ち合わせ','来社','外出','出張','在宅','休暇','休み'];
-const STATUS_COLOR = Object.assign({}, COLOR, {'在席':'#B8BDB6','会議中':'#5C7FB0'});
+const STATUS_ORDER = ['在席','会議中','打ち合わせ','来社','外出','出張','在宅','休暇','休み','早退']; // 早退は 2026-11-20
+const STATUS_COLOR = Object.assign({}, COLOR, {'在席':'#B8BDB6','会議中':'#5C7FB0','早退':'#90A4AE'});
 const isManager = () => !!(me && me.role && me.role!=='一般');
 
 // ============================================================ 状態
@@ -768,9 +768,12 @@ function renderBoard(){
   const d=new Date((_board.date||fmt(new Date()))+'T00:00:00');
   $('tab-board').innerHTML = `
     ${mine?`<div class="card"><h2>あなた（${d.getMonth()+1}/${d.getDate()}）</h2>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">${stBadge(mine.status)}<span class="note">${esc(mine.placeId?placeLabel(mine.placeId):'場所：未設定')}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">${stBadge(mine.status)}<span class="note">${esc(mine.placeId?placeLabel(mine.placeId):'場所：未設定')}</span>${mine.early?`<span class="note">${esc(mine.early)} ${mine.status==='早退'?'早退':'早退予定'}</span>`:''}</div>
       <div class="row2"><button class="btn btn-ghost" style="padding:9px" onclick="openPlaceSheet()">📍 今いる場所</button>
         <button class="btn ${mine.rest?'btn-danger':'btn-ghost'}" style="padding:9px" onclick="toggleRest(${mine.rest?'false':'true'})">${mine.rest?'🛌 休みを解除':'🛌 今日は休み'}</button></div>
+      ${mine.rest?'':(mine.early
+        ? `<button class="btn btn-ghost" style="padding:9px;width:100%;margin-top:8px" onclick="setEarly('')">早退を取り消す（${esc(mine.early)}）</button>`
+        : `<div style="display:flex;gap:8px;margin-top:8px"><input type="time" id="early-time" value="${nowHM()}" aria-label="早退の時刻" style="flex:0 0 120px;padding:8px;border-radius:10px;border:1px solid var(--line,#ccc);font-size:16px"><button class="btn btn-ghost" style="padding:9px;flex:1" onclick="setEarly($('early-time').value)">早退にする</button></div>`)}
       <div class="note" style="margin-top:6px">状態は予定から自動で決まります。予定のない時間は「在席」です。</div></div>`:''}
     <div class="card"><h2>みんなの状態（今）</h2>
       <div class="bchips"><span class="chip ${!_boardFilter?'on':''}" onclick="_boardFilter='';renderBoard()">すべて ${mem.length}</span>
@@ -793,6 +796,15 @@ async function setMyPlace(id){
   const home=!!($('pl-home')&&$('pl-home').checked);
   try{ await api('setPlace',{ place:id, setHome:home }); closeSheet(); toast('場所を変えました'); await loadBoard(); }
   catch(e){ toast('変えられませんでした：'+e.message); }
+}
+// 早退（2026-11-20）：時刻を入れて付ける。その時刻を過ぎたら在籍ボードに「早退」と出る（今日だけ）
+function nowHM(){ const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); }
+async function setEarly(time){
+  time=String(time||'').slice(0,5);
+  if(time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){ toast('早退の時刻を入れてください'); return; }
+  if(time && !confirm(time+' に早退にしますか？（その時刻から在籍ボードに早退と表示されます。今日だけ）')) return;
+  try{ await api('setDailyEarly',{ empId:String(me.id), time, date:fmt(new Date()) }); toast(time?time+' に早退にしました':'早退を取り消しました'); await loadBoard(); }
+  catch(e){ toast('切り替えられませんでした：'+e.message); }
 }
 async function toggleRest(isRest){
   if(isRest && !confirm('今日を「休み」にしますか？（在籍ボードに休みと表示されます。今日だけ）')) return;
