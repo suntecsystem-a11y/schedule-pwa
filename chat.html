@@ -543,6 +543,9 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    "HALO からあなたあての通知が届くところです。自分だけが見られます。": "Nơi nhận thông báo từ HALO gửi cho bạn. Chỉ bạn xem được.",
+    // 名前を変える（HALO のチャンネル。2026-11-20）
+    "名前を変えられるのは管理者です。": "Chỉ quản trị viên mới đổi được tên.",
     // 出勤日（会社カレンダー。2026-11-20）
     "出勤日（会社カレンダーの休みを飛ばす）": "Ngày làm việc (bỏ qua ngày nghỉ theo lịch công ty)",
     "出勤日": "Ngày làm việc",
@@ -784,6 +787,9 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    "HALO からあなたあての通知が届くところです。自分だけが見られます。": "HALO बाट तपाईंलाई आउने सूचना यहाँ आउँछ। तपाईं मात्र हेर्न सक्नुहुन्छ।",
+    // 名前を変える（HALO のチャンネル。2026-11-20）
+    "名前を変えられるのは管理者です。": "नाम व्यवस्थापकले मात्र बदल्न सक्छ।",
     // 出勤日（会社カレンダー。2026-11-20）
     "出勤日（会社カレンダーの休みを飛ばす）": "कार्यदिन (कम्पनी पात्रोको बिदा छोडेर)",
     "出勤日": "कार्यदिन",
@@ -2641,17 +2647,20 @@ async function openSettings() {
   $('setErr').textContent = '';
   $('setName').value = ch.name || '';
   const feed = ch.kind === 'feed' || ch.kind === 'system'; // HALO が書くチャンネル（日報・お弁当・HALO お知らせ）
-  const canName = ch.kind !== 'dm' && !ch.dept && ch.id !== 'general' && !feed;
+  // 名前は 1対1・HALO 通知のほかは変えられる。HALO が作ったもの（全体・部署・日報・お弁当・HALO お知らせ）は管理者だけ（2026-11-20）
+  const canName = ch.kind !== 'dm' && ch.kind !== 'inbox';
+  const nameNote = feed || ch.dept || ch.id === 'general' ? tr('名前を変えられるのは管理者です。') : '';
   const canMembers = ((ch.kind === 'private' || ch.kind === 'group') && !ch.dept) || feed;
-  $('setNameRow').classList.toggle('hidden', !canName && ch.kind !== 'group');
+  $('setNameRow').classList.toggle('hidden', !canName);
   $('setAdd').classList.toggle('hidden', !canMembers);
   $('setLeave').classList.toggle('hidden', !canMembers);
   $('setArchive').classList.toggle('hidden', ch.kind === 'dm' || ch.id === 'general' || feed);
-  $('setNote').textContent = feed ? 'HALO が書くチャンネルです。メンバーを足す・外すのは管理者です（自分で抜けることはできます）。'
+  $('setNote').textContent = tr(feed ? 'HALO が書くチャンネルです。メンバーを足す・外すのは管理者です（自分で抜けることはできます）。'
     : ch.dept ? '部署のチャンネルです。メンバーは名簿の部署で決まります（異動すると自動で入れ替わります）。'
     : ch.kind === 'public' ? '全員が見られるチャンネルです。'
     : ch.kind === 'dm' ? '1対1の会話です。'
-    : '招かれた人だけが見られます。名前・メンバーを変えられるのは、作った人と管理者です。';
+    : ch.kind === 'inbox' ? 'HALO からあなたあての通知が届くところです。自分だけが見られます。'
+    : '招かれた人だけが見られます。名前・メンバーを変えられるのは、作った人と管理者です。') + nameNote;
   $('setMembers').innerHTML = '';
   $('chanSet').classList.remove('hidden');
   if (ch.kind === 'public') return;
@@ -2661,7 +2670,7 @@ async function openSettings() {
       // はじめの決まりで入る人＋管理者が足した人−外した人。新しく入った人も決まりどおり自動で入る
       const names = (ids) => ids.map(fullNameOf).join('、');
       $('setNote').textContent = tf('HALO が書くチャンネルです。はじめは「{rule}」が入り、新しく入った人も自動で入ります。', { rule: tr(r.feed.rule) })
-        + tr('メンバーを足す・外すのは管理者です（自分で抜けることはできます）。')
+        + tr('メンバーを足す・外すのは管理者です（自分で抜けることはできます）。') + nameNote
         + (r.feed.removed.length ? tf('外した人：{names}（足すと戻ります）。', { names: names(r.feed.removed) }) : '')
         + (r.feed.added.length ? tf('足した人：{names}。', { names: names(r.feed.added) }) : '');
     }
