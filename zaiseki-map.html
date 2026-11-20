@@ -631,8 +631,9 @@ body{margin:0}
 }
 .world .pbuild .proom .rlabel:not([data-people])::after,.fieldrow>.zone .zlabel:not([data-people])::after{content:none}
 </style><style id="occupancy-readability">
-/* Keep long names within their own token; the companion dialog has the full name. */
-.proom .char .nm{max-width:100%;box-sizing:border-box}
+/* 名前が切れないように、キャラの枠を名前の長さに合わせて広げる（最小32px、名前は最大64px。2026-11-20） */
+.char,.proom .char{width:auto;min-width:32px}
+.char .nm{max-width:64px;box-sizing:border-box}
 </style><style id="outdoor-occupancy">
 /* Flowing headings reserve space for wrapped location names and counts. */
 .fieldrow>.zone{padding-top:12px}
