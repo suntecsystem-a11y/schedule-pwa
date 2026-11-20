@@ -300,6 +300,17 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .later-quick .btn{padding:6px 12px;font-size:13px}
 @media(min-width:700px){.sheet{left:auto;right:24px;bottom:24px;width:300px;border-radius:16px;max-height:80vh;overflow-y:auto}}
 
+/* 自分メモ・探すときの絞り込み（2026-11-20） */
+.ch.self{border-bottom:1px solid var(--surface-1)}
+.sq-row{display:flex;gap:4px;align-items:center}
+.sq-row input{flex:1;min-width:0}
+.sq-row .txt-btn{font-size:12.5px;white-space:nowrap;padding:6px 4px}
+#searchOpts{display:flex;flex-direction:column;gap:6px;margin:6px 0 2px}
+#searchOpts select,#searchOpts input{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);width:100%}
+.sq-dates{display:flex;gap:4px;align-items:center}
+.sq-dates input{flex:1;min-width:0}
+#searchOpts .btn{align-self:flex-end;padding:6px 16px}
+
 /* タブレット：スレッドは画面の上にかぶせる */
 @media(max-width:1099px){
   #thread,#panel{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);z-index:40;box-shadow:-4px 0 20px rgba(37,48,45,.12)}
@@ -337,7 +348,8 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
   <aside id="side">
     <div class="side-head"><span class="t">チャット</span><span class="me" id="meName"></span></div>
     <div class="side-tools">
-      <form id="searchForm"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"></form>
+      <form id="searchForm"><div class="sq-row"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"><button type="button" class="txt-btn" id="searchOptBtn" title="人・チャンネル・期間で絞る">絞り込み</button></div>
+        <div id="searchOpts" class="hidden"><select id="sqWho" title="書いた人"></select><select id="sqCh" title="チャンネル"></select><div class="sq-dates"><input type="date" id="sqFrom" title="この日から"><span>〜</span><input type="date" id="sqTo" title="この日まで"></div><button type="submit" class="btn primary">探す</button></div></form>
       <div class="side-btns"><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button><button class="txt-btn" id="savedBtn" type="button">保存したもの</button><button class="txt-btn" id="laterListBtn" type="button">予約</button></div>
     </div>
     <div id="chList"></div>
@@ -522,6 +534,19 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 自分メモ・探すときの絞り込み（2026-11-20）
+    "自分メモ": "Ghi chú của tôi",
+    "自分だけが見られるメモ": "Ghi chú chỉ mình bạn xem được",
+    "絞り込み": "Lọc",
+    "人・チャンネル・期間で絞る": "Lọc theo người, kênh, thời gian",
+    "だれでも": "Mọi người",
+    "すべてのチャンネル": "Tất cả kênh",
+    "探す": "Tìm",
+    "書いた人": "Người viết",
+    "この日から": "Từ ngày",
+    "この日まで": "Đến ngày",
+    "探す言葉を入れるか、人を選んでください": "Hãy nhập từ khóa hoặc chọn người",
+    "絞り込みの結果 {n}件": "Kết quả lọc: {n}",
     // 書式・確認してほしい・既読・在席・予約・タスク（2026-11-19）
     "予約": "Hẹn giờ",
     "読んだ人": "Người đã đọc",
@@ -725,6 +750,19 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 自分メモ・探すときの絞り込み（2026-11-20）
+    "自分メモ": "मेरो नोट",
+    "自分だけが見られるメモ": "तपाईंले मात्र हेर्न सक्ने नोट",
+    "絞り込み": "फिल्टर",
+    "人・チャンネル・期間で絞る": "व्यक्ति, च्यानल, अवधिले फिल्टर",
+    "だれでも": "जो कोही",
+    "すべてのチャンネル": "सबै च्यानल",
+    "探す": "खोज्नुहोस्",
+    "書いた人": "लेख्ने व्यक्ति",
+    "この日から": "यो दिनदेखि",
+    "この日まで": "यो दिनसम्म",
+    "探す言葉を入れるか、人を選んでください": "खोज शब्द लेख्नुहोस् वा व्यक्ति छान्नुहोस्",
+    "絞り込みの結果 {n}件": "फिल्टरको नतिजा {n} वटा",
     // 書式・確認してほしい・既読・在席・予約・タスク（2026-11-19）
     "予約": "तालिका",
     "読んだ人": "पढ्नेहरू",
@@ -1102,8 +1140,11 @@ function renderBody(m) {
   return h;
 }
 
+/** 自分メモ（自分だけの会話。kind は dm・メンバーは自分だけ。2026-11-20、前の版にあったもの） */
+const isSelfCh = (c) => !!c && c.kind === 'dm' && (c.members || []).length === 1 && c.members[0] === S.me;
 function chTitle(c) {
   if (!c) return '';
+  if (isSelfCh(c)) return tr('自分メモ');
   if (c.kind === 'inbox') return tr('HALO 通知');
   if (c.kind === 'system' || c.kind === 'feed' || c.id === 'general') return tr(c.name || ''); // HALO が付けた名前は今の言葉で
   if (c.kind === 'dm' || c.kind === 'group') {
@@ -1177,7 +1218,9 @@ function renderChannels() {
   const byId = new Map(S.channels.map((c) => [c.id, c]));
   const pr = S.prefs || { fav: [], cats: [] };
   const used = new Set();
-  const favs = pr.fav.map((id) => byId.get(id)).filter(Boolean);
+  const self = S.channels.find(isSelfCh); // 自分メモは、いつもいちばん上（お気に入り・まとまりには入れない）
+  if (self) used.add(self.id);
+  const favs = pr.fav.map((id) => byId.get(id)).filter((c) => c && !used.has(c.id));
   favs.forEach((c) => used.add(c.id));
   const cats = pr.cats.map((cat) => {
     const list = cat.ids.map((id) => byId.get(id)).filter((c) => c && !used.has(c.id));
@@ -1205,7 +1248,8 @@ function renderChannels() {
   const dms = rest.filter((c) => c.kind === 'dm' || c.kind === 'group');
   const favOpen = !(pr.closed || []).includes('fav');
   const tools = `<div class="list-tools">${ed ? '<button type="button" class="txt-btn" data-ed="newcat">まとまりを作る</button>' : ''}<button type="button" class="txt-btn" data-ed="toggle">${ed ? '整理を終わる' : '一覧を整理'}</button></div>`;
-  $('chList').innerHTML = tools
+  const selfRow = `<div class="ch self${self && self.id === S.cur ? ' on' : ''}${self && self.unread ? ' unread' : ''}" data-id="${esc(self ? self.id : '__self__')}"><div class="nm"><b>${esc(tr('自分メモ'))}</b><small>${esc(self && self.lastPreview ? previewText(self.lastPreview) : tr('自分だけが見られるメモ'))}</small></div></div>`;
+  $('chList').innerHTML = tools + selfRow
     + (favs.length ? grp('fav', '★ お気に入り', '', favOpen) + (favOpen ? favs.map((c) => row(c, 'fav')).join('') : '') : '')
     + cats.map(({ cat, list }) => grp('cat:' + cat.id, esc(cat.name), list.length ? `（${list.length}）` : '', cat.open,
       ed ? `<span class="sec-ed"><button type="button" data-ed="catname" data-cat="${esc(cat.id)}" title="名前を変える">✎</button><button type="button" data-ed="catdel" data-cat="${esc(cat.id)}" title="まとまりを消す">×</button></span>` : '')
@@ -1275,8 +1319,17 @@ $('chList').addEventListener('click', (e) => {
     return;
   }
   const el = e.target.closest('.ch');
-  if (el) openChannel(el.dataset.id);
+  if (el) { if (el.dataset.id === '__self__') openSelfNote(); else openChannel(el.dataset.id); }
 });
+/** 自分メモを開く（まだ無ければ作る） */
+async function openSelfNote() {
+  try {
+    const r = await api('chatOpenDm', { self: true });
+    if (!S.channels.some((c) => c.id === r.channel.id)) S.channels.push(r.channel);
+    renderChannels();
+    openChannel(r.channel.id);
+  } catch (e) { toast(e.message); }
+}
 $('chList').addEventListener('change', (e) => {
   const sel = e.target.closest('select[data-ed="cat"]');
   if (!sel) return;
@@ -2563,18 +2616,43 @@ $('setArchive').addEventListener('click', async () => {
 });
 
 // ---------- 探す ----------
+// 絞り込み（人・チャンネル・期間。2026-11-20。Worker の chatSearch はもとから対応している）
+function fillSearchOpts() {
+  const keepW = $('sqWho').value, keepC = $('sqCh').value;
+  const who = Object.values(S.users).filter((u) => canChat(u.id)).sort((a, b) => String(a.name).localeCompare(String(b.name), 'ja'));
+  $('sqWho').innerHTML = `<option value="">${esc(tr('だれでも'))}</option>` + who.map((u) => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join('');
+  $('sqCh').innerHTML = `<option value="">${esc(tr('すべてのチャンネル'))}</option>` + S.channels.map((c) => `<option value="${esc(c.id)}">${esc(chTitle(c))}</option>`).join('');
+  $('sqWho').value = keepW; $('sqCh').value = keepC;
+}
+$('searchOptBtn').addEventListener('click', () => {
+  const open = $('searchOpts').classList.toggle('hidden') === false;
+  if (open) fillSearchOpts();
+});
+function searchFilters() {
+  if ($('searchOpts').classList.contains('hidden')) return {};
+  const f = {};
+  if ($('sqWho').value) f.empId = $('sqWho').value;
+  if ($('sqCh').value) f.channelId = $('sqCh').value;
+  if ($('sqFrom').value) f.from = new Date($('sqFrom').value + 'T00:00:00').getTime();
+  if ($('sqTo').value) f.to = new Date($('sqTo').value + 'T23:59:59.999').getTime();
+  return f;
+}
 $('searchForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const q = $('searchQ').value.trim();
-  if (!q) { closeSearch(); return; }
+  const flt = searchFilters();
+  if (!q && !flt.empId) {
+    if (Object.keys(flt).length) { toast(tr('探す言葉を入れるか、人を選んでください')); return; }
+    closeSearch(); return;
+  }
   $('chList').classList.add('hidden');
   $('searchList').classList.remove('hidden');
   $('searchList').innerHTML = '<div class="more">探しています…</div>';
   try {
-    const r = await api('chatSearch', { q });
+    const r = await api('chatSearch', { q, ...flt });
     const words = q.split(/[\s　]+/).filter(Boolean);
     const mark = (t) => { let h = esc(t); for (const w of words) h = h.split(esc(w)).join(`<mark>${esc(w)}</mark>`); return h; };
-    $('searchList').innerHTML = `<div class="sec">${esc(tf('「{q}」の結果 {n}件', { q, n: r.hits.length }))}　<button class="txt-btn" type="button" id="searchClose">閉じる</button></div>`
+    $('searchList').innerHTML = `<div class="sec">${esc(q ? tf('「{q}」の結果 {n}件', { q, n: r.hits.length }) : tf('絞り込みの結果 {n}件', { n: r.hits.length }))}　<button class="txt-btn" type="button" id="searchClose">閉じる</button></div>`
       + (r.hits.map((h) => {
         const ch = S.channels.find((c) => c.id === h.channelId);
         const text = previewText(h.msg.body) || (h.msg.files || []).map((f) => f.name).join('、');
@@ -2768,6 +2846,7 @@ function presText(id) {
   return tr(p.s) + (p.u ? tf('（{t}まで）', { t: p.u }) : '');
 }
 function presDot(id) {
+  if (id === S.me) return '';
   const p = presOf(id);
   if (!p) return '';
   const cls = p.s === '在席' ? 'p-in' : PRES_BUSY.includes(p.s) ? 'p-busy' : PRES_OUT.includes(p.s) ? 'p-out' : 'p-off';
