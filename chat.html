@@ -412,7 +412,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <p id="laterNote"></p>
     <div class="later-quick" id="laterQuick"></div>
     <div class="vdate"><input type="date" id="laterDate"><select id="laterTime"></select></div>
-    <div id="laterRepeatRow"><span>くり返し</span><select id="laterRepeat"><option value="">しない</option><option value="daily">毎日</option><option value="weekdays">平日（月〜金）</option><option value="weekly">毎週（同じ曜日）</option><option value="monthly">毎月（同じ日）</option></select></div>
+    <div id="laterRepeatRow"><span>くり返し</span><select id="laterRepeat"><option value="">しない</option><option value="daily">毎日</option><option value="weekdays">出勤日（会社カレンダーの休みを飛ばす）</option><option value="weekly">毎週（同じ曜日）</option><option value="monthly">毎月（同じ日）</option></select></div>
     <div class="err" id="laterErr"></div>
     <div class="btns"><button type="button" class="btn" id="laterNo">やめる</button><button type="button" class="btn primary" id="laterYes">決める</button></div>
   </div>
@@ -543,6 +543,10 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 出勤日（会社カレンダー。2026-11-20）
+    "出勤日（会社カレンダーの休みを飛ばす）": "Ngày làm việc (bỏ qua ngày nghỉ theo lịch công ty)",
+    "出勤日": "Ngày làm việc",
+    "（{site}）": "({site})",
     // 自分あて・くり返し（2026-11-20）
     "自分あて": "Dành cho tôi",
     "まだ確認していない確認依頼・自分へのメンション・返信・リマインダー": "Yêu cầu xác nhận chưa xác nhận, nhắc tên, trả lời và nhắc nhở",
@@ -560,7 +564,7 @@ const I18N = {
     "リマインダー（{n}）": "Nhắc nhở ({n})",
     "この14日のあいだに、自分あてのものはありません": "Không có mục nào dành cho bạn trong 14 ngày qua",
     "決めた時間に自分メモに届き、スマホにも知らせます（自分あてのリマインダーとして使えます）。「予約」から取り消せます。": "Vào giờ đã chọn sẽ gửi vào Ghi chú của tôi và báo trên điện thoại (dùng làm nhắc nhở cho bản thân). Có thể hủy trong \"Hẹn giờ\".",
-    "{when} から{rep}送ります（「予約」から取り消せます）": "Sẽ gửi {rep} từ {when} (có thể hủy trong \"Hẹn giờ\")",
+    "{when} から、くり返し（{rep}）で送ります（「予約」から取り消せます）": "Sẽ gửi lặp lại ({rep}) từ {when} (có thể hủy trong \"Hẹn giờ\")",
     "予約で届いたもの": "Gửi theo hẹn giờ",
     "くり返しの決め方が正しくありません": "Cách lặp lại không đúng",
     // 自分メモ・探すときの絞り込み（2026-11-20）
@@ -779,6 +783,10 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 出勤日（会社カレンダー。2026-11-20）
+    "出勤日（会社カレンダーの休みを飛ばす）": "कार्यदिन (कम्पनी पात्रोको बिदा छोडेर)",
+    "出勤日": "कार्यदिन",
+    "（{site}）": "({site})",
     // 自分あて・くり返し（2026-11-20）
     "自分あて": "मेरो लागि",
     "まだ確認していない確認依頼・自分へのメンション・返信・リマインダー": "पुष्टि नगरेका अनुरोध, उल्लेख, जवाफ र सम्झना",
@@ -796,7 +804,7 @@ const I18N = {
     "リマインダー（{n}）": "सम्झना ({n})",
     "この14日のあいだに、自分あてのものはありません": "पछिल्लो १४ दिनमा तपाईंका लागि केही छैन",
     "決めた時間に自分メモに届き、スマホにも知らせます（自分あてのリマインダーとして使えます）。「予約」から取り消せます。": "तोकिएको समयमा मेरो नोटमा आउँछ र फोनमा पनि सूचना जान्छ (आफ्नै सम्झनाको रूपमा प्रयोग गर्न सकिन्छ)। \"तालिका\" बाट रद्द गर्न सकिन्छ।",
-    "{when} から{rep}送ります（「予約」から取り消せます）": "{when} देखि {rep} पठाइन्छ (\"तालिका\" बाट रद्द गर्न सकिन्छ)",
+    "{when} から、くり返し（{rep}）で送ります（「予約」から取り消せます）": "{when} देखि {rep} पठाइन्छ (\"तालिका\" बाट रद्द गर्न सकिन्छ)",
     "予約で届いたもの": "तालिकाबाट आएको",
     "くり返しの決め方が正しくありません": "दोहोर्याउने तरिका मिलेन",
     // 自分メモ・探すときの絞り込み（2026-11-20）
@@ -1618,7 +1626,7 @@ function renderPanel() {
       + sec('リマインダー（{n}）', P.items.filter((x) => x.why === 'remind'))
       || `<div class="empty">${esc(tr('この14日のあいだに、自分あてのものはありません'))}</div>`;
   } else if (P.kind === 'later') {
-    html = P.items.map((x, i) => `<div class="hit" data-i="${i}"><div><div class="where">${when(x.at)}・${esc(tr(x.kind === 'send' ? '送る' : 'お知らせ'))}${x.data && x.data.repeat ? '・' + esc(tr(REPEAT_LABEL[x.data.repeat] || '')) : ''}・${esc(chNameOf(x.channelId))}</div>`
+    html = P.items.map((x, i) => `<div class="hit" data-i="${i}"><div><div class="where">${when(x.at)}・${esc(tr(x.kind === 'send' ? '送る' : 'お知らせ'))}${x.data && x.data.repeat ? '・' + esc(tr(REPEAT_LABEL[x.data.repeat] || '')) + (x.data.site ? esc(tf('（{site}）', { site: x.data.site })) : '') : ''}・${esc(chNameOf(x.channelId))}</div>`
       + `<div class="body">${esc(x.kind === 'send' ? previewText(x.data.body) : previewText(x.data.preview || ''))}</div></div><button type="button" data-p="cancel">${esc(tr('取り消す'))}</button></div>`).join('')
       || `<div class="empty">${esc(tr('予約はありません（メッセージの「あとで知らせる」、入力欄の時計のボタンで足せます）'))}</div>`;
   } else if (P.kind === 'files') {
@@ -3022,7 +3030,7 @@ $('laterYes').addEventListener('click', async () => {
       setComposer(o.where, {});
       setAck(o.where, false);
       const rp = $('laterRepeat').value;
-      toast(rp ? tf('{when} から{rep}送ります（「予約」から取り消せます）', { when, rep: tr(REPEAT_LABEL[rp]) }) : tf('{when} に送ります（「予約」から取り消せます）', { when }));
+      toast(rp ? tf('{when} から、くり返し（{rep}）で送ります（「予約」から取り消せます）', { when, rep: tr(REPEAT_LABEL[rp]) }) : tf('{when} に送ります（「予約」から取り消せます）', { when }));
     } else {
       await api('chatLaterAdd', { later: { kind: 'remind', channelId: S.cur, seq: o.msg.seq, at } });
       toast(tf('{when} に「HALO 通知」でお知らせします', { when }));
@@ -3082,7 +3090,7 @@ async function openDmWith(ids) {
 }
 
 // ---------- 自分あて（2026-11-20） ----------
-const REPEAT_LABEL = { daily: '毎日', weekdays: '平日（月〜金）', weekly: '毎週（同じ曜日）', monthly: '毎月（同じ日）' };
+const REPEAT_LABEL = { daily: '毎日', weekdays: '出勤日', weekly: '毎週（同じ曜日）', monthly: '毎月（同じ日）' };
 /** そのメッセージを、今はもう読んだか（読んだところは一覧の readSeq で分かる。取り直さなくてよい） */
 function isReadNow(x) { const c = S.channels.find((y) => y.id === x.channelId); return !!c && x.msg.seq <= (c.readSeq || 0); }
 /** 「自分あて」の数：まだ確認していない確認依頼と、まだ読んでいないメンション・返信・リマインダー */
