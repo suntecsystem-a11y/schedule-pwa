@@ -98,7 +98,9 @@ body.embed .side-head{display:none}
 .m .m-av .av{width:34px;height:34px;margin:0;font-size:14px}
 .m.halo .m-av .av{background:var(--primary);color:#fff}
 .m .who{font-size:12px;color:var(--text2);margin:6px 6px 2px}
-.m .bub{max-width:min(560px,82%);background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;line-height:1.55}
+/* 吹き出しと操作のメニューをまとめる枠（2026-11-20：メニューを吹き出しの近くに出す。幅の上限はこちらに） */
+.bw{position:relative;max-width:min(560px,82%)}
+.m .bub{max-width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px 12px;white-space:pre-wrap;word-break:break-word;line-height:1.55}
 .m.mine .bub{background:var(--primary-light);border-color:#CFDDD1}
 .m.mentioned .bub{background:var(--mention);border-color:#E6D79F}
 .m.pending .bub{opacity:.6}
@@ -116,8 +118,8 @@ body.embed .side-head{display:none}
 .chip.stamp.on{background:var(--primary-light)}
 .replies{border:0;background:none;color:var(--primary);font-size:12px;font-weight:600;margin:4px 6px 0;padding:0}
 /* メッセージの操作（PC はマウスを乗せると出る。スマホは押すと下から出る） */
-.acts{position:absolute;top:-14px;right:4px;display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2px;box-shadow:0 2px 8px rgba(37,48,45,.08);z-index:5}
-.m:not(.mine) .acts{left:auto;right:auto;left:40%}
+.acts{position:absolute;top:-20px;right:0;display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2px;box-shadow:0 2px 8px rgba(37,48,45,.08);z-index:5}
+.m:not(.mine) .acts{right:auto;left:0}
 @media(hover:hover){.m:hover .acts{display:flex}}
 .acts button{border:0;background:none;padding:4px 6px;border-radius:7px;color:var(--text2);font-size:12px}
 .acts button:hover{background:var(--surface-1);color:var(--text)}
@@ -1451,8 +1453,7 @@ function msgHtml(m, prev, where) {
     + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '') + readHtml;
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
     ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}${presDot(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
-    ${acts}
-    <div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}</span>` : '') + quote + renderBody(m) + filesHtml(m)}</div>
+    <div class="bw">${acts}<div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}</span>` : '') + quote + renderBody(m) + filesHtml(m)}</div></div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
     ${ackRow}
     ${replies}
