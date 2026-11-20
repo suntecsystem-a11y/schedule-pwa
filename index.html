@@ -2377,7 +2377,7 @@ ja:{
 'map.heading':'◆ なかまたちの せかい','map.help':'＊ キャラクターを えらぶと なかまの じょうほうが みられます。いどうは とびら・ろうか・かいだんを とおります。','map.quest':'なかまたちは それぞれの ばしょで かつやくしている。',
 'map.z.shuccho':'出張中','map.z.rest':'休暇/休み',
 'map.cmd.ask':'いま どこにいる？　{name} の いばしょを えらぶ','map.cmd.other':'そのほか','map.pick':'行き先を選ぶ','map.now.short':'現在地',
-'map.moved':'あなたは {place} に いどうした！','map.moving':'あなたは {place} へ いどうちゅう。','map.busy':'いまは よていの「{status}」が ひょうじされている。',
+'map.moved':'あなたは {place} に いどうした！','map.moving':'あなたは {place} へ いどうちゅう。','map.look.fail':'着せ替えを保存できませんでした。もう一度お試しください。','map.busy':'いまは よていの「{status}」が ひょうじされている。',
 'team.present':'{n}/{total}名在席','team.schedule':'予定なし','team.allday':'終日',
 'team.other':'その他','team.dept.header':'{month}月{day}日（{dow}）の予定',
 // メンバー詳細
@@ -2782,7 +2782,7 @@ vi:{
 'map.heading':'◆ Thế giới của mọi người','map.help':'＊ Chọn nhân vật để xem thông tin. Khi di chuyển sẽ đi qua cửa, hành lang và cầu thang.','map.quest':'Mọi người đang làm việc ở nơi của mình.',
 'map.z.shuccho':'Đang công tác','map.z.rest':'Nghỉ phép/Nghỉ',
 'map.cmd.ask':'Bây giờ bạn ở đâu? Chọn vị trí của {name}','map.cmd.other':'Khác','map.pick':'Chọn nơi đến','map.now.short':'Vị trí',
-'map.moved':'Bạn đã đến {place}!','map.moving':'Bạn đang đi đến {place}.','map.busy':'Hiện đang hiển thị lịch "{status}".',
+'map.moved':'Bạn đã đến {place}!','map.moving':'Bạn đang đi đến {place}.','map.look.fail':'Không lưu được trang phục. Vui lòng thử lại.','map.busy':'Hiện đang hiển thị lịch "{status}".',
 'team.present':'{n}/{total} có mặt','team.schedule':'Không có lịch','team.allday':'Cả ngày',
 'team.other':'Khác','team.dept.header':'Lịch ngày {day}/{month} ({dow})',
 'member.rest.off':'🛌 Hủy nghỉ','member.rest.on':'🛌 Đánh dấu nghỉ',
@@ -3175,7 +3175,7 @@ ne:{
 'map.heading':'◆ साथीहरूको संसार','map.help':'＊ पात्र छान्दा जानकारी हेर्न सकिन्छ। सर्दा ढोका, करिडोर र भर्याङ हुँदै जान्छ।','map.quest':'सबै आ-आफ्नो ठाउँमा काम गर्दैछन्।',
 'map.z.shuccho':'व्यापारिक यात्रामा','map.z.rest':'बिदा/आराम',
 'map.cmd.ask':'अहिले कहाँ हुनुहुन्छ? {name} को स्थान छान्नुहोस्','map.cmd.other':'अन्य','map.pick':'जाने ठाउँ छान्नुहोस्','map.now.short':'हालको स्थान',
-'map.moved':'तपाईं {place} पुग्नुभयो!','map.moving':'तपाईं {place} तर्फ जाँदै हुनुहुन्छ।','map.busy':'अहिले तालिकाको "{status}" देखाइएको छ।',
+'map.moved':'तपाईं {place} पुग्नुभयो!','map.moving':'तपाईं {place} तर्फ जाँदै हुनुहुन्छ।','map.look.fail':'पोशाक सेभ गर्न सकिएन। फेरि प्रयास गर्नुहोस्।','map.busy':'अहिले तालिकाको "{status}" देखाइएको छ।',
 'team.present':'{n}/{total} उपस्थित','team.schedule':'तालिका छैन','team.allday':'दिनभर',
 'team.other':'अन्य','team.dept.header':'{month}/{day} ({dow}) को तालिका',
 'member.rest.off':'🛌 आराम रद्द','member.rest.on':'🛌 आरामको रूपमा चिन्ह लगाउनुहोस्',
@@ -4355,6 +4355,7 @@ function doLogout(){
   try{_tk=_tkInit();_tkAccess=null;}catch(e){}   // タスク管理の表示データも消す（別の人が同じ画面でログインしても、前の人のタスクが見えないように）
   Object.keys(eventsCache).forEach(k => delete eventsCache[k]);
   carDataLastFetched = 0;
+  try{_zmapLooks=undefined;_zmapLooksAt=0;}catch(e){}   // 在席マップの着せ替え（次にログインした人の画面で読み直す。2026-11-20）
   filterPeople.clear(); filterTypes.clear();
   showLoginScreen();
   document.getElementById('emp-id').value='';
@@ -8155,6 +8156,41 @@ function _syncTeamView(){
 // 置く場所は teamStatusNow() の結果から決めるので、ほかの表示と必ず同じになる。
 // 社内にいて場所を選んでいない人はマップに描かず、上の一覧の最後に「社内（場所未設定）」の行で出す
 let _zmapReady=false, _zmapPayload=null, _zmapSentJson='';
+// キャラの着せ替え（2026-11-20。Worker の getAvatarLooks・saveAvatarLook。保存は在席の Durable Object に全員分）。
+// _zmapLooks … { 社員番号: 見た目 }。undefined＝まだ読んでいない（マップには見た目を渡さない＝今までの見た目）。
+// 全員分はマップを開いたときに読み、そのあとは5分に1回まで読み直す（30秒ごとの描き直しのたびには読まない）
+let _zmapLooks, _zmapLooksAt=0, _zmapLooksLoading=false;
+const ZMAP_LOOKS_TTL=5*60*1000;
+function _zmapLoadLooks(){
+  if(_zmapLooksLoading || !GAS_URL) return;
+  if(_zmapLooks!==undefined && Date.now()-_zmapLooksAt<ZMAP_LOOKS_TTL) return;
+  _zmapLooksLoading=true;
+  api('getAvatarLooks', {}, '', {quiet:true})
+    .then(r=>{ _zmapLooks=(r&&r.looks)||{}; _zmapLooksAt=Date.now(); _zmapApplyLooks(); _zmapSend(); })
+    .catch(()=>{ /* 読めなければ今までの見た目のまま */ })
+    .finally(()=>{ _zmapLooksLoading=false; });
+}
+// マップに渡すデータに見た目を付ける（ほかの人は members の look、自分は avatarLook。保存していない人は付けない）
+function _zmapApplyLooks(){
+  if(!_zmapPayload || _zmapLooks===undefined) return;
+  _zmapPayload.members.forEach(m=>{ const l=_zmapLooks[String(m.id)]; if(l) m.look=l; else delete m.look; });
+  _zmapPayload.avatarLook=_zmapLooks[String(currentUser.id)]||null;
+}
+async function _zmapSaveLook(look){
+  if(!GAS_URL || !look || typeof look!=='object') return;
+  const me=String(currentUser.id);
+  const prev=_zmapLooks ? (_zmapLooks[me]||null) : null;
+  try{
+    const v = await api('saveAvatarLook', { look }, '', {quiet:true});
+    if(_zmapLooks===undefined){ _zmapLooks={}; _zmapLooksAt=0; } // 全員分を読めていなければ、次の描き直しで読み直す
+    if(v) _zmapLooks[me]=v; else delete _zmapLooks[me];
+    _zmapApplyLooks(); _zmapSend();
+  }catch(e){
+    // 保存できなければマップの見た目を前に戻す
+    if(_zmapPayload){ _zmapPayload.avatarLook=prev; _zmapSentJson=''; _zmapSend(); }
+    toast(t('map.look.fail'));
+  }
+}
 function _zmapZone(m){
   if(m.status==='休憩中') return 'kyukei'; // 2026-11-17 昼休みの時間は席から「休憩中」のマスへ
   if(m.placeId==='out' || m.status==='外出') return 'gaishutsu';
@@ -8171,7 +8207,7 @@ function renderTeamMap(members){
     frame=document.createElement('iframe');
     frame.id='team-map-frame';
     frame.title=t('team.map.title');
-    frame.src='zaiseki-map.html?v=5'; // 2026-11-17 休憩中のマス（v=2）、タブレットでも歩く（v=3・v=4 は縦向きも）、歩いている間は行き先の選択欄を止める（v=5）。古いマップが残らないよう直したら上げる
+    frame.src='zaiseki-map.html?v=6'; // 2026-11-17 休憩中のマス（v=2）、タブレットでも歩く（v=3・v=4 は縦向きも）、歩いている間は行き先の選択欄を止める（v=5）。2026-11-20 Codex の新版（着せ替え＝みんなの見た目も出す・扉・人数・スマホも10秒までで歩く。v=6）。古いマップが残らないよう直したら上げる
     frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
     wrap.appendChild(frame);
   }
@@ -8217,6 +8253,9 @@ function renderTeamMap(members){
       zones:{shuccho:t('map.z.shuccho'), gaishutsu:t('place.out'), zaitaku:tType('在宅'), rest:t('map.z.rest'), kyukei:tType('休憩中')},
     },
   };
+  // 着せ替えは読み終わってから渡す（読む前に渡すとマップが既定の見た目に戻すため）
+  _zmapApplyLooks();
+  _zmapLoadLooks();
   _zmapSend();
 }
 function _zmapSend(){
@@ -8245,6 +8284,7 @@ window.addEventListener('message', e=>{
   else if(d.type==='zmap:height' && d.h>0){ f.style.height=Math.min(Math.ceil(d.h),20000)+'px'; }
   else if(d.type==='zmap:member' && USERS.some(u=>u.id===d.id)){ openMemberDetail(d.id); }
   else if(d.type==='zmap:active'){ _teamTouched(); }
+  else if(d.type==='zmap:look-change'){ _zmapSaveLook(d.look); } // 2026-11-20 着せ替えの「反映する」
   else if(d.type==='zmap:move'){
     // マップのコマンド窓で選んで歩き終わった場所を保存する（外出中のマスは自分で選ぶ「外出中」）
     const code = d.place==='gaishutsu' ? 'out' : d.place;

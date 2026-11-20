@@ -288,9 +288,8 @@ body{background:#141c2c;color:#eee5cd;background-image:none}
 .fieldrow{margin-top:20px;padding:42px 42px 36px 8px;gap:36px 16px;background:#314d39;border:4px solid #272438;box-shadow:inset 0 0 0 2px #50754c}
 .fieldrow>.zone{position:relative;padding:30px 6px 38px;min-width:0;min-height:184px;background-image:none!important;border:2px solid #272438;box-shadow:inset 0 0 0 2px #50754c,0 4px #272438}
 .fieldrow>.zone .chars{padding:0;gap:8px 4px;z-index:4}.fieldrow>.zone .zland{position:relative;z-index:3;min-height:64px;margin-top:6px;line-height:0}
-.fieldrow>.zone .zlabel{z-index:5}.field-gate{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:24px;height:12px;background:#c8b888;border-left:2px solid #815539;border-right:2px solid #815539;z-index:4}
-.fieldrow>.zone:after{background:repeating-linear-gradient(90deg,#314d39 0 4px,#50754c 4px 8px,#314d39 8px 16px);height:12px;z-index:1}
-.fieldrow>.zone[data-zone=daikoku]:after{height:12px;background:repeating-linear-gradient(0deg,#649a9a 0 4px,#5379aa 4px 8px,#141c2c 8px 12px)}
+.fieldrow>.zone .zlabel{z-index:5}.fieldrow>.zone:after{background:repeating-linear-gradient(90deg,#314d39 0 4px,#50754c 4px 8px,#314d39 8px 16px);height:12px;z-index:1}
+
 .arrival-slot{display:block;flex-shrink:0;visibility:hidden}
 .char .spritewrap{position:relative;width:32px!important;height:36px!important;filter:none;image-rendering:pixelated}
 .direction-sprite{position:absolute;left:0;top:0;width:24px;height:32px;display:none}
@@ -340,7 +339,7 @@ body{background:#141c2c;color:#eee5cd;background-image:none}
   /* Continue the ground-floor corridor through the stair landing. */
   .world .pbuild:first-child .pentrance .stair-shaft{
     border-left-color:transparent;
-    background:linear-gradient(to top,#c8b888 0 32px,#697080 32px);
+    background:linear-gradient(to top,#a2a08c 0 32px,#697080 32px);
   }
   .world .pbuild:first-child .pentrance .stair-shaft svg{margin-bottom:32px}
   .world .pbuild .pentrance::after{
@@ -411,8 +410,6 @@ body{margin:0}
 .char.arrive{animation:zmap-arrive .7s ease-out}
 @keyframes zmap-arrive{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.char.arrive{animation:none}}
-/* 休憩中のマス（2026-11-17）。社内なので出張・外出（茶色）とも休み（紫の縁）とも違う色 */
-.zone.kyukei{background:#50754c;box-shadow:inset 0 0 0 2px #e6c578,0 4px #141c2c}
 /* スマホの縦向きでも、誰がどこにいるか（人数・一覧）をマップより上に出す */
 @media (max-width:700px) and (orientation:portrait){
   .game>.classic-summary{order:-6}
@@ -421,6 +418,242 @@ body{margin:0}
   .game>.mobile-picker{order:-3}
   /* マップは枠の中だけスクロール（v17 の元の作り）。高さは親から受け取った画面の高さ（--zmap-vh）の58% */
   .map-viewport{display:block!important;height:clamp(220px,calc(var(--zmap-vh,800px) * .58),500px)!important}
+}
+</style><style>
+.wardrobe{width:min(420px, calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;color:#eee5cd;background:#080810;border:2px solid #eee5cd;padding:18px;font:inherit}
+.wardrobe::backdrop{background:#080810c9}
+.wardrobe form{display:grid;gap:10px}
+.wardrobe h2,.wardrobe p{margin:0}
+.wardrobe p:empty{display:none}
+.wardrobe .wardrobe-hint{font-size:12px;line-height:1.6;color:#c8b888}
+.wardrobe form>label{display:grid;grid-template-columns:5em minmax(0,1fr);align-items:center;gap:8px}
+.wardrobe-preview{display:grid;place-items:center;min-height:116px;background:#314d39;border:1px solid #697080}
+.wardrobe-preview .char{transform:scale(2);pointer-events:none}
+.wardrobe-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.wardrobe button,.wardrobe select,.wardrobe-open{font:inherit;min-height:44px;padding:6px 8px;background:#272438;color:#eee5cd;border:1px solid #c8b888}
+.mobile-picker .wardrobe-open{display:none}
+@media(max-width:700px) and (orientation:portrait){
+  .mobile-picker{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 6px}
+  .mobile-picker .mobile-current{grid-column:1/-1}
+  .mobile-picker .wardrobe-open{display:block}
+  .hud .wardrobe-open{display:none}
+}
+</style><style>
+.room-door,.pentrance .pdoor{perspective:80px}
+.room-door{width:30px;height:16px;bottom:-8px}
+.pentrance .pdoor{width:34px;height:16px;bottom:-8px}
+.room-door::after,.pentrance .pdoor::after{
+  content:'';display:block;position:absolute;inset:0;background:repeating-linear-gradient(90deg,#815539 0 5px,#a07348 5px 7px);
+  border:1px solid #272438;transform-origin:left center;transition:transform .085s ease-out
+}
+.room-door.passage-active::after,.pentrance .pdoor.passage-active::after{transform:rotateY(82deg)}
+.pentrance.passage-active::after,.stair-shaft.passage-active svg{filter:drop-shadow(0 0 3px #e6c578)}
+.companion-dialog h2{color:#e6c578}
+.companion-card{display:flex;align-items:center;gap:24px;padding:12px 10px 4px;min-height:70px}
+.companion-card .char{transform:scale(1.7);pointer-events:none}
+.companion-card .companion-name{overflow-wrap:anywhere;min-width:0}
+.companion-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.companion-actions .halo-member[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.room-door::after,.pentrance .pdoor::after{transition:none}}
+</style><style>
+.fieldrow>.zone.break{background:#555243}
+.companion-dialog dl{grid-template-columns:minmax(5em,auto) minmax(0,1fr)}
+.companion-dialog dd{overflow-wrap:anywhere}
+.companion-actions button{float:none}
+</style><style id="ambient-scenery">
+/* Move only the small highlights on the harbor's existing water strip. */
+.fieldrow>.zone[data-zone="daikoku"]::after{
+  height:12px;
+  background-color:#3d596a;
+  background-image:
+    linear-gradient(90deg,transparent 9px,#a1c6c64d 9px 17px,transparent 17px),
+    linear-gradient(90deg,transparent 23px,#a1c6c633 23px 30px,transparent 30px),
+    linear-gradient(0deg,#314955 0 4px,#426879 4px 8px,#527d87 8px);
+  background-size:36px 2px,36px 2px,100% 100%;
+  background-repeat:repeat-x,repeat-x,no-repeat;
+  background-position:0 3px,0 8px,0 0;
+  animation:halo-harbor-ripples 4.8s steps(3,end) infinite alternate;
+}
+@keyframes halo-harbor-ripples{
+  to{background-position:9px 3px,-6px 8px,0 0}
+}
+/* Start just above the left cup in the existing 4px-per-pixel sprite. */
+[data-zone="kyukei"] .zland .spritewrap::after{
+  content:"";
+  position:absolute;left:17px;top:12px;width:3px;height:2px;
+  background:#eee5cd;box-shadow:2px -2px #eee5cd;
+  opacity:0;pointer-events:none;
+  animation:halo-cup-steam 6s steps(1,end) infinite;
+}
+@keyframes halo-cup-steam{
+  10%{opacity:.48;transform:translate(0,0)}
+  18%{opacity:.4;transform:translate(2px,-4px)}
+  26%{opacity:.25;transform:translate(0,-8px)}
+  34%,100%{opacity:0;transform:translate(2px,-10px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .fieldrow>.zone[data-zone="daikoku"]::after,
+  [data-zone="kyukei"] .zland .spritewrap::after{animation:none}
+}
+</style><style id="factory-smoke">
+.factory-smoke{
+  opacity:0;pointer-events:none;
+  animation:halo-chimney-smoke 6.8s steps(1,end) infinite;
+}
+@keyframes halo-chimney-smoke{
+  12%{opacity:.42;transform:translate(0,0)}
+  21%{opacity:.34;transform:translate(1px,-2px)}
+  30%{opacity:.22;transform:translate(2px,-4px)}
+  39%,100%{opacity:0;transform:translate(3px,-5px)}
+}
+@media(prefers-reduced-motion:reduce){.factory-smoke{animation:none}}
+</style><style id="scenery-clearance">
+/* The smoke moves up into reserved space inside the SVG, clear of labels. */
+.fieldrow>.zone[data-zone="ibaraki"] .zland{min-height:80px}
+.fieldrow>.zone .factory-scene{height:76px;max-height:76px;width:96px;max-width:100%}
+/* Reserve the complete steam silhouette inside the furniture scene. */
+[data-zone="kyukei"] .zland .spritewrap{flex-shrink:0}
+</style><style id="wall-depth">
+/* A static wall cap and thin side faces stay inside the room's existing padding. */
+.pbuild .proom::before{
+  content:"";position:absolute;inset:0;box-sizing:border-box;
+  border-top:6px solid #a1a7b0;
+  border-left:2px solid #a1a7b0;
+  border-right:2px solid #272438;
+  box-shadow:inset 0 2px #272438;
+  pointer-events:none;z-index:1;
+}
+.pbuild:nth-child(2) .proom::before{
+  border-top-color:#c8b888;border-left-color:#c8b888;
+}
+.pbuild .proom .rlabel{top:10px}
+</style><style id="room-floors">
+/* Still surfaces with broad boards; no fine texture at scrolling edges. */
+.pbuild:first-child .proom{
+  /* The upper 34px is the wall face. The lighter surface below is the floor. */
+  background:#a1a69f!important;
+  background-image:
+    linear-gradient(to bottom,#697080 0 34px,transparent 34px),
+    linear-gradient(to bottom,transparent 84px,#8b9289 84px 86px,transparent 86px 160px,#8b9289 160px 162px,transparent 162px),
+    linear-gradient(to right,transparent calc(60% - 1px),#8b9289 calc(60% - 1px) calc(60% + 1px),transparent calc(60% + 1px)),
+    linear-gradient(to right,transparent calc(28% - 1px),#8b9289 calc(28% - 1px) calc(28% + 1px),transparent calc(28% + 1px))!important;
+  background-size:100% 100%,100% 100%,100% 74px,100% 50px!important;
+  background-position:0 0,0 0,0 86px,0 34px!important;
+  background-repeat:no-repeat!important;
+  box-shadow:inset 0 -3px #8b9289!important;
+}
+.pbuild:first-child .proom .win{top:12px}
+.pbuild:first-child .proom::before{
+  border-top-width:3px;border-top-color:#b0b3aa;
+  border-left:0;border-right:0;box-shadow:none;
+}
+.pbuild:first-child .floor-corridor{
+  background:#a2a08c;border-top-color:#5d625d;
+}
+.pbuild:first-child .room-door,.pbuild:first-child .pdoor{background-color:#a2a08c}
+.pbuild:first-child .empty{
+  color:#eeeade;font-weight:400;text-shadow:none;
+}
+.pbuild:nth-child(2) .proom{
+  background:#ab9274!important;
+  background-image:repeating-linear-gradient(
+    to bottom,
+    #ab9274 0 45px,
+    #846c54 45px 47px,
+    #b59d7e 47px 48px
+  )!important;
+  background-position:0 8px;
+  box-shadow:inset 0 9px #92795f,inset 2px 0 #92795f,inset -2px 0 #92795f!important;
+}
+</style><style id="stair-corridor-openings">
+/* Keep the wall alongside the rooms, leaving the 32px corridor end open. */
+.world .pbuild .pstory .stair-shaft{border-left-color:transparent}
+.world .pbuild .pstory .stair-shaft::before{
+  content:"";position:absolute;left:-2px;top:0;bottom:32px;width:2px;
+  background:#272438;pointer-events:none;
+}
+</style><style id="honsha-landing-color">
+@media(min-width:701px){
+  .world .pbuild:first-child .pentrance::after{background:#a2a08c}
+}
+</style><style id="building-material-colors">
+/* Each building shares one material color across every walking threshold. */
+.world .pbuild:first-child{
+  --building-corridor:#a2a08c;
+  --building-stair-wall:#697080;
+  --building-corridor-edge:#5d625d;
+}
+.world .pbuild:nth-child(2){
+  --building-corridor:#c8b888;
+  --building-stair-wall:#92795f;
+  --building-corridor-edge:#815539;
+}
+.world .pbuild .floor-corridor{
+  background:var(--building-corridor);
+  border-top-color:var(--building-corridor-edge);
+}
+.world .pbuild .room-door,.world .pbuild .pdoor{
+  background-color:var(--building-corridor);
+  border-left-color:var(--building-corridor-edge);
+  border-right-color:var(--building-corridor-edge);
+}
+.world .pbuild .pstory .stair-shaft{
+  background:linear-gradient(to top,
+    var(--building-corridor) 0 32px,
+    var(--building-stair-wall) 32px);
+}
+.world .pbuild .stair-shaft svg path[fill="#c8b888"]{
+  fill:var(--building-corridor);
+}
+@media(min-width:701px){
+  .world .pbuild .pentrance::after{background:var(--building-corridor)}
+}
+</style><style id="people-and-foot-shadow">
+/* The shadow sits beneath the 32px-tall sprite, ahead of the name row. */
+.char.you>.spritewrap::before{
+  content:"";position:absolute;left:8px;top:31px;width:16px;height:4px;
+  background:#080810;opacity:.24;border-radius:50%;
+  pointer-events:none;
+}
+.proom .rlabel::after,.fieldrow>.zone .zlabel::after{
+  content:attr(data-people) "人";
+  color:#e6c578;font-size:10px;line-height:1.4;
+  white-space:nowrap;flex-shrink:0;border-left:1px solid #697080;padding-left:4px;
+}
+.world .pbuild .proom,.world .pbuild .pentrance .proom{
+  padding-top:10px!important;
+}
+.world .pbuild .proom .rlabel{
+  position:relative;top:auto;left:auto;
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:0 4px;
+  width:fit-content;max-width:calc(100% - 20px);
+  margin-bottom:12px;overflow-wrap:anywhere;
+}
+.world .pbuild .proom .rlabel:not([data-people])::after,.fieldrow>.zone .zlabel:not([data-people])::after{content:none}
+</style><style id="occupancy-readability">
+/* Keep long names within their own token; the companion dialog has the full name. */
+.proom .char .nm{max-width:100%;box-sizing:border-box}
+</style><style id="outdoor-occupancy">
+/* Flowing headings reserve space for wrapped location names and counts. */
+.fieldrow>.zone{padding-top:12px}
+.fieldrow>.zone .zlabel{
+  position:relative;top:auto;left:auto;transform:none;
+  display:flex;align-items:baseline;justify-content:center;
+  flex-wrap:wrap;gap:0 4px;max-width:100%;
+  box-sizing:border-box;white-space:normal;overflow-wrap:anywhere;
+  flex-shrink:0;
+}
+</style><style id="inline-place-count">
+/* Keep the count beside the label, even when only the place name wraps. */
+.world .pbuild .proom .rlabel,
+.fieldrow>.zone .zlabel{
+  display:block;position:relative;
+  padding-right:calc(var(--people-width, 17px) + 12px);
+}
+.proom .rlabel::after,.fieldrow>.zone .zlabel::after{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  white-space:nowrap;
+  width:var(--people-width,17px);box-sizing:content-box;text-align:right;
 }
 </style></head><body>
 
@@ -504,8 +737,8 @@ body{margin:0}
       <div class="zone status" data-zone="shuccho"><span class="zlabel">出張中</span><div class="chars"></div></div>
       <div class="zone status" data-zone="gaishutsu"><span class="zlabel">外出中</span><div class="chars"></div></div>
       <div class="zone status" data-zone="zaitaku"><span class="zlabel">在宅</span><div class="chars"></div></div>
+      <div class="zone break" data-zone="kyukei"><span class="zlabel">休憩中</span><div class="chars"></div></div>
       <div class="zone rest" data-zone="rest"><span class="zlabel">休暇/休み</span><div class="chars"></div></div>
-      <div class="zone kyukei" data-zone="kyukei"><span class="zlabel">休憩中</span><div class="chars"></div></div>
     </div>
 
     <div class="cmd">
@@ -557,9 +790,11 @@ body{margin:0}
   try{var s=localStorage.getItem('halo_rpg_theme');if(s)document.documentElement.setAttribute('data-theme',s);}catch(e){}
 
   // ===== ドット絵（box-shadow でピクセル描画） =====
-  function makeSprite(rows,pal,px){
+  function makeSprite(rows,pal,px,topRows){
     var maxw=0; rows.forEach(function(r){ if(r.length>maxw) maxw=r.length; });
     var sh=[];
+    // Optional hat tip uses the same pixel layer, above the usual head boundary.
+    if(topRows)topRows.forEach(function(row,y){for(var x=0;x<row.length;x++){var col=pal[row[x]];if(col)sh.push((x*px)+'px '+((y-topRows.length)*px)+'px 0 '+col);}});
     rows.forEach(function(row,y){ for(var x=0;x<row.length;x++){ var c=row[x]; if(c==='.'||c===' ')continue; var col=pal[c]; if(!col)continue; sh.push((x*px)+'px '+(y*px)+'px 0 '+col); } });
     var wrap=document.createElement('span'); wrap.className='spritewrap';
     wrap.style.width=(maxw*px)+'px'; wrap.style.height=(rows.length*px)+'px';
@@ -573,8 +808,100 @@ body{margin:0}
     "..osssssso..","...oTTTTo...","..sTTTTTTs..","..oTTTTTTo..","..oTTTTTTo..",
     "..soTTTTos..","...obbbbo...","...ob..bo..."];
   function heroPal(t){ return {o:'#20203a',h:'#5b3f24',s:'#f0c5a0',e:'#20203a',T:t,b:'#33241a'}; }
-  function makeHero(color){
-  var roles={"warrior":["....YYYY....","...YyyyyY...","..YyYYYYyY..","..YYssssYY..","...seess....","...sssss....","..WWBBBBWW..",".sWBbbbbBWs.",".sWBBBBBBWs.","..WBBYYBBW..","..WBBBBBBW..","...BBBBBB...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."],"traveler":["....hhhh....","...hhhhhh...","..HHHHHHHH..","...hssssh...","...seess....","...sssss....","...TTTTTT...","..TTTyyTTT..",".sTTTyTTTTs.",".sTTTyTTTTs.","..TTTyyyyT..","...TTTTTT...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."],"cleric":["....WWWW....","...WWWWWW...","..WWWyyWWW..","..WWWyyWWW..","..WWssssWW..","...seess....","...sssss....","..WWTTTTWW..",".sWWTyyTWWs.",".sWWTTTTWWs.","..WWTTTTWW..","..WWTTTTWW..","..WWTTTTWW..","...WWWWWW...","...oo..oo...","..ooo..ooo.."],"mage":[".....TT.....","....TTTT....","...TTTyTT...","...TTTTTT...","..TTTTTTTT..",".TTTTTTTTTT.","...hssssh...","...seess....","...sssss....","..TTTyyTTT..",".sTTTTTTTTs.",".sTTTTTTTTs.","..TTTTTTTT..","..TTTTTTTT..","...oo..oo...","..ooo..ooo.."],"hero":["....YYYY....","...YbYYbY...","..hYYYYYYh..","..hhsssshh..","...seess....","...sssss....","..WWTTTTWW..",".sWTTyyTTWs.",".sWTTTTTTWs.","..WTTTTTTW..","..WTTyyTTW..","...TTTTTT...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."]};
+  var avatarOutfits={gold:'#e6c578',red:'#b85c4b',blue:'#5379aa',green:'#50754c'};
+  var avatarClothing={tunic:true,armor:true,robe:true};
+  var avatarHairColors={brown:'#815539',black:'#302b35',gold:'#d1ae64',silver:'#c4c8cf'};
+  var avatarEquipmentColors={slate:['#48566b','#364357'],red:['#a75a52','#783e3b'],blue:['#5379aa','#354f79'],green:['#50754c','#354f34'],brown:['#96724e','#60472f'],cream:['#c8b888','#887b59']};
+  var avatarEquipment={none:true,cape:true,bag:true};
+  var avatarHair={
+    short:{front:['....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhsssshh..','...sesess...','...sssss....'],back:['....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','...hhhhhh...','...hhhhhh...'],side:['....hhhh....','...hhhhhh...','...hhhhhh...','...hsssss...','...hsess....','....ssss....']},
+    spiky:{front:['..h..hh..h..','..hhhhhhhh..','...hhhhhh...','...hssssh...','...sesess...','...sssss....'],back:['..h..hh..h..','..hhhhhhhh..','...hhhhhh...','..hhhhhhhh..','...hhhhhh...','....hhhh....'],side:['...h.hh.h...','...hhhhhh...','...hhhhhh...','...hhssss...','...hsess....','....ssss....']},
+    bob:{front:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhsssshh..','..hsesessh..','..hssssshh..'],back:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..'],side:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhsssshh..','..hhsesshh..','..hhsssshh..']}
+  };
+  var avatarHatColors={
+    standard:null,
+    red:['#a7524a','#d38773','#783b39'],
+    blue:['#537db7','#8cafdb','#34547d'],
+    green:['#568354','#8bb083','#375937'],
+    black:['#37343e','#777182','#272438']
+  };
+  // A, L and K are exclusive to hats. Gold details and outlines keep their own colors.
+  var avatarHats={
+    none:{front:["....hhhh....","...hhhhhh...","..hhhhhhhh.."],side:["....hhhh....","...hhhhhh...","...hhhhhh..."],back:["....hhhh....","...hhhhhh...","..hhhhhhhh.."]},
+    crown:{
+      colors:['#e6c578','#e6c578','#c8b888'],
+      front:['..A..AA..A..','..AA.AA.AA..','..AAAAAAAA..'],
+      side:['...A..A.A...','...AA.AAA...','...AAAAAA...'],
+      back:['..A..AA..A..','..AA.AA.AA..','..KKKKKKKK..']
+    },
+    cap:{
+      colors:['#c8b888','#e6c578','#c8b888'],
+      front:['...ooAAoo...','..oAAAAAAo..','.oLLLLLLLLo.'],
+      side:['...AAAAA....','..AAAAAAA...','...LLLLLLLL.'],
+      back:['...AAAAAA...','..AAAAAAAA..','..LAAKKAAL..']
+    },
+    hood:{
+      colors:['#8b6aa4','#8b6aa4','#8b6aa4'],
+      top:['.....A......','....AAA.....'],
+      front:['....AAAA....','...AAYYAA...','.AAAAAAAAAA.','QQAAAAAAAAQQ'],
+      side:['....AAAA....','...AAYYAA...','.AAAAAAAAAA.','QQAAAAAAAAQQ'],
+      back:['....AAAA....','...AAAAAA...','.AAAAAAAAAA.','QQAAAAAAAAQQ']
+    }
+  };
+  function normalizeAvatarLook(look){
+    return {hat:look.hat,hatColor:look.hatColor||'standard',outfit:look.outfit,clothing:look.clothing||'tunic',equipment:look.equipment||'none',hair:look.hair||'short',hairColor:look.hairColor||'brown',equipmentColor:look.equipmentColor||(look.equipment==='bag'?'brown':'slate')};
+  }
+  // All clothing and equipment share the existing 12 sprite frames.
+  function dressAvatarFrame(rows,view,frame,look){
+    var side=view==='side',body;
+    if(look.clothing==='armor'){
+      body=side?['....BBBW....','....ByBB....','....BBBW....','....ByBB....','....bbbb....','....TTTT....']
+        :['..WBBBBBBW..','.sBByTTyBBs.','.sBBBBBBBBs.','..BBByyBBB..','..bbbbbbbb..','...TTTTTT...'];
+    }else if(look.clothing==='robe'){
+      body=side?['....TTTW....','....TyTT....','....TTTT....','....TyTT....','...TTTTTT...','...TTTTTT...']
+        :['..WTTTTTTW..','.sTTTyyTTTs.','.sTTTTTTTTs.','..TTTyTTTT..','..TTTTTTTT..','..TTTTTTTT..'];
+    }else{
+      body=side?['....TTTT....','....TyTT....','....TTTT....','....TTTT....','....bbbb....','....TTTT....']
+        :['...TTTTTT...','.sTTTyyTTTs.','.sTTTTTTTTs.','..TTTTTTTT..','..bbbbbbbb..','...TTTTTT...'];
+    }
+    if(view==='up')body=body.map(row=>row.replace(/y/g,'T'));
+    // Keep the existing swinging hands, which sit outside the torso.
+    if(side&&(frame===0||frame===2))for(var y=3;y<6;y++){
+      var line=body[y].split('');
+      for(var x=0;x<12;x++)if(rows[y+6][x]==='s')line[x]='s';
+      body[y]=line.join('');
+    }
+    rows.splice(6,6,...body);
+    if(look.clothing==='robe'){
+      rows[12]=side?'...TTTTTT...':'..TTTTTTTT..';
+      rows[13]=side?'...WTTTTW...':'..WTTTTTTW..';
+    }
+    if(look.equipment==='cape'){
+      if(view==='up'){
+        rows.splice(6,8,'..WCCCCCCW..','.CCCCCCCCCC.','CCCCCCCCCCCC','CCCCCDCDCCCC','CCCCCDCDCCCC','CCCCCDCDCCCC','.CCCCCCCCCC.',frame===0?'CC.CCCC.CCC.':frame===2?'.CCC.CCCC.CC':'.CCC.CC.CCC.');
+      }
+      if(side)for(var y=6;y<14;y++){
+        var line=rows[y].split(''),start=y>=11&&frame===0?0:1;
+        for(var x=start;x<4;x++)if(line[x]!== 's')line[x]=x===start?'D':'C';
+        rows[y]=line.join('');
+      }
+      if(view==='down'){
+        rows[6]='..W'+rows[6].slice(3,9)+'W..';
+        for(var y=7;y<14;y++){
+          var line=rows[y].split('');line[0]='C';line[11]='C';
+          if(y>=11){if(line[1]==='.')line[1]='D';if(line[10]==='.')line[10]='D';}
+          rows[y]=line.join('');
+        }
+      }
+    }else if(look.equipment==='bag'){
+      if(view==='up')rows.splice(7,4,'...DDDDDD...','...DCCCCD...','...DCWWCD...','...DDDDDD...');
+      if(side)for(var y=7;y<11;y++)rows[y]=rows[y].slice(0,2)+(y===7||y===10?'DD':'DC')+rows[y].slice(4);
+      if(view==='down')for(var y=7;y<11;y++){var line=rows[y].split('');line[y-3]='D';rows[y]=line.join('');}
+    }
+  }
+  function makeHero(color,look){
+  if(look)look=normalizeAvatarLook(look);
+  var roles={"warrior":["....YYYY....","...YyyyyY...","..YyYYYYyY..","..YYssssYY..","...sesess...","...sssss....","..WWBBBBWW..",".sWBbbbbBWs.",".sWBBBBBBWs.","..WBBYYBBW..","..WBBBBBBW..","...BBBBBB...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."],"traveler":["....hhhh....","...hhhhhh...","..HHHHHHHH..","...hssssh...","...sesess...","...sssss....","...TTTTTT...","..TTTyyTTT..",".sTTTyTTTTs.",".sTTTyTTTTs.","..TTTyyyyT..","...TTTTTT...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."],"cleric":["....WWWW....","...WWWWWW...","..WWWyyWWW..","..WWWyyWWW..","..WWssssWW..","...sesess...","...sssss....","..WWTTTTWW..",".sWWTyyTWWs.",".sWWTTTTWWs.","..WWTTTTWW..","..WWTTTTWW..","..WWTTTTWW..","...WWWWWW...","...oo..oo...","..ooo..ooo.."],"mage":[".....TT.....","....TTTT....","...TTTyTT...","...TTTTTT...","..TTTTTTTT..",".TTTTTTTTTT.","...hssssh...","...sesess...","...sssss....","..TTTyyTTT..",".sTTTTTTTTs.",".sTTTTTTTTs.","..TTTTTTTT..","..TTTTTTTT..","...oo..oo...","..ooo..ooo.."],"hero":["....YYYY....","...YbYYbY...","..hYYYYYYh..","..hhsssshh..","...sesess...","...sssss....","..WWTTTTWW..",".sWTTyyTTWs.",".sWTTTTTTWs.","..WTTTTTTW..","..WTTyyTTW..","...TTTTTT...","...bb..bb...","...bb..bb...","..ooo..ooo..","..ooo..ooo.."]};
   var original=color.toLowerCase(),role=original==='#ffd23f'?'hero':original==='#3b82c4'?'warrior':original==='#e08a2e'?'traveler':original==='#2fa37a'?'cleric':'mage';
   var clothes={'#ffd23f':'#e6c578','#3b82c4':'#5379aa','#e08a2e':'#b85c4b','#2fa37a':'#50754c','#7c6bd6':'#8b6aa4','#e268a0':'#8b6aa4','#22b0bf':'#649a9a'};
   var pal={T:clothes[original]||'#697080',o:'#272438',h:'#815539',H:'#c8b888',s:'#e2b888',e:'#080810',b:'#815539',W:'#eee5cd',Y:'#e6c578',y:'#c8b888',B:'#a1a7b0'};
@@ -590,18 +917,37 @@ body{margin:0}
     mage:['.....TT.....','....TTTT....','....TTyTT...','...TTTTTT...','..TTTTTTTT..','.TTTTTTTTTT.','...hhssss...','....ssess...','....sssss...']
   };
   var side=sideHeads[role].slice();while(side.length<12)side.push(side.length===9?'....TsTT....':'....TTTT....');side=side.concat(['....bbbb....','....bbbb....','....oooo....','....oooo....']);
+  var hat=look&&avatarHats[look.hat];
+  if(look){
+    pal.T=avatarOutfits[look.outfit];
+    var equipmentPalette=avatarEquipmentColors[look.equipmentColor]||avatarEquipmentColors.slate;
+    pal.h=avatarHairColors[look.hairColor]||avatarHairColors.brown;
+    pal.C=equipmentPalette[0];pal.D=equipmentPalette[1];pal.Q='#c8b888';
+    var hair=avatarHair[look.hair]||avatarHair.short;
+    front.splice(0,6,...hair.front);back.splice(0,6,...hair.back);side.splice(0,6,...hair.side);
+    if(hat && look.hat!=='none'){
+      var hatPalette=avatarHatColors[look.hatColor]||hat.colors;
+      pal.A=hatPalette[0];pal.L=hatPalette[1];pal.K=hatPalette[2];
+      front.splice(0,hat.front.length,...hat.front);
+      back.splice(0,hat.back.length,...hat.back);
+      side.splice(0,hat.side.length,...hat.side);
+    }
+  }
   var wrap=document.createElement('span');wrap.className='spritewrap';wrap.dataset.color=original;wrap.dataset.role=role;wrap.style.width='32px';wrap.style.height='36px';
   [{name:'down',rows:front},{name:'up',rows:back},{name:'side',rows:side}].forEach(function(view){
     var frames=[view.rows.slice(),view.rows.slice(),view.rows.slice(),view.rows.slice()];
     if(view.name==='side'){
       frames[0].splice(12,4,'...bbb.bb...','..bbb...bb..','.oooo.......','........ooo.');
       frames[2].splice(12,4,'...bb.bbb...','..bb...bbb..','........ooo.','.oooo.......');
+      // The near arm swings opposite the forward foot; the far hand sits higher.
+      frames[0].splice(9,3,'...sTTTTs...','..ssTTTT....','....TTTT....');
+      frames[2].splice(9,3,'...sTTTTs...','....TTTTss..','....TTTT....');
     }else{
       frames[0].splice(12,4,'..bbb..bb...','.bbb...oo...','.oooo.......','............');
       frames[2].splice(12,4,'...bb..bbb..','...oo...bbb.','........ooo.','........oooo');
     }
     var direction=document.createElement('span');direction.className='direction-sprite direction-'+view.name;
-    frames.forEach(function(rows,i){var frame=makeSprite(rows,pal,2);frame.className='pose-frame pose-frame-'+i;frame.setAttribute('aria-hidden','true');direction.appendChild(frame);});wrap.appendChild(direction);
+    frames.forEach(function(rows,i){if(look)dressAvatarFrame(rows,view.name,i,look);var frame=makeSprite(rows,pal,2,hat&&hat.top);frame.className='pose-frame pose-frame-'+i;frame.setAttribute('aria-hidden','true');direction.appendChild(frame);});wrap.appendChild(direction);
   });
   return wrap;
 }
@@ -704,14 +1050,14 @@ function createTravelGraph(layout) {
       floor.rooms.forEach(function(room){
         var r=room.rect,x=(r.left+r.right)/2;
         node(room.id+':inner',x,r.bottom-12);node(room.id+':door',x,r.bottom);node(room.id+':hall',x,cy);
-        edge(room.id+':inner',room.id+':door','inside');edge(room.id+':door',room.id+':hall','door');edge(room.id+':hall',floorId,'hall');
+        edge(room.id+':inner',room.id+':door','door');edge(room.id+':door',room.id+':hall','door');edge(room.id+':hall',floorId,'hall');
       });
       floor.rooms.forEach(function(room,i){if(i)edge(floor.rooms[i-1].id+':hall',room.id+':hall','hall');});
     });
     var gx=(ground.rooms[0].rect.left+ground.rooms[ground.rooms.length-1].rect.right)/2,gy=ground.rect.bottom-16;
     var gateHall=node('b'+bi+':gatehall',gx,gy),gate=node('b'+bi+':gate',gx,build.rect.bottom),apron=node('b'+bi+':apron',gx,build.rect.bottom+16);
     ground.rooms.forEach(function(room){edge(room.id+':hall',gateHall,'hall');});
-    edge('b'+bi+':f'+(floors.length-1),gateHall,'hall');edge(gateHall,gate,'door');edge(gate,apron,'path');
+    edge('b'+bi+':f'+(floors.length-1),gateHall,'hall');edge(gateHall,gate,'door');edge(gate,apron,'doorstep');
     var road=node('b'+bi+':road',stacked?nodes[hub].x:gx,stacked?nodes[apron].y:nodes[hub].y);
     edge(apron,road,'path');if(stacked)edge(road,hub,'path');
   });
@@ -725,8 +1071,8 @@ function createTravelGraph(layout) {
     var middleX=(left.rect.right+right.rect.left)/2;
     var leftTurn=node('link:turn-left',middleX,leftHall.y);
     var rightTurn=node('link:turn-right',middleX,rightHall.y);
-    edge('b0:f'+(left.floors.length-1),leftDoor,'hall');
-    edge(rightDoor,'b1:gatehall','hall');
+    edge('b0:f'+(left.floors.length-1),leftDoor,'door');
+    edge(rightDoor,'b1:gatehall','door');
     edge(leftDoor,leftTurn,'link');edge(leftTurn,rightTurn,'link');edge(rightTurn,rightDoor,'link');
   }
   // Field roads form a connected grid: a lane between every column and a
@@ -753,8 +1099,12 @@ function createTravelGraph(layout) {
     // Each building gets its own straight connection to the field's top road.
     if(!stacked)layout.buildings.forEach(function(_,bi){var road='b'+bi+':road';edge(road,junction(0,nodes[road].x),'path');});
     rows.forEach(function(row,ri){row.forEach(function(zone){var r=zone.rect,x=(r.left+r.right)/2;
-      node(zone.id+':inner',x,r.bottom-12);node(zone.id+':door',x,r.bottom);node(zone.id+':road',x,ys[ri+1]);
-      edge(zone.id+':inner',zone.id+':door','door');edge(zone.id+':door',zone.id+':road','path');edge(zone.id+':road',junction(ri+1,x),'path');
+      node(zone.id+':inner',x,r.bottom-12);
+      node(zone.id+':entry',x,r.bottom);
+      node(zone.id+':road',x,ys[ri+1]);
+      edge(zone.id+':inner',zone.id+':entry','inside');
+      edge(zone.id+':entry',zone.id+':road','path');
+      edge(zone.id+':road',junction(ri+1,x),'path');
     });});
   }
   function route(from,to){
@@ -775,7 +1125,7 @@ function createTravelGraph(layout) {
     roadLayer.setAttribute('width',travelSurface.offsetWidth);roadLayer.setAttribute('height',travelSurface.offsetHeight);
     roadLayer.setAttribute('viewBox','0 0 '+travelSurface.offsetWidth+' '+travelSurface.offsetHeight);
     var group=document.createElementNS(ns,'g');
-    graph.edges.filter(function(e){return e.kind==='path'||e.kind==='link';}).forEach(function(e){var a=graph.nodes[e.a],b=graph.nodes[e.b];if(a.x===b.x&&a.y===b.y)return;var line=document.createElementNS(ns,'path');line.setAttribute('d','M'+(a.x-origin.left)+' '+(a.y-origin.top)+' L'+(b.x-origin.left)+' '+(b.y-origin.top));line.setAttribute('class',e.kind==='link'?'travel-road travel-link':'travel-road');group.appendChild(line);});
+    graph.edges.filter(function(e){return e.kind==='path'||e.kind==='link'||e.kind==='doorstep';}).forEach(function(e){var a=graph.nodes[e.a],b=graph.nodes[e.b];if(a.x===b.x&&a.y===b.y)return;var line=document.createElementNS(ns,'path');line.setAttribute('d','M'+(a.x-origin.left)+' '+(a.y-origin.top)+' L'+(b.x-origin.left)+' '+(b.y-origin.top));line.setAttribute('class',e.kind==='link'?'travel-road travel-link':'travel-road');group.appendChild(line);});
     var west=graph.nodes['link:left'],east=graph.nodes['link:right'];
     if(west&&east){
       var left=west.x-origin.left,right=east.x-origin.left;
@@ -810,7 +1160,6 @@ function createTravelGraph(layout) {
       var shaft=document.createElement('span');shaft.className='stair-shaft';shaft.setAttribute('aria-hidden','true');shaft.innerHTML='<svg viewBox="0 0 12 16" width="24" height="32" shape-rendering="crispEdges"><path fill="#272438" d="M0 0h12v16H0z"/><path fill="#c8b888" d="M1 13h10v2H1zm2-3h8v2H3zm2-3h6v2H5zm2-3h4v2H7z"/></svg>';floor.appendChild(shaft);
       floor.querySelectorAll('.proom').forEach(function(room){var door=document.createElement('span');door.className='room-door';door.setAttribute('aria-hidden','true');room.appendChild(door);});
     });
-    document.querySelectorAll('.fieldrow>.zone').forEach(function(z){var gate=document.createElement('span');gate.className='field-gate';gate.setAttribute('aria-hidden','true');z.appendChild(gate);});
     var queue=function(){clearTimeout(roadResize);roadResize=setTimeout(drawTravelRoads,60);};
     var lastWidth=document.documentElement.clientWidth;
     window.addEventListener('resize',function(){
@@ -849,15 +1198,32 @@ function createTravelGraph(layout) {
     mapViewport.scrollTop=previous+delta;
     return mapViewport.scrollTop!==previous;
   }
+  function bodyOcclusionPath(sprite,obstacles){
+    var path='M0 0H'+sprite.width+'V'+sprite.height+'H0Z';
+    var covered=false;
+    obstacles.forEach(function(obstacle){
+      var left=Math.max(0,obstacle.left-sprite.left);
+      var right=Math.min(sprite.width,obstacle.right-sprite.left);
+      // Reserve the top 16px for the hat and face.
+      var top=Math.max(16,obstacle.top-sprite.top);
+      var bottom=Math.min(sprite.height,obstacle.bottom-sprite.top);
+      if(right>left&&bottom>top){
+        path+=' M'+left+' '+top+'H'+right+'V'+bottom+'H'+left+'Z';
+        covered=true;
+      }
+    });
+    return covered?'path(evenodd, "'+path+'")':'';
+  }
   function moveTo(id,animate){
     var zone=document.querySelector('[data-zone="'+id+'"]');if(!zone)return;
     if(activeWalk){if(activeWalk.target===id)return;activeWalk.finish();}
     var run=++cameraRun;
     var chars=zone.querySelector('.chars'),origin=you.closest('[data-zone]');
     var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-    var PHONE=Math.min(screen.width,screen.height)<600;
-    if(!animate||RM||PHONE||!origin||origin===zone){var empty=chars.querySelector('.empty');if(empty)empty.remove();chars.appendChild(you);if(animate&&origin!==zone){you.classList.remove('arrive');void you.offsetWidth;you.classList.add('arrive');}you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
+    var PHONE=window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
+    if(!animate||RM||!origin||origin===zone){var empty=chars.querySelector('.empty');if(empty)empty.remove();chars.appendChild(you);if(animate&&origin!==zone){you.classList.remove('arrive');void you.offsetWidth;you.classList.add('arrive');}you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
     var em=chars.querySelector('.empty');if(em)em.remove();
+    // 歩いている間は「行き先を選ぶ」を押せなくする（2026-11-17。2026-11-20 からスマホ・タブレット・PCとも歩く）
     var mps=document.querySelector('.mobile-picker select');if(mps){mps.blur();mps.disabled=true;}
     // Reserve the exact arrival dimensions without counting a second person.
     var first=pageRect(you),start=footPoint(you),offsetX=start.x-first.left,offsetY=start.y-first.top;
@@ -868,18 +1234,45 @@ function createTravelGraph(layout) {
     var graph=createTravelGraph(travelLayout()),route=graph.route(origin.dataset.zone,id);
     if(!route.length){slot.remove();chars.appendChild(you);you.dataset.facing='down';afterMove(id);drawTravelRoads();if(animate)keepTravelerVisible(you);return;}
     var points=footConnector(start,route[0],false).concat(route.slice(1),footConnector(end,route[route.length-1],true).slice(1));
+    function featureAt(point,kind){
+      var key=point.id||'';
+      var building=key.match(/^b(\d+):(?:f(\d+)|(gate))$/);
+      if(building){
+        var block=document.querySelectorAll('.pbuild')[Number(building[1])];
+        if(building[3])return block.querySelector('.pdoor');
+        return kind==='stairs'?block.querySelectorAll('.stair-shaft')[Number(building[2])]:null;
+      }
+      if(key==='link:left'||key==='link:right'){
+        return document.querySelectorAll('.pentrance')[key==='link:left'?0:1];
+      }
+      if(!key.endsWith(':door'))return null;
+      var zone=document.querySelector('[data-zone="'+key.slice(0,-5)+'"]');
+      return zone&&zone.querySelector('.room-door');
+    }
+    var litFeatures=[];
+    function showFeatures(a,b){
+      litFeatures.forEach(function(el){el.classList.remove('passage-active');});
+      litFeatures=[];
+      if(['door','doorstep','link','stairs'].includes(b.kind)){
+        litFeatures=[featureAt(a,b.kind),featureAt(b,b.kind)].filter(Boolean);
+        litFeatures.forEach(function(el){el.classList.add('passage-active');});
+      }
+    }
     points=points.filter(function(p,i,a){return !i||Math.abs(p.x-a[i-1].x)+Math.abs(p.y-a[i-1].y)>.1;});
     // Merge junctions on a straight stretch so the animation does not restart.
     points=points.reduce(function(result,p){
       var b=result[result.length-1],a=result[result.length-2];
-      if(a&&b&&(b.kind==='stairs')===(p.kind==='stairs')){
+      if(a&&b&&['inside','hall','path'].includes(b.kind)&&['inside','hall','path'].includes(p.kind)){
         var dx=b.x-a.x,dy=b.y-a.y,ex=p.x-b.x,ey=p.y-b.y;
         if((Math.abs(dx)<.1&&Math.abs(ex)<.1&&dy*ey>0)||(Math.abs(dy)<.1&&Math.abs(ey)<.1&&dx*ex>0)){result[result.length-1]=p;return result;}
       }
       result.push(p);return result;
     },[]);
+    // スマホは歩き全体を10秒までにする（2026-11-20）。区間ごとの時間を同じ割合で縮める
+    var walkSpeed=1;
+    if(PHONE){var walkTotal=0;for(var wi=1;wi<points.length;wi++){var wd=Math.abs(points[wi].x-points[wi-1].x)+Math.abs(points[wi].y-points[wi-1].y);walkTotal+=Math.max(90,Math.round(wd*(points[wi].kind==='stairs'?10:7.8)));}if(walkTotal>10000)walkSpeed=10000/walkTotal;}
     var cloneHost=document.body;
-    if(travelSurface&&window.matchMedia('(max-width:700px) and (orientation:portrait)').matches){
+    if(travelSurface&&PHONE){
       // Keep the animated sprite in the same scroll coordinate space as the map.
       cloneHost=travelSurface;
       var surface=pageRect(travelSurface);
@@ -888,20 +1281,55 @@ function createTravelGraph(layout) {
     }
     var clone=you.cloneNode(true);clone.classList.add('walking','walkclone');clone.classList.remove('flip');clone.setAttribute('aria-hidden','true');clone.removeAttribute('role');clone.removeAttribute('tabindex');
     clone.style.cssText='position:absolute;left:0;top:0;margin:0;z-index:9999;pointer-events:none;transform:translate('+(start.x-offsetX)+'px,'+(start.y-offsetY)+'px)';
+    var movingSprite=clone.querySelector('.spritewrap');
+    var bridgeOrigin=travelSurface?pageRect(travelSurface):null;
+    var bridgePosts=[];
+    ['link:left','link:right'].forEach(function(key){
+      var node=graph.nodes[key];
+      if(!node||!bridgeOrigin)return;
+      var left=node.x-(key==='link:left'?2:3)-bridgeOrigin.left;
+      bridgePosts.push({left:left,right:left+5,top:node.y-20-bridgeOrigin.top,bottom:node.y+11-bridgeOrigin.top});
+    });
+    function updateOcclusion(){
+      if(finished)return;
+      var obstacles=[];
+      litFeatures.forEach(function(feature){
+        if(!feature.matches('.room-door,.pdoor'))return;
+        var bounds=feature.getBoundingClientRect();
+        obstacles.push({left:bounds.left,right:bounds.left+2,top:bounds.top,bottom:bounds.bottom});
+        obstacles.push({left:bounds.right-2,right:bounds.right,top:bounds.top,bottom:bounds.bottom});
+      });
+      if(['door','link'].includes(clone.dataset.terrain)&&bridgePosts.length){
+        var current=travelSurface.getBoundingClientRect();
+        bridgePosts.forEach(function(post){
+          obstacles.push({left:current.left+post.left,right:current.left+post.right,top:current.top+post.top,bottom:current.top+post.bottom});
+        });
+      }
+      movingSprite.style.clipPath=bodyOcclusionPath(movingSprite.getBoundingClientRect(),obstacles);
+    }
     cloneHost.appendChild(clone);you.style.visibility='hidden';document.querySelector('.game').setAttribute('aria-busy','true');message.textContent=fmtL('moving','あなたは {place} へ いどうちゅう。',byId[id].name);
     drawTravelRoads();var finished=false,animation=null,timer=null,index=1;
-    function finish(){if(finished)return;finished=true;clearTimeout(timer);if(animation)animation.cancel();you.dataset.facing='down';clone.remove();slot.remove();chars.appendChild(you);you.style.visibility='';document.querySelector('.game').removeAttribute('aria-busy');activeWalk=null;afterMove(id);if(!origin.querySelector('.char')&&!origin.querySelector('.empty')){var empty=document.createElement('span');empty.className='empty';empty.textContent='だれもいない…';origin.querySelector('.chars').appendChild(empty);}drawTravelRoads();}
+    function finish(){if(finished)return;finished=true;litFeatures.forEach(function(el){el.classList.remove('passage-active');});clearTimeout(timer);if(animation)animation.cancel();you.dataset.facing='down';clone.remove();slot.remove();chars.appendChild(you);you.style.visibility='';document.querySelector('.game').removeAttribute('aria-busy');activeWalk=null;afterMove(id);if(!origin.querySelector('.char')&&!origin.querySelector('.empty')){var empty=document.createElement('span');empty.className='empty';empty.textContent='だれもいない…';origin.querySelector('.chars').appendChild(empty);}drawTravelRoads();}
     activeWalk={target:id,finish:finish};
     function next(){
       if(finished)return;if(index>=points.length){finish();return;}
       var a=points[index-1],b=points[index++],dx=b.x-a.x,dy=b.y-a.y,distance=Math.abs(dx)+Math.abs(dy);
+      showFeatures(a,b);
       clone.dataset.facing=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');clone.dataset.terrain=b.kind;
-      var duration=Math.max(90,Math.round(distance*(b.kind==='stairs'?10:7.8)));
-      animation=clone.animate([{transform:'translate('+(a.x-offsetX)+'px,'+(a.y-offsetY)+'px)'},{transform:'translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)'}],{duration:duration,easing:'steps('+Math.max(2,Math.ceil(duration/40))+', end)',fill:'forwards'});
+      var duration=Math.max(Math.round(90*walkSpeed),Math.round(distance*(b.kind==='stairs'?10:7.8)*walkSpeed));
+      animation=clone.animate([{transform:'translate('+(a.x-offsetX)+'px,'+(a.y-offsetY)+'px)'},{transform:'translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)'}],{duration:duration,easing:'steps('+Math.max(2,Math.ceil(b.kind==='stairs'?distance/10:duration/40))+', end)',fill:'forwards'});
       var done=false;function complete(){if(done||finished)return;done=true;clearTimeout(timer);clone.style.transform='translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)';animation.cancel();next();}animation.onfinish=complete;timer=setTimeout(complete,duration+250);
     }
     next();
-    if(window.requestAnimationFrame&&window.matchMedia('(max-width:700px) and (orientation:portrait)').matches){
+    if(window.requestAnimationFrame){
+      function renderOcclusion(){
+        if(finished)return;
+        updateOcclusion();
+        window.requestAnimationFrame(renderOcclusion);
+      }
+      window.requestAnimationFrame(renderOcclusion);
+    }
+    if(window.requestAnimationFrame&&PHONE){
       var previousFrame=null,arrivalFrame=null;
       function follow(now){
         if(run!==cameraRun)return;
@@ -934,8 +1362,11 @@ function createTravelGraph(layout) {
   var LAND={
     ibaraki:{rows:FACT,pal:P_FACT,palH:H_FACT,px:3}, daikoku:{rows:WARE,pal:P_WARE,palH:H_WARE,px:3},
     zaitaku:{rows:HOUSE,pal:P_HOUSE,palH:H_HOUSE,px:3}, shuccho:{rows:TRAIN,pal:P_TRAIN,palH:H_TRAIN,px:3},
-    gaishutsu:{rows:CAR,pal:P_CAR,palH:H_CAR,px:3}, rest:{rows:PARA,pal:P_PARA,palH:H_PARA,px:3},
-    kyukei:{rows:HOUSE,pal:P_HOUSE,palH:H_HOUSE,px:3}
+    gaishutsu:{rows:CAR,pal:P_CAR,palH:H_CAR,px:3},
+    kyukei:{
+      rows:['..cccc....cccc..','..cbbc....cbbc..','................','.oooooooooooooo.','.obbtybbbbtbbo..','.obbbbbbbbbbbo..','.oooooooooooooo.','..bb........bb..'],
+      pal:{c:'#a1a7b0',o:'#272438',b:'#815539',t:'#eee5cd',y:'#e6c578'},px:4
+    }, rest:{rows:PARA,pal:P_PARA,palH:H_PARA,px:3}
   };
   function renderScenes(halo){
     document.querySelectorAll('.zone').forEach(function(z){
@@ -987,7 +1418,13 @@ function createTravelGraph(layout) {
     var host=document.getElementById('roster'); if(!host)return;
     var rows=[];
     document.querySelectorAll('[data-zone]').forEach(function(z){
-      var chs=[].slice.call(z.querySelectorAll('.chars .char'));
+      var chs=[].slice.call(z.querySelectorAll('.chars > .char:not(.walkclone)'));
+      var roomName=z.querySelector('.rlabel,.zlabel');
+      if(roomName){
+        roomName.dataset.people=String(chs.length);
+        roomName.style.setProperty('--people-width',(String(chs.length).length*7+10)+'px');
+        roomName.setAttribute('aria-label',roomName.textContent+' '+chs.length+'人');
+      }
       if(!chs.length)return;
       var chips=chs.map(function(ch){var nm=ch.querySelector('.nm');return '<span class="rchip'+(ch.classList.contains('you')?' me':'')+'">'+escH(nm?nm.textContent:'')+'</span>';}).join('');
       rows.push('<div class="rrow"><span class="rloc">'+escH(zoneLabel(z))+'</span><span class="rppl">'+chips+'</span></div>');
@@ -1031,6 +1468,96 @@ function createTravelGraph(layout) {
   mobileCurrent.appendChild(mobileCurrentLabel);
   mobilePicker.append(mobileCurrent,destination);
   document.querySelector('.game').prepend(mobilePicker);
+  function isAvatarLook(look){
+    return !!look && typeof look.hat==='string' && typeof look.outfit==='string'
+      && Object.hasOwn(avatarHats,look.hat) && Object.hasOwn(avatarOutfits,look.outfit)
+      && (look.hatColor===undefined || Object.hasOwn(avatarHatColors,look.hatColor))
+      && (look.clothing===undefined || Object.hasOwn(avatarClothing,look.clothing))
+      && (look.equipment===undefined || Object.hasOwn(avatarEquipment,look.equipment))
+      && (look.hair===undefined || Object.hasOwn(avatarHair,look.hair))
+      && (look.hairColor===undefined || Object.hasOwn(avatarHairColors,look.hairColor))
+      && (look.equipmentColor===undefined || Object.hasOwn(avatarEquipmentColors,look.equipmentColor));
+  }
+  function initWardrobe(){
+    var dialog=document.createElement('dialog');
+    dialog.className='wardrobe';
+    dialog.setAttribute('aria-labelledby','wardrobe-title');
+    dialog.innerHTML=`<form>
+      <h2 id="wardrobe-title">自キャラの着せ替え</h2>
+      <div class="wardrobe-preview"><div class="char you walking" aria-hidden="true"></div></div>
+      <label>歩く向き <select name="facing"><option value="down">前</option><option value="right">右</option><option value="left">左</option><option value="up">後ろ</option></select></label>
+      <label>髪型 <select name="hair"><option value="short">ショート</option><option value="spiky">ツンツン</option><option value="bob">ボブ</option></select></label>
+      <label>髪の色 <select name="hairColor"><option value="brown">茶</option><option value="black">黒</option><option value="gold">金</option><option value="silver">銀</option></select></label>
+      <label>帽子 <select name="hat"><option value="none">なし</option><option value="crown">勇者の冠</option><option value="cap">旅人の帽子</option><option value="hood">魔法の帽子</option></select></label>
+      <label>帽子の色 <select name="hatColor"><option value="standard">標準</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option><option value="black">黒</option></select></label>
+      <label>服の形 <select name="clothing"><option value="tunic">チュニック</option><option value="armor">鎧</option><option value="robe">ローブ</option></select></label>
+      <label>服の色 <select name="outfit"><option value="gold">金</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option></select></label>
+      <label>装備 <select name="equipment"><option value="none">なし</option><option value="cape">マント</option><option value="bag">かばん</option></select></label>
+      <label>装備の色 <select name="equipmentColor"><option value="slate">青灰</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option><option value="brown">茶</option><option value="cream">生成り</option></select></label>
+      <p class="wardrobe-hint">髪型は帽子「なし」で見比べられます。装備の色はマント・かばんに反映されます。「後ろ」でも見比べてください。</p>
+      <div class="wardrobe-actions">
+        <button type="button" data-apply>反映する</button>
+        <button type="button" data-close>閉じる</button>
+      </div>
+    </form>`;
+    document.body.appendChild(dialog);
+    var form=dialog.querySelector('form');
+    var preview=dialog.querySelector('.wardrobe-preview .char');
+    var defaultLook=normalizeAvatarLook({hat:'crown',outfit:'gold'});
+    var savedLook=defaultLook;
+    function selectedLook(){
+      return {hat:form.elements.hat.value,hatColor:form.elements.hatColor.value,outfit:form.elements.outfit.value,clothing:form.elements.clothing.value,equipment:form.elements.equipment.value,hair:form.elements.hair.value,hairColor:form.elements.hairColor.value,equipmentColor:form.elements.equipmentColor.value};
+    }
+    function showPreview(){
+      form.elements.hatColor.disabled=form.elements.hat.value==='none';
+      preview.dataset.facing=form.elements.facing.value;
+      preview.replaceChildren(makeHero('#ffd23f',selectedLook()));
+    }
+    function applyLook(look){
+      savedLook=look;
+      you.querySelector('.spritewrap').replaceWith(makeHero('#ffd23f',look));
+      var walking=document.querySelector('.you.walkclone');
+      if(walking)walking.querySelector('.spritewrap').replaceWith(makeHero('#ffd23f',look));
+    }
+    function addButton(parent){
+      var button=document.createElement('button');
+      button.type='button';
+      button.className='wardrobe-open';
+      button.textContent='着せ替え';
+      button.addEventListener('click',function(){
+        form.elements.hat.value=savedLook.hat;
+        form.elements.hatColor.value=savedLook.hatColor;
+        form.elements.outfit.value=savedLook.outfit;
+        form.elements.clothing.value=savedLook.clothing;
+        form.elements.equipment.value=savedLook.equipment;
+        form.elements.hair.value=savedLook.hair;
+        form.elements.hairColor.value=savedLook.hairColor;
+        form.elements.equipmentColor.value=savedLook.equipmentColor;
+        form.elements.facing.value='down';
+        showPreview();
+        dialog.showModal();
+      });
+      parent.appendChild(button);
+    }
+    form.addEventListener('change',function(event){
+      showPreview();
+    });
+    dialog.querySelector('[data-apply]').addEventListener('click',function(){
+      var look=selectedLook();
+      applyLook(look);
+      if(window.__zmapOnLookChange)window.__zmapOnLookChange(look);
+      dialog.close();
+    });
+    dialog.querySelector('[data-close]').addEventListener('click',function(){dialog.close();});
+    addButton(document.querySelector('.hud'));
+    addButton(mobilePicker);
+    return function restoreLook(look){
+      applyLook(isAvatarLook(look)?normalizeAvatarLook(look):defaultLook);
+    };
+
+  }
+
+  var restoreAvatarLook=initWardrobe();
   initTravelMap();
 
   // ===== HALO から受け取った人を並べる（段階M1：見るだけ） =====
@@ -1040,16 +1567,18 @@ function createTravelGraph(layout) {
   var lastData=null, justMoved=false, pendingData=null, prevZone={};
   function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function setText(sel,text){var el=document.querySelector(sel);if(el&&text!=null)el.textContent=text;}
-  function makeChar(id,name,color){
+  function makeChar(id,name,color,look){
     var ch=document.createElement('span');ch.className='char';ch.dataset.id=id;
     ch.setAttribute('role','button');ch.tabIndex=0;ch.setAttribute('aria-label',name);
-    ch.appendChild(makeHero(color));
+    ch.appendChild(makeHero(color,isAvatarLook(look)?look:null));
     var nm=document.createElement('span');nm.className='nm';nm.textContent=name;ch.appendChild(nm);
     return ch;
   }
   function placePeople(data){
     // 自分が歩いている途中に届いたデータ（30秒ごとの読み直しなど）は、歩き終わってから並べる（歩きを途中で切らない）
     if(activeWalk){pendingData=data;return;}
+    // Omitted avatarLook keeps the trial selection for this account; null resets it.
+    if(!lastData||lastData.me!==data.me||Object.hasOwn(data,'avatarLook'))restoreAvatarLook(data.avatarLook);
     lastData=data;var L=data.labels||{};
     window.__zmapTotal=(data.members||[]).length+((data.extraRows||[]).reduce(function(n,r){return n+(r.names||[]).length;},0));
     window.__zmapLabels=L;
@@ -1085,7 +1614,8 @@ function createTravelGraph(layout) {
       var moved=Object.prototype.hasOwnProperty.call(prevZone,m.id)&&prevZone[m.id]!==m.zone;
       var el;
       if(m.id===data.me){you.dataset.id=m.id;you.setAttribute('role','button');you.tabIndex=0;you.setAttribute('aria-label',m.name);ynm.textContent=m.name;el=you;}
-      else el=makeChar(m.id,m.name,deptColor[m.dept||'']);
+      else el=makeChar(m.id,m.name,deptColor[m.dept||''],m.look);
+      el.dataset.dept=m.dept||'';
       el.classList.remove('arrive');if(moved){void el.offsetWidth;el.classList.add('arrive');}
       box.appendChild(el);
     });
@@ -1100,10 +1630,6 @@ function createTravelGraph(layout) {
 
 <script>
 (function(){
-var colors={'#3b82c4':['製造','せんし'],'#e08a2e':['営業','たびびと'],'#2fa37a':['総務','そうりょ'],'#7c6bd6':['開発','まほうつかい'],'#e268a0':['未設定','まほうつかい'],'#22b0bf':['未設定','まほうつかい']};
-var dialog=document.createElement('dialog');dialog.className='status-dialog';dialog.innerHTML='<h2></h2><dl><dt>ぶしょ</dt><dd class="dept"></dd><dt>げんざいち</dt><dd class="place"></dd></dl><form method="dialog"><button>▶ とじる</button></form>';document.body.appendChild(dialog);
-function openStatus(ch){var z=ch.closest('[data-zone]');if(!z)return;var isYou=ch.classList.contains('you');var color=ch.dataset.color;var role=colors[color]||['未設定','ぼうけんしゃ'];dialog.querySelector('h2').textContent=ch.querySelector('.nm').textContent;dialog.querySelector('.dept').textContent=isYou?'あなた':role[0];var label=z.querySelector('.rlabel,.zlabel');var build=z.closest('.pbuild');dialog.querySelector('.place').textContent=(build?build.querySelector('.bname').textContent+' ':'')+(label?label.textContent:'');dialog.showModal();}
-document.querySelectorAll('.char:not(.walkclone)').forEach(function(ch){ch.setAttribute('role','button');ch.tabIndex=0;ch.setAttribute('aria-label',ch.querySelector('.nm').textContent+' のステータス');ch.dataset.color=ch.querySelector('.spritewrap').dataset.color;ch.addEventListener('click',function(){openStatus(ch)});ch.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openStatus(ch)}});});
 var prop='<svg viewBox="0 0 14 16" shape-rendering="crispEdges" aria-hidden="true"><path fill="#272438" d="M1 1h12v14H1z"/><path fill="#b85c4b" d="M2 2h10v2H2zm0 5h10v2H2zm0 5h10v2H2z"/><path fill="#e2b888" d="M3 4h2v3H3zm5 5h2v3H8z"/><path fill="#b85c4b" d="M6 4h2v3H6zm-3 5h2v3H3z"/><path fill="#649a9a" d="M9 4h2v3H9zm-3 5h1v3H6z"/></svg>';
 document.querySelectorAll('.proom').forEach(function(room,i){if(i%2===0){var el=document.createElement('span');el.className='room-prop';el.innerHTML=prop;room.appendChild(el);}});
 var title=document.createElement('div');title.className='map-heading';title.textContent='◆ なかまたちの せかい';document.querySelector('.world').before(title);
@@ -1119,15 +1645,19 @@ function refresh(){var n=window.__zmapTotal!=null?window.__zmapTotal:document.qu
 new MutationObserver(refresh).observe(document.querySelector('.world'),{childList:true,subtree:true});new MutationObserver(refresh).observe(document.querySelector('.fieldrow'),{childList:true,subtree:true});refresh();
 var roster=document.querySelector('#roster');var toggle=document.createElement('button');toggle.className='roster-toggle';toggle.type='button';toggle.textContent='− とじる';toggle.setAttribute('aria-expanded','true');toggle.setAttribute('aria-controls','roster');document.querySelector('.roster-ttl').appendChild(toggle);toggle.onclick=function(){roster.hidden=!roster.hidden;toggle.textContent=roster.hidden?'＋ なかま一覧':'− とじる';toggle.setAttribute('aria-expanded',String(!roster.hidden));};
 var scenes={
-ibaraki:{sub:'どうぐを つくる まち',body:'<path fill="#272438" d="M7 12h33v15H7zM11 4h6v10h-6zM30 6h5v8h-5z"/><path fill="#a1a7b0" d="M8 13h31v13H8zM12 4h4v9h-4zM31 6h3v7h-3z"/><path fill="#e6c578" d="M11 16h5v4h-5zm9 0h5v4h-5zm10 0h5v4h-5z"/><path fill="#314d39" d="M21 23h7v4h-7z"/><path fill="#a1a7b0" d="M10 0h4v2h-4zm4 2h5v2h-5zm17 0h3v3h-3z"/>'},
+ibaraki:{sub:'どうぐを つくる まち',body:'<path fill="#272438" d="M7 12h33v15H7zM11 4h6v10h-6zM30 6h5v8h-5z"/><path fill="#a1a7b0" d="M8 13h31v13H8zM12 4h4v9h-4zM31 6h3v7h-3z"/><path fill="#e6c578" d="M11 16h5v4h-5zm9 0h5v4h-5zm10 0h5v4h-5z"/><path fill="#314d39" d="M21 23h7v4h-7z"/><path class="factory-smoke" fill="#dce1df" d="M31 4h3v1h-3zm2-2h2v1h-2z"/>'},
 daikoku:{sub:'みなとの そうこ',body:'<path fill="#c8b888" d="M2 25h44v4H2z"/><path fill="#314d39" d="M8 12h30v14H8zM5 12l18-10 18 10z"/><path fill="#b85c4b" d="M7 11L23 3l16 8z"/><path fill="#c8b888" d="M10 13h26v12H10z"/><path fill="#815539" d="M19 17h9v8h-9z"/><path fill="#c8b888" d="M3 20h6v5H3zm34-1h7v6h-7z"/><path fill="#5379aa" d="M12 15h4v4h-4zm17 0h4v4h-4z"/>'},
 shuccho:{sub:'たびの とちゅう',body:'<path fill="#5379aa" d="M0 16L10 2l11 14L32 0l16 18z"/><path fill="#a1a7b0" d="M7 7l3-5 4 6-4-2zm21-1 4-6 5 7-5-2z"/><path fill="#c8b888" d="M23 14h5l5 16H14z"/><path fill="#272438" d="M36 11h2v16h-2z"/><path fill="#c8b888" d="M30 12h15v6H30z"/><path fill="#815539" d="M33 14h8v2h-8z"/>'},
 gaishutsu:{sub:'まちへ おでかけ',body:'<path fill="#314d39" d="M6 7h3v21H6z"/><path fill="#c8b888" d="M1 9h19v6H1zm2 8h18v6H3z"/><path fill="#815539" d="M3 11h12v2H3zm3 8h12v2H6z"/><path fill="#314d39" d="M29 7h15v13H29zM26 11h21v7H26z"/><path fill="#50754c" d="M30 5h12v12H30zM27 10h18v6H27z"/><path fill="#815539" d="M34 18h5v10h-5z"/><path fill="#e6c578" d="M24 27h23v3H24z"/>'},
 zaitaku:{sub:'じぶんの いえ',body:'<path fill="#272438" d="M6 13L24 1l19 12v2H6z"/><path fill="#b85c4b" d="M8 12L24 3l16 9z"/><path fill="#e2b888" d="M10 14h28v14H10z"/><path fill="#697080" d="M22 18h7v10h-7z"/><path fill="#5379aa" d="M13 17h5v5h-5zm18 0h5v5h-5z"/><path fill="#eee5cd" d="M15 17h1v5h-1zm18 0h1v5h-1z"/><path fill="#815539" d="M33 3h4v7h-4z"/>'},
-rest:{sub:'やどやで ひとやすみ',body:'<path fill="#272438" d="M6 12L24 1l18 11v16H6z"/><path fill="#697080" d="M8 11L24 3l16 8z"/><path fill="#c8b888" d="M9 13h30v14H9z"/><path fill="#314d39" d="M21 18h8v10h-8z"/><path fill="#e6c578" d="M12 16h5v6h-5zm20 0h4v6h-4z"/><path fill="#272438" d="M35 0h2v12h-2z"/><path fill="#eee5cd" d="M28 1h17v7H28z"/><path fill="#697080" d="M30 2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v1h-1zm1-2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v2h-1z"/>'},
-kyukei:{sub:'おひるやすみ',body:'<path fill="#815539" d="M2 26h44v4H2z"/><path fill="#eee5cd" d="M7 26L15 11l8 15z"/><path fill="#272438" d="M12 20h6v6h-6z"/><path fill="#a1a7b0" d="M27 15h12v11H27z"/><path fill="#697080" d="M28 16h10v2H28z"/><path fill="#a1a7b0" d="M39 17h4v6h-4z"/><path fill="#272438" d="M40 18h2v4h-2z"/><path fill="#eee5cd" d="M30 8h1v5h-1zm4-2h1v6h-1z"/>'}
+rest:{sub:'やどやで ひとやすみ',body:'<path fill="#272438" d="M6 12L24 1l18 11v16H6z"/><path fill="#697080" d="M8 11L24 3l16 8z"/><path fill="#c8b888" d="M9 13h30v14H9z"/><path fill="#314d39" d="M21 18h8v10h-8z"/><path fill="#e6c578" d="M12 16h5v6h-5zm20 0h4v6h-4z"/><path fill="#272438" d="M35 0h2v12h-2z"/><path fill="#eee5cd" d="M28 1h17v7H28z"/><path fill="#697080" d="M30 2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v1h-1zm1-2h1v4h-1zm3 0h1v4h-1zm1 0h1v1h-1zm1 1h1v1h-1zm1 1h1v2h-1z"/>'}
 };
-Object.keys(scenes).forEach(function(id){var zone=document.querySelector('[data-zone="'+id+'"]');var land=zone.querySelector('.zland');land.innerHTML='<svg class="pixel-land" viewBox="0 0 48 32" aria-hidden="true">'+scenes[id].body+'</svg>';var star=document.createElement('span');star.className='scene-star';star.textContent='✦';zone.appendChild(star);});
+Object.keys(scenes).forEach(function(id){var zone=document.querySelector('[data-zone="'+id+'"]');var land=zone.querySelector('.zland');land.innerHTML='<svg class="pixel-land" viewBox="0 0 48 32" aria-hidden="true">'+scenes[id].body+'</svg>';if(id==='ibaraki'){
+  var factory=land.querySelector('svg');
+  factory.setAttribute('viewBox','0 -6 48 38');
+  factory.classList.add('factory-scene');
+}
+var star=document.createElement('span');star.className='scene-star';star.textContent='✦';zone.appendChild(star);});
 // Sound is opt-in and generated locally, without recordings or network access.
 var enabled=false,ctx;var sound=document.createElement('button');sound.type='button';sound.className='sound-control';sound.textContent='おと：なし';sound.setAttribute('aria-pressed','false');document.querySelector('.todctl').appendChild(sound);
 function tone(freq,start,length){var o=ctx.createOscillator(),g=ctx.createGain();o.type='square';o.frequency.value=freq;g.gain.setValueAtTime(.025,start);g.gain.exponentialRampToValueAtTime(.001,start+length);o.connect(g);g.connect(ctx.destination);o.start(start);o.stop(start+length);}
@@ -1150,17 +1680,39 @@ document.querySelectorAll('.btns').forEach(function(group){group.addEventListene
   var ORIGIN=location.origin, standalone=window.parent===window;
   function post(msg){if(!standalone)window.parent.postMessage(msg,ORIGIN);}
   // 人を押したら親に知らせる（親がいつものメンバーの小窓を開く）
-  function pick(e){var ch=e.target.closest&&e.target.closest('.char');if(!ch||!ch.dataset.id||ch.classList.contains('walkclone'))return;post({type:'zmap:member',id:ch.dataset.id});}
+  var memberDialog=document.createElement('dialog');
+  memberDialog.className='status-dialog companion-dialog';
+  memberDialog.setAttribute('aria-labelledby','companion-title');
+  memberDialog.innerHTML='<h2 id="companion-title">なかま</h2><div class="companion-card"><div class="char" aria-hidden="true"></div><strong class="companion-name"></strong></div><dl><dt>ぶしょ</dt><dd class="dept"></dd><dt>げんざいち</dt><dd class="place"></dd></dl><div class="companion-actions"><button type="button" class="halo-member">HALOの詳細</button><button type="button" class="companion-close">▶ とじる</button></div>';
+  document.body.appendChild(memberDialog);
+  var haloMember=memberDialog.querySelector('.halo-member'),memberId;
+  haloMember.hidden=standalone;
+  memberDialog.querySelector('.companion-close').addEventListener('click',function(){memberDialog.close();});
+  haloMember.addEventListener('click',function(){memberDialog.close();post({type:'zmap:member',id:memberId});});
+  function pick(e){
+    var ch=e.target.closest&&e.target.closest('.char[data-id]:not(.walkclone)');
+    if(!ch||memberDialog.open)return;
+    var zone=ch.closest('[data-zone]'),sprite=ch.querySelector('.spritewrap');
+    if(!zone||!sprite)return;
+    var building=zone.closest('.pbuild'),label=zone.querySelector('.rlabel,.zlabel');
+    memberId=ch.dataset.id;
+    memberDialog.querySelector('.char').replaceChildren(sprite.cloneNode(true));
+    memberDialog.querySelector('.companion-name').textContent=ch.querySelector('.nm').textContent;
+    memberDialog.querySelector('.dept').textContent=ch.dataset.dept||'―';
+    memberDialog.querySelector('.place').textContent=[building&&building.querySelector('.bname').textContent,label&&label.textContent].filter(Boolean).join(' ');
+    memberDialog.showModal();
+  }
   document.addEventListener('click',pick);
   // コマンド窓で場所を選び、歩き終わったら親に保存してもらう（親が保存して並べ直したデータを送り返す）
+  window.__zmapOnLookChange=function(look){post({type:'zmap:look-change',look:look});};
   window.__zmapOnMove=function(id){post({type:'zmap:move',place:id});};
   // マップの中で触ったことを親に知らせる（親は10分触られていないと自動の読み直しを止めるため。20秒に1回まで）
   var lastActive=0;
   function active(){var now=Date.now();if(now-lastActive<20000)return;lastActive=now;post({type:'zmap:active'});}
   ['pointerdown','keydown','touchstart','wheel'].forEach(function(ev){document.addEventListener(ev,active,{passive:true,capture:true});});
-  document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.closest&&e.target.closest('.char')){e.preventDefault();pick(e);}});
+  document.addEventListener('keydown',function(e){if((e.key==='Enter'||e.key===' ')&&e.target.closest&&e.target.closest('.char[data-id]:not(.walkclone)')){e.preventDefault();pick(e);}});
   window.addEventListener('message',function(e){
-    if(e.origin!==ORIGIN||!e.data)return;
+    if(standalone||e.source!==window.parent||e.origin!==ORIGIN||!e.data)return;
     if(e.data.type==='zmap:data'){window.__zmapPlacePeople(e.data.payload||{});sendHeight();}
     // 親の画面の高さ（スマホでマップの枠の高さを決める）
     else if(e.data.type==='zmap:viewport'&&e.data.vh>0){document.documentElement.style.setProperty('--zmap-vh',Math.round(e.data.vh)+'px');sendHeight();}
@@ -1178,7 +1730,7 @@ document.querySelectorAll('.btns').forEach(function(group){group.addEventListene
       {id:'D5',name:'伊藤',dept:'製造部',zone:'ibaraki'},{id:'D6',name:'清水',dept:'製造部',zone:'shinto-3f-mtg1'},
       {id:'D7',name:'鈴木',dept:'総務部',zone:'shinto-3f-mtg1'},{id:'D8',name:'山田',dept:'総務部',zone:'shinto-2f-mtg'},
       {id:'D9',name:'井上',dept:'総務部',zone:'zaitaku'},{id:'D10',name:'松本',dept:'開発部',zone:'rest'},
-      {id:'D11',name:'小林',dept:'製造部',zone:'kyukei'},{id:'D12',name:'中村',dept:'総務部',zone:'kyukei'}],
+      {id:'D11',name:'小林',dept:'総務部',zone:'kyukei'}],
       extraRows:[{label:'社内（場所未設定）',names:['岡田','小川']}],labels:{}});
   } else {
     post({type:'zmap:ready'});
