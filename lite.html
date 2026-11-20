@@ -249,6 +249,8 @@ function fmt(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-
 function firstOfMonth(d){ return new Date(d.getFullYear(), d.getMonth(), 1); }
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// 予定の Teams 会議のリンクは、Teams の URL のときだけ出す（2026-11-20。index.html の safeTeamsUrl と同じ）
+function safeTeamsUrl(u){ const s=String(u||'').trim(); return /^https:\/\/teams\.(microsoft|live)\.com\//i.test(s)?s:''; }
 function $(id){ return document.getElementById(id); }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>t.style.display='none',3500); }
 let _loadingN=0;
@@ -419,7 +421,7 @@ function openDetail(id){
       ${e.remoteReason?`<div>在宅の理由：${esc(e.remoteReason)}</div>`:''}
       ${e.rejectionReason?`<div style="color:var(--danger)">否認の理由：${esc(e.rejectionReason)}</div>`:''}
       ${e.memo?`<div style="white-space:pre-wrap;margin-top:4px">メモ：${esc(e.memo)}</div>`:''}
-      ${e.teamsUrl?`<div style="margin-top:6px"><a href="${esc(e.teamsUrl)}" target="_blank" rel="noopener">Teams 会議に参加</a></div>`:''}
+      ${safeTeamsUrl(e.teamsUrl)?`<div style="margin-top:6px"><a href="${esc(safeTeamsUrl(e.teamsUrl))}" target="_blank" rel="noopener">Teams 会議に参加</a></div>`:''}
       <div style="margin-top:4px;color:var(--text2)">登録：${esc(userName(e.userId))}</div>
     </div>
     ${own ? `<div class="row2" style="margin-top:14px">

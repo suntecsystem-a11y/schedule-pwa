@@ -9181,10 +9181,11 @@ function openEditModal(id){
   document.getElementById('ev-remote-reason').value=e.remoteReason||'';
   // 既存の承認者を初期選択（承認済の予定を編集する時も欄が出るため、元の承認者を引き継ぐ）
   document.getElementById('ev-approver').value=e.approvedBy||'';
-  if(e.teamsUrl){
+  const _teamsUrl=safeTeamsUrl(e.teamsUrl);
+  if(_teamsUrl){
     document.getElementById('teams-url-display').style.display='block';
     const link=document.getElementById('teams-url-link');
-    link.href=e.teamsUrl;link.textContent='📹 '+e.teamsUrl.substring(0,60)+'…';
+    link.href=_teamsUrl;link.textContent='📹 '+_teamsUrl.substring(0,60)+'…';
   } else {
     document.getElementById('teams-url-display').style.display='none';
   }
@@ -10122,7 +10123,7 @@ function openDetail(id){
       ${e.rentalStart?`<tr><td style="color:var(--text2);padding:7px 0">${t('ev.rental.dates')}</td><td>${esc(rentalPeriodText(e))}</td></tr>`:''}
       ${e.rentalPurpose?`<tr><td style="color:var(--text2);padding:7px 0">使用目的</td><td>${esc(e.rentalPurpose)}</td></tr>`:''}
       ${e.remoteReason&&(String(e.userId)===String(currentUser.id)||String(e.approvedBy)===String(currentUser.id)||canApprove)?`<tr><td style="color:var(--text2);padding:7px 0">申請理由</td><td>${esc(e.remoteReason)}</td></tr>`:''}
-      ${e.teamsUrl?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(e.teamsUrl)}" target="_blank" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
+      ${safeTeamsUrl(e.teamsUrl)?`<tr><td style="color:var(--text2);padding:7px 0">📹 Teams</td><td><a href="${esc(safeTeamsUrl(e.teamsUrl))}" target="_blank" rel="noopener" style="color:var(--primary);font-size:0.9em">会議に参加</a></td></tr>`:''}
       ${e.memo?`<tr><td style="color:var(--text2);padding:7px 0">${t('detail.memo')}</td><td>${esc(e.memo)}</td></tr>`:''}
       ${GAS_URL&&(e.people||[]).length?`<tr id="minutes-row" style="display:none"><td style="color:var(--text2);padding:7px 0;vertical-align:top">📝 議事録</td><td id="minutes-box"></td></tr>`:''}
       <tr><td style="color:var(--text2);padding:7px 0">${t('detail.creator')}</td><td>${userName(e.userId)}</td></tr>
@@ -13897,6 +13898,11 @@ function datetimeLocalToUtc(localStr) {
 }
 function esc(s) {
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+// 予定の Teams 会議のリンクは、Teams の URL のときだけ出す（2026-11-20。ほかの URL や javascript: を「会議に参加」として押させない）
+function safeTeamsUrl(u) {
+  const s = String(u||'').trim();
+  return /^https:\/\/teams\.(microsoft|live)\.com\//i.test(s) ? s : '';
 }
 
 // 出発済みか（確認欄＝管理者のアルコール確認は、出発後にだけ意味を持つ）
