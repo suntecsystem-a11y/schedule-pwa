@@ -543,6 +543,8 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // グループの名前（2026-11-23）
+    "グループの会話です。名前はメンバーなら誰でも変えられます（空にするとメンバーの名前に戻ります）。": "Đây là trò chuyện nhóm. Thành viên nào cũng đổi được tên (để trống sẽ quay lại tên các thành viên).",
     "HALO からあなたあての通知が届くところです。自分だけが見られます。": "Nơi nhận thông báo từ HALO gửi cho bạn. Chỉ bạn xem được.",
     // 名前を変える（HALO のチャンネル。2026-11-20）
     "名前を変えられるのは管理者です。": "Chỉ quản trị viên mới đổi được tên.",
@@ -787,6 +789,8 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // グループの名前（2026-11-23）
+    "グループの会話です。名前はメンバーなら誰でも変えられます（空にするとメンバーの名前に戻ります）。": "यो समूह कुराकानी हो। कुनै पनि सदस्यले नाम बदल्न सक्छ (खाली छोडे सदस्यहरूको नाममा फर्कन्छ)।",
     "HALO からあなたあての通知が届くところです。自分だけが見られます。": "HALO बाट तपाईंलाई आउने सूचना यहाँ आउँछ। तपाईं मात्र हेर्न सक्नुहुन्छ।",
     // 名前を変える（HALO のチャンネル。2026-11-20）
     "名前を変えられるのは管理者です。": "नाम व्यवस्थापकले मात्र बदल्न सक्छ।",
@@ -1213,6 +1217,7 @@ function chTitle(c) {
   if (isSelfCh(c)) return tr('自分メモ');
   if (c.kind === 'inbox') return tr('HALO 通知');
   if (c.kind === 'system' || c.kind === 'feed' || c.id === 'general') return tr(c.name || ''); // HALO が付けた名前は今の言葉で
+  if (c.kind === 'group' && c.name) return c.name; // グループに名前が付いていればその名前（2026-11-23）
   if (c.kind === 'dm' || c.kind === 'group') {
     const others = (c.members || []).filter((id) => id !== S.me).map(nameOf);
     return others.join('、') || tr('（自分だけ）');
@@ -2660,6 +2665,7 @@ async function openSettings() {
     : ch.kind === 'public' ? '全員が見られるチャンネルです。'
     : ch.kind === 'dm' ? '1対1の会話です。'
     : ch.kind === 'inbox' ? 'HALO からあなたあての通知が届くところです。自分だけが見られます。'
+    : ch.kind === 'group' ? 'グループの会話です。名前はメンバーなら誰でも変えられます（空にするとメンバーの名前に戻ります）。'
     : '招かれた人だけが見られます。名前・メンバーを変えられるのは、作った人と管理者です。') + nameNote;
   $('setMembers').innerHTML = '';
   $('chanSet').classList.remove('hidden');
