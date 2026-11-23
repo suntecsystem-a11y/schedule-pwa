@@ -1059,7 +1059,7 @@ function renderExpenseDetail(r) {
     </div>` : ''}
     ${r.receipts && r.receipts.length ? `
     <div style="margin-top:14px;font-size:13px;font-weight:700;">領収書</div>
-    ${r.receipts.map(rc => `<div style="margin-top:6px;"><a href="${esc(rc.url)}" target="_blank" style="color:var(--primary)">📎 領収書を見る</a> <span style="font-size:12px;color:var(--text-sub)">${esc(rc.takenAt)}</span></div>`).join('')}` : ''}
+    ${r.receipts.filter(rc => safeUrl(rc.url)).map(rc => `<div style="margin-top:6px;"><a href="${safeUrl(rc.url)}" target="_blank" rel="noopener" style="color:var(--primary)">📎 領収書を見る</a> <span style="font-size:12px;color:var(--text-sub)">${esc(rc.takenAt)}</span></div>`).join('')}` : ''}
     ${r.approvalStatus === '否認' && r.rejectionReason ? `<div class="rejection-box"><div class="label">却下理由</div><div class="val">${esc(r.rejectionReason)}</div></div>` : ''}
   `;
 }
@@ -1174,7 +1174,7 @@ function renderChangeDetail(r) {
         ${r.requiredDocs.map(d => `<div>・${esc(d)}</div>`).join('')}
       </div>` : ''}
     ${files.length
-      ? files.map(f => `<div style="margin-top:6px;font-size:13px;"><a href="${esc(f.url)}" target="_blank" rel="noopener" style="color:var(--primary);word-break:break-all;">📎 ${esc(f.name)}</a> <span style="font-size:11px;color:var(--text-sub);">${esc(f.at || '')}</span></div>`).join('')
+      ? files.filter(f => safeUrl(f.url)).map(f => `<div style="margin-top:6px;font-size:13px;"><a href="${safeUrl(f.url)}" target="_blank" rel="noopener" style="color:var(--primary);word-break:break-all;">📎 ${esc(f.name)}</a> <span style="font-size:11px;color:var(--text-sub);">${esc(f.at || '')}</span></div>`).join('')
       : `<div style="margin-top:6px;font-size:13px;color:${docs.later ? '#e65100' : 'var(--text-sub)'};">${docs.later ? '後日提出の予定（まだ添付されていません）' : '添付なし'}</div>`}
     ${r.canAddDocs ? `
       <div style="margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:8px;">
@@ -1378,9 +1378,10 @@ async function printExpensePDF(r) {
   let receiptsHtml = '';
   if (r.receipts && r.receipts.length) {
     showToast('領収書画像を読み込み中...');
-    const imgs = await Promise.all(r.receipts.map(async p => {
+    // https の URL だけ読み込み・リンクにする（印刷の画面に値をそのまま埋め込まない。2026-11-23）
+    const imgs = await Promise.all(r.receipts.filter(p => safeUrl(p.url)).map(async p => {
       try {
-        const resp = await fetch(p.url);
+        const resp = await fetch(new URL(String(p.url).trim()).href);
         const blob = await resp.blob();
         return await new Promise((resolve) => {
           const reader = new FileReader();
@@ -1388,7 +1389,7 @@ async function printExpensePDF(r) {
           reader.readAsDataURL(blob);
         });
       } catch {
-        return `<a href="${p.url}" target="_blank">📎 領収書リンク</a>`;
+        return `<a href="${safeUrl(p.url)}" target="_blank" rel="noopener">📎 領収書リンク</a>`;
       }
     }));
     receiptsHtml = imgs.join('');
@@ -2002,9 +2003,9 @@ function renderReceiptPhotos() {
   if (!el) return;
   el.innerHTML = receiptPhotos.map((p, i) => `
     <div style="position:relative;">
-      <img src="${p.url}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"
+      <img src="${safeUrl(p.url)}" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"
         onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-      <a href="${p.url}" target="_blank" style="display:none;width:72px;height:72px;border-radius:6px;background:#EEF3EC;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;">
+      <a href="${safeUrl(p.url)}" target="_blank" rel="noopener" style="display:none;width:72px;height:72px;border-radius:6px;background:#EEF3EC;flex-direction:column;align-items:center;justify-content:center;text-decoration:none;">
         <span style="font-size:1.6em">📎</span><span style="font-size:0.6em;color:#1e88e5;font-weight:600">開く</span>
       </a>
       <button onclick="removeReceiptPhoto(${i})" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--danger);color:#fff;font-size:0.7em;border:none;cursor:pointer;line-height:1;">×</button>
@@ -2195,7 +2196,13 @@ function _getSelectedApproverEmpId() {
 // ===================================================
 // ユーティリティ
 // ===================================================
-function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+// " と ' も変える（2026-11-23）。前は < > & だけで、href="${esc(…)}" のような属性の中に " 入りの値が来ると、属性の外へ抜けて仕掛けを書けた
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+// 領収書・書類のリンクは https の URL のときだけ出す（javascript: などは出さない。2026-11-23）。返す値は esc 済み
+function safeUrl(u) {
+  const s = String(u || '').trim();
+  try { const x = new URL(s); return x.protocol === 'https:' ? esc(x.href) : ''; } catch { return ''; }
+}
 function _sortKey(r) {
   if (r.createdAt) return r.createdAt;
   const d = r.applicationDate || r.appliedAt || '';
@@ -2592,7 +2599,7 @@ function renderTodokeDetail(r, thread) {
   if ((r.files || []).length) {
     // SharePointのURL。開くにはM365の権限が要るので、リンクが漏れても中身は守られる
     html += `<div class="detail-row"><span class="detail-label">添付</span><span class="detail-val">`
-          + r.files.map(f => `<a href="${esc(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join('<br>')
+          + r.files.filter(f => safeUrl(f.url)).map(f => `<a href="${safeUrl(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a>`).join('<br>')
           + `</span></div>`;
   }
   if (r.rejectReason) html += row('差し戻し理由', r.rejectReason);
@@ -2855,7 +2862,7 @@ function _todokeThreadHTML(thread, closed) {
   return thread.map(t => {
     const mine  = String(t.postedBy) === String(meId);
     const files = (t.files || []).map(f =>
-      `<div><a href="${esc(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a></div>`).join('');
+      `<div><a href="${safeUrl(f.url)}" target="_blank" rel="noopener">📎 ${esc(f.name)}</a></div>`).join('');
 
     // ステータス変更・編集は中央寄せの細い行。メッセージは吹き出し
     if (t.kind !== 'message') {
