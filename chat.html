@@ -265,10 +265,6 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .free .chip.soft{border-style:dashed;color:var(--text2)}
 .free .chip.on{background:var(--primary);border-color:var(--primary);color:#fff}
 .free-note{color:var(--text2);font-size:12px;margin-top:4px}
-/* ふりがな（2026-11-23） */
-.bub ruby rt{font-size:.55em;color:var(--text2);user-select:none}
-body.fg-on .bub{line-height:1.95}
-#fgBtn.on{color:var(--primary);font-weight:700}
 .vdate input,.vdate select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
 #voteSet .box{overflow-y:auto}
 #voteSet textarea.field{resize:vertical;font:inherit}
@@ -347,7 +343,7 @@ body.fg-on .bub{line-height:1.95}
   body.in-ch #main{display:flex}
   #back{display:inline-block}
   #thread,#panel{width:100%;border-left:0}
-  #pinsBtn,#filesBtn,#muteBtn,#fgBtn{display:none}
+  #pinsBtn,#filesBtn,#muteBtn{display:none}
   #moreBtn{display:inline-block}
   .composer .vote-btn,.composer .ack-btn,.composer .later-btn,.composer .fmt-btn{display:none}
   .composer .plus-btn{display:inline-block}
@@ -382,7 +378,7 @@ body.fg-on .bub{line-height:1.95}
   </aside>
 
   <section class="pane" id="main">
-    <div class="pane-head"><button id="back" class="txt-btn" type="button">‹ 一覧</button><span class="t" id="chName"></span><button class="txt-btn" id="pinsBtn" type="button">ピン留め</button><button class="txt-btn" id="filesBtn" type="button">ファイル</button><button class="txt-btn" id="muteBtn" type="button"></button><button class="txt-btn" id="fgBtn" type="button" title="漢字に読みがなを付けます（この端末だけの設定）">ふりがな</button><button class="txt-btn" id="moreBtn" type="button">その他</button><button class="txt-btn" id="setBtn" type="button">設定</button></div>
+    <div class="pane-head"><button id="back" class="txt-btn" type="button">‹ 一覧</button><span class="t" id="chName"></span><button class="txt-btn" id="pinsBtn" type="button">ピン留め</button><button class="txt-btn" id="filesBtn" type="button">ファイル</button><button class="txt-btn" id="muteBtn" type="button"></button><button class="txt-btn" id="moreBtn" type="button">その他</button><button class="txt-btn" id="setBtn" type="button">設定</button></div>
     <div class="list" id="msgs"></div>
     <div class="composer" id="mainComposer"></div>
     <div class="ro-note hidden" id="roNote">HALO からの通知です。ここには書き込めません（リアクション・確認しましたは付けられます）</div>
@@ -568,13 +564,7 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
-    // ふりがな・空いている時間を探す（2026-11-23）
-    "ふりがな": "Furigana",
-    "ふりがな（読み込み中…）": "Furigana (đang tải…)",
-    "漢字に読みがなを付けます（この端末だけの設定）": "Thêm cách đọc cho chữ Hán (chỉ trên máy này)",
-    "ふりがなを付ける": "Hiện furigana",
-    "ふりがなを消す": "Ẩn furigana",
-    "ふりがなの辞書を読み込めませんでした。あとでもう一度押してください。": "Không tải được từ điển furigana. Vui lòng thử lại sau.",
+    // 空いている時間を探す（2026-11-23）
     "空いている時間を探す": "Tìm thời gian trống",
     "30分": "30 phút",
     "1時間": "1 giờ",
@@ -844,13 +834,7 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
-    // ふりがな・空いている時間を探す（2026-11-23）
-    "ふりがな": "फुरिगाना",
-    "ふりがな（読み込み中…）": "फुरिगाना (लोड हुँदै…)",
-    "漢字に読みがなを付けます（この端末だけの設定）": "कान्जीमा पढाइ थप्छ (यो उपकरणमा मात्र)",
-    "ふりがなを付ける": "फुरिगाना देखाउनुहोस्",
-    "ふりがなを消す": "फुरिगाना लुकाउनुहोस्",
-    "ふりがなの辞書を読み込めませんでした。あとでもう一度押してください。": "फुरिगाना शब्दकोश लोड भएन। पछि फेरि थिच्नुहोस्।",
+    // 空いている時間を探す（2026-11-23）
     "空いている時間を探す": "खाली समय खोज्नुहोस्",
     "30分": "३० मिनेट",
     "1時間": "१ घण्टा",
@@ -1278,85 +1262,6 @@ const fmtHtml = (h) => h.replace(/\*\*([^\n]+?)\*\*/g, '<b>$1</b>').replace(/~~(
 const stripFmt = (t) => String(t || '').replace(/\*\*([^\n]+?)\*\*/g, '$1').replace(/~~([^\n]+?)~~/g, '$1')
   .replace(/\[hl\]([\s\S]*?)\[\/hl\]/g, '$1').replace(/\[c:[a-z]+\]([\s\S]*?)\[\/c\]/g, '$1');
 const hasFmt = (t) => /\*\*[^\n]+?\*\*|~~[^\n]+?~~|\[hl\]|\[c:[a-z]+\]/.test(t);
-
-/**
- * ふりがな（2026-11-23 ユーザー要望。外国の社員が読みやすいように）。
- * 読みはブラウザの中の辞書（kuromoji。初めて使うときに辞書を読み込む）で付ける。本文は外に送らない（社内AIルールに当たらない）。
- * この端末だけの設定（localStorage chat_furigana）。言葉がベトナム語・ネパール語のときは、はじめから付ける。
- * 吹き出し（.bub）の中の漢字にだけ付け、リンク・メンション・ボタンの中には付けない。消すときは元の文に戻す。
- */
-const FG_KEY = 'chat_furigana';
-const KUROMOJI = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/';
-const KANJI = /[\u3400-\u4DBF\u4E00-\u9FFF々〆ヶ]/;
-const FG_SKIP = 'a,code,pre,ruby,.fg,.at,button,textarea,input,.ack-head';
-let fgOn = (() => { try { const v = localStorage.getItem(FG_KEY); return v === null ? LANG !== 'ja' : v === '1'; } catch { return LANG !== 'ja'; } })();
-let fgTok = null, fgLoading = null, fgTimer = 0;
-const fgCache = new Map();
-const toHira = (t) => t.replace(/[\u30A1-\u30F6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
-function fgLoad() {
-  if (fgTok) return Promise.resolve(fgTok);
-  if (!fgLoading) {
-    fgLoading = new Promise((res, rej) => {
-      const sc = document.createElement('script');
-      sc.src = KUROMOJI + 'build/kuromoji.js';
-      sc.onload = () => window.kuromoji.builder({ dicPath: KUROMOJI + 'dict/' }).build((err, t) => (err ? rej(err) : res((fgTok = t))));
-      sc.onerror = () => rej(new Error('load'));
-      document.head.appendChild(sc);
-    }).catch((e) => { fgLoading = null; throw e; });
-  }
-  return fgLoading;
-}
-/** 1語の読みを漢字の部分にだけ付ける（送りがなには付けない）。例：食べる・たべる → 食(た)べる */
-function rubyWord(surface, reading) {
-  const yomi = toHira(reading);
-  const segs = surface.match(/[\u3400-\u4DBF\u4E00-\u9FFF々〆ヶ]+|[^\u3400-\u4DBF\u4E00-\u9FFF々〆ヶ]+/g) || [];
-  const re = new RegExp('^' + segs.map((x) => (KANJI.test(x) ? '(.+?)' : toHira(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).join('') + '$');
-  const m = yomi.match(re);
-  if (!m) return `<ruby>${esc(surface)}<rt>${esc(yomi)}</rt></ruby>`;
-  let k = 1;
-  return segs.map((x) => (KANJI.test(x) ? `<ruby>${esc(x)}<rt>${esc(m[k++])}</rt></ruby>` : esc(x))).join('');
-}
-function fgText(text) {
-  if (fgCache.has(text)) return fgCache.get(text);
-  const html = fgTok.tokenize(text).map((t) => (KANJI.test(t.surface_form) && t.reading && t.reading !== '*' ? rubyWord(t.surface_form, t.reading) : esc(t.surface_form))).join('');
-  if (fgCache.size > 3000) fgCache.clear();
-  fgCache.set(text, html);
-  return html;
-}
-function fgApply() {
-  if (!fgOn || !fgTok) return;
-  document.querySelectorAll('.bub').forEach((b) => {
-    const walker = document.createTreeWalker(b, NodeFilter.SHOW_TEXT);
-    const nodes = [];
-    while (walker.nextNode()) { const n = walker.currentNode; if (KANJI.test(n.nodeValue) && !n.parentElement.closest(FG_SKIP)) nodes.push(n); }
-    for (const n of nodes) {
-      const sp = document.createElement('span');
-      sp.className = 'fg';
-      sp.dataset.t = n.nodeValue;
-      sp.innerHTML = fgText(n.nodeValue);
-      n.replaceWith(sp);
-    }
-  });
-}
-function fgClear() { document.querySelectorAll('span.fg').forEach((sp) => sp.replaceWith(document.createTextNode(sp.dataset.t || sp.textContent))); }
-function fgSync() {
-  document.body.classList.toggle('fg-on', fgOn);
-  $('fgBtn').classList.toggle('on', fgOn);
-  $('fgBtn').setAttribute('aria-pressed', fgOn ? 'true' : 'false');
-  if (!fgOn) { fgClear(); return; }
-  // 初めては辞書（約12MB）の読み込みに数秒かかるので、ボタンに出しておく
-  if (!fgTok) $('fgBtn').textContent = tr('ふりがな（読み込み中…）');
-  const done = () => { $('fgBtn').textContent = tr('ふりがな'); };
-  fgLoad().then(() => { done(); fgApply(); }).catch(() => { done(); fgOn = false; fgSync(); alert(tr('ふりがなの辞書を読み込めませんでした。あとでもう一度押してください。')); });
-}
-function fgToggle() {
-  fgOn = !fgOn;
-  try { localStorage.setItem(FG_KEY, fgOn ? '1' : '0'); } catch {}
-  fgSync();
-}
-// 吹き出しが描き直されたら付け直す（自分で入れた .fg の中は数えないので、くり返しにはならない）
-new MutationObserver(() => { if (!fgOn || !fgTok) return; clearTimeout(fgTimer); fgTimer = setTimeout(fgApply, 30); })
-  .observe(document.body, { childList: true, subtree: true, characterData: true });
 
 /** 本文：リンクとメンション（@名前）を目立たせる。スタンプと、本文の中の画像（［画像1］）・文字の書式も出す */
 function renderBody(m) {
@@ -1825,13 +1730,11 @@ $('filesBtn').addEventListener('click', () => openPanel('files'));
 $('savedBtn').addEventListener('click', () => openPanel('saved'));
 $('laterListBtn').addEventListener('click', () => openPanel('later'));
 $('forMeBtn').addEventListener('click', () => openPanel('forme'));
-$('fgBtn').addEventListener('click', fgToggle);
-fgSync();
 $('moreBtn').addEventListener('click', () => {
   if (!S.cur) return;
-  const items = [['pins', 'ピン留め'], ['files', 'ファイル'], ['mute', $('muteBtn').textContent], ['fg', fgOn ? 'ふりがなを消す' : 'ふりがなを付ける']];
+  const items = [['pins', 'ピン留め'], ['files', 'ファイル'], ['mute', $('muteBtn').textContent]];
   $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}">${esc(l)}</button>`).join('');
-  $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); if (b.dataset.a === 'mute') $('muteBtn').click(); else if (b.dataset.a === 'fg') fgToggle(); else openPanel(b.dataset.a); };
+  $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); if (b.dataset.a === 'mute') $('muteBtn').click(); else openPanel(b.dataset.a); };
   $('sheet').classList.remove('hidden'); $('sheetBg').classList.remove('hidden');
 });
 $('panelList').addEventListener('click', async (e) => {
@@ -1934,6 +1837,9 @@ $('voteDateAdd').addEventListener('click', () => {
   $('voteOpts').value = (v ? v + '\n' : '') + line;
   $('voteErr').textContent = '';
 });
+// ふりがな（11/23 に出してすぐやめた。辞書の読み込みで画面が止まるため）の設定が端末に残っていれば消す
+try { localStorage.removeItem('chat_furigana'); } catch {}
+
 // ---------- 空いている時間を探す（2026-11-23。HALO の予定から、全員が空いている時間を候補にする。件名は Worker が返さない） ----------
 let freePeople = null; // 選んだ人（null＝このチャンネルのメンバー）
 const freeOpenCh = () => { const ch = S.channels.find((c) => c.id === S.cur); return !ch || ch.kind === 'public' || ch.kind === 'system'; };
