@@ -296,6 +296,11 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .fmt-prev{font-size:13px;background:var(--surface-1);border-radius:8px;padding:6px 10px;margin:0 0 6px;white-space:pre-wrap;word-break:break-word;max-height:7em;overflow:auto}
 .fmt-prev small{display:block;font-size:11px;color:var(--text2)}
 .ack-on{font-size:12px;color:var(--primary-dark);background:var(--primary-light);border-radius:8px;padding:5px 10px;margin-bottom:6px}
+/* 確認の期限（2026-11-23） */
+.ack-due{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap;margin-left:6px}
+.ack-due input,.ack-due select{font:inherit;font-size:12px;padding:2px 4px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)}
+.ack-head .due{font-weight:400;color:var(--text2);margin-left:4px}
+.ack-head .due.over{color:var(--red);font-weight:700}
 .ack-head{display:block;font-size:12px;font-weight:700;color:var(--red);margin-bottom:2px}
 .m.ack .bub{border-color:var(--red)}
 .ack-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 6px 0;font-size:12px;color:var(--text2)}
@@ -370,7 +375,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="side-tools">
       <form id="searchForm"><div class="sq-row"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"><button type="button" class="txt-btn" id="searchOptBtn" title="人・チャンネル・期間で絞る">絞り込み</button></div>
         <div id="searchOpts" class="hidden"><select id="sqWho" title="書いた人"></select><select id="sqCh" title="チャンネル"></select><div class="sq-dates"><input type="date" id="sqFrom" title="この日から"><span>〜</span><input type="date" id="sqTo" title="この日まで"></div><button type="submit" class="btn primary">探す</button></div></form>
-      <div class="side-btns"><button class="txt-btn" id="forMeBtn" type="button" title="まだ確認していない確認依頼・自分へのメンション・返信・リマインダー">自分あて<span id="forMeN" class="badge-s hidden"></span></button><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button><button class="txt-btn" id="savedBtn" type="button">保存したもの</button><button class="txt-btn" id="laterListBtn" type="button">予約</button></div>
+      <div class="side-btns"><button class="txt-btn" id="forMeBtn" type="button" title="まだ確認していない確認依頼・自分へのメンション・返信・リマインダー">自分あて<span id="forMeN" class="badge-s hidden"></span></button><button class="txt-btn" id="newCh" type="button">チャンネルを作る</button><button class="txt-btn" id="newDm" type="button">会話を始める</button><button class="txt-btn" id="myPhoto" type="button">アイコン</button><button class="txt-btn" id="savedBtn" type="button">保存したもの</button><button class="txt-btn" id="laterListBtn" type="button">予約</button><button class="txt-btn" id="quietBtn" type="button" title="夜や休みの日に通知を止める">通知の時間</button></div>
     </div>
     <div id="chList"></div>
     <div id="searchList" class="hidden"></div>
@@ -394,6 +399,19 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="pane-head"><span class="t" id="panelTitle"></span><button class="txt-btn" id="closePanel" type="button">閉じる</button></div>
     <div class="list" id="panelList"></div>
   </section>
+</div>
+
+<div id="quietSet" class="overlay hidden">
+  <div class="box">
+    <h2>通知を止める時間</h2>
+    <label class="opt"><input type="checkbox" id="qOn"> 決めた時間は、スマホ・パソコンに知らせない</label>
+    <div class="vdate"><select id="qFrom"></select><span>〜</span><select id="qTo"></select></div>
+    <label class="opt"><input type="checkbox" id="qOff"> 会社カレンダーの休みの日も止める</label>
+    <label class="opt"><input type="checkbox" id="qDigest"> 明けたら「〇件の知らせがありました」と1回だけ知らせる</label>
+    <p>止めているあいだもメッセージは届きます（開けば読めます）。自分で決めたリマインダー・自分メモの予約と、安否確認などチャット以外の HALO の通知は止まりません。この設定はどの端末でも同じです。</p>
+    <div class="err" id="qErr"></div>
+    <div class="btns"><button type="button" class="btn" id="qNo">やめる</button><button type="button" class="btn primary" id="qYes">保存</button></div>
+  </div>
 </div>
 
 <div id="voteSet" class="overlay hidden">
@@ -564,6 +582,21 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 通知を止める時間・確認の期限（2026-11-23）
+    "通知の時間": "Giờ thông báo",
+    "夜や休みの日に通知を止める": "Tắt thông báo ban đêm và ngày nghỉ",
+    "通知を止める時間": "Thời gian tắt thông báo",
+    "決めた時間は、スマホ・パソコンに知らせない": "Không thông báo đến điện thoại/máy tính trong thời gian đã chọn",
+    "会社カレンダーの休みの日も止める": "Tắt cả vào ngày nghỉ theo lịch công ty",
+    "明けたら「〇件の知らせがありました」と1回だけ知らせる": "Khi hết thời gian, báo một lần \"Có 〇 thông báo\"",
+    "止めているあいだもメッセージは届きます（開けば読めます）。自分で決めたリマインダー・自分メモの予約と、安否確認などチャット以外の HALO の通知は止まりません。この設定はどの端末でも同じです。": "Tin nhắn vẫn đến trong thời gian tắt (mở ra là đọc được). Lời nhắc bạn tự đặt, hẹn giờ vào Ghi chú của tôi và các thông báo HALO ngoài trò chuyện như xác nhận an toàn sẽ không bị tắt. Cài đặt này giống nhau trên mọi thiết bị.",
+    "保存": "Lưu",
+    "始めと終わりを別の時刻にしてください": "Hãy chọn giờ bắt đầu và kết thúc khác nhau",
+    "期限": "Hạn",
+    "期限を入れると、その時刻にまだの人へ自動で知らせます": "Nếu đặt hạn, đến giờ đó sẽ tự động báo cho người chưa xác nhận",
+    "確認の期限は5分より先にしてください": "Hạn xác nhận phải sau ít nhất 5 phút",
+    "期限 {t}": "Hạn {t}",
+    "期限 {t}（過ぎました）": "Hạn {t} (đã quá)",
     // 空いている時間を探す（2026-11-23）
     "空いている時間を探す": "Tìm thời gian trống",
     "30分": "30 phút",
@@ -834,6 +867,21 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 通知を止める時間・確認の期限（2026-11-23）
+    "通知の時間": "सूचना समय",
+    "夜や休みの日に通知を止める": "राति र बिदाको दिन सूचना बन्द गर्नुहोस्",
+    "通知を止める時間": "सूचना बन्द गर्ने समय",
+    "決めた時間は、スマホ・パソコンに知らせない": "छानिएको समयमा फोन/कम्प्युटरमा सूचना नपठाउनुहोस्",
+    "会社カレンダーの休みの日も止める": "कम्पनी पात्रोका बिदाका दिन पनि बन्द गर्नुहोस्",
+    "明けたら「〇件の知らせがありました」と1回だけ知らせる": "समय सकिएपछि \"〇 वटा सूचना थिए\" भनेर एक पटक मात्र जानकारी दिनुहोस्",
+    "止めているあいだもメッセージは届きます（開けば読めます）。自分で決めたリマインダー・自分メモの予約と、安否確認などチャット以外の HALO の通知は止まりません。この設定はどの端末でも同じです。": "बन्द भएको बेला पनि सन्देश आउँछ (खोलेर पढ्न सकिन्छ)। आफैंले राखेको रिमाइन्डर, मेरो नोटको तालिका र सुरक्षा पुष्टि जस्ता च्याट बाहेकका HALO सूचना बन्द हुँदैनन्। यो सेटिङ सबै उपकरणमा एउटै हुन्छ।",
+    "保存": "सेभ गर्नुहोस्",
+    "始めと終わりを別の時刻にしてください": "सुरु र अन्त्य फरक समय राख्नुहोस्",
+    "期限": "म्याद",
+    "期限を入れると、その時刻にまだの人へ自動で知らせます": "म्याद राखेमा, त्यो समयमा पुष्टि नगर्नेलाई आफैं सूचना जान्छ",
+    "確認の期限は5分より先にしてください": "पुष्टिको म्याद ५ मिनेटभन्दा पछि राख्नुहोस्",
+    "期限 {t}": "म्याद {t}",
+    "期限 {t}（過ぎました）": "म्याद {t} (नाघ्यो)",
     // 空いている時間を探す（2026-11-23）
     "空いている時間を探す": "खाली समय खोज्नुहोस्",
     "30分": "३० मिनेट",
@@ -1263,6 +1311,15 @@ const stripFmt = (t) => String(t || '').replace(/\*\*([^\n]+?)\*\*/g, '$1').repl
   .replace(/\[hl\]([\s\S]*?)\[\/hl\]/g, '$1').replace(/\[c:[a-z]+\]([\s\S]*?)\[\/c\]/g, '$1');
 const hasFmt = (t) => /\*\*[^\n]+?\*\*|~~[^\n]+?~~|\[hl\]|\[c:[a-z]+\]/.test(t);
 
+/** 確認の期限の表示（2026-11-23）。過ぎたら赤く */
+function ackDueHtml(m) {
+  const d = m.meta && m.meta.ackDue;
+  if (!d) return '';
+  const dt = new Date(d + 9 * 60 * 60 * 1000);
+  const t = `${dt.getUTCMonth() + 1}/${dt.getUTCDate()}(${tr('日月火水木金土'[dt.getUTCDay()])}) ${String(dt.getUTCHours()).padStart(2, '0')}:${String(dt.getUTCMinutes()).padStart(2, '0')}`;
+  return Date.now() > d ? `<span class="due over">${esc(tf('期限 {t}（過ぎました）', { t }))}</span>` : `<span class="due">${esc(tf('期限 {t}', { t }))}</span>`;
+}
+
 /** 本文：リンクとメンション（@名前）を目立たせる。スタンプと、本文の中の画像（［画像1］）・文字の書式も出す */
 function renderBody(m) {
   if (isStampOnly(m)) return stampHtml(String(m.body).trim().slice(1, -1), true);
@@ -1319,6 +1376,7 @@ async function start() {
     S.avatars = init.avatars || {}; S.stamps = init.stamps || [];
     S.saved = new Set(init.saved || []);
     S.prefs = init.prefs || { fav: [], cats: [] };
+    S.quiet = init.quiet || null; // 通知を止める時間（2026-11-23）
     if (!LITE) api('getTaskAccess').then((r) => { S.taskOk = !!(r && r.allowed); }).catch(() => {}); // メッセージから HALO のタスクを作れる人か
     document.querySelectorAll('.attach').forEach((b) => b.classList.toggle('hidden', !S.filesEnabled));
     $('meName').textContent = nameOf(S.me);
@@ -1593,7 +1651,7 @@ function msgHtml(m, prev, where) {
     + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '') + (m.meta && m.meta.remind && !m.deleted ? '・' + tr('予約で届いたもの') : '') + readHtml;
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
     ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}${presDot(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
-    <div class="bw">${acts}<div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}</span>` : '') + quote + renderBody(m) + filesHtml(m)}</div></div>
+    <div class="bw">${acts}<div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}${ackDueHtml(m)}</span>` : '') + quote + renderBody(m) + filesHtml(m)}</div></div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
     ${ackRow}
     ${replies}
@@ -2236,6 +2294,29 @@ function openAvatar() {
   loadImgs();
 }
 $('myPhoto').addEventListener('click', openAvatar);
+
+// ---------- 通知を止める時間（2026-11-23。Worker の quiet.js。人ごと・どの端末でも同じ） ----------
+const QT = Array.from({ length: 96 }, (_, k) => String(Math.floor(k / 4)).padStart(2, '0') + ':' + String((k % 4) * 15).padStart(2, '0'));
+$('qFrom').innerHTML = $('qTo').innerHTML = QT.map((t) => `<option value="${t}">${t}</option>`).join('');
+function syncQuiet() { const on = $('qOn').checked; ['qFrom', 'qTo', 'qOff', 'qDigest'].forEach((id) => { $(id).disabled = !on; }); }
+function openQuiet() {
+  const q = S.quiet || { on: true, from: '20:00', to: '07:00', offDays: true, digest: true };
+  $('qOn').checked = !!q.on; $('qFrom').value = q.from; $('qTo').value = q.to; $('qOff').checked = !!q.offDays; $('qDigest').checked = !!q.digest;
+  $('qErr').textContent = '';
+  syncQuiet();
+  $('quietSet').classList.remove('hidden');
+}
+$('qOn').addEventListener('change', syncQuiet);
+$('quietBtn').addEventListener('click', openQuiet);
+$('qNo').addEventListener('click', () => $('quietSet').classList.add('hidden'));
+$('qYes').addEventListener('click', async () => {
+  if ($('qOn').checked && $('qFrom').value === $('qTo').value) { $('qErr').textContent = tr('始めと終わりを別の時刻にしてください'); return; }
+  try {
+    const r = await api('chatQuietSave', { quiet: { on: $('qOn').checked, from: $('qFrom').value, to: $('qTo').value, offDays: $('qOff').checked, digest: $('qDigest').checked } });
+    S.quiet = r.quiet;
+    $('quietSet').classList.add('hidden');
+  } catch (e) { $('qErr').textContent = e.message; }
+});
 $('avClose').addEventListener('click', () => $('avatarSet').classList.add('hidden'));
 $('avPick').addEventListener('click', () => $('avFile').click());
 $('avFile').addEventListener('change', async () => {
@@ -2411,7 +2492,7 @@ function buildComposer(rootId, where) {
     <div class="rule">住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください</div>
     <div class="fmt-bar hidden"><button type="button" data-f="b" title="太字（Ctrl+B）"><b>B</b></button><button type="button" data-f="s" title="取り消し線"><s>S</s></button><button type="button" data-f="hl" title="マーカー"><mark class="hl">マーカー</mark></button><span class="sep"></span>${FMT_COLORS.map(([k, l]) => `<button type="button" class="dot" data-f="c:${k}" title="${l}" style="background:${FMT_HEX[k]}"></button>`).join('')}<span class="sep"></span><button type="button" data-f="x" title="選んだところの書式を外す">書式を外す</button></div>
     <div class="fmt-prev hidden"></div>
-    <div class="ack-on hidden">確認してほしいメッセージとして送ります（全員に知らせ、だれが確認したか分かります）</div>
+    <div class="ack-on hidden">確認してほしいメッセージとして送ります（全員に知らせ、だれが確認したか分かります）<span class="ack-due">期限<input type="date" class="ack-date" title="期限を入れると、その時刻にまだの人へ自動で知らせます"><select class="ack-time"></select></span></div>
     <div class="away-hint hidden"></div>
     <div class="pending-files hidden"></div>
     <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><button class="stamp-btn" type="button" title="スタンプ・絵文字"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></svg></button><button class="fmt-btn" type="button" title="文字の書式（太字・色・マーカー）"><b>A</b></button><button class="ack-btn" type="button" title="確認してほしい（全員に知らせ、だれが確認したか分かる）">${ICON.ack}</button>${where === 'main' ? `<button class="vote-btn" type="button" title="投票・日程調整">${ICON.vote}</button>` : ''}<button class="plus-btn" type="button" title="そのほか">＋</button><textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ か ＠ で名前）'}"></textarea><button class="later-btn" type="button" title="時間を決めて送る">${ICON.clock}</button><button class="send" type="button" disabled>送信</button></div>
@@ -2420,6 +2501,11 @@ function buildComposer(rootId, where) {
     fileInput: root.querySelector('input[type=file]'), pendingEl: root.querySelector('.pending-files'), files: [],
     fmtBar: root.querySelector('.fmt-bar'), fmtPrev: root.querySelector('.fmt-prev'), ackEl: root.querySelector('.ack-on'), awayEl: root.querySelector('.away-hint'), ack: false };
   C[where] = c;
+  // 確認の期限の時刻（15分ごと。2026-11-23）。日付が空なら期限なし
+  root.querySelector('.ack-time').innerHTML = Array.from({ length: (22 - 7) * 4 }, (_, k) => {
+    const t = String(7 + Math.floor(k / 4)).padStart(2, '0') + ':' + String((k % 4) * 15).padStart(2, '0');
+    return `<option value="${t}"${t === '17:00' ? ' selected' : ''}>${t}</option>`;
+  }).join('');
   root.querySelector('.fmt-btn').addEventListener('click', () => toggleFmtBar(where));
   root.querySelector('.ack-btn').addEventListener('click', () => setAck(where, !c.ack));
   root.querySelector('.later-btn').addEventListener('click', () => openLater({ kind: 'send', where }));
@@ -2596,6 +2682,12 @@ async function doSend(where, body) {
     } catch (e) { toast(e.message); }
     return;
   }
+  // 確認の期限（2026-11-23）：日付を入れたときだけ。その時刻にまだの人へ自動で知らせる
+  let ackDue = null;
+  if (c.ack && c.root.querySelector('.ack-date').value) {
+    ackDue = new Date(c.root.querySelector('.ack-date').value + 'T' + c.root.querySelector('.ack-time').value + ':00+09:00').getTime();
+    if (!(ackDue > Date.now() + 5 * 60 * 1000)) { toast(tr('確認の期限は5分より先にしてください')); return; }
+  }
   const raw = c.files.splice(0);
   renderPendingFiles(where);
   const msg = {
@@ -2604,7 +2696,7 @@ async function doSend(where, body) {
     parentSeq: where === 'thread' && S.thread ? S.thread.parent.seq : null,
     quote: st.quote ? { seq: st.quote.seq, empId: st.quote.empId, body: st.quote.body.slice(0, 80) } : null,
     _pending: true, _ch: S.cur, _quoteSeq: st.quote ? st.quote.seq : null,
-    meta: c.ack ? { ack: true } : null, _ack: c.ack,
+    meta: c.ack ? { ack: true, ...(ackDue ? { ackDue } : {}) } : null, _ack: c.ack, _ackDue: ackDue,
   };
   setAck(where, false);
   c.input.value = '';
@@ -2624,7 +2716,7 @@ async function sendMsg(msg) {
       msg.files[i].itemId = await uploadFile(msg._ch, msg._raw[i], (p) => { msg.files[i]._progress = p; rerenderFor(msg); });
     }
     const files = (msg.files || []).filter((f) => f.itemId).map((f) => ({ itemId: f.itemId }));
-    const r = await api('chatSend', { channelId: msg._ch, clientId: msg.id, body: msg.body, parentSeq: msg.parentSeq || undefined, quoteSeq: msg._quoteSeq || undefined, mentions: msg.mentions, files: files.length ? files : undefined, vote: msg._vote || undefined, ack: msg._ack || undefined });
+    const r = await api('chatSend', { channelId: msg._ch, clientId: msg.id, body: msg.body, parentSeq: msg.parentSeq || undefined, quoteSeq: msg._quoteSeq || undefined, mentions: msg.mentions, files: files.length ? files : undefined, vote: msg._vote || undefined, ack: msg._ack || undefined, ackDue: msg._ackDue || undefined });
     addMsg(msg._ch, r.msg);
     if (r.parent) applyUpdate(msg._ch, r.parent);
   } catch (e) {
@@ -3012,6 +3104,7 @@ function setAck(where, on) {
   const c = C[where];
   if (!c) return;
   c.ack = !!on;
+  if (!c.ack) c.root.querySelector('.ack-date').value = '';
   c.ackEl.classList.toggle('hidden', !c.ack);
   c.root.querySelector('.ack-btn').classList.toggle('on', c.ack);
 }
