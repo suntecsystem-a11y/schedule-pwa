@@ -10719,6 +10719,9 @@ async function openDailyReport() {
   const isEdit = _drInit.mode === 'edit';
   const rep = _drInit.report || {};
   const date = isEdit ? rep.date : _drInit.date;
+  // 新しく出せる日付は7日前から今日まで（Worker の saveDailyReport と同じ決まり。2026-11-23）
+  const drMax = _drInit.date || '';
+  const drMin = drMax ? new Date(Date.parse(drMax + 'T00:00:00Z') - 7 * 86400000).toISOString().slice(0, 10) : '';
   // 編集時は登録した時点の課題と内容を表示する
   const issues = isEdit ? [...(rep.prevIssues || []), ...(_drInit.issues || [])] : (_drInit.issues || []);
   const lbl = 'font-size:0.82em;font-weight:700;color:var(--text2)';
@@ -10742,7 +10745,7 @@ async function openDailyReport() {
     <h3 style="margin:0 0 12px;font-size:1em;font-weight:700">${isEdit ? t('dr.title.edit') : '📝 Kaizen Step'}</h3>
     <div style="margin-bottom:14px">
       <label style="${lbl}">${t('dr.date')}</label>
-      <input id="dr-date" type="date" value="${date}"${isEdit ? ' disabled' : ''} style="display:block;margin-top:4px;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
+      <input id="dr-date" type="date" value="${date}"${isEdit ? ' disabled' : (drMin ? ` min="${drMin}" max="${drMax}"` : '')} style="display:block;margin-top:4px;padding:7px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:0.9em;background:var(--bg)">
     </div>
     <div style="margin-bottom:16px">
       <div style="${lbl}">${t('dr.prev')}</div>
