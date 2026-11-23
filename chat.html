@@ -317,7 +317,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 #readersBox .names{font-size:14px;line-height:1.7}
 .later-quick{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .later-quick .btn{padding:6px 12px;font-size:13px}
-@media(min-width:700px){.sheet{left:auto;right:24px;bottom:24px;width:300px;border-radius:16px;max-height:80vh;overflow-y:auto}}
+@media(min-width:700px){.sheet{left:auto;right:24px;bottom:24px;width:260px;border-radius:12px;max-height:80vh;overflow-y:auto;border:1px solid var(--border);box-shadow:0 6px 20px rgba(37,48,45,.15)}.sheet button{padding:9px 12px;font-size:14px}}
 
 /* 自分メモ・探すときの絞り込み（2026-11-20） */
 .ch.self{border-bottom:1px solid var(--surface-1)}
@@ -1930,7 +1930,7 @@ $('moreBtn').addEventListener('click', () => {
   const items = [['pins', 'ピン留め'], ['files', 'ファイル'], ['mute', $('muteBtn').textContent]];
   $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}">${esc(l)}</button>`).join('');
   $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); if (b.dataset.a === 'mute') $('muteBtn').click(); else openPanel(b.dataset.a); };
-  $('sheet').classList.remove('hidden'); $('sheetBg').classList.remove('hidden');
+  showSheet();
 });
 $('panelList').addEventListener('click', async (e) => {
   const P = S.panel;
@@ -2323,7 +2323,29 @@ function openSheet(m, where) {
   ];
   $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}" class="${a === 'del' ? 'danger' : ''}">${l}</button>`).join('');
   $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); doAct(b.dataset.a, m, where); };
-  $('sheet').classList.remove('hidden'); $('sheetBg').classList.remove('hidden');
+  showSheet();
+}
+/**
+ * メニュー（sheet）を出す。スマホは下から。パソコン（幅700以上）は押したボタンのすぐ下（入らなければ上）に出す
+ * （2026-11-23 ユーザー指摘：右下に出ると押したボタンから遠くて見にくい）
+ */
+let lastBtn = null;
+document.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && !b.closest('#sheet')) lastBtn = b; }, true);
+function showSheet() {
+  const sh = $('sheet');
+  sh.style.left = sh.style.top = sh.style.right = sh.style.bottom = '';
+  sh.classList.remove('hidden');
+  const rb = lastBtn && document.body.contains(lastBtn) ? lastBtn.getBoundingClientRect() : null;
+  const near = !!rb && rb.width > 0 && window.matchMedia('(min-width:700px)').matches; // 見えていないボタンなら今までどおり右下
+  $('sheetBg').style.background = near ? 'transparent' : 'rgba(37,48,45,.2)';
+  $('sheetBg').classList.remove('hidden');
+  if (!near) return;
+  const r = rb;
+  const w = sh.offsetWidth, h = sh.offsetHeight;
+  const left = Math.min(Math.max(8, r.left), innerWidth - w - 8);
+  let top = r.bottom + 6;
+  if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 6);
+  sh.style.left = left + 'px'; sh.style.top = top + 'px'; sh.style.right = 'auto'; sh.style.bottom = 'auto';
 }
 function closeSheet() { $('sheet').classList.add('hidden'); $('sheetBg').classList.add('hidden'); }
 $('sheetBg').addEventListener('click', closeSheet);
@@ -2439,7 +2461,7 @@ $('myPhoto').addEventListener('click', openAvatar);
 function openMiniSheet(items) {
   $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}">${esc(tr(l))}</button>`).join('');
   $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); const it = items.find((x) => x[0] === b.dataset.a); if (it) it[2](); };
-  $('sheet').classList.remove('hidden'); $('sheetBg').classList.remove('hidden');
+  showSheet();
 }
 $('newBtn').addEventListener('click', () => openMiniSheet([
   ['ch', 'チャンネルを作る', () => $('newCh').click()],
@@ -3278,7 +3300,7 @@ function openPlus(where) {
     const a = b.dataset.a;
     if (a === 'fmt') toggleFmtBar(where); else if (a === 'ack') setAck(where, !c.ack); else if (a === 'vote') openVoteSet(); else openLater({ kind: 'send', where });
   };
-  $('sheet').classList.remove('hidden'); $('sheetBg').classList.remove('hidden');
+  showSheet();
 }
 let readersMsg = null;
 async function openReaders(m) {
