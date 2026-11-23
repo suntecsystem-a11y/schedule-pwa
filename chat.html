@@ -226,6 +226,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .sheet button{display:block;width:100%;text-align:left;border:0;background:none;padding:13px 16px;font-size:15px;border-radius:10px}
 .sheet button:active{background:var(--surface-1)}
 .sheet .danger{color:var(--red)}
+.sheet button.cur{font-weight:700;color:var(--primary)}
 
 /* 投票・日程調整・ピン留め・保存・横の一覧（B-1、2026-11-19） */
 .vote{white-space:normal;min-width:min(260px,60vw)}
@@ -611,6 +612,14 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 通知の段階（2026-11-23）
+    "通知：すべて": "Thông báo: tất cả",
+    "通知：自分あてだけ": "Thông báo: chỉ gửi tôi",
+    "通知：切る": "Thông báo: tắt",
+    "すべての新しいメッセージを知らせる": "Báo mọi tin nhắn mới",
+    "自分あてだけ知らせる（メンション・自分のスレッドへの返信）": "Chỉ báo tin gửi tôi (nhắc tên / trả lời luồng của tôi)",
+    "切る（名前を呼ばれたときだけ知らせる）": "Tắt (chỉ báo khi được nhắc tên)",
+    "（今）": "(hiện tại)",
     // ボタン・未読に戻す・転送（2026-11-23）
     "新しく": "Tạo mới",
     "保存": "Đã lưu",
@@ -916,6 +925,14 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 通知の段階（2026-11-23）
+    "通知：すべて": "सूचना: सबै",
+    "通知：自分あてだけ": "सूचना: मलाई मात्र",
+    "通知：切る": "सूचना: बन्द",
+    "すべての新しいメッセージを知らせる": "सबै नयाँ सन्देशको सूचना",
+    "自分あてだけ知らせる（メンション・自分のスレッドへの返信）": "मलाई मात्र सूचना (उल्लेख / मेरो थ्रेडमा जवाफ)",
+    "切る（名前を呼ばれたときだけ知らせる）": "बन्द (नाम लिँदा मात्र सूचना)",
+    "（今）": "(अहिले)",
     // ボタン・未読に戻す・転送（2026-11-23）
     "新しく": "नयाँ",
     "保存": "सेभ",
@@ -1687,7 +1704,7 @@ async function openChannel(id) {
   const ch = S.channels.find((c) => c.id === id);
   S.readSeqs = null;
   setChHeader(ch);
-  $('muteBtn').innerHTML = ICON_BELL + esc(tr(ch && ch.muted ? '通知を戻す' : '通知を切る'));
+  $('muteBtn').innerHTML = ICON_BELL + esc(notifyLabel(ch));
   const ro = isHaloCh(ch);
   $('mainComposer').classList.toggle('hidden', ro);
   $('roNote').classList.toggle('hidden', !ro);
@@ -1729,15 +1746,28 @@ async function loadReadCounts(id) {
   } catch {}
 }
 
-$('muteBtn').addEventListener('click', async () => {
+// 通知の段階（2026-11-23）：すべて・自分あてだけ・切る（切っても名前を呼ばれたときは知らせる）。
+// 決まりは 1対1・グループ＝すべて、チャンネル＝自分あてだけ（Worker の levelOf）
+const NOTIFY_LABEL = { all: '通知：すべて', mine: '通知：自分あてだけ', off: '通知：切る' };
+function notifyLabel(ch) { return tr(NOTIFY_LABEL[(ch && ch.notify) || (ch && ch.muted ? 'off' : 'mine')]); }
+$('muteBtn').addEventListener('click', () => {
   const ch = S.channels.find((c) => c.id === S.cur);
   if (!ch) return;
-  try {
-    const r = await api('chatMute', { channelId: ch.id, muted: !ch.muted });
-    ch.muted = r.muted;
-    $('muteBtn').innerHTML = ICON_BELL + esc(tr(ch.muted ? '通知を戻す' : '通知を切る'));
-    renderChannels();
-  } catch (e) { toast(e.message); }
+  const cur = ch.notify || (ch.muted ? 'off' : 'mine');
+  const items = [['all', 'すべての新しいメッセージを知らせる'], ['mine', '自分あてだけ知らせる（メンション・自分のスレッドへの返信）'], ['off', '切る（名前を呼ばれたときだけ知らせる）']];
+  $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}" class="${a === cur ? 'cur' : ''}">${esc(tr(l))}${a === cur ? esc(tr('（今）')) : ''}</button>`).join('');
+  $('sheet').onclick = async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    closeSheet();
+    try {
+      const r = await api('chatMute', { channelId: ch.id, level: b.dataset.a });
+      ch.muted = r.muted; ch.notify = r.notify;
+      if (S.cur === ch.id) $('muteBtn').innerHTML = ICON_BELL + esc(notifyLabel(ch));
+      renderChannels();
+    } catch (er) { toast(er.message); }
+  };
+  showSheet();
 });
 
 // ---------- メッセージの表示 ----------
