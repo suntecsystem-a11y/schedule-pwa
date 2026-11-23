@@ -14889,12 +14889,14 @@ async function finishElearningQuiz() {
   const score = Math.round((correct / s.questions.length) * 100);
   const passed = score >= ELEARNING_PASS_THRESHOLD;
 
+  // 選んだ答えも送る。点数と合否は Worker が教材の正解で採点し直して保存する（2026-11-23。score・passed は表示用）
+  const answers = {};
+  s.questions.forEach((q, i) => { answers[q.id] = s.answers[i] == null ? '' : String(s.answers[i]); });
+  window._elLastResult = { courseId: s.course.id, score, passed, answers };
   let saveFailed = false;
   if (GAS_URL) {
     try {
-      await api('saveElearningResult', {
-        result: { courseId: s.course.id, score, passed }
-      }, t('el.saving'));
+      await api('saveElearningResult', { result: window._elLastResult }, t('el.saving'));
     } catch (e) {
       saveFailed = true;
     }
@@ -14909,7 +14911,7 @@ async function finishElearningQuiz() {
     <p style="font-size:0.85em;color:var(--text2);margin-bottom:24px">${t('el.result.detail',{correct:correct,total:s.questions.length,threshold:ELEARNING_PASS_THRESHOLD})}</p>
     ${saveFailed ? `<div style="background:#fff3e0;border:1px solid #ffcc02;border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:8px">
       <span style="font-size:0.85em;color:#e65100">${t('el.save.fail')}</span>
-      <button onclick="(async()=>{try{await api('saveElearningResult',{result:{courseId:'${s.course.id}',score:${score},passed:${passed}}},t('el.saving'));this.closest('div').innerHTML='<span style=\\'font-size:0.85em;color:#2e7d32\\'>' + t('el.saved') + '</span>'}catch(e){showToast(t('el.save.fail'))}})()" style="white-space:nowrap;background:none;border:1px solid #e65100;color:#e65100;border-radius:var(--radius);padding:6px 14px;cursor:pointer;font-size:0.82em;font-weight:600">${t('el.save.retry')}</button>
+      <button onclick="(async()=>{try{await api('saveElearningResult',{result:window._elLastResult},t('el.saving'));this.closest('div').innerHTML='<span style=\\'font-size:0.85em;color:#2e7d32\\'>' + t('el.saved') + '</span>'}catch(e){showToast(t('el.save.fail'))}})()" style="white-space:nowrap;background:none;border:1px solid #e65100;color:#e65100;border-radius:var(--radius);padding:6px 14px;cursor:pointer;font-size:0.82em;font-weight:600">${t('el.save.retry')}</button>
     </div>` : ''}
     <button class="btn-primary" style="width:100%;margin-bottom:8px" onclick="openElearningCourse('${s.course.id}')">${t('el.retry')}</button>
     <button style="width:100%;padding:12px;border:2px solid var(--border);border-radius:var(--radius);background:var(--surface-2);font-size:0.9em;cursor:pointer" onclick="loadElearningCourses()">${t('el.back.list')}</button>
