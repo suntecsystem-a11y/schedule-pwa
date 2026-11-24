@@ -5760,11 +5760,46 @@ function tkkMine(){
   const me=String(currentUser&&currentUser.id);
   return (tkkS().events||[]).filter(e=>(String(e.userId)===me||(e.people||[]).map(String).includes(me))&&e.approvalStatus!=='否認');
 }
+// ほかの人の予定（2026-11-24）：タスクの「自分／すべて／メンバー／部門」と同じ見る人の指定に合わせる。自分だけのときは頼まない。
+// 見てよいか・中身を出してよいかは Worker（getTaskCalendar）が決める。権限のあるタスクの予定だけ中身が来て、ほかは「予定あり」の時間だけが来る
+function tkkOthersReq(){
+  const m=tkWmode();
+  if(m==='mine')return null;
+  if(m==='all')return {mode:'all'};
+  let names=[];
+  if(m==='member')names=(_tk.whos||[]).map(tkSq);
+  else if(m==='dept'){const ds=new Set(_tk.depts||[]);names=(USERS||[]).filter(u=>ds.has(u.dept)).map(u=>tkSq(u.name));}
+  const ids=(USERS||[]).filter(u=>names.includes(tkSq(u.name))).map(u=>String(u.id));
+  return ids.length?{mode:'member',members:ids}:null;
+}
+function tkkSig(){const r=tkkOthersReq();return r?JSON.stringify(r):'';}
+function tkkNameOf(id){const u=(USERS||[]).find(x=>String(x.id)===String(id));return u?String(u.name||'').replace(/[\s　]+/g,' '):'';}
+// Worker から来たほかの人の予定を、画面の予定の形にする。id の頭に o を付け、自分の予定（getEvents の分）と混ざらないようにする（見るだけ）
+function tkkMapOthers(list){
+  return (list||[]).map(o=>{
+    const who=(o.owners||[]).map(tkkNameOf).filter(Boolean).join('・')||'?';
+    const title=o.masked?who+'：予定あり':who+'：'+String(o.title||'').replace(/^【タスク】/,'');
+    return Object.assign({},o,{id:'o'+o.id,title:title,type:o.masked?'':(o.type||''),_o:true,userId:(o.owners||[])[0]||''});
+  });
+}
+function tkkOthers(){return tkkS().others||[];}
+function tkkWhoLabel(kc){
+  const rq=tkkOthersReq();
+  if(!rq)return '自分のカレンダー';
+  return rq.mode==='all'?'自分＋全員':'自分＋'+rq.members.length+'人';
+}
 async function tkkLoad(){
   const kc=tkkS();kc.loading=true;
   const rg=tkkRange(kc);
+  kc.sig=tkkSig();
   try{kc.events=(await api('getEvents',{rangeStart:rg[0],rangeEnd:rg[1]},'カレンダーを読み込み中...'))||[];}
   catch(e){kc.events=[];showToast('カレンダーを読み込めませんでした：'+((e&&e.message)||e));}
+  kc.others=[];kc.othersErr='';
+  const rq=tkkOthersReq();
+  if(rq){
+    try{const r=await api('getTaskCalendar',Object.assign({rangeStart:rg[0],rangeEnd:rg[1]},rq),undefined,{quiet:true});kc.others=tkkMapOthers((r&&r.events)||[]);}
+    catch(e){kc.othersErr=(e&&e.message)||'読み込めませんでした';}
+  }
   // 実績（作業時間の計測結果）。Worker が対応していない間は空のまま（計画だけ表示）
   try{const a=await api('getTaskActuals',{from:rg[0],to:rg[1]},undefined,{quiet:true});kc.actuals=(a&&a.actuals)||{};}catch(e){kc.actuals={};}
   kc.loading=false;
@@ -5855,6 +5890,7 @@ function tkkSplitHtml(){
   if(!_tk.ks)setTimeout(tkkSchedLoad,0);
   if(!tkkOn())return tkKanbanHtml();
   const kc=tkkS();
+  if(kc.events&&!kc.loading&&kc.sig!==tkkSig())kc.events=null; // 見る人（自分／すべて／メンバー／部門）が変わった
   if(!kc.events&&!kc.loading)setTimeout(tkkLoad,0);
   return '<div id="tkk-split"><div id="tkk-left">'+tkKanbanHtml()+'</div><div id="tkk-rs" title="ドラッグで、カレンダーの幅を変えられます（ダブルクリックで元に戻す）"></div><div id="tkk-right"'+(tkkRW()?' style="flex:0 0 '+tkkRW()+'px"':'')+'>'+tkkCalHtml()+'</div></div>';
 }
@@ -5891,6 +5927,7 @@ function tkkLayout(evs){
 }
 // 予定をクリックしたら、カレンダーの予定の詳細を開く（タスクではなく）。カレンダーのページで読み込んだ範囲に無い予定は、ここで読んだ分を足してから開く
 function tkkOpen(id){
+  if(String(id).charAt(0)==='o'){const o=tkkOthers().find(x=>x.id===String(id));if(o&&o.taskId&&typeof tkfOpenEdit==='function')tkfOpenEdit(o.taskId);return;}
   if(typeof openDetail!=='function')return;
   if(!(events||[]).some(x=>String(x.id)===String(id))){
     const e=(tkkS().events||[]).find(x=>String(x.id)===String(id))||((_tk.ks&&_tk.ks.evs)||{})[String(id)];
@@ -5908,14 +5945,16 @@ function tkkCalHtml(){
   const title=mode==='day'?(b.getMonth()+1)+'月'+b.getDate()+'日（'+tDow((b.getDay()+6)%7)+'）':(mode==='month'?b.getFullYear()+'年'+(b.getMonth()+1)+'月':md(days[0])+' 〜 '+md(days[6]));
   const mb=(m,l)=>'<button class="tk-btn'+(mode===m?' tk-new':'')+'" onclick="tkkMode(\''+m+'\')">'+l+'</button>';
   const head='<div class="tkk-bar"><button class="tk-btn" onclick="tkkShift(-1)">◀</button><b>'+title+'</b><button class="tk-btn" onclick="tkkShift(1)">▶</button><button class="tk-btn" onclick="tkkToday()">'+(mode==='day'?'今日':(mode==='week'?'今週':'今月'))+'</button>'
-    +'<span class="tkk-seg">'+mb('day','日')+mb('week','週')+mb('month','月')+'</span><span class="tk-sp"></span><span class="tkd-who">自分のカレンダー</span><button class="tk-btn" onclick="tkkReload()">🔄</button></div>';
+    +'<span class="tkk-seg">'+mb('day','日')+mb('week','週')+mb('month','月')+'</span><span class="tk-sp"></span><span class="tkd-who">'+tkkWhoLabel(kc)+'</span><button class="tk-btn" onclick="tkkReload()">🔄</button></div>'
+    +(kc.othersErr?'<div class="tkd-note" style="padding:4px 10px;color:var(--red)">ほかの人の予定は、上長・施策や活動のリーダー・役員・管理者だけが見られます（'+tkEsc(kc.othersErr)+'）</div>':'');
   if(!kc.events)return head+'<div class="tk-empty">読み込み中…</div>';
   const mine=tkkMine();
+  const shownEvs=mine.concat(tkkOthers()); // 自分＋ほかの人（見るだけ）
   const LEAVE=['休暇','休み'];
-  if(mode==='month')return head+tkkMonthHtml(kc,mine,b,todayStr,LEAVE);
+  if(mode==='month')return head+tkkMonthHtml(kc,shownEvs,b,todayStr,LEAVE);
   const span=e=>[e.startDate||e.date,e.endDate||e.date];
-  const alldayEvs=mine.filter(e=>{const s=span(e);return (!e.start||isMultiDay(e))&&s[0]<=wE&&s[1]>=wS&&!LEAVE.includes(e.type);});
-  const leaveEvs=mine.filter(e=>{const s=span(e);return LEAVE.includes(e.type)&&s[0]<=wE&&s[1]>=wS;});
+  const alldayEvs=shownEvs.filter(e=>{const s=span(e);return (!e.start||isMultiDay(e))&&s[0]<=wE&&s[1]>=wS&&!LEAVE.includes(e.type);});
+  const leaveEvs=shownEvs.filter(e=>{const s=span(e);return LEAVE.includes(e.type)&&s[0]<=wE&&s[1]>=wS;});
   const isDay=mode==='day',tm=tkkTimerGet(),act=kc.actuals||{};
   // 日表示：計画と実績の差（実績を取るための計測）
   let sum='';
@@ -5952,7 +5991,7 @@ function tkkCalHtml(){
   html+='<div class="week-body"><div class="week-time-col">'+Array.from({length:TOTAL},(_,i)=>'<div class="week-time-label">'+(KC_S+i)+':00</div>').join('')+'</div>';
   days.forEach(day=>{
     const ds=fmtDate(day),isT=ds===todayStr;
-    const dayEvs=mine.filter(e=>e.start&&e.end&&e.date===ds&&!LEAVE.includes(e.type)&&!isMultiDay(e));
+    const dayEvs=shownEvs.filter(e=>e.start&&e.end&&e.date===ds&&!LEAVE.includes(e.type)&&!isMultiDay(e));
     html+='<div class="week-day-col'+(isT?' today':'')+'" data-d="'+ds+'" ondragover="tkkOver(event)" ondrop="tkkDrop(event)">'
       +Array.from({length:TOTAL},()=>'<div class="week-hour-line"></div>').join('');
     tkkLayout(dayEvs).forEach(r=>{
@@ -5980,7 +6019,7 @@ function tkkCalHtml(){
     html+='</div>';
   });
   html+='</div></div>';
-  return head+sum+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります（他の予定と重なる場合は、確認が出ます）。同じ時間に重ねたタスクは、その時間でまとめて実行するものとして、分析では1回分の時間で数えます。予定をクリックすると、カレンダーの予定の詳細が開きます。タスクの予定にマウスを乗せると、ボタンが出ます（▶■作業時間の計測【日表示】・✓完了・↗タスクを開く・−＋長さを変える・×取り消す）。つまんで動かせます。</div>';
+  return head+sum+html+'<div class="tkd-note" style="padding:6px 10px 10px">空いている枠にカードを落とすと、1時間の予定が入ります（他の予定と重なる場合は、確認が出ます）。同じ時間に重ねたタスクは、その時間でまとめて実行するものとして、分析では1回分の時間で数えます。予定をクリックすると、カレンダーの予定の詳細が開きます。タスクの予定にマウスを乗せると、ボタンが出ます（▶■作業時間の計測【日表示】・✓完了・↗タスクを開く・−＋長さを変える・×取り消す）。つまんで動かせます。'+(tkkOthersReq()?'<br>自分以外を選んでいるときは、ほかの人の予定も出ます（見るだけ）。そのタスクを見る権限のある予定だけ内容が出て、ほかは「予定あり」の時間だけです。':'')+'</div>';
 }
 // 月表示：日ごとの予定を小さく並べる。日付をクリックすると、その日の日表示へ
 function tkkMonthHtml(kc,mine,b,todayStr,LEAVE){
