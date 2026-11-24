@@ -5783,10 +5783,19 @@ function tkkMapOthers(list){
   });
 }
 function tkkOthers(){return tkkS().others||[];}
+// 自分の予定を出すか：「自分」「すべて」、またはメンバー・部門に自分が入っているとき。メンバー・部門で自分が入っていなければ、選んだ人の予定だけを出す
+function tkkSelfShown(){
+  const rq=tkkOthersReq();
+  if(!rq||rq.mode==='all')return true;
+  return rq.members.includes(String(currentUser&&currentUser.id));
+}
 function tkkWhoLabel(kc){
   const rq=tkkOthersReq();
   if(!rq)return '自分のカレンダー';
-  return rq.mode==='all'?'自分＋全員':'自分＋'+rq.members.length+'人';
+  if(rq.mode==='all')return '自分＋全員';
+  const me=String(currentUser&&currentUser.id),n=rq.members.filter(x=>x!==me).length;
+  if(tkkSelfShown())return n?'自分＋'+n+'人':'自分のカレンダー';
+  return n===1?tkkNameOf(rq.members.find(x=>x!==me)):n+'人';
 }
 async function tkkLoad(){
   const kc=tkkS();kc.loading=true;
@@ -5951,7 +5960,7 @@ function tkkCalHtml(){
     +(kc.othersErr?'<div class="tkd-note" style="padding:4px 10px;color:var(--red)">ほかの人の予定は、上長・施策や活動のリーダー・役員・管理者だけが見られます（'+tkEsc(kc.othersErr)+'）</div>':'');
   if(!kc.events)return head+'<div class="tk-empty">読み込み中…</div>';
   const mine=tkkMine();
-  const shownEvs=mine.concat(tkkOthers()); // 自分＋ほかの人（見るだけ）
+  const shownEvs=(tkkSelfShown()?mine:[]).concat(tkkOthers()); // 自分（選んだ中に自分がいるとき）＋ほかの人（見るだけ）
   const LEAVE=['休暇','休み'];
   if(mode==='month')return head+tkkMonthHtml(kc,shownEvs,b,todayStr,LEAVE);
   const span=e=>[e.startDate||e.date,e.endDate||e.date];
@@ -6081,6 +6090,7 @@ function tkkCheckSlot(d,a,b,excludeId){
 async function tkkDrop(e){
   e.preventDefault();
   const drag=_tkkDrag;_tkkDrag=null;if(!drag)return;
+  if(!tkkSelfShown()){showToast('自分の予定を入れるときは、見る人を「自分」にするか、自分を含めてください');return;}
   const col=e.currentTarget,d=col.dataset.d,r=col.getBoundingClientRect();
   const row=Math.max(0,Math.min(Math.floor((e.clientY-r.top)/KC_H),KC_E-KC_S-1));
   const a=(KC_S+row)*60;
