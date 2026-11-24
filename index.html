@@ -7768,7 +7768,6 @@ const PLACES = [
   {id:'honsha-2f-n',    grp:'honsha', short:'2階北'},
   {id:'honsha-3f-s',    grp:'honsha', short:'3階南'},
   {id:'honsha-3f-n',    grp:'honsha', short:'3階北'},
-  {id:'honsha-soko',    grp:'honsha', short:'倉庫'}, // 11月末まで。消すときは連絡がある（自動では消さない）
   {id:'shinto-1f',      grp:'shinto', short:'1階'},
   {id:'shinto-2f',      grp:'shinto', short:'2階'}, // 2026-11-06 追加（新棟2階は「2階」と「2階 会議室」の2部屋）
   // room は ROOMS の id。その会議室を押さえた予定がある人は、その時間はこの場所に出す
@@ -8218,7 +8217,7 @@ function renderTeamMap(members){
     frame=document.createElement('iframe');
     frame.id='team-map-frame';
     frame.title=t('team.map.title');
-    frame.src='zaiseki-map.html?v=7'; // 2026-11-20 部屋の中の名前が2文字で「…」になるのを直した（v=7）。2026-11-17 休憩中のマス（v=2）、タブレットでも歩く（v=3・v=4 は縦向きも）、歩いている間は行き先の選択欄を止める（v=5）。2026-11-20 Codex の新版（着せ替え＝みんなの見た目も出す・扉・人数・スマホも10秒までで歩く。v=6）。古いマップが残らないよう直したら上げる
+    frame.src='zaiseki-map.html?v=8'; // 2026-11-24 本社の倉庫をなくした（v=8）。2026-11-20 部屋の中の名前が2文字で「…」になるのを直した（v=7）。2026-11-17 休憩中のマス（v=2）、タブレットでも歩く（v=3・v=4 は縦向きも）、歩いている間は行き先の選択欄を止める（v=5）。2026-11-20 Codex の新版（着せ替え＝みんなの見た目も出す・扉・人数・スマホも10秒までで歩く。v=6）。古いマップが残らないよう直したら上げる
     frame.style.cssText='display:block;width:100%;height:900px;border:0;border-radius:var(--radius);background:#141c2c';
     wrap.appendChild(frame);
   }
