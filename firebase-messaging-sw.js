@@ -35,6 +35,9 @@ messaging.onBackgroundMessage(async payload => {
     badge:              new URL('icon-192.png', self.registration.scope).href,
     tag:                isTodoke ? type + '_' + payload.data.recordId : (type === 'chat' && payload.data?.channelId ? 'chat_' + payload.data.channelId : type),
     data:               payload.data || {},
+    // 同じ tag の通知がまだ出ていると、新しい通知はそれを差し替える。renotify が無いと差し替えのときは音も振動も無く、
+    // 「来なかった」ように見えていた（2026-11-24）。差し替えでも毎回鳴らす
+    renotify:           true,
     requireInteraction: false,
   };
   await self.registration.showNotification(title, options);
