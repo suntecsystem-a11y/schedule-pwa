@@ -15054,6 +15054,20 @@ async function initPushNotifications(opts) {
       const title = payload.notification?.title || t('push.default.title');
       const body  = payload.notification?.body  || '';
       showToast(`🔔 ${title}：${body}`);
+      // HALO が画面に見えていると Firebase は端末の通知を出さず、ここ（画面内の小さな表示）だけになる。
+      // PC で HALO を開いたまま別のウィンドウで作業していると気づけないので、HALO を操作していないとき（hasFocus でない）は
+      // 端末の通知も出す。中身・tag は firebase-messaging-sw.js の onBackgroundMessage と同じ（2026-11-24）
+      if (!document.hasFocus() && Notification.permission === 'granted') {
+        const d = payload.data || {};
+        const type = d.type || 'general';
+        const tag = (type.indexOf('todoke_') === 0 && d.recordId) ? type + '_' + d.recordId
+                  : (type === 'chat' && d.channelId) ? 'chat_' + d.channelId : type;
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (!reg) return;
+          const icon = new URL('icon-192.png', reg.scope).href;
+          return reg.showNotification(title, { body, icon, badge: icon, tag, renotify: true, data: d, requireInteraction: false });
+        }).catch(e => console.warn('[Push] 端末の通知を出せない:', e.message));
+      }
       // お知らせ通知ならホームのリストを再読込
       if (payload.data?.type === 'notice') loadNotices();
     });
