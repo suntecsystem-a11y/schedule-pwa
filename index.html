@@ -735,7 +735,6 @@ body[data-tab="chat"] .fab{display:none!important}
 .tk-empty{padding:48px 16px;text-align:center;color:var(--text2)}
 #tab-tasks.content{max-width:none;padding:12px 16px}
 #tab-keiei.content{max-width:none;padding:12px 16px}
-#tab-yakuin.content{max-width:none;padding:12px 16px} /* 役員報告タブ（2026-11-25） */
 /* 開発状況タブ（2026-11-25。81・90だけ） */
 #tab-devstatus.content{max-width:1000px}
 .ds-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 14px}
@@ -1165,7 +1164,6 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">問い合わせ</span></button>
     <button class="sidebar-btn" data-tab="tasks" data-tip="タスク" onclick="switchTab('tasks',this)"><span class="sidebar-icon">✅</span><span class="sidebar-label">タスク</span><span class="sidebar-short">タスク</span></button>
     <button class="sidebar-btn" data-tab="keiei" data-tip="経営" id="keiei-sidebar-btn" onclick="switchTab('keiei',this)" style="display:none"><span class="sidebar-icon">📊</span><span class="sidebar-label">経営</span><span class="sidebar-short">経営</span></button>
-    <button class="sidebar-btn" data-tab="yakuin" data-tip="役員報告" id="yakuin-sidebar-btn" onclick="switchTab('yakuin',this)" style="display:none"><span class="sidebar-icon">📋</span><span class="sidebar-label">役員報告</span><span class="sidebar-short">報告</span></button>
     <button class="sidebar-btn" data-tab="devstatus" data-tip="開発状況" id="devstatus-sidebar-btn" onclick="switchTab('devstatus',this)" style="display:none"><span class="sidebar-icon">🛠</span><span class="sidebar-label">開発状況</span><span class="sidebar-short">開発</span></button>
     <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span><span class="sidebar-short">eラーニング</span></button>
     <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span><span class="sidebar-short">設定</span></button>
@@ -1398,8 +1396,6 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 
   <!-- 経営（2026-11-24。経営管理システムの画面イメージ。社員番号81だけ。中身は Worker の getKeieiMock から取って iframe に入れる。公開リポジトリには置かない） -->
   <div class="content" id="tab-keiei" style="display:none"></div>
-  <!-- 役員報告（2026-11-25。永野と役員だけ。中身は Worker の getYakuinReport から取って iframe に入れる。公開リポジトリには置かない） -->
-  <div class="content" id="tab-yakuin" style="display:none"></div>
 
   <!-- 開発状況（2026-11-25。作っている途中・本番に出していない機能と、今の本番。社員番号81・90だけ。
        中身は Worker の getDevStatus から取る。一覧の正本は非公開リポジトリ schedule-dev/devstatus/開発状況.json。公開リポジトリには置かない） -->
@@ -2322,7 +2318,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.devstatus':'開発状況','nav.yakuin':'役員報告','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.dev.part':'{t} は貸出あり','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','car.now.btn':'今すぐ使う','car.now.evtitle':'{dest}（社用車 {car}）','car.now.h':'＋{n}時間','car.now.today':'今日中','car.now.notfound':'車の予約が見つかりません。画面を更新してから、自分の予約の「出発」を押してください','car.now.departfail':'予約はできました。出発の記録に失敗したので、もう一度「出発する」を押してください（{msg}）','fac.car.busy':'{name} 〜{t}','fac.car.depart':'出発','fac.car.return':'帰社','nav.rooms':'会議室','nav.team':'在席・当番',
+'nav.home':'ホーム','nav.devstatus':'開発状況','nav.keiei':'経営','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.dev.part':'{t} は貸出あり','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','car.now.btn':'今すぐ使う','car.now.evtitle':'{dest}（社用車 {car}）','car.now.h':'＋{n}時間','car.now.today':'今日中','car.now.notfound':'車の予約が見つかりません。画面を更新してから、自分の予約の「出発」を押してください','car.now.departfail':'予約はできました。出発の記録に失敗したので、もう一度「出発する」を押してください（{msg}）','fac.car.busy':'{name} 〜{t}','fac.car.depart':'出発','fac.car.return':'帰社','nav.rooms':'会議室','nav.team':'在席・当番',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -3471,14 +3467,14 @@ const NAV_META={
   elearning:{e:'📚',k:'nav.elearning',s:'nav.elearning'},
   settings:{e:'🔧',k:'nav.settings',s:'nav.settings'},
   devstatus:{e:'🛠',k:'nav.devstatus',s:'nav.devstatus'}, // 2026-11-25 開発状況（81・90だけ）
-  yakuin:{e:'📋',k:'nav.yakuin',s:'nav.yakuin'}, // 2026-11-25 役員報告（永野と役員だけ）
+  keiei:{e:'📊',k:'nav.keiei',s:'nav.keiei'}, // 2026-11-25 経営（永野は経営管理＋役員報告、役員は役員報告だけ）
   admin:{e:'⚙️',k:'nav.admin',s:'nav.admin'}
 };
 // 車予約タブ（準備中）を先行して開ける社員番号。全員に開放するときは NAV_META.cars の prep を外す
 const CAR_ALLOWED_IDS=['90'];
 function carAllowed(){return !!(currentUser&&CAR_ALLOWED_IDS.includes(String(currentUser.id)));}
 const BOTTOM_TABS=['home','calendar','team','chat'];
-const MORE_TABS=['apply','mypage','rooms','inquiry','tasks','elearning','settings','devstatus','yakuin','admin'];
+const MORE_TABS=['apply','mypage','rooms','inquiry','tasks','elearning','settings','devstatus','keiei','admin'];
 let _currentTab='home';
 let _moreNotifCount=0;
 function _applyNavLabels(){
@@ -3504,7 +3500,7 @@ function _applyNavLabels(){
 function _canSeeNavTab(tab){
   if(tab==='admin')return !!(currentUser&&currentUser.isAdmin);
   if(tab==='devstatus')return devStatusAllowed();
-  if(tab==='yakuin')return yakuinAllowed();
+  if(tab==='keiei')return keieiTabVisible();
   if(tab==='elearning')return !!(currentUser&&(currentUser.isAdmin||(currentUser.role&&currentUser.role!=='一般')));
   return true;
 }
@@ -4162,9 +4158,8 @@ function showApp(opts){
   const isAdmin = currentUser.isAdmin;
   document.getElementById('admin-tab-btn').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('admin-sidebar-btn').style.display = isAdmin ? 'flex' : 'none';
-  document.getElementById('keiei-sidebar-btn').style.display = keieiAllowed() ? 'flex' : 'none'; // 経営タブ（永野だけ）
+  document.getElementById('keiei-sidebar-btn').style.display = keieiTabVisible() ? 'flex' : 'none'; // 経営タブ（永野と役員）
   document.getElementById('devstatus-sidebar-btn').style.display = devStatusAllowed() ? 'flex' : 'none'; // 開発状況タブ（81・90だけ）
-  document.getElementById('yakuin-sidebar-btn').style.display = yakuinAllowed() ? 'flex' : 'none'; // 役員報告タブ（永野と役員だけ）
   const canSeeElearning = isAdmin || (currentUser.role && currentUser.role !== '一般');
   document.getElementById('elearning-tab-btn').style.display = canSeeElearning ? 'block' : 'none';
   document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
@@ -4793,9 +4788,33 @@ function tkAv(name,short){
 // 広げるときは Worker の KEIEI_ALLOWED_IDS も同じ値にする。HTML は Worker にあり、このリポジトリ（公開）には置かない。
 const KEIEI_ALLOWED_IDS=['81'];
 function keieiAllowed(){return !!(currentUser&&!currentUser.isPartner&&KEIEI_ALLOWED_IDS.includes(String(currentUser.id)));}
-let _keiei={loaded:false,loading:false,error:''};
+function keieiTabVisible(){return keieiAllowed()||yakuinAllowed();}
+// 経営タブの中に「経営管理（画面イメージ・永野だけ）」と「役員報告（永野と役員）」を切り替えて入れる（2026-11-25）。
+// 役員報告：Worker の getYakuinReport（yakuin.js）。毎朝、永野の PC で作った日次報告が KV に置かれる。同じ社員番号だけ中身を返す。
+// 広げるときは Worker の YAKUIN_ALLOWED_IDS も同じ値にする。報告の HTML は Worker（KV）にあり、このリポジトリ（公開）には置かない。
+const YAKUIN_ALLOWED_IDS=['81','3','12','100'];
+function yakuinAllowed(){return !!(currentUser&&!currentUser.isPartner&&YAKUIN_ALLOWED_IDS.includes(String(currentUser.id)));}
+let _keiei={loaded:false,loading:false,error:'',view:''};
+let _yakuin={loaded:false,loading:false,error:''};
 function renderKeieiTab(){
   const box=document.getElementById('tab-keiei');if(!box)return;
+  if(!box.dataset.built){
+    box.dataset.built='1';
+    box.innerHTML='<div id="keiei-seg" style="display:flex;gap:6px;margin:0 0 10px"></div><div id="keiei-pane-mock"></div><div id="keiei-pane-yakuin" style="display:none"></div>';
+  }
+  const canMock=keieiAllowed(),canRep=yakuinAllowed();
+  if(!_keiei.view||(_keiei.view==='mock'&&!canMock)||(_keiei.view==='yakuin'&&!canRep))_keiei.view=canRep?'yakuin':'mock';
+  const seg=document.getElementById('keiei-seg');
+  const btn=(v,l)=>'<button onclick="keieiSetView(\''+v+'\')" style="border:1px solid '+(_keiei.view===v?'#41604f':'#cfd6d3')+';background:'+(_keiei.view===v?'#41604f':'#fff')+';color:'+(_keiei.view===v?'#fff':'#41604f')+';border-radius:999px;padding:6px 16px;font-size:13px;font-weight:600;cursor:pointer">'+l+'</button>';
+  seg.innerHTML=(canRep?btn('yakuin','役員報告'):'')+(canMock?btn('mock','経営管理'):'');
+  seg.style.display=(canMock&&canRep)?'flex':'none';
+  document.getElementById('keiei-pane-mock').style.display=_keiei.view==='mock'?'block':'none';
+  document.getElementById('keiei-pane-yakuin').style.display=_keiei.view==='yakuin'?'block':'none';
+  if(_keiei.view==='mock')renderKeieiMock();else renderYakuinTab();
+}
+function keieiSetView(v){_keiei.view=v;renderKeieiTab();}
+function renderKeieiMock(){
+  const box=document.getElementById('keiei-pane-mock');if(!box)return;
   if(_keiei.loaded||_keiei.loading)return;
   _keiei.loading=true;_keiei.error='';
   box.innerHTML='<div style="padding:24px;color:#6e7773">読み込んでいます…</div>';
@@ -4805,7 +4824,7 @@ function renderKeieiTab(){
     const f=document.createElement('iframe');
     f.title='経営管理システムの画面イメージ';
     f.setAttribute('sandbox','allow-scripts');   // 親のログイン情報には触れない
-    f.style.cssText='width:100%;height:calc(100vh - 110px);min-height:560px;border:0;display:block;background:#f7f5f1;border-radius:12px';
+    f.style.cssText='width:100%;height:calc(100vh - 150px);min-height:560px;border:0;display:block;background:#f7f5f1;border-radius:12px';
     f.srcdoc=r.html;
     box.appendChild(f);
     _keiei.loaded=true;
@@ -4814,15 +4833,8 @@ function renderKeieiTab(){
     box.innerHTML='<div style="padding:24px;color:#b5533c">'+esc(_keiei.error)+'</div>';
   }).finally(()=>{_keiei.loading=false;});
 }
-// ===== 役員報告タブ（2026-11-25。永野（81）と役員（社長3・専務12・副社長100）だけ） =====
-// 見えるかどうかは、ここ（ボタンの表示）と Worker の getYakuinReport（yakuin.js。同じ社員番号だけ中身を返す）の両方で決める。
-// 広げるときは Worker の YAKUIN_ALLOWED_IDS も同じ値にする。報告の HTML は Worker（KV）にあり、このリポジトリ（公開）には置かない。
-// 経営管理システムの「施策・プロジェクトの進捗」にあたる画面。毎朝、永野の PC で作った日次報告が置かれる。
-const YAKUIN_ALLOWED_IDS=['81','3','12','100'];
-function yakuinAllowed(){return !!(currentUser&&!currentUser.isPartner&&YAKUIN_ALLOWED_IDS.includes(String(currentUser.id)));}
-let _yakuin={loaded:false,loading:false,error:''};
 function renderYakuinTab(reload){
-  const box=document.getElementById('tab-yakuin');if(!box)return;
+  const box=document.getElementById('keiei-pane-yakuin');if(!box)return;
   if(_yakuin.loading)return;
   if(_yakuin.loaded&&!reload)return;
   _yakuin.loading=true;_yakuin.error='';
@@ -4839,7 +4851,7 @@ function renderYakuinTab(reload){
     const f=document.createElement('iframe');
     f.title='役員向け 日次進捗報告';
     f.setAttribute('sandbox','');   // 中の画面は動かす部品を持たず、親のログイン情報には触れない
-    f.style.cssText='width:100%;height:calc(100vh - 150px);min-height:560px;border:0;display:block;background:#f3f5f8;border-radius:12px';
+    f.style.cssText='width:100%;height:calc(100vh - 190px);min-height:560px;border:0;display:block;background:#f3f5f8;border-radius:12px';
     f.srcdoc=rep.html;
     box.appendChild(f);
     _yakuin.loaded=true;
@@ -6916,13 +6928,12 @@ function switchTab(tab, btn){
   if(tab==='devices'){ _facFilter='device'; tab='rooms'; } // 端末は設備予約の中（3e-1）
   if(tab==='cars'){ _facFilter='car'; tab='rooms'; }       // 車も設備予約の中（準備中。3e-1）
   if(tab==='tasks'&&!tkAllowed())return;
-  if(tab==='keiei'&&!keieiAllowed())return;
+  if(tab==='keiei'&&!keieiTabVisible())return;
   if(tab==='devstatus'&&!devStatusAllowed())return;
-  if(tab==='yakuin'&&!yakuinAllowed())return;
   if(tab==='cars'&&!carAllowed())return;
   if(tab==='chat'&&!document.body.classList.contains('chat-on'))return;
   _logTabView(_tabName);
-  ['home','calendar','tasks','keiei','devstatus','yakuin','rooms','team','chat','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
+  ['home','calendar','tasks','keiei','devstatus','rooms','team','chat','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn,.sidebar-btn,.bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -6938,7 +6949,6 @@ function switchTab(tab, btn){
   if(tab==='tasks')   renderTasksTab();
   if(tab==='keiei')   renderKeieiTab();
   if(tab==='devstatus') renderDevStatusTab();
-  if(tab==='yakuin') renderYakuinTab();
   if(tab==='rooms')   { renderRoomTimeline(); renderFacility(); try{ renderDevices(); }catch(e){} loadEvents().then(()=>{ if(_currentTab==='rooms'){ renderDevices(); renderFacMine(); renderFacAvail(); renderFacGrid(); } }); loadRentalMasters().then(()=>{ if(_currentTab==='rooms'){ renderFacAvail(); renderFacGrid(); } }).catch(()=>{}); _facLoadCar(); }
   if(tab==='team')    { _teamLastActive=Date.now(); renderTeam(); Promise.all([loadPlaces(), loadLunch()]).then(()=>{ if(_currentTab==='team') renderTeam(); }); _teamAutoStart(); }
   else                _teamAutoStop();
