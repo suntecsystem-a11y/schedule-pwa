@@ -1560,32 +1560,51 @@ function createTravelGraph(layout) {
   // 読み直しで場所が変わった人を、前の場所から今の場所まで歩かせる（2026-11-25）。movers = [{el, from}]（el は並べ終わった新しい場所の人）
   function walkMovers(movers){
     var PHONE=window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
-    var graph=null;try{graph=createTravelGraph(travelLayout());}catch(e){}
     movers.forEach(function(mv){
       var el=mv.el,toZone=el.closest('[data-zone]'),fromZone=document.querySelector('[data-zone="'+mv.from+'"]');
-      var route=graph&&toZone&&fromZone?graph.route(mv.from,toZone.dataset.zone):[];
-      if(!route.length){el.classList.add('arrive');return;}
-      var fc=pageRect(fromZone.querySelector('.chars')||fromZone),start={x:Math.round((fc.left+fc.right)/2),y:Math.max(fc.top+32,fc.bottom-8)};
-      var first=pageRect(el),end=footPoint(el),offsetX=end.x-first.left,offsetY=end.y-first.top;
-      var points=footConnector(start,route[0],false).concat(route.slice(1),footConnector(end,route[route.length-1],true).slice(1));
-      points=points.filter(function(p,i,a){return !i||Math.abs(p.x-a[i-1].x)+Math.abs(p.y-a[i-1].y)>.1;});
+      // 道のりの点（ページの座標）。マップの形が変わったら測り直すので関数にしておく
+      function buildPoints(){
+        var graph=null;try{graph=createTravelGraph(travelLayout());}catch(e){return [];}
+        var route=toZone&&fromZone?graph.route(mv.from,toZone.dataset.zone):[];if(!route.length)return [];
+        var fc=pageRect(fromZone.querySelector('.chars')||fromZone),start={x:Math.round((fc.left+fc.right)/2),y:Math.max(fc.top+32,fc.bottom-8)},end=footPoint(el);
+        var pts=footConnector(start,route[0],false).concat(route.slice(1),footConnector(end,route[route.length-1],true).slice(1));
+        return pts.filter(function(p,i,a){return !i||Math.abs(p.x-a[i-1].x)+Math.abs(p.y-a[i-1].y)>.1;});
+      }
+      var points=buildPoints();
+      if(!points.length){el.classList.add('arrive');return;}
+      var first=pageRect(el),endP=footPoint(el),offsetX=endP.x-first.left,offsetY=endP.y-first.top;
       var walkSpeed=1;
       if(PHONE){var walkTotal=0;for(var wi=1;wi<points.length;wi++){var wd=Math.abs(points[wi].x-points[wi-1].x)+Math.abs(points[wi].y-points[wi-1].y);walkTotal+=Math.max(90,Math.round(wd*(points[wi].kind==='stairs'?10:7.8)));}if(walkTotal>10000)walkSpeed=10000/walkTotal;}
       var host=document.body;
       if(travelSurface&&PHONE){host=travelSurface;var surface=pageRect(travelSurface);offsetX+=surface.left+travelSurface.clientLeft;offsetY+=surface.top+travelSurface.clientTop;}
       var clone=el.cloneNode(true);clone.classList.add('walking','walkclone');clone.classList.remove('flip','arrive');clone.setAttribute('aria-hidden','true');clone.removeAttribute('role');clone.removeAttribute('tabindex');
-      clone.style.cssText='position:absolute;left:0;top:0;margin:0;z-index:9998;pointer-events:none;transform:translate('+(start.x-offsetX)+'px,'+(start.y-offsetY)+'px)';
+      clone.style.cssText='position:absolute;left:0;top:0;margin:0;z-index:9998;pointer-events:none;transform:translate('+(points[0].x-offsetX)+'px,'+(points[0].y-offsetY)+'px)';
       host.appendChild(clone);el.style.visibility='hidden';otherWalks++;
-      var index=1,finished=false,animation=null,timer=null;
+      var index=1,finished=false,animation=null,timer=null,seg=0,from=null;
+      // 歩いている間にマップの形が変わったら（読み直しで HALO 側の高さが変わり、スクロールバーが出たり消えたりして幅が変わる 等）、
+      // 道のりを測り直し、今いるところから続きを歩く（2026-11-25 ユーザー指摘「階段を部屋側にずれて降りる」）。
+      // 行き先の人（隠してある）の位置が1px より動いたら形が変わったとみなす。スマホはマップの中に置くので見ない
+      var watchBase=host===document.body?pageRect(el):null;
+      function watch(){
+        if(finished||!watchBase)return;var r=pageRect(el);
+        if(Math.abs(r.left-watchBase.left)>1||Math.abs(r.top-watchBase.top)>1){
+          watchBase=r;var np=buildPoints();
+          if(np.length===points.length){var m=new DOMMatrix(getComputedStyle(clone).transform);points=np;offsetX=footPoint(el).x-r.left;offsetY=footPoint(el).y-r.top;from={x:m.e+offsetX,y:m.f+offsetY};index=Math.max(1,index-1);restart();}
+          else{finish();return;}
+        }
+        requestAnimationFrame(watch);
+      }
+      if(watchBase)requestAnimationFrame(watch);
       function finish(){if(finished)return;finished=true;clearTimeout(timer);if(animation)animation.cancel();clone.remove();el.style.visibility='';otherWalks--;
         if(!otherWalks&&!activeWalk&&pendingData){var p=pendingData;pendingData=null;setTimeout(function(){placePeople(p);},0);}}
+      function restart(){seg++;clearTimeout(timer);if(animation){animation.onfinish=null;animation.cancel();}next();}
       function next(){
         if(finished)return;if(index>=points.length){finish();return;}
-        var a=points[index-1],b=points[index++],dx=b.x-a.x,dy=b.y-a.y,distance=Math.abs(dx)+Math.abs(dy);
+        var my=seg,a=from||points[index-1],b=points[index++],dx=b.x-a.x,dy=b.y-a.y,distance=Math.abs(dx)+Math.abs(dy);from=null;
         clone.dataset.facing=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');clone.dataset.terrain=b.kind;
         var duration=Math.max(Math.round(90*walkSpeed),Math.round(distance*(b.kind==='stairs'?10:7.8)*walkSpeed));
         animation=clone.animate([{transform:'translate('+(a.x-offsetX)+'px,'+(a.y-offsetY)+'px)'},{transform:'translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)'}],{duration:duration,easing:'steps('+Math.max(2,Math.ceil(b.kind==='stairs'?distance/10:duration/40))+', end)',fill:'forwards'});
-        var done=false;function complete(){if(done||finished)return;done=true;clearTimeout(timer);animation.cancel();clone.style.transform='translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)';next();}animation.onfinish=complete;timer=setTimeout(complete,duration+250);
+        var done=false;function complete(){if(done||finished||my!==seg)return;done=true;clearTimeout(timer);animation.cancel();clone.style.transform='translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)';next();}animation.onfinish=complete;timer=setTimeout(complete,duration+250);
       }
       next();
     });
