@@ -1018,9 +1018,10 @@ body{margin:0}
     // 自分で歩いたあとに届く保存後のデータで、もう一度歩かないように（2026-11-25）
     if(lastData&&lastData.me!=null)prevZone[lastData.me]=id;
     // 歩いている間に届いて待たせていたデータがあれば、歩き終わってから並べる
-    if(pendingData){var p=pendingData;pendingData=null;setTimeout(function(){placePeople(p);},0);}
+    if(!redirecting)myChosen={id:id,until:Date.now()+20000};
+    if(!redirecting&&pendingData){var p=pendingData;pendingData=null;setTimeout(function(){placePeople(p);},0);}
     document.getElementById('now-label').textContent=byId[id].name;
-    document.getElementById('mobile-now-label').textContent=byId[id].name; message.textContent=fmtL('moved','あなたは {place} に いどうした！',byId[id].name);justMoved=true;if(window.__zmapOnMove)window.__zmapOnMove(id); document.querySelectorAll('.locbtn').forEach(function(btn){btn.setAttribute('aria-pressed',String(btn.dataset.loc===id));});
+    document.getElementById('mobile-now-label').textContent=byId[id].name; message.textContent=fmtL('moved','あなたは {place} に いどうした！',byId[id].name);justMoved=true;if(!redirecting&&window.__zmapOnMove)window.__zmapOnMove(id); document.querySelectorAll('.locbtn').forEach(function(btn){btn.setAttribute('aria-pressed',String(btn.dataset.loc===id));});
     document.querySelectorAll('.locbtn').forEach(function(x){x.classList.toggle('on',x.dataset.loc===id);});
     if(typeof renderRoster==='function') renderRoster();
     if(typeof capZones==='function') capZones();
@@ -1210,7 +1211,7 @@ function createTravelGraph(layout) {
   }
   function moveTo(id,animate){
     var zone=document.querySelector('[data-zone="'+id+'"]');if(!zone)return;
-    if(activeWalk){if(activeWalk.target===id)return;activeWalk.finish();}
+    if(activeWalk){if(activeWalk.target===id)return;redirecting=true;try{activeWalk.finish();}finally{redirecting=false;}}
     var run=++cameraRun;
     var chars=zone.querySelector('.chars'),origin=you.closest('[data-zone]');
     var RM=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -1559,6 +1560,7 @@ function createTravelGraph(layout) {
   var HERO_COLORS=['#3b82c4','#e08a2e','#2fa37a','#7c6bd6','#22b0bf','#e268a0'];
   var CLOTHES={'#3b82c4':'#5379aa','#e08a2e':'#b85c4b','#2fa37a':'#50754c','#7c6bd6':'#8b6aa4','#22b0bf':'#649a9a','#e268a0':'#8b6aa4'};
   var lastData=null, justMoved=false, pendingData=null, prevZone={}, otherWalks=0;
+  var redirecting=false, myChosen=null; // 10.（2026-11-25）
   // 読み直しで場所が変わった人を、前の場所から今の場所まで歩かせる（2026-11-25）。movers = [{el, from}]（el は並べ終わった新しい場所の人）
   function walkMovers(movers){
     var PHONE=window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
@@ -1623,6 +1625,12 @@ function createTravelGraph(layout) {
   function placePeople(data){
     // 自分が歩いている途中に届いたデータ（30秒ごとの読み直しなど）は、歩き終わってから並べる（歩きを途中で切らない）
     if(activeWalk||otherWalks){pendingData=data;return;}
+    // 自分で選んだ行き先がまだ届いていない古いデータなら、自分はその行き先にいることにする（10. ②）
+    if(myChosen){
+      var meRow=(data.members||[]).find(function(m){return m.id===data.me;});
+      if(!meRow||meRow.zone===myChosen.id||Date.now()>myChosen.until)myChosen=null;
+      else{meRow.zone=myChosen.id;if(byId[myChosen.id])data.myPlace=byId[myChosen.id].name;}
+    }
     // Omitted avatarLook keeps the trial selection for this account; null resets it.
     if(!lastData||lastData.me!==data.me||Object.hasOwn(data,'avatarLook'))restoreAvatarLook(data.avatarLook);
     lastData=data;var L=data.labels||{};
