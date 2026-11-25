@@ -1015,6 +1015,8 @@ body{margin:0}
   function afterMove(id){
     // 歩いている間は押せなくしていた「行き先を選ぶ」を戻す（2026-11-17）
     var mps=document.querySelector('.mobile-picker select');if(mps)mps.disabled=false;
+    // 自分で歩いたあとに届く保存後のデータで、もう一度歩かないように（2026-11-25）
+    if(lastData&&lastData.me!=null)prevZone[lastData.me]=id;
     // 歩いている間に届いて待たせていたデータがあれば、歩き終わってから並べる
     if(pendingData){var p=pendingData;pendingData=null;setTimeout(function(){placePeople(p);},0);}
     document.getElementById('now-label').textContent=byId[id].name;
