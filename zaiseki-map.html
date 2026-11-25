@@ -801,22 +801,47 @@ body{margin:0}
     "..osssssso..","...oTTTTo...","..sTTTTTTs..","..oTTTTTTo..","..oTTTTTTo..",
     "..soTTTTos..","...obbbbo...","...ob..bo..."];
   function heroPal(t){ return {o:'#20203a',h:'#5b3f24',s:'#f0c5a0',e:'#20203a',T:t,b:'#33241a'}; }
-  var avatarOutfits={gold:'#e6c578',red:'#b85c4b',blue:'#5379aa',green:'#50754c'};
-  var avatarClothing={tunic:true,armor:true,robe:true};
-  var avatarHairColors={brown:'#815539',black:'#302b35',gold:'#d1ae64',silver:'#c4c8cf'};
-  var avatarEquipmentColors={slate:['#48566b','#364357'],red:['#a75a52','#783e3b'],blue:['#5379aa','#354f79'],green:['#50754c','#354f34'],brown:['#96724e','#60472f'],cream:['#c8b888','#887b59']};
-  var avatarEquipment={none:true,cape:true,bag:true};
+  var avatarOutfits={gold:'#e6c578',red:'#b85c4b',blue:'#5379aa',green:'#50754c',pink:'#cc779c',sky:'#83bfdc',purple:'#7557b1'};
+  var avatarClothing={tunic:true,armor:true,robe:true,leather:true,chainmail:true};
+  var avatarHairColors={brown:'#815539',black:'#302b35',gold:'#d1ae64',silver:'#c4c8cf',pink:'#d88eaf',sky:'#8acbe7',purple:'#8864c4'};
+  var avatarEquipmentColors={slate:['#48566b','#364357'],red:['#a75a52','#783e3b'],blue:['#5379aa','#354f79'],green:['#50754c','#354f34'],brown:['#96724e','#60472f'],cream:['#c8b888','#887b59'],pink:['#cb779d','#914969'],sky:['#83bfdc','#477891'],purple:['#805fc0','#513987']};
+  var avatarEquipment={none:true,cape:true,bag:true,shield:true,pouch:true};
+  var avatarAccessories={
+    shield:{
+      down:{x:0,y:7,rows:['.oooo.','oDCCDo','oCWCCo','oCCCCo','.oCCo.','..oo..']},
+      up:{x:6,y:7,rows:['.oooo.','oDCCDo','oCbCCo','oCbCCo','.oCCo.','..oo..']},
+      side:{x:0,y:7,rows:['.ooo.','oDCCo','oCWCo','oCCCo','.oCo.','..o..']}
+    },
+    pouch:{
+      down:{x:7,y:9,rows:['.DCD.','oCCCo','oCyCo','.ooo.']},
+      up:{x:0,y:9,rows:['.DCD.','oCCCo','oCyCo','.ooo.']},
+      side:{x:0,y:9,rows:['.DCD.','oCCCo','oCyCo','.ooo.']}
+    }
+  };
   var avatarHair={
     short:{front:['....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhsssshh..','...sesess...','...sssss....'],back:['....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','...hhhhhh...','...hhhhhh...'],side:['....hhhh....','...hhhhhh...','...hhhhhh...','...hsssss...','...hsess....','....ssss....']},
     spiky:{front:['..h..hh..h..','..hhhhhhhh..','...hhhhhh...','...hssssh...','...sesess...','...sssss....'],back:['..h..hh..h..','..hhhhhhhh..','...hhhhhh...','..hhhhhhhh..','...hhhhhh...','....hhhh....'],side:['...h.hh.h...','...hhhhhh...','...hhhhhh...','...hhssss...','...hsess....','....ssss....']},
-    bob:{front:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhsssshh..','..hsesessh..','..hssssshh..'],back:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..'],side:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhsssshh..','..hhsesshh..','..hhsssshh..']}
+    bob:{front:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhsssshh..','..hsesessh..','..hssssshh..'],back:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..','..hhhhhhhh..'],side:['...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','..hhsssshh..','..hhsesshh..','..hhsssshh..']},
+    afro:{
+      front:['..hh.hh.hh..','.hhhhhhhhhh.','hhJhhhhhhJhh','hhJssssssJhh','.hhsesesshh.','..JsssssJ...'],
+      back:['..hh.hh.hh..','.hhhhhhhhhh.','hhJhhhhhhJhh','hhhJhhhhJhhh','.hhJhhhhJhh.','...JJJJJJ...'],
+      side:['..hh.hh.h...','.hhhhhhhhh..','hhJhhhhhhh..','hhhJsssss...','.hhhhsess...','..JJssss....']
+    },
+    ponytail:{
+      front:['....hhhh....','...hhhhhh...','..hhhhhhyh..','..hhsssshhh.','...sesesshJ.','...sssss.Jh.'],
+      back:['....hhhh....','...hhhhhh...','..hhhhhhhh..','..hhhhhhhh..','...JJyyJJ...','....hJJh....'],
+      side:['....hhhh....','...hhhhhh...','.hhJhhhhh...','hhyhsssss...','hJ.hsess....','J...ssss....']
+    }
   };
   var avatarHatColors={
     standard:null,
     red:['#a7524a','#d38773','#783b39'],
     blue:['#537db7','#8cafdb','#34547d'],
     green:['#568354','#8bb083','#375937'],
-    black:['#37343e','#777182','#272438']
+    black:['#37343e','#777182','#272438'],
+    pink:['#cb779d','#edacc9','#985374'],
+    sky:['#83bfdc','#bbe7f4','#477891'],
+    purple:['#805fc0','#b29be6','#513987']
   };
   // A, L and K are exclusive to hats. Gold details and outlines keep their own colors.
   var avatarHats={
@@ -839,6 +864,20 @@ body{margin:0}
       front:['....AAAA....','...AAYYAA...','.AAAAAAAAAA.','QQAAAAAAAAQQ'],
       side:['....AAAA....','...AAYYAA...','.AAAAAAAAAA.','QQAAAAAAAAQQ'],
       back:['....AAAA....','...AAAAAA...','.AAAAAAAAAA.','QQAAAAAAAAQQ']
+    },
+    feather:{
+      colors:['#567b61','#91ad76','#355342'],
+      top:['.........W..','........WW..'],
+      front:['...AAAAAW...','..AAAAALAA..','oKKKKKKKKKKo'],
+      side:['....AAAAW...','...AAAAALA..','..KKKKKKKKKo'],
+      back:['...AAAAAW...','..AAAAAAAA..','.oKKKKKKKKo.']
+    },
+    bandana:{
+      colors:['#ad594f','#e49a78','#793e40'],
+      startRow:2,
+      front:['..AAAAAAAA..','..KAALLAAK..'],
+      side:['..AAAAAAAA..','.LLKAAAAAK..'],
+      back:['..AAAAAAAA..','.KLLKAALLK..']
     }
   };
   function normalizeAvatarLook(look){
@@ -850,6 +889,12 @@ body{margin:0}
     if(look.clothing==='armor'){
       body=side?['....BBBW....','....ByBB....','....BBBW....','....ByBB....','....bbbb....','....TTTT....']
         :['..WBBBBBBW..','.sBByTTyBBs.','.sBBBBBBBBs.','..BBByyBBB..','..bbbbbbbb..','...TTTTTT...'];
+    }else if(look.clothing==='leather'){
+      body=side?['....bbbb....','....bTTb....','....bbTb....','....bTTb....','....bybb....','....bTTb....']
+        :['..bbbbbbbb..','.sbTTbbTTbs.','.sbTTTTTTbs.','..bTbbbbTb..','..bbbyybbb..','...bTTTTb...'];
+    }else if(look.clothing==='chainmail'){
+      body=side?['....TBBT....','....TBVT....','....TVBT....','....TBVT....','....bybb....','....TTTT....']
+        :['..BTBBBBTB..','.sTBVBVBVTs.','.sTVBVBVBTs.','..TBVBVBVT..','..bbbyybbb..','...TTTTTT...'];
     }else if(look.clothing==='robe'){
       body=side?['....TTTW....','....TyTT....','....TTTT....','....TyTT....','...TTTTTT...','...TTTTTT...']
         :['..WTTTTTTW..','.sTTTyyTTTs.','.sTTTTTTTTs.','..TTTyTTTT..','..TTTTTTTT..','..TTTTTTTT..'];
@@ -891,6 +936,21 @@ body{margin:0}
       if(side)for(var y=7;y<11;y++)rows[y]=rows[y].slice(0,2)+(y===7||y===10?'DD':'DC')+rows[y].slice(4);
       if(view==='down')for(var y=7;y<11;y++){var line=rows[y].split('');line[y-3]='D';rows[y]=line.join('');}
     }
+    var accessory=avatarAccessories[look.equipment];
+    if(accessory){
+      var shape=accessory[view];
+      shape.rows.forEach(function(pixels,index){
+        var rowIndex=shape.y+index;
+        var row=rows[rowIndex].split('');
+        for(var x=0;x<pixels.length;x++)if(pixels[x]!=='.')row[shape.x+x]=pixels[x];
+        rows[rowIndex]=row.join('');
+      });
+    }
+    if(view==='up'&&look.hair==='ponytail'){
+      // The tail hangs over the collar and any equipment on the back.
+      rows[6]=rows[6].slice(0,4)+'hJJh'+rows[6].slice(8);
+      rows[7]=rows[7].slice(0,5)+'Jh'+rows[7].slice(7);
+    }
   }
   function makeHero(color,look){
   if(look)look=normalizeAvatarLook(look);
@@ -915,15 +975,19 @@ body{margin:0}
     pal.T=avatarOutfits[look.outfit];
     var equipmentPalette=avatarEquipmentColors[look.equipmentColor]||avatarEquipmentColors.slate;
     pal.h=avatarHairColors[look.hairColor]||avatarHairColors.brown;
-    pal.C=equipmentPalette[0];pal.D=equipmentPalette[1];pal.Q='#c8b888';
+    pal.J=pal.h.replace(/[0-9a-f]{2}/gi,function(channel){
+      return Math.round(parseInt(channel,16)*0.72).toString(16).padStart(2,'0');
+    });
+    pal.C=equipmentPalette[0];pal.D=equipmentPalette[1];pal.Q='#c8b888';pal.V='#6d7684';
     var hair=avatarHair[look.hair]||avatarHair.short;
     front.splice(0,6,...hair.front);back.splice(0,6,...hair.back);side.splice(0,6,...hair.side);
     if(hat && look.hat!=='none'){
       var hatPalette=avatarHatColors[look.hatColor]||hat.colors;
       pal.A=hatPalette[0];pal.L=hatPalette[1];pal.K=hatPalette[2];
-      front.splice(0,hat.front.length,...hat.front);
-      back.splice(0,hat.back.length,...hat.back);
-      side.splice(0,hat.side.length,...hat.side);
+      var hatStart=hat.startRow||0;
+      front.splice(hatStart,hat.front.length,...hat.front);
+      back.splice(hatStart,hat.back.length,...hat.back);
+      side.splice(hatStart,hat.side.length,...hat.side);
     }
   }
   var wrap=document.createElement('span');wrap.className='spritewrap';wrap.dataset.color=original;wrap.dataset.role=role;wrap.style.width='32px';wrap.style.height='36px';
@@ -1481,15 +1545,15 @@ function createTravelGraph(layout) {
       <h2 id="wardrobe-title">自キャラの着せ替え</h2>
       <div class="wardrobe-preview"><div class="char you walking" aria-hidden="true"></div></div>
       <label>歩く向き <select name="facing"><option value="down">前</option><option value="right">右</option><option value="left">左</option><option value="up">後ろ</option></select></label>
-      <label>髪型 <select name="hair"><option value="short">ショート</option><option value="spiky">ツンツン</option><option value="bob">ボブ</option></select></label>
-      <label>髪の色 <select name="hairColor"><option value="brown">茶</option><option value="black">黒</option><option value="gold">金</option><option value="silver">銀</option></select></label>
-      <label>帽子 <select name="hat"><option value="none">なし</option><option value="crown">勇者の冠</option><option value="cap">旅人の帽子</option><option value="hood">魔法の帽子</option></select></label>
-      <label>帽子の色 <select name="hatColor"><option value="standard">標準</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option><option value="black">黒</option></select></label>
-      <label>服の形 <select name="clothing"><option value="tunic">チュニック</option><option value="armor">鎧</option><option value="robe">ローブ</option></select></label>
-      <label>服の色 <select name="outfit"><option value="gold">金</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option></select></label>
-      <label>装備 <select name="equipment"><option value="none">なし</option><option value="cape">マント</option><option value="bag">かばん</option></select></label>
-      <label>装備の色 <select name="equipmentColor"><option value="slate">青灰</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option><option value="brown">茶</option><option value="cream">生成り</option></select></label>
-      <p class="wardrobe-hint">髪型は帽子「なし」で見比べられます。装備の色はマント・かばんに反映されます。「後ろ」でも見比べてください。</p>
+      <label>髪型 <select name="hair"><option value="short">ショート</option><option value="spiky">ツンツン</option><option value="bob">ボブ</option><option value="afro">アフロ</option><option value="ponytail">ポニーテール</option></select></label>
+      <label>髪の色 <select name="hairColor"><option value="brown">茶</option><option value="black">黒</option><option value="gold">金</option><option value="silver">銀</option><option value="pink">ピンク</option><option value="sky">水色</option><option value="purple">紫</option></select></label>
+      <label>帽子 <select name="hat"><option value="none">なし</option><option value="crown">勇者の冠</option><option value="cap">旅人の帽子</option><option value="hood">魔法の帽子</option><option value="feather">羽根帽子</option><option value="bandana">バンダナ</option></select></label>
+      <label>帽子の色 <select name="hatColor"><option value="standard">標準</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option><option value="black">黒</option><option value="pink">ピンク</option><option value="sky">水色</option><option value="purple">紫</option></select></label>
+      <label>服の形 <select name="clothing"><option value="tunic">チュニック</option><option value="armor">鎧</option><option value="robe">ローブ</option><option value="leather">革のよろい</option><option value="chainmail">くさりかたびら</option></select></label>
+      <label>服の色 <select name="outfit"><option value="gold">金</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option><option value="pink">ピンク</option><option value="sky">水色</option><option value="purple">紫</option></select></label>
+      <label>装備 <select name="equipment"><option value="none">なし</option><option value="cape">マント</option><option value="bag">かばん</option><option value="shield">小盾</option><option value="pouch">腰ポーチ</option></select></label>
+      <label>装備の色 <select name="equipmentColor"><option value="slate">青灰</option><option value="red">赤</option><option value="blue">青</option><option value="green">緑</option><option value="brown">茶</option><option value="cream">生成り</option><option value="pink">ピンク</option><option value="sky">水色</option><option value="purple">紫</option></select></label>
+      <p class="wardrobe-hint">髪型は帽子「なし」で見比べられます。帽子や装備は「右」「後ろ」からも確認できます。</p>
       <div class="wardrobe-actions">
         <button type="button" data-apply>反映する</button>
         <button type="button" data-close>閉じる</button>
