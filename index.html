@@ -7176,11 +7176,13 @@ function renderMonth(){
     const cellOv={};
     week.forEach((day,di)=>{
       const ds=fmtDate(day);
-      const spanned=lanes.filter(l=>l.some(e=>eventIncludesDate(e,ds))).length;
+      // 2026-11-25 1日だけの予定は「空いている段」に置く（前は連続の予定の本数から段を決めていて、上の段が空いて下の段に連続があると重なった）
+      const freeRows=[];for(let r=0;r<MAX_BARS;r++){if(!(lanes[r]&&lanes[r].some(e=>eventIncludesDate(e,ds))))freeRows.push(r)}
+      const spanned=MAX_BARS-freeRows.length;
       const singles=singleByDay[ds]||[];
-      const slot=Math.max(0,MAX_BARS-spanned);
+      const slot=freeRows.length;
       const total=multiEvs.filter(e=>eventIncludesDate(e,ds)).length+singles.length;
-      cellOv[di]={overflow:total-(spanned+Math.min(singles.length,slot)),singleSlot:slot,singles,spanned};
+      cellOv[di]={overflow:total-(spanned+Math.min(singles.length,slot)),singleSlot:slot,singles,spanned,freeRows};
     });
     html+=`<div class="month-week-row">`;
     week.forEach((day,di)=>{
@@ -7222,8 +7224,8 @@ function renderMonth(){
       ov.singles.slice(0,ov.singleSlot).forEach((e,si)=>{
         const isPendS = e.approvalStatus === '申請中';
         const sBarStyle = isPendS
-          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*_BAR_H+si*_BAR_H}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
-          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*_BAR_H+si*_BAR_H}px;background:${STATUS_COLOR[e.type]}`;
+          ? `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.freeRows[si]*_BAR_H}px;background:${STATUS_COLOR[e.type]}33;border:1.5px dashed ${STATUS_COLOR[e.type]};color:${STATUS_COLOR[e.type]};opacity:0.7`
+          : `left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.freeRows[si]*_BAR_H}px;background:${STATUS_COLOR[e.type]}`;
         const sSoloLabel = (isPendS?t('cal.pending'):'')+typeIcon(e.type)+' '+esc(e.title||e.type);
         html+=`<div class="ev-bar span-solo" style="${sBarStyle}" title="${esc(sSoloLabel)}"
           onclick="onMonthBarClick(event,'${e.id}','${wStart}')"><span>${sSoloLabel}</span></div>`;
@@ -12950,7 +12952,7 @@ function renderMyPage() {
     const lanes=[];
     multi.forEach(e=>{const es=e.startDate||e.date,ee=e.endDate||e.date;let li=lanes.findIndex(l=>l.every(le=>{const ls=le.startDate||le.date,le2=le.endDate||le.date;return le2<es||ls>ee}));if(li===-1){if(lanes.length<MINI_MAX)lanes.push([e]);return}lanes[li].push(e)});
     const cOv={};
-    wk.forEach((day,di)=>{const ds=fmtDate(day);const sp=lanes.filter(l=>l.some(e=>eventIncludesDate(e,ds))).length;const sg=singByD[ds]||[];const sl=Math.max(0,MINI_MAX-sp);const tot=multi.filter(e=>eventIncludesDate(e,ds)).length+sg.length;cOv[di]={overflow:tot-(sp+Math.min(sg.length,sl)),singleSlot:sl,singles:sg,spanned:sp}});
+    wk.forEach((day,di)=>{const ds=fmtDate(day);const fr=[];for(let r=0;r<MINI_MAX;r++){if(!(lanes[r]&&lanes[r].some(e=>eventIncludesDate(e,ds))))fr.push(r)}const sp=MINI_MAX-fr.length;const sg=singByD[ds]||[];const sl=fr.length;const tot=multi.filter(e=>eventIncludesDate(e,ds)).length+sg.length;cOv[di]={overflow:tot-(sp+Math.min(sg.length,sl)),singleSlot:sl,singles:sg,spanned:sp,freeRows:fr}});
     _calHTML+=`<div class="mini-wr">`;
     wk.forEach((day,di)=>{
       const ds=fmtDate(day),isO=day.getMonth()!==_cmo,isTd=ds===today,isSel=ds===_mypageSD;
@@ -12977,7 +12979,7 @@ function renderMyPage() {
     })});
     wk.forEach((day,di)=>{const ds=fmtDate(day),ov=cOv[di];
       ov.singles.slice(0,ov.singleSlot).forEach((e,si)=>{
-        const st=`left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.spanned*MINI_SP+si*MINI_SP}px;background:${STATUS_COLOR[e.type]}`;
+        const st=`left:${(di/7)*100}%;width:${(1/7)*100}%;top:${ov.freeRows[si]*MINI_SP}px;background:${STATUS_COLOR[e.type]}`;
         const lb=typeIcon(e.type)+' '+esc(e.title||e.type);
         _calHTML+=`<div class="mini-bar span-solo" style="${st}" title="${esc(lb)}" onclick="event.stopPropagation();openDetail('${e.id}')"><span>${lb}</span></div>`;
       });
