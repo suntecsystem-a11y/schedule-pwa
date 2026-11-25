@@ -330,6 +330,20 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .sq-dates{display:flex;gap:4px;align-items:center}
 .sq-dates input{flex:1;min-width:0}
 #searchOpts .btn{align-self:flex-end;padding:6px 16px}
+/* チャットの管理（2026-11-25。主任以上と 90番） */
+#manageBox .box{max-width:620px}
+.mg-tabs{display:flex;gap:6px;margin:4px 0 10px}
+.mg-tabs button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:6px 14px;font:inherit;font-size:13px}
+.mg-tabs button.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.mg-form{display:flex;flex-direction:column;gap:6px}
+.mg-form select,.mg-form input{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);width:100%}
+.mg-form .sq-dates input{width:auto}
+.mg-form .btn{align-self:flex-end;padding:6px 16px}
+.mg-list{overflow:auto;min-height:0;flex:1;margin-top:8px;border-top:1px solid var(--surface-1)}
+.mg-list .hit{cursor:default;padding:9px 4px}
+.mg-list .lab{font-size:11px;color:var(--text2);margin-top:4px}
+.mg-list .hit button{margin-top:6px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 10px;font:inherit;font-size:12px}
+.sheet .note{font-size:12px;color:var(--text2);padding:8px 16px 4px;line-height:1.5}
 
 /* 自分あて・くり返し（2026-11-20） */
 /* 枠付きのボタン（2026-11-23 ユーザー要望：文字だけではボタンに見えない） */
@@ -474,6 +488,39 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
   </div>
 </div>
 
+<div id="manageBox" class="overlay hidden">
+  <div class="box">
+    <h2>チャットの管理</h2>
+    <p id="mgNote"></p>
+    <div class="mg-tabs"><button type="button" data-t="chg" class="on">直した・消したものを探す</button><button type="button" data-t="exp">書き出す</button></div>
+    <div id="mgChg" class="mg-form">
+      <select id="mgCh" title="チャンネル"></select>
+      <select id="mgWho" title="書いた人"></select>
+      <select id="mgWhat" title="直した・消した"><option value="">直したものと消したもの</option><option value="edit">直したものだけ</option><option value="delete">消したものだけ</option></select>
+      <div class="sq-dates"><input type="date" id="mgFrom" title="この日から"><span>〜</span><input type="date" id="mgTo" title="この日まで"></div>
+      <button type="button" class="btn primary" id="mgGo">探す</button>
+    </div>
+    <div id="mgExp" class="mg-form hidden">
+      <select id="mgExCh" title="チャンネル"></select>
+      <div class="sq-dates"><input type="date" id="mgExFrom" title="この日から"><span>〜</span><input type="date" id="mgExTo" title="この日まで"></div>
+      <p id="mgExNote">Excel で開けるファイル（CSV）にします。消したメッセージも元の文で入ります。</p>
+      <button type="button" class="btn primary" id="mgExGo">書き出す</button>
+    </div>
+    <div class="mg-list" id="mgList"></div>
+    <div class="err" id="mgErr"></div>
+    <div class="btns"><button type="button" class="btn primary" id="mgClose">閉じる</button></div>
+  </div>
+</div>
+
+<div id="chgBox" class="overlay hidden">
+  <div class="box">
+    <h2>直す前・消す前の文</h2>
+    <div class="mg-list" id="chgBody"></div>
+    <div class="err" id="chgErr"></div>
+    <div class="btns"><button type="button" class="btn primary" id="chgClose">閉じる</button></div>
+  </div>
+</div>
+
 <div id="laterBox" class="overlay hidden">
   <div class="box">
     <h2 id="laterTitle">時間を決めて送る</h2>
@@ -612,6 +659,19 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // チャットの管理（2026-11-25）
+    'チャットの管理': 'Quản lý trò chuyện', '直した・消したものを探す': 'Tìm tin đã sửa / đã xóa', '書き出す': 'Xuất dữ liệu',
+    '直したものと消したもの': 'Cả tin đã sửa và đã xóa', '直したものだけ': 'Chỉ tin đã sửa', '消したものだけ': 'Chỉ tin đã xóa',
+    'Excel で開けるファイル（CSV）にします。消したメッセージも元の文で入ります。': 'Tạo tệp CSV mở được bằng Excel. Tin đã xóa cũng có nội dung gốc.',
+    '直す前・消す前の文': 'Nội dung trước khi sửa / xóa', '書いた人（だれでも）': 'Người viết (bất kỳ)',
+    'メッセージは{n}年たつと消えます（添付ファイルは残ります）': 'Tin nhắn sẽ bị xóa sau {n} năm (tệp đính kèm vẫn còn)',
+    '見られるのは、自分が読めるチャンネル・会話だけです（ほかの人どうしの1対1・グループは出ません）。メッセージは{n}年たつと消えます。添付ファイルは SharePoint に残ります。': 'Chỉ xem được các kênh và cuộc trò chuyện bạn đọc được (không hiện tin 1-1 hay nhóm của người khác). Tin nhắn sẽ bị xóa sau {n} năm. Tệp đính kèm vẫn còn trên SharePoint.',
+    '（{name}が）': '(bởi {name})', '消した': 'Đã xóa', '直した': 'Đã sửa', '（しまったチャンネル）': '(kênh đã cất)',
+    '消す前の文': 'Nội dung trước khi xóa', '直す前の文': 'Nội dung trước khi sửa', '今（あとで消された）': 'Hiện tại (sau đó đã bị xóa)', '今の文': 'Nội dung hiện tại',
+    '直した・消したものはありませんでした': 'Không có tin đã sửa / đã xóa', '直す前・消す前の文はありません': 'Không có nội dung trước khi sửa / xóa',
+    '期間を選んでください': 'Hãy chọn khoảng thời gian', '書き出しています…（{i}/{all}）': 'Đang xuất… ({i}/{all})',
+    'この期間のメッセージはありませんでした': 'Không có tin nhắn trong khoảng này', '{n}件を書き出しました': 'Đã xuất {n} tin',
+    '直す前の文を見る': 'Xem nội dung trước khi sửa', '削除されました（元の文を見る）': 'Đã bị xóa (xem nội dung gốc)',
     // 通知の段階（2026-11-23）
     "通知：すべて": "Thông báo: tất cả",
     "通知：自分あてだけ": "Thông báo: chỉ gửi tôi",
@@ -925,6 +985,19 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // チャットの管理（2026-11-25）
+    'チャットの管理': 'च्याट व्यवस्थापन', '直した・消したものを探す': 'सम्पादित / मेटाइएका खोज्नुहोस्', '書き出す': 'निर्यात गर्नुहोस्',
+    '直したものと消したもの': 'सम्पादित र मेटाइएका दुवै', '直したものだけ': 'सम्पादित मात्र', '消したものだけ': 'मेटाइएका मात्र',
+    'Excel で開けるファイル（CSV）にします。消したメッセージも元の文で入ります。': 'Excel मा खुल्ने फाइल (CSV) बनाउँछ। मेटाइएका सन्देश पनि मूल पाठसहित आउँछन्।',
+    '直す前・消す前の文': 'सम्पादन / मेटाउनु अघिको पाठ', '書いた人（だれでも）': 'लेख्ने व्यक्ति (जो कोही)',
+    'メッセージは{n}年たつと消えます（添付ファイルは残ります）': 'सन्देशहरू {n} वर्षपछि मेटिन्छन् (संलग्न फाइल रहन्छ)',
+    '見られるのは、自分が読めるチャンネル・会話だけです（ほかの人どうしの1対1・グループは出ません）。メッセージは{n}年たつと消えます。添付ファイルは SharePoint に残ります。': 'तपाईंले पढ्न सक्ने च्यानल र कुराकानी मात्र देखिन्छ (अरूबीचको १-१ वा समूह देखिँदैन)। सन्देशहरू {n} वर्षपछि मेटिन्छन्। संलग्न फाइल SharePoint मा रहन्छ।',
+    '（{name}が）': '({name} द्वारा)', '消した': 'मेटियो', '直した': 'सम्पादन गरियो', '（しまったチャンネル）': '(संग्रह गरिएको च्यानल)',
+    '消す前の文': 'मेटाउनु अघिको पाठ', '直す前の文': 'सम्पादन अघिको पाठ', '今（あとで消された）': 'अहिले (पछि मेटियो)', '今の文': 'अहिलेको पाठ',
+    '直した・消したものはありませんでした': 'सम्पादित / मेटाइएका केही भेटिएन', '直す前・消す前の文はありません': 'सम्पादन / मेटाउनु अघिको पाठ छैन',
+    '期間を選んでください': 'अवधि छान्नुहोस्', '書き出しています…（{i}/{all}）': 'निर्यात गर्दै… ({i}/{all})',
+    'この期間のメッセージはありませんでした': 'यो अवधिमा कुनै सन्देश छैन', '{n}件を書き出しました': '{n} वटा निर्यात गरियो',
+    '直す前の文を見る': 'सम्पादन अघिको पाठ हेर्नुहोस्', '削除されました（元の文を見る）': 'मेटाइयो (मूल पाठ हेर्नुहोस्)',
     // 通知の段階（2026-11-23）
     "通知：すべて": "सूचना: सबै",
     "通知：自分あてだけ": "सूचना: मलाई मात्र",
@@ -1248,7 +1321,7 @@ function tf(key, vars) {
   return base.replace(/\{(\w+)\}/g, (_, v) => (vars && vars[v] !== undefined ? String(vars[v]) : ''));
 }
 // 人が書いたもの（本文・名前・チャンネル名・探した言葉）は置き換えない
-const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where,.fmt-prev,#readersBody .names';
+const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where,#mgList .where,#chgBody .where,#mgCh,#mgWho,#mgExCh,.fmt-prev,#readersBody .names';
 const NO_TR_ATTR = NO_TR.replace(',textarea', ''); // 入力欄の「入力してください」の文（placeholder）は訳す
 function trTree(root) {
   if (!I18N || !root) return;
@@ -1530,6 +1603,7 @@ async function start() {
     S.saved = new Set(init.saved || []);
     S.prefs = init.prefs || { fav: [], cats: [] };
     S.quiet = init.quiet || null; // 通知を止める時間（2026-11-23）
+    api('chatManageAccess').then((r) => { S.manage = !!(r && r.allowed); S.retentionYears = (r && r.retentionYears) || 5; if (S.manage && S.cur) rerenderOpen(); }).catch(() => {}); // チャットの管理（主任以上と 90番。2026-11-25）
     if (!LITE) api('getTaskAccess').then((r) => { S.taskOk = !!(r && r.allowed); }).catch(() => {}); // メッセージから HALO のタスクを作れる人か
     document.querySelectorAll('.attach').forEach((b) => b.classList.toggle('hidden', !S.filesEnabled));
     $('meName').textContent = nameOf(S.me);
@@ -1818,7 +1892,7 @@ function msgHtml(m, prev, where) {
     + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '') + (m.meta && m.meta.remind && !m.deleted ? '・' + tr('予約で届いたもの') : '') + readHtml;
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
     ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}${presDot(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
-    <div class="bw">${acts}<div class="bub">${m.deleted ? tr('削除されました') : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}${ackDueHtml(m)}</span>` : '') + quote + fwdHtml(m) + renderBody(m) + filesHtml(m)}</div></div>
+    <div class="bw">${acts}<div class="bub">${m.deleted ? (S.manage && m.seq ? `<button type="button" class="readlink" data-act="changes">${esc(tr('削除されました（元の文を見る）'))}</button>` : tr('削除されました')) : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}${ackDueHtml(m)}</span>` : '') + quote + fwdHtml(m) + renderBody(m) + filesHtml(m)}</div></div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
     ${ackRow}
     ${replies}
@@ -2333,6 +2407,7 @@ function doAct(act, m, where, emoji) {
   else if (act === 'event') makeEvent(m);
   else if (act === 'unread') markUnread(m);
   else if (act === 'fwd') openFwd(m);
+  else if (act === 'changes') openChanges(m);
 }
 
 function openSheet(m, where) {
@@ -2350,6 +2425,7 @@ function openSheet(m, where) {
     ...(m.seq && EMBED && !LITE && m.kind !== 'vote' ? [['event', '予定にする']] : []),
     ...(mine && m.seq && S.readSeqs ? [['readers', m.meta && m.meta.ack ? '確認状況' : '読んだ人']] : []),
     ...(mine ? [['edit', '直す'], ['del', '消す']] : []),
+    ...(S.manage && m.seq && m.editedAt && !m.deleted ? [['changes', '直す前の文を見る']] : []), // チャットの管理（2026-11-25）
   ];
   $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}" class="${a === 'del' ? 'danger' : ''}">${l}</button>`).join('');
   $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); doAct(b.dataset.a, m, where); };
@@ -2488,8 +2564,8 @@ function openAvatar() {
 }
 $('myPhoto').addEventListener('click', openAvatar);
 // 「新しく」「自分の設定」は小さなメニューにまとめる（2026-11-23。前のボタンは隠して残し、そのまま押す）
-function openMiniSheet(items) {
-  $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}">${esc(tr(l))}</button>`).join('');
+function openMiniSheet(items, note) {
+  $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}">${esc(tr(l))}</button>`).join('') + (note ? `<div class="note">${esc(note)}</div>` : '');
   $('sheet').onclick = (e) => { const b = e.target.closest('button'); if (!b) return; closeSheet(); const it = items.find((x) => x[0] === b.dataset.a); if (it) it[2](); };
   showSheet();
 }
@@ -2500,7 +2576,119 @@ $('newBtn').addEventListener('click', () => openMiniSheet([
 $('mySetBtn').addEventListener('click', () => openMiniSheet([
   ['photo', 'アイコンを変える', () => $('myPhoto').click()],
   ['quiet', '通知を止める時間', () => openQuiet()],
-]));
+  ...(S.manage ? [['manage', 'チャットの管理', () => openManage()]] : []),
+], tf('メッセージは{n}年たつと消えます（添付ファイルは残ります）', { n: S.retentionYears || 5 })));
+
+// ---------- チャットの管理（2026-11-25。主任以上と 90番。Worker の chat/manage.js） ----------
+// 見られるのは、自分が読めるチャンネル・会話だけ（ほかの人どうしの1対1・グループは出ない。Worker でも確かめている）
+const whenOf = (t) => (t ? ymd(t) + ' ' + hm(t) : '');
+const dayStart = (v) => (v ? new Date(v + 'T00:00:00').getTime() : 0);
+const dayEnd = (v) => (v ? new Date(v + 'T23:59:59.999').getTime() : 0);
+function mgTab(t) {
+  document.querySelectorAll('.mg-tabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+  $('mgChg').classList.toggle('hidden', t !== 'chg');
+  $('mgExp').classList.toggle('hidden', t !== 'exp');
+  $('mgList').innerHTML = ''; $('mgErr').textContent = '';
+}
+document.querySelectorAll('.mg-tabs button').forEach((b) => b.addEventListener('click', () => mgTab(b.dataset.t)));
+function openManage() {
+  const chOpts = `<option value="">${esc(tr('すべてのチャンネル'))}</option>` + S.channels.map((c) => `<option value="${esc(c.id)}">${esc(chTitle(c))}</option>`).join('');
+  const who = Object.values(S.users).filter((u) => canChat(u.id)).sort((a, b) => String(a.name).localeCompare(String(b.name), 'ja'));
+  $('mgCh').innerHTML = $('mgExCh').innerHTML = chOpts;
+  $('mgWho').innerHTML = `<option value="">${esc(tr('書いた人（だれでも）'))}</option>` + who.map((u) => `<option value="${esc(u.id)}">${esc(u.name)}</option>`).join('');
+  $('mgNote').textContent = tf('見られるのは、自分が読めるチャンネル・会話だけです（ほかの人どうしの1対1・グループは出ません）。メッセージは{n}年たつと消えます。添付ファイルは SharePoint に残ります。', { n: S.retentionYears || 5 });
+  if (!$('mgExFrom').value) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1); $('mgExFrom').value = d.toLocaleDateString('sv'); }
+  if (!$('mgExTo').value) $('mgExTo').value = new Date().toLocaleDateString('sv');
+  mgTab('chg');
+  $('manageBox').classList.remove('hidden');
+}
+$('mgClose').addEventListener('click', () => $('manageBox').classList.add('hidden'));
+
+/** 直した・消したもの1件（探した結果・メッセージ1つの記録で同じ形） */
+function changeHtml(x, i, withJump, showNow = true) {
+  const by = x.by && x.by !== x.empId ? tf('（{name}が）', { name: nameOf(x.by) }) : '';
+  const what = x.what === 'delete' ? tr('消した') : tr('直した');
+  return `<div class="hit" data-i="${i}"><div class="where">${x.channelId ? esc(chNameOf(x.channelId) || tr('（しまったチャンネル）')) + '・' : ''}${esc(nameOf(x.empId))}・${esc(what)}${esc(by)}・${whenOf(x.at)}</div>`
+    + `<div class="lab">${esc(tr(x.what === 'delete' ? '消す前の文' : '直す前の文'))}</div><div class="body">${esc(x.before || '')}</div>`
+    + (x.what === 'edit' && showNow ? `<div class="lab">${esc(tr(x.deleted ? '今（あとで消された）' : '今の文'))}</div><div class="body">${esc(x.deleted ? '' : x.now || '')}</div>` : '')
+    + (withJump ? `<button type="button" data-p="jump">${esc(tr('メッセージへ'))}</button>` : '') + '</div>';
+}
+let mgItems = [];
+$('mgGo').addEventListener('click', async () => {
+  const f = {};
+  if ($('mgCh').value) f.channelId = $('mgCh').value;
+  if ($('mgWho').value) f.empId = $('mgWho').value;
+  if ($('mgWhat').value) f.what = $('mgWhat').value;
+  if ($('mgFrom').value) f.from = dayStart($('mgFrom').value);
+  if ($('mgTo').value) f.to = dayEnd($('mgTo').value);
+  $('mgErr').textContent = '';
+  $('mgList').innerHTML = `<div class="more">${esc(tr('探しています…'))}</div>`;
+  try {
+    const r = await api('chatChanges', { f });
+    mgItems = r.items || [];
+    $('mgList').innerHTML = mgItems.map((x, i) => changeHtml(x, i, true)).join('')
+      || `<div class="empty">${esc(tr('直した・消したものはありませんでした'))}</div>`;
+  } catch (e) { $('mgList').innerHTML = ''; $('mgErr').textContent = e.message; }
+});
+$('mgList').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-p="jump"]');
+  if (!b) return;
+  const x = mgItems[Number(b.closest('.hit').dataset.i)];
+  if (!x) return;
+  $('manageBox').classList.add('hidden');
+  jumpTo(x.channelId, x.seq, x.parentSeq);
+});
+
+/** メッセージ1つの直す前・消す前（メッセージのメニュー・「削除されました」から） */
+async function openChanges(m) {
+  $('chgErr').textContent = '';
+  $('chgBody').innerHTML = `<div class="more">${esc(tr('読み込んでいます…'))}</div>`;
+  $('chgBox').classList.remove('hidden');
+  try {
+    const r = await api('chatMsgChanges', { channelId: m._ch || S.cur, seq: m.seq });
+    const hs = r.history || [];
+    $('chgBody').innerHTML = hs.map((h, i) => changeHtml({ ...h, before: h.body, empId: r.empId, now: r.body, deleted: r.deleted }, i, false, i === hs.length - 1)).join('')
+      || `<div class="empty">${esc(tr('直す前・消す前の文はありません'))}</div>`;
+  } catch (e) { $('chgBody').innerHTML = ''; $('chgErr').textContent = e.message; }
+}
+$('chgClose').addEventListener('click', () => $('chgBox').classList.add('hidden'));
+
+/** 書き出し：チャンネルごとに続きを取りながら1つの CSV にする（Excel で開けるよう、頭に BOM を付ける） */
+const csvCell = (v) => { let s = String(v == null ? '' : v); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+$('mgExGo').addEventListener('click', async () => {
+  const from = dayStart($('mgExFrom').value), to = dayEnd($('mgExTo').value);
+  $('mgErr').textContent = '';
+  if (!from || !to || from > to) { $('mgErr').textContent = tr('期間を選んでください'); return; }
+  const targets = $('mgExCh').value ? S.channels.filter((c) => c.id === $('mgExCh').value) : S.channels.filter((c) => c.lastSeq > 0);
+  const lines = [['チャンネル', '番号', 'スレッドの元の番号', '書いた日時', '書いた人', '社員番号', '本文', '添付', '直した・消した日時', '消した'].map(csvCell).join(',')];
+  $('mgExGo').disabled = true;
+  try {
+    let n = 0;
+    for (const [k, c] of targets.entries()) {
+      $('mgList').innerHTML = `<div class="more">${esc(tf('書き出しています…（{i}/{all}）', { i: k + 1, all: targets.length }))}</div>`;
+      let after = 0;
+      for (;;) {
+        const r = await api('chatExport', { channelId: c.id, from, to, after });
+        for (const m of r.rows || []) {
+          const body = m.kind === 'halo' ? '[HALO] ' + m.body : m.body;
+          lines.push([chTitle(c), m.seq, m.parentSeq || '', whenOf(m.createdAt), fullNameOf(m.empId), m.empId, body, (m.files || []).join(' / '), whenOf(m.editedAt), m.deleted ? '消した' : ''].map(csvCell).join(','));
+          n++;
+        }
+        if (!r.next) break;
+        after = r.next;
+      }
+    }
+    if (!n) { $('mgList').innerHTML = `<div class="empty">${esc(tr('この期間のメッセージはありませんでした'))}</div>`; return; }
+    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `チャット書き出し_${$('mgExFrom').value}_${$('mgExTo').value}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    $('mgList').innerHTML = `<div class="empty">${esc(tf('{n}件を書き出しました', { n }))}</div>`;
+  } catch (e) { $('mgList').innerHTML = ''; $('mgErr').textContent = e.message; }
+  finally { $('mgExGo').disabled = false; }
+});
 
 // ---------- 通知を止める時間（2026-11-23。Worker の quiet.js。人ごと・どの端末でも同じ） ----------
 const QT = Array.from({ length: 96 }, (_, k) => String(Math.floor(k / 4)).padStart(2, '0') + ':' + String((k % 4) * 15).padStart(2, '0'));
