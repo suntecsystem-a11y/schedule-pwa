@@ -2256,7 +2256,7 @@ function avatarHtml(id, cls) {
 }
 const STAMP_RE = /:(s_[0-9a-f-]{36}):/g;
 const stampName = (id) => (S.stamps.find((x) => x.id === id) || {}).name || '';
-const previewText = (t) => stripFmt(t).replace(STAMP_RE, tr('[スタンプ]')).replace(/［画像\d+］/g, tr('[画像]'))
+const previewText = (t) => (t === '削除されました' ? tr(t) : stripFmt(t)).replace(STAMP_RE, tr('[スタンプ]')).replace(/［画像\d+］/g, tr('[画像]'))
   .replace(/^\[(投票|日程調整|確認してください)\] /, (x, k) => tr('[' + k + ']') + ' ');
 /** メッセージの短い文（投票は頭に [投票] などを付ける） */
 const msgPreview = (m) => (m.kind === 'vote' ? tr(m.meta && m.meta.vote && m.meta.vote.mode === 'sched' ? '[日程調整]' : '[投票]') + ' ' : '')
@@ -2802,6 +2802,9 @@ function addMsg(channelId, msg) {
 }
 /** 直した・消した・リアクション・返信の数が変わった */
 function applyUpdate(channelId, msg) {
+  // 最後のメッセージを直した・消したら、一覧の1行も合わせる（2026-11-25。前は消した文が一覧に残っていた）
+  const lc = S.channels.find((c) => c.id === channelId);
+  if (lc && msg.seq && msg.seq === lc.lastSeq) { lc.lastPreview = msg.deleted ? '削除されました' : msgPreview(msg).replace(/\s+/g, ' ').slice(0, 40); renderChannels(); }
   if (S.panel && S.panel.kind === 'pins' && S.panel.channelId === channelId) {
     const inList = S.panel.items.some((x) => x.msg.seq === msg.seq);
     if (!!msg.pinned !== inList) openPanel('pins');
