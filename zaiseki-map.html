@@ -1556,7 +1556,40 @@ function createTravelGraph(layout) {
   // 服の色＝部署。makeHero は決まった色で職業（見た目）を変えるので、その色を部署の順に割り当てる
   var HERO_COLORS=['#3b82c4','#e08a2e','#2fa37a','#7c6bd6','#22b0bf','#e268a0'];
   var CLOTHES={'#3b82c4':'#5379aa','#e08a2e':'#b85c4b','#2fa37a':'#50754c','#7c6bd6':'#8b6aa4','#22b0bf':'#649a9a','#e268a0':'#8b6aa4'};
-  var lastData=null, justMoved=false, pendingData=null, prevZone={};
+  var lastData=null, justMoved=false, pendingData=null, prevZone={}, otherWalks=0;
+  // 読み直しで場所が変わった人を、前の場所から今の場所まで歩かせる（2026-11-25）。movers = [{el, from}]（el は並べ終わった新しい場所の人）
+  function walkMovers(movers){
+    var PHONE=window.matchMedia('(max-width:700px) and (orientation:portrait)').matches;
+    var graph=null;try{graph=createTravelGraph(travelLayout());}catch(e){}
+    movers.forEach(function(mv){
+      var el=mv.el,toZone=el.closest('[data-zone]'),fromZone=document.querySelector('[data-zone="'+mv.from+'"]');
+      var route=graph&&toZone&&fromZone?graph.route(mv.from,toZone.dataset.zone):[];
+      if(!route.length){el.classList.add('arrive');return;}
+      var fc=pageRect(fromZone.querySelector('.chars')||fromZone),start={x:Math.round((fc.left+fc.right)/2),y:Math.max(fc.top+32,fc.bottom-8)};
+      var first=pageRect(el),end=footPoint(el),offsetX=end.x-first.left,offsetY=end.y-first.top;
+      var points=footConnector(start,route[0],false).concat(route.slice(1),footConnector(end,route[route.length-1],true).slice(1));
+      points=points.filter(function(p,i,a){return !i||Math.abs(p.x-a[i-1].x)+Math.abs(p.y-a[i-1].y)>.1;});
+      var walkSpeed=1;
+      if(PHONE){var walkTotal=0;for(var wi=1;wi<points.length;wi++){var wd=Math.abs(points[wi].x-points[wi-1].x)+Math.abs(points[wi].y-points[wi-1].y);walkTotal+=Math.max(90,Math.round(wd*(points[wi].kind==='stairs'?10:7.8)));}if(walkTotal>10000)walkSpeed=10000/walkTotal;}
+      var host=document.body;
+      if(travelSurface&&PHONE){host=travelSurface;var surface=pageRect(travelSurface);offsetX+=surface.left+travelSurface.clientLeft;offsetY+=surface.top+travelSurface.clientTop;}
+      var clone=el.cloneNode(true);clone.classList.add('walking','walkclone');clone.classList.remove('flip','arrive');clone.setAttribute('aria-hidden','true');clone.removeAttribute('role');clone.removeAttribute('tabindex');
+      clone.style.cssText='position:absolute;left:0;top:0;margin:0;z-index:9998;pointer-events:none;transform:translate('+(start.x-offsetX)+'px,'+(start.y-offsetY)+'px)';
+      host.appendChild(clone);el.style.visibility='hidden';otherWalks++;
+      var index=1,finished=false,animation=null,timer=null;
+      function finish(){if(finished)return;finished=true;clearTimeout(timer);if(animation)animation.cancel();clone.remove();el.style.visibility='';otherWalks--;
+        if(!otherWalks&&!activeWalk&&pendingData){var p=pendingData;pendingData=null;setTimeout(function(){placePeople(p);},0);}}
+      function next(){
+        if(finished)return;if(index>=points.length){finish();return;}
+        var a=points[index-1],b=points[index++],dx=b.x-a.x,dy=b.y-a.y,distance=Math.abs(dx)+Math.abs(dy);
+        clone.dataset.facing=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down');clone.dataset.terrain=b.kind;
+        var duration=Math.max(Math.round(90*walkSpeed),Math.round(distance*(b.kind==='stairs'?10:7.8)*walkSpeed));
+        animation=clone.animate([{transform:'translate('+(a.x-offsetX)+'px,'+(a.y-offsetY)+'px)'},{transform:'translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)'}],{duration:duration,easing:'steps('+Math.max(2,Math.ceil(b.kind==='stairs'?distance/10:duration/40))+', end)',fill:'forwards'});
+        var done=false;function complete(){if(done||finished)return;done=true;clearTimeout(timer);animation.cancel();clone.style.transform='translate('+(b.x-offsetX)+'px,'+(b.y-offsetY)+'px)';next();}animation.onfinish=complete;timer=setTimeout(complete,duration+250);
+      }
+      next();
+    });
+  }
   function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function setText(sel,text){var el=document.querySelector(sel);if(el&&text!=null)el.textContent=text;}
   function makeChar(id,name,color,look){
@@ -1568,7 +1601,7 @@ function createTravelGraph(layout) {
   }
   function placePeople(data){
     // 自分が歩いている途中に届いたデータ（30秒ごとの読み直しなど）は、歩き終わってから並べる（歩きを途中で切らない）
-    if(activeWalk){pendingData=data;return;}
+    if(activeWalk||otherWalks){pendingData=data;return;}
     // Omitted avatarLook keeps the trial selection for this account; null resets it.
     if(!lastData||lastData.me!==data.me||Object.hasOwn(data,'avatarLook'))restoreAvatarLook(data.avatarLook);
     lastData=data;var L=data.labels||{};
@@ -1598,8 +1631,9 @@ function createTravelGraph(layout) {
     // マスを空にして並べ直す
     document.querySelectorAll('[data-zone] .chars').forEach(function(c){c.replaceChildren();c.style.minHeight='';});
     if(you.parentNode)you.remove();
-    // 前回から場所が変わった人は、新しい場所にふわっと出す（歩くのは自分だけ。初めて並べるときは出さない）
-    var nextZone={};
+    // 前回から場所が変わった人は、前の場所から歩いて来る（2026-11-25。初めて並べるときは歩かない。下の walkMovers）
+    var nextZone={},movers=[];
+    var RMW=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
     (data.members||[]).forEach(function(m){
       var box=m.zone?document.querySelector('[data-zone="'+m.zone+'"] .chars'):null;if(!box)return;
       nextZone[m.id]=m.zone;
@@ -1608,13 +1642,17 @@ function createTravelGraph(layout) {
       if(m.id===data.me){you.dataset.id=m.id;you.setAttribute('role','button');you.tabIndex=0;you.setAttribute('aria-label',m.name);ynm.textContent=m.name;el=you;}
       else el=makeChar(m.id,m.name,deptColor[m.dept||''],m.look);
       el.dataset.dept=m.dept||'';
-      el.classList.remove('arrive');if(moved){void el.offsetWidth;el.classList.add('arrive');}
+      el.classList.remove('arrive');
+      if(moved&&!RMW&&document.querySelector('[data-zone="'+prevZone[m.id]+'"]'))movers.push({el:el,from:prevZone[m.id]});
+      else if(moved){void el.offsetWidth;el.classList.add('arrive');}
       box.appendChild(el);
     });
     prevZone=nextZone;
     document.querySelectorAll('[data-zone] .chars').forEach(function(c){if(!c.children.length){var e=document.createElement('span');e.className='empty';e.textContent=L.nobody||'だれもいない…';c.appendChild(e);}});
     setText('#now-label',data.myPlace||'');setText('#mobile-now-label',data.myPlace||'');
     renderRoster();drawTravelRoads();
+    if(movers.length>15)movers.forEach(function(mv){mv.el.classList.add('arrive');});
+    else if(movers.length)requestAnimationFrame(function(){walkMovers(movers);});
   }
   window.__zmapPlacePeople=placePeople;
 })();
