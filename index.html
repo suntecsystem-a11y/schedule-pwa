@@ -735,6 +735,33 @@ body[data-tab="chat"] .fab{display:none!important}
 .tk-empty{padding:48px 16px;text-align:center;color:var(--text2)}
 #tab-tasks.content{max-width:none;padding:12px 16px}
 #tab-keiei.content{max-width:none;padding:12px 16px}
+/* 開発状況タブ（2026-11-25。81・90だけ） */
+#tab-devstatus.content{max-width:1000px}
+.ds-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 14px}
+.ds-head h2{font-size:1.15em;margin:0}
+.ds-head .ds-upd{color:var(--text2);font-size:.85em}
+.ds-head .ds-sp{flex:1}
+.ds-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:8px;padding:5px 12px;font-size:.85em;cursor:pointer}
+.ds-btn.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.ds-sec{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.ds-sec h3{font-size:.95em;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.ds-sec h3 .ds-n{color:var(--text2);font-weight:400;font-size:.9em}
+.ds-sec .ds-desc{color:var(--text2);font-size:.8em;margin:-4px 0 8px}
+.ds-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 0;border-top:1px solid var(--border)}
+.ds-sec h3+.ds-row,.ds-desc+.ds-row{border-top:0}
+.ds-title{font-weight:600}
+.ds-meta{color:var(--text2);font-size:.82em;text-align:right;white-space:nowrap}
+.ds-where{color:var(--text2);font-size:.85em;grid-column:1/-1}
+.ds-next{font-size:.85em;grid-column:1/-1}
+.ds-next b{font-weight:600;color:var(--text2);margin-right:6px}
+.ds-area{display:inline-block;font-size:.72em;font-weight:400;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:1px}
+.ds-rel{display:grid;grid-template-columns:170px minmax(0,1fr);gap:6px 12px;font-size:.9em}
+.ds-rel .ds-k{color:var(--text2)}
+.ds-m{color:var(--text2);font-size:.85em}
+.ds-cm{display:grid;grid-template-columns:90px 120px minmax(0,1fr);gap:2px 10px;font-size:.85em;padding:5px 0;border-top:1px solid var(--border)}
+.ds-sec h3+.ds-cm{border-top:0}
+.ds-cm .ds-d,.ds-cm .ds-a{color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:640px){.ds-rel{grid-template-columns:1fr;gap:2px}.ds-rel .ds-k{margin-top:6px}.ds-cm{grid-template-columns:auto minmax(0,1fr)}.ds-cm>span:last-child{grid-column:1/-1}.ds-row{grid-template-columns:1fr}.ds-meta{text-align:left}}
 #tk-view{position:relative;height:calc(100vh - 250px);min-height:380px}
 #tk-wrap,#tk-kanban,#tk-dash{position:absolute;inset:0;overflow:auto}
 #tk-content{position:relative}
@@ -1137,6 +1164,7 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
     <button class="sidebar-btn" data-tab="inquiry" data-tip="問い合わせ" disabled style="opacity:0.4;cursor:not-allowed"><span class="sidebar-icon">💬</span><span class="sidebar-label">問い合わせ <span style="font-size:0.72em">（準備中）</span></span><span class="sidebar-short">問い合わせ</span></button>
     <button class="sidebar-btn" data-tab="tasks" data-tip="タスク" onclick="switchTab('tasks',this)"><span class="sidebar-icon">✅</span><span class="sidebar-label">タスク</span><span class="sidebar-short">タスク</span></button>
     <button class="sidebar-btn" data-tab="keiei" data-tip="経営" id="keiei-sidebar-btn" onclick="switchTab('keiei',this)" style="display:none"><span class="sidebar-icon">📊</span><span class="sidebar-label">経営</span><span class="sidebar-short">経営</span></button>
+    <button class="sidebar-btn" data-tab="devstatus" data-tip="開発状況" id="devstatus-sidebar-btn" onclick="switchTab('devstatus',this)" style="display:none"><span class="sidebar-icon">🛠</span><span class="sidebar-label">開発状況</span><span class="sidebar-short">開発</span></button>
     <button class="sidebar-btn" data-tab="elearning" data-tip="eラーニング" id="elearning-sidebar-btn" onclick="switchTab('elearning',this)" style="display:none"><span class="sidebar-icon">📚</span><span class="sidebar-label">eラーニング</span><span class="sidebar-short">eラーニング</span></button>
     <button class="sidebar-btn" data-tab="settings" data-tip="設定" onclick="switchTab('settings',this)"><span class="sidebar-icon">🔧</span><span class="sidebar-label">設定</span><span class="sidebar-short">設定</span></button>
     <button class="sidebar-btn admin-side" data-tab="admin" data-tip="管理" id="admin-sidebar-btn" onclick="switchTab('admin',this)" style="display:none"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">管理</span><span class="sidebar-short">管理</span></button>
@@ -1368,6 +1396,10 @@ body.tk-mving,body.tk-mving *{cursor:grabbing!important;user-select:none}
 
   <!-- 経営（2026-11-24。経営管理システムの画面イメージ。社員番号81だけ。中身は Worker の getKeieiMock から取って iframe に入れる。公開リポジトリには置かない） -->
   <div class="content" id="tab-keiei" style="display:none"></div>
+
+  <!-- 開発状況（2026-11-25。作っている途中・本番に出していない機能と、今の本番。社員番号81・90だけ。
+       中身は Worker の getDevStatus から取る。一覧の正本は非公開リポジトリ schedule-dev/devstatus/開発状況.json。公開リポジトリには置かない） -->
+  <div class="content" id="tab-devstatus" style="display:none"></div>
 
   <!-- HALO チャット（2026-11-17。chat.html を iframe で。使える人だけ。_initChatAccess）。
        11/18 から、未読の数をタブに出すため HALO を開いたら裏で読み込む（_loadChatFrame） -->
@@ -2286,7 +2318,7 @@ ja:{
 'dr.sending':'送信中...',
 'dr.saved':'Kaizen Stepを記録しました',
 // ナビ
-'nav.home':'ホーム','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.dev.part':'{t} は貸出あり','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','car.now.btn':'今すぐ使う','car.now.evtitle':'{dest}（社用車 {car}）','car.now.h':'＋{n}時間','car.now.today':'今日中','car.now.notfound':'車の予約が見つかりません。画面を更新してから、自分の予約の「出発」を押してください','car.now.departfail':'予約はできました。出発の記録に失敗したので、もう一度「出発する」を押してください（{msg}）','fac.car.busy':'{name} 〜{t}','fac.car.depart':'出発','fac.car.return':'帰社','nav.rooms':'会議室','nav.team':'在席・当番',
+'nav.home':'ホーム','nav.devstatus':'開発状況','nav.tasks':'タスク','nav.calendar':'カレンダー','fac.avail':'今すぐ使える','fac.avail.day':'この日に使える','fac.grid':'空き状況','fac.when.now':'今すぐ','fac.when.1h':'1時間後','fac.when.tmr':'明日','fac.free.until':'{t}まで空き','fac.free.all':'終日空き','fac.free.rest':'このあと空き','fac.book':'予約','fac.rent':'借りる','fac.cap':'{n}名','fac.dev.free':'この日は空き','fac.grid.hint':'空いている所をタップすると予約できます','fac.none':'空いている設備はありません','fac.grp.free':'{n}台中 {f}台が空き','fac.grp.cnt':'{n}台','fac.grp.none':'空きなし','fac.dev.part':'{t} は貸出あり','fac.grp.total':'全{n}台','cal.view.3day':'3日','cal.day.of':'{date}の予定','cal.day.add':'この日に追加','cal.day.none':'この日の予定はありません','cal.day.more':'ほか{n}名','fac.car':'車','fac.car.prep':'車の予約は準備中です。使えるようになったら、ここから予約できます。','nav.facility':'設備予約','nav.facility.short':'設備予約','fac.title':'設備予約','fac.all':'すべて','fac.room':'会議室','fac.device':'端末','fac.mine':'自分の予約・借りている物','fac.mine.none':'これからの予約や借りている物はありません','fac.left':'返却まで {n}日','fac.today':'今日返却','fac.over':'{n}日超過','car.now.btn':'今すぐ使う','car.now.evtitle':'{dest}（社用車 {car}）','car.now.h':'＋{n}時間','car.now.today':'今日中','car.now.notfound':'車の予約が見つかりません。画面を更新してから、自分の予約の「出発」を押してください','car.now.departfail':'予約はできました。出発の記録に失敗したので、もう一度「出発する」を押してください（{msg}）','fac.car.busy':'{name} 〜{t}','fac.car.depart':'出発','fac.car.return':'帰社','nav.rooms':'会議室','nav.team':'在席・当番',
 'nav.cars':'車予約','nav.devices':'端末','nav.inquiry':'問い合わせ','nav.apply':'申請',
 'nav.mypage':'マイページ','nav.settings':'設定','nav.admin':'管理','nav.logout':'ログアウト',
 'nav.preparing':'（準備中）',
@@ -3434,13 +3466,14 @@ const NAV_META={
   tasks:{e:'✅',k:'nav.tasks',s:'nav.tasks',get prep(){return !tkAllowed();}},
   elearning:{e:'📚',k:'nav.elearning',s:'nav.elearning'},
   settings:{e:'🔧',k:'nav.settings',s:'nav.settings'},
+  devstatus:{e:'🛠',k:'nav.devstatus',s:'nav.devstatus'}, // 2026-11-25 開発状況（81・90だけ）
   admin:{e:'⚙️',k:'nav.admin',s:'nav.admin'}
 };
 // 車予約タブ（準備中）を先行して開ける社員番号。全員に開放するときは NAV_META.cars の prep を外す
 const CAR_ALLOWED_IDS=['90'];
 function carAllowed(){return !!(currentUser&&CAR_ALLOWED_IDS.includes(String(currentUser.id)));}
 const BOTTOM_TABS=['home','calendar','team','chat'];
-const MORE_TABS=['apply','mypage','rooms','inquiry','tasks','elearning','settings','admin'];
+const MORE_TABS=['apply','mypage','rooms','inquiry','tasks','elearning','settings','devstatus','admin'];
 let _currentTab='home';
 let _moreNotifCount=0;
 function _applyNavLabels(){
@@ -3465,6 +3498,7 @@ function _applyNavLabels(){
 }
 function _canSeeNavTab(tab){
   if(tab==='admin')return !!(currentUser&&currentUser.isAdmin);
+  if(tab==='devstatus')return devStatusAllowed();
   if(tab==='elearning')return !!(currentUser&&(currentUser.isAdmin||(currentUser.role&&currentUser.role!=='一般')));
   return true;
 }
@@ -4123,6 +4157,7 @@ function showApp(opts){
   document.getElementById('admin-tab-btn').style.display = isAdmin ? 'block' : 'none';
   document.getElementById('admin-sidebar-btn').style.display = isAdmin ? 'flex' : 'none';
   document.getElementById('keiei-sidebar-btn').style.display = keieiAllowed() ? 'flex' : 'none'; // 経営タブ（永野だけ）
+  document.getElementById('devstatus-sidebar-btn').style.display = devStatusAllowed() ? 'flex' : 'none'; // 開発状況タブ（81・90だけ）
   const canSeeElearning = isAdmin || (currentUser.role && currentUser.role !== '一般');
   document.getElementById('elearning-tab-btn').style.display = canSeeElearning ? 'block' : 'none';
   document.getElementById('elearning-sidebar-btn').style.display = canSeeElearning ? 'flex' : 'none';
@@ -4771,6 +4806,88 @@ function renderKeieiTab(){
     _keiei.error=(e&&e.message)||'読み込めませんでした';
     box.innerHTML='<div style="padding:24px;color:#b5533c">'+esc(_keiei.error)+'</div>';
   }).finally(()=>{_keiei.loading=false;});
+}
+// ===== 開発状況タブ（2026-11-25。社員番号81・90だけ） =====
+// 見えるかどうかは、ここ（ボタンの表示）と Worker の getDevStatus（devstatus.js。同じ社員番号だけ中身を返す）の両方で決める。
+// 広げるときは Worker の DEVSTATUS_ALLOWED_IDS も同じ値にする。一覧の中身は Worker（KV）にあり、このリポジトリ（公開）には置かない。
+const DEVSTATUS_ALLOWED_IDS=['81','90'];
+function devStatusAllowed(){return !!(currentUser&&!currentUser.isPartner&&DEVSTATUS_ALLOWED_IDS.includes(String(currentUser.id)));}
+const DS_STATES=[
+  {k:'dev',  t:'作っている途中',               d:'開発用・一部の人だけで動いているもの'},
+  {k:'ready',t:'できている・本番に出していない', d:'作り終わって、本番への切り替え・試験を待っているもの'},
+  {k:'check',t:'本番に出した・確認待ち',       d:'本番には出したが、実機・実データでの確認が済んでいないもの'},
+  {k:'idea', t:'決めた・まだ作っていない',     d:''},
+  {k:'hold', t:'保留',                         d:''},
+  {k:'done', t:'最近本番に出した',             d:''}
+];
+let _ds={data:null,loading:false,error:'',who:'',commits:null,commitsErr:''};
+function _dsDate(v){
+  if(!v)return '';
+  const d=new Date(v);if(isNaN(d))return esc(v);
+  const p=n=>String(n).padStart(2,'0');
+  return (d.getMonth()+1)+'/'+d.getDate()+(String(v).length>10?' '+p(d.getHours())+':'+p(d.getMinutes()):'');
+}
+function renderDevStatusTab(reload){
+  const box=document.getElementById('tab-devstatus');if(!box)return;
+  if(reload&&!_ds.loading){_ds.data=null;_ds.error='';_ds.commits=null;_ds.commitsErr='';}
+  if(!_ds.data&&!_ds.error&&!_ds.loading){
+    _ds.loading=true;
+    box.innerHTML='<div style="padding:24px;color:var(--text2)">読み込んでいます…</div>';
+    api('getDevStatus',{},'',{quiet:true}).then(r=>{_ds.data=r||{};}).catch(e=>{_ds.error=(e&&e.message)||'読み込めませんでした';})
+      .finally(()=>{_ds.loading=false;if(_currentTab==='devstatus')_dsDraw();});
+    _dsLoadCommits();
+    return;
+  }
+  _dsDraw();
+}
+// 画面（GitHub Pages）は main がそのまま公開なので、公開リポジトリの最近のコミットを出す
+function _dsLoadCommits(){
+  fetch('https://api.github.com/repos/suntecsystem-a11y/schedule-pwa/commits?per_page=12',{headers:{Accept:'application/vnd.github+json'}})
+    .then(r=>{if(!r.ok)throw new Error('GitHub から取れませんでした（'+r.status+'）');return r.json();})
+    .then(a=>{_ds.commits=(a||[]).map(c=>({d:c.commit&&c.commit.author&&c.commit.author.date,a:c.commit&&c.commit.author&&c.commit.author.name,m:(c.commit&&c.commit.message||'').split('\n')[0]}));})
+    .catch(e=>{_ds.commitsErr=(e&&e.message)||'取れませんでした';})
+    .finally(()=>{if(_currentTab==='devstatus'&&!_ds.loading)_dsDraw();});
+}
+function _dsSetWho(w){_ds.who=w;_dsDraw();}
+function _dsDraw(){
+  const box=document.getElementById('tab-devstatus');if(!box||_ds.loading)return;
+  if(_ds.error){box.innerHTML='<div style="padding:24px;color:var(--red)">'+esc(_ds.error)+'</div><div style="padding:0 24px"><button class="ds-btn" onclick="renderDevStatusTab(true)">読み直す</button></div>';return;}
+  const st=(_ds.data&&_ds.data.status)||null, wk=(_ds.data&&_ds.data.worker)||{};
+  let h='<div class="ds-head"><h2>開発状況</h2><span class="ds-upd">'+(st&&st.updated?'一覧の更新 '+esc(st.updated):'')+'</span><span class="ds-sp"></span>';
+  ['','81','90'].forEach(w=>{h+='<button class="ds-btn'+(_ds.who===w?' on':'')+'" onclick="_dsSetWho(\''+w+'\')">'+(w?w+' の分':'すべて')+'</button>';});
+  h+='<button class="ds-btn" onclick="renderDevStatusTab(true)">読み直す</button></div>';
+  // 今の本番
+  h+='<div class="ds-sec"><h3>今の本番</h3><div class="ds-rel">';
+  h+='<div class="ds-k">Worker の最後のデプロイ</div><div>'+(wk.deployedAt?_dsDate(wk.deployedAt)+' <span class="ds-m">'+esc(wk.name||'')+(wk.versionId?' '+esc(wk.versionId):'')+'</span>':'<span class="ds-m">わかりません（次のデプロイから出ます）</span>')+'</div>';
+  ((st&&st.release)||[]).forEach(r=>{
+    h+='<div class="ds-k">'+esc(r.label)+'</div><div>'+esc(r.value)+(r.date?' <span class="ds-m">'+esc(r.date)+'</span>':'')+(r.memo?'<div class="ds-m">'+esc(r.memo)+'</div>':'')+'</div>';
+  });
+  h+='</div></div>';
+  if(!st){
+    h+='<div class="ds-sec"><div style="color:var(--text2)">一覧がまだ置かれていません（schedule-dev の worker で node scripts/devstatus-put.mjs --prod）</div></div>';
+  }else{
+    const items=(st.items||[]).filter(it=>!_ds.who||String(it.who||'')===_ds.who);
+    DS_STATES.forEach(s=>{
+      const list=items.filter(it=>it.state===s.k);
+      if(!list.length)return;
+      h+='<div class="ds-sec"><h3>'+esc(s.t)+'<span class="ds-n">'+list.length+'件</span></h3>'+(s.d?'<div class="ds-desc">'+esc(s.d)+'</div>':'');
+      list.forEach(it=>{
+        h+='<div class="ds-row"><div class="ds-title">'+esc(it.title)+(it.area?'<span class="ds-area">'+esc(it.area)+'</span>':'')+'</div>'
+          +'<div class="ds-meta">'+[it.date?esc(it.date):'',it.who?'担当 '+esc(it.who):''].filter(Boolean).join('　')+'</div>'
+          +(it.where?'<div class="ds-where">'+esc(it.where)+'</div>':'')
+          +(it.next?'<div class="ds-next"><b>次</b>'+esc(it.next)+'</div>':'')+'</div>';
+      });
+      h+='</div>';
+    });
+    if(!items.length)h+='<div class="ds-sec"><div style="color:var(--text2)">ありません</div></div>';
+  }
+  // 画面の最近の公開
+  h+='<div class="ds-sec"><h3>画面の最近の公開<span class="ds-n">GitHub の main（そのまま公開）</span></h3>';
+  if(_ds.commitsErr)h+='<div class="ds-m">'+esc(_ds.commitsErr)+'</div>';
+  else if(!_ds.commits)h+='<div class="ds-m">読み込んでいます…</div>';
+  else _ds.commits.forEach(c=>{h+='<div class="ds-cm"><span class="ds-d">'+_dsDate(c.d)+'</span><span class="ds-a">'+esc(c.a)+'</span><span>'+esc(c.m)+'</span></div>';});
+  h+='</div>';
+  box.innerHTML=h;
 }
 function renderTasksTab(){
   if(!_tk.loaded&&!_tk.error){tkLoad();return;}
@@ -6759,10 +6876,11 @@ function switchTab(tab, btn){
   if(tab==='cars'){ _facFilter='car'; tab='rooms'; }       // 車も設備予約の中（準備中。3e-1）
   if(tab==='tasks'&&!tkAllowed())return;
   if(tab==='keiei'&&!keieiAllowed())return;
+  if(tab==='devstatus'&&!devStatusAllowed())return;
   if(tab==='cars'&&!carAllowed())return;
   if(tab==='chat'&&!document.body.classList.contains('chat-on'))return;
   _logTabView(_tabName);
-  ['home','calendar','tasks','keiei','rooms','team','chat','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
+  ['home','calendar','tasks','keiei','devstatus','rooms','team','chat','devices','cars','inquiry','apply','elearning','mypage','settings','admin'].forEach(tb=>{
     document.getElementById('tab-'+tb).style.display=tb===tab?'block':'none';
   });
   document.querySelectorAll('.tab-btn,.sidebar-btn,.bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
@@ -6777,6 +6895,7 @@ function switchTab(tab, btn){
   else                { _markNoticesAsSeen(); }
   if(tab==='tasks')   renderTasksTab();
   if(tab==='keiei')   renderKeieiTab();
+  if(tab==='devstatus') renderDevStatusTab();
   if(tab==='rooms')   { renderRoomTimeline(); renderFacility(); try{ renderDevices(); }catch(e){} loadEvents().then(()=>{ if(_currentTab==='rooms'){ renderDevices(); renderFacMine(); renderFacAvail(); renderFacGrid(); } }); loadRentalMasters().then(()=>{ if(_currentTab==='rooms'){ renderFacAvail(); renderFacGrid(); } }).catch(()=>{}); _facLoadCar(); }
   if(tab==='team')    { _teamLastActive=Date.now(); renderTeam(); Promise.all([loadPlaces(), loadLunch()]).then(()=>{ if(_currentTab==='team') renderTeam(); }); _teamAutoStart(); }
   else                _teamAutoStop();
