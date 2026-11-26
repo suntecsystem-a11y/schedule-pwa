@@ -53,6 +53,7 @@
       '.dm-meta{display:flex;gap:5px;flex-wrap:wrap;align-items:center;font-size:.78em;color:var(--dmt2)}.dm-area{border:1px solid var(--dmb);border-radius:6px;padding:0 6px}',
       '.dm-tag{border-radius:6px;padding:0 6px;font-weight:700}',
       '.dm-nx{margin-top:6px;background:var(--bg2);border-radius:8px;padding:5px 9px;font-size:.82em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.dm-nx b{color:var(--c);margin-right:6px}',
+      '.dm-c2{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:.8em;margin-top:5px}.dm-cbtn.s{margin-top:0;width:auto;padding:1px 8px;font-size:.78em;font-weight:700;flex:none}',
       '.dm-cbtn{margin-top:8px;width:100%;border:1px solid var(--dmb);background:rgba(47,111,237,.08);color:var(--dmp);border-radius:8px;padding:5px 8px;font-size:.8em;cursor:pointer}',
       '.dm-more{font-size:.85em;color:var(--dmp);cursor:pointer;padding:2px 6px}.dm-empty{color:var(--dmt2);padding:14px;text-align:center;font-size:.85em}',
       '.dm-ov{position:fixed;inset:0;background:rgba(20,24,35,.4);z-index:3000}',
@@ -89,7 +90,7 @@
   }
   function items() {
     const s = st.data && st.data.status;
-    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i), mark: i.mark || '', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, desc: i.desc || '', act: i.activityId ? String(i.activityId) : '', sh: i.sheet || null }));
+    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i), mark: i.mark || '', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, desc: i.desc || '', act: i.activityId ? String(i.activityId) : '', pri: (i.sheet && i.sheet.priority) || '', sh: i.sheet || null }));
   }
   const filtered = () => items().filter((i) => (!st.who || i.who === st.who) && (!st.area || i.area === st.area));
 
@@ -114,7 +115,9 @@
     h += '<div class="dm-yw"><div class="dm-rail"><div class="dm-lb">担当者</div>' + ['', ...whos].map((w) => '<button class="dm-rb ' + (st.who === w ? 'on' : '') + '" data-w="' + esc(w) + '" onclick="DevManage.who(this.dataset.w)">' + (w ? esc(whoName(w)) : '全員') + '<span>' + cnt(w) + '件</span></button>').join('') + '</div><div class="dm-cols">';
     const list = filtered();
     h += STAGES.map((s) => {
-      const l = list.filter((i) => i.stage === s.k); let show = l, more = '';
+      // 列の中は、優先度の高い順（未判定は一番下）。同じ優先度は、一覧の並びのまま
+      const RANK = { high: 0, mid: 1, low: 2 };
+      const l = list.filter((i) => i.stage === s.k).sort((a, c) => (RANK[a.pri] ?? 3) - (RANK[c.pri] ?? 3)); let show = l, more = '';
       if (s.k === 'all' && l.length > 5) {   // 全体リリースは件数が多いので、新しい5件だけ出して、残りは開く
         const sorted = l.slice().sort((a, c) => (c.date || '').localeCompare(a.date || ''));
         show = st.doneAll ? sorted : sorted.slice(0, 5);
@@ -127,13 +130,14 @@
   const tags = (i) => (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '')
     + (i.mark ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">' + esc(i.mark) + '</span>' : '')
     + (i.chk ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '');
+  // 一覧のカードの表面は簡易版：題名・優先度・担当・開始日→期日・B/F。そのほかは詳細に出す（2026-11-26 永野さん）
+  // 開始日・期日は、連動した945の活動の「開始日」「終了日」（Worker の acts）。未連動・未入力は「—」
   function card(i, s) {
-    return '<div class="dm-card" style="--c:' + s.c + ';--bg2:' + s.bg + '" onclick="DevManage.open(' + i.id + ')"><div class="t">' + esc(i.title) + '</div><div class="dm-meta">'
-      + tags(i)
-      + (i.sh ? '<span class="dm-tag" style="background:#e8f0ff;color:#2f6fed">項目あり</span>' : '')
-      + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
-      + (i.next ? '<div class="dm-nx"><b>次</b>' + esc(i.next) + '</div>' : '')
-      + '<button class="dm-cbtn" onclick="event.stopPropagation();DevManage.compare(' + i.id + ')">◧ ビフォー／アフター</button></div>';
+    const p = PRI[i.pri], a = ((st.data && st.data.acts) || {})[i.act];
+    const dt = a && (a.start || a.end) ? (a.start ? md(a.start) : '—') + ' → ' + (a.end ? md(a.end) : '—') : '日付なし';
+    return '<div class="dm-card" style="--c:' + s.c + ';--bg2:' + s.bg + '" onclick="DevManage.open(' + i.id + ')"><div class="t">' + esc(i.title) + '</div>'
+      + '<div class="dm-c2"><span>' + (p ? '優先 <span class="dm-tag" style="background:' + p[1] + ';color:' + p[2] + '">' + p[0] + '</span>' : '<span class="dm-mute">優先 未判定</span>') + '</span><span>' + (i.who ? esc(whoName(i.who)) : '') + '</span></div>'
+      + '<div class="dm-c2"><span class="dm-mute">' + esc(dt) + '</span><button class="dm-cbtn s" title="ビフォー／アフターを比べる" onclick="event.stopPropagation();DevManage.compare(' + i.id + ')">B/F</button></div></div>';
   }
   function flowHtml(i) {
     const idx = FLOW.indexOf(i.stage);
