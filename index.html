@@ -6850,6 +6850,7 @@ document.addEventListener('pointerup',e=>{
 });
 // タブ利用回数（2026-11-18。Worker の stats.js）。人は区別せず、日×タブの回数だけ数える。
 // 本番の Worker（D1 halo-stats）にも入れた。見るのは halo-worker の scripts/tab-stats.mjs（画面には出さない）
+// タブを足したら Worker の stats.js の TABS にも足す（足し忘れると「知らないタブです」が毎朝の失敗の知らせに出る。11/27 経営・開発状況で起きた）
 let _lastLoggedTab = null;
 function _logTabView(tab){
   if(!GAS_URL || !currentUser || tab===_lastLoggedTab) return; // 同じタブの押し直しは数えない
