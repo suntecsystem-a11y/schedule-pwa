@@ -306,8 +306,8 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .bub b{font-weight:700}
 .bub mark.hl,.fmt-prev mark.hl{background:#FBEA9A;color:inherit;border-radius:3px;padding:0 2px}
 .fc-red{color:#C0392B}.fc-orange{color:#C8650B}.fc-green{color:#2E7D32}.fc-blue{color:#1F5FBF}.fc-purple{color:#7B3FA0}.fc-gray{color:#6E7773}
-.fmt-btn,.ack-btn,.later-btn,.plus-btn{border:0;background:none;color:var(--text2);height:42px;padding:0 4px;flex-shrink:0}
-.fmt-btn:hover,.ack-btn:hover,.later-btn:hover,.plus-btn:hover{color:var(--primary)}
+.fmt-btn,.ack-btn,.req-btn,.later-btn,.plus-btn{border:0;background:none;color:var(--text2);height:42px;padding:0 4px;flex-shrink:0}
+.fmt-btn:hover,.ack-btn:hover,.req-btn:hover,.later-btn:hover,.plus-btn:hover{color:var(--primary)}
 .ack-btn.on,.fmt-btn.on{color:var(--primary)}
 .fmt-btn b{font-size:16px;font-family:Georgia,serif}
 .plus-btn{display:none;font-size:22px;line-height:1}
@@ -426,7 +426,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
   #thread,#panel{width:100%;border-left:0}
   #pinsBtn,#filesBtn,#muteBtn{display:none}
   #moreBtn{display:inline-block}
-  .composer .vote-btn,.composer .ack-btn,.composer .later-btn,.composer .fmt-btn{display:none}
+  .composer .vote-btn,.composer .ack-btn,.composer .req-btn,.composer .later-btn,.composer .fmt-btn{display:none}
   .composer .plus-btn{display:inline-block}
 }
 </style>
@@ -714,6 +714,7 @@ const ICON = {
   save: '<svg class="i" viewBox="0 0 24 24"><path d="M6 4h12v16l-6-4-6 4z"/></svg>',
   vote: '<svg class="i" viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>',
   ack: '<svg class="i" viewBox="0 0 24 24"><path d="M5 21V4h11l-1.5 4L16 12H5"/></svg>',
+  req: '<svg class="i" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>', // 人に頼む（2026-11-26）
   clock: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
   more: '<svg class="i" viewBox="0 0 24 24"><path d="M6 12h.01M12 12h.01M18 12h.01"/></svg>',
 };
@@ -3452,7 +3453,7 @@ function buildComposer(rootId, where) {
     <div class="ack-on hidden">確認してほしいメッセージとして送ります（全員に知らせ、だれが確認したか分かります）<span class="ack-due">期限<input type="date" class="ack-date" title="期限を入れると、その時刻にまだの人へ自動で知らせます"><select class="ack-time"></select></span></div>
     <div class="away-hint hidden"></div>
     <div class="pending-files hidden"></div>
-    <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><button class="stamp-btn" type="button" title="スタンプ・絵文字"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></svg></button><button class="fmt-btn" type="button" title="文字の書式（太字・色・マーカー）"><b>A</b></button><button class="ack-btn" type="button" title="確認してほしい（全員に知らせ、だれが確認したか分かる）">${ICON.ack}</button>${where === 'main' ? `<button class="vote-btn" type="button" title="投票・日程調整">${ICON.vote}</button>` : ''}<button class="plus-btn" type="button" title="そのほか">＋</button><textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ か ＠ で名前）'}"></textarea><button class="later-btn" type="button" title="時間を決めて送る">${ICON.clock}</button><button class="send" type="button" disabled>送信</button></div>
+    <div class="row"><button class="attach${S.filesEnabled ? '' : ' hidden'}" type="button" title="ファイルを付ける（1つ250MBまで）"><svg class="i" viewBox="0 0 24 24"><path d="M20 11l-8 8a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/></svg></button><input type="file" multiple class="hidden"><button class="stamp-btn" type="button" title="スタンプ・絵文字"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/></svg></button><button class="fmt-btn" type="button" title="文字の書式（太字・色・マーカー）"><b>A</b></button><button class="ack-btn" type="button" title="確認してほしい（全員に知らせ、だれが確認したか分かる）">${ICON.ack}</button><button class="req-btn" type="button" title="人に頼む（担当と期限を決めて、完了まで追う）">${ICON.req}</button>${where === 'main' ? `<button class="vote-btn" type="button" title="投票・日程調整">${ICON.vote}</button>` : ''}<button class="plus-btn" type="button" title="そのほか">＋</button><textarea class="in" rows="1" placeholder="${where === 'thread' ? '返信を入力' : 'メッセージを入力（@ か ＠ で名前）'}"></textarea><button class="later-btn" type="button" title="時間を決めて送る">${ICON.clock}</button><button class="send" type="button" disabled>送信</button></div>
     <div class="mention-box hidden"></div>`;
   const c = { root, input: root.querySelector('textarea'), send: root.querySelector('.send'), ctx: root.querySelector('.ctx'), box: root.querySelector('.mention-box'), state: { mentions: new Map() },
     fileInput: root.querySelector('input[type=file]'), pendingEl: root.querySelector('.pending-files'), files: [],
@@ -3465,6 +3466,7 @@ function buildComposer(rootId, where) {
   }).join('');
   root.querySelector('.fmt-btn').addEventListener('click', () => toggleFmtBar(where));
   root.querySelector('.ack-btn').addEventListener('click', () => setAck(where, !c.ack));
+  root.querySelector('.req-btn').addEventListener('click', () => openReq({ where, fromComposer: true })); // 人に頼む（PC。スマホは「＋」から）
   root.querySelector('.later-btn').addEventListener('click', () => openLater({ kind: 'send', where }));
   root.querySelector('.plus-btn').addEventListener('click', () => openPlus(where));
   c.fmtBar.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); }); // 押しても入力欄の選んだところを消さない
