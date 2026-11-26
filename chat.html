@@ -365,6 +365,17 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .mg-list .hit{cursor:default;padding:9px 4px}
 .mg-list .lab{font-size:11px;color:var(--text2);margin-top:4px}
 .mg-list .hit button{margin-top:6px;border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 10px;font:inherit;font-size:12px}
+/* はじめての案内（2026-11-26） */
+#guideBox .box{max-width:440px}
+.gd-step{font-size:12px;color:var(--text2);margin-bottom:4px}
+.gd-dots{display:flex;gap:6px;justify-content:center;margin:12px 0 0}
+.gd-dots i{width:7px;height:7px;border-radius:50%;background:var(--border)}
+.gd-dots i.on{background:var(--primary)}
+.gd-body{font-size:14px;line-height:1.7}
+.gd-body p{margin:0 0 8px}
+.gd-st{padding:8px 10px;border-radius:10px;background:var(--surface-1);margin:6px 0 10px;font-size:13px}
+.gd-st.warn{color:var(--red)}
+.gd-body .btn{margin:2px 0 8px}
 .sheet .note{font-size:12px;color:var(--text2);padding:8px 16px 4px;line-height:1.5}
 
 /* 自分あて・くり返し（2026-11-20） */
@@ -463,6 +474,16 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <textarea id="fwdNote" class="field" rows="2" maxlength="4000" placeholder="ひと言（なくてもよい）"></textarea>
     <div class="err" id="fwdErr"></div>
     <div class="btns"><button type="button" class="btn" id="fwdNo">やめる</button><button type="button" class="btn primary" id="fwdGo">転送する</button></div>
+  </div>
+</div>
+
+<div id="guideBox" class="overlay hidden">
+  <div class="box">
+    <div class="gd-step" id="gdStep"></div>
+    <h2 id="gdTitle"></h2>
+    <div class="gd-body" id="gdBody"></div>
+    <div class="gd-dots" id="gdDots"></div>
+    <div class="btns"><button type="button" class="btn" id="gdSkip">あとで</button><button type="button" class="btn" id="gdBack">戻る</button><button type="button" class="btn primary" id="gdNext">次へ</button></div>
   </div>
 </div>
 
@@ -681,6 +702,29 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // はじめての案内（2026-11-26）
+    'メッセージが届いたことを、このスマホに知らせます。': 'Báo cho điện thoại này khi có tin nhắn.',
+    'あとで': 'Để sau', '戻る': 'Quay lại', '次へ': 'Tiếp', '終わる': 'Xong', '使い方の案内': 'Hướng dẫn sử dụng', '{i} / {n}': '{i} / {n}',
+    'この端末で通知を受け取る': 'Nhận thông báo trên thiết bị này', '通知を止める時間': 'Giờ tạm dừng thông báo', 'よく使うものをまとめる': 'Gom những mục hay dùng',
+    'メッセージが届いたことを、スマホ・パソコンに知らせます。会社で使う端末ごとに設定してください。': 'Báo cho điện thoại / máy tính khi có tin nhắn. Hãy cài đặt trên từng thiết bị dùng ở công ty.',
+    'HALO Lite の下のメニューの「その他」→「通知を受け取る」で、この端末に通知が届くようになります。': 'Trong HALO Lite, chọn "Khác" ở menu dưới → "Nhận thông báo" để thiết bị này nhận thông báo.',
+    'HALO の「設定」→「通知（この端末）」で、この端末に通知が届くようになります。': 'Trong HALO, vào "Cài đặt" → "Thông báo (thiết bị này)" để nhận thông báo.',
+    'この端末は通知を受け取れます。': 'Thiết bị này đã nhận được thông báo.',
+    '通知は許可されていますが、まだ登録されていません。下のボタンを押してください。': 'Đã cho phép thông báo nhưng chưa đăng ký. Hãy nhấn nút bên dưới.',
+    'まだ通知を受け取れません。下のボタンを押して「許可」を選んでください。': 'Chưa nhận được thông báo. Hãy nhấn nút bên dưới và chọn "Cho phép".',
+    '通知がブロックされています。ブラウザ（端末）の設定で、このサイトの通知を許可してください。': 'Thông báo đang bị chặn. Hãy cho phép thông báo của trang này trong cài đặt trình duyệt (thiết bị).',
+    'iPhone は、Safari の「共有」→「ホーム画面に追加」で置いた HALO から開くと、通知を受け取れます。': 'Trên iPhone, hãy mở HALO từ biểu tượng đã "Thêm vào MH chính" (Safari → Chia sẻ) để nhận thông báo.',
+    'この端末・ブラウザでは通知を受け取れません。': 'Thiết bị / trình duyệt này không nhận được thông báo.',
+    'もう一度登録する': 'Đăng ký lại', 'この端末で通知を受け取る': 'Nhận thông báo trên thiết bị này',
+    'チャンネルごとの知らせ方は、チャンネルの上の「通知」のボタンで変えられます（1対1・グループはすべて、チャンネルは自分あてだけが決まりです）。': 'Cách báo của từng kênh có thể đổi bằng nút "Thông báo" phía trên kênh (mặc định: 1-1 / nhóm là tất cả, kênh là chỉ gửi tôi).',
+    '今は {from}〜{to} は知らせません{off}。': 'Hiện không báo từ {from} đến {to}{off}.', '（会社カレンダーの休みの日も）': ' (cả ngày nghỉ theo lịch công ty)',
+    '今は止める時間を決めていません（いつでも知らせます）。': 'Hiện chưa đặt giờ tạm dừng (luôn báo).',
+    '夜や休みの日は、スマホに知らせないようにできます。止めているあいだもメッセージは届き、開けば読めます。': 'Có thể không báo vào ban đêm hay ngày nghỉ. Tin nhắn vẫn đến và đọc được khi mở.',
+    '止める時間を変える': 'Đổi giờ tạm dừng',
+    '一覧の行をつかんで、まとまりやお気に入りに入れられます。並べ替えもドラッグでできます。': 'Kéo một dòng trong danh sách để cho vào nhóm hoặc yêu thích. Cũng có thể kéo để sắp xếp.',
+    '一覧の上の「一覧を整理」から、お気に入り（★）やまとまりに入れられます。': 'Dùng "Sắp xếp danh sách" ở trên để cho vào yêu thích (★) hoặc nhóm.',
+    '使わない会話は、チャンネルの「設定」→「一覧から外す（自分だけ）」で一覧から外せます。新しいメッセージが来たら、また出ます。': 'Cuộc trò chuyện không dùng có thể ẩn bằng "Cài đặt" → "Ẩn khỏi danh sách (chỉ mình tôi)". Sẽ hiện lại khi có tin mới.',
+    'この案内は「自分の設定」→「使い方の案内」でいつでも見られます。': 'Có thể xem lại hướng dẫn này bất cứ lúc nào ở "Cài đặt của tôi" → "Hướng dẫn sử dụng".',
     // Office で直す・HALO Lite（2026-11-26）
     'Office で開いて直す（Microsoft 365 にログインして、ほかの人と一緒に直せます）': 'Mở và sửa bằng Office (đăng nhập Microsoft 365 để sửa cùng người khác)',
     'このファイルは HALO Lite では開けません。会社の端末の HALO で開いてください': 'Không mở được tệp này trên HALO Lite. Hãy mở bằng HALO trên thiết bị của công ty',
@@ -1028,6 +1072,29 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // はじめての案内（2026-11-26）
+    'メッセージが届いたことを、このスマホに知らせます。': 'सन्देश आएको कुरा यो फोनमा सूचित गर्छ।',
+    'あとで': 'पछि', '戻る': 'पछाडि', '次へ': 'अर्को', '終わる': 'सकियो', '使い方の案内': 'प्रयोग निर्देशन', '{i} / {n}': '{i} / {n}',
+    'この端末で通知を受け取る': 'यो उपकरणमा सूचना पाउनुहोस्', '通知を止める時間': 'सूचना रोक्ने समय', 'よく使うものをまとめる': 'धेरै प्रयोग हुनेलाई समूहमा राख्नुहोस्',
+    'メッセージが届いたことを、スマホ・パソコンに知らせます。会社で使う端末ごとに設定してください。': 'सन्देश आएको कुरा फोन / कम्प्युटरमा सूचित गर्छ। कम्पनीमा प्रयोग गर्ने प्रत्येक उपकरणमा सेट गर्नुहोस्।',
+    'HALO Lite の下のメニューの「その他」→「通知を受け取る」で、この端末に通知が届くようになります。': 'HALO Lite को तलको मेनु "अन्य" → "सूचना पाउनुहोस्" बाट यो उपकरणमा सूचना आउँछ।',
+    'HALO の「設定」→「通知（この端末）」で、この端末に通知が届くようになります。': 'HALO को "सेटिङ" → "सूचना (यो उपकरण)" बाट यो उपकरणमा सूचना आउँछ।',
+    'この端末は通知を受け取れます。': 'यो उपकरणले सूचना पाउँछ।',
+    '通知は許可されていますが、まだ登録されていません。下のボタンを押してください。': 'सूचना अनुमति छ तर दर्ता भएको छैन। तलको बटन थिच्नुहोस्।',
+    'まだ通知を受け取れません。下のボタンを押して「許可」を選んでください。': 'अझै सूचना पाउँदैन। तलको बटन थिचेर "अनुमति" छान्नुहोस्।',
+    '通知がブロックされています。ブラウザ（端末）の設定で、このサイトの通知を許可してください。': 'सूचना रोकिएको छ। ब्राउजर (उपकरण) को सेटिङमा यो साइटको सूचना अनुमति दिनुहोस्।',
+    'iPhone は、Safari の「共有」→「ホーム画面に追加」で置いた HALO から開くと、通知を受け取れます。': 'iPhone मा Safari "सेयर" → "होम स्क्रिनमा थप्नुहोस्" बाट राखेको HALO खोल्दा सूचना पाइन्छ।',
+    'この端末・ブラウザでは通知を受け取れません。': 'यो उपकरण / ब्राउजरमा सूचना पाइँदैन।',
+    'もう一度登録する': 'फेरि दर्ता गर्नुहोस्', 'この端末で通知を受け取る': 'यो उपकरणमा सूचना पाउनुहोस्',
+    'チャンネルごとの知らせ方は、チャンネルの上の「通知」のボタンで変えられます（1対1・グループはすべて、チャンネルは自分あてだけが決まりです）。': 'प्रत्येक च्यानलको सूचना तरिका च्यानलमाथिको "सूचना" बटनबाट बदल्न सकिन्छ (पूर्वनिर्धारित: १-१ / समूह सबै, च्यानल मलाई मात्र)।',
+    '今は {from}〜{to} は知らせません{off}。': 'अहिले {from}〜{to} सूचना दिँदैन{off}।', '（会社カレンダーの休みの日も）': ' (कम्पनी क्यालेन्डरको बिदाको दिन पनि)',
+    '今は止める時間を決めていません（いつでも知らせます）。': 'अहिले रोक्ने समय तोकिएको छैन (सधैं सूचना दिन्छ)।',
+    '夜や休みの日は、スマホに知らせないようにできます。止めているあいだもメッセージは届き、開けば読めます。': 'राति वा बिदाको दिन फोनमा सूचना नदिने बनाउन सकिन्छ। रोकेको बेला पनि सन्देश आउँछ र खोल्दा पढ्न सकिन्छ।',
+    '止める時間を変える': 'रोक्ने समय बदल्नुहोस्',
+    '一覧の行をつかんで、まとまりやお気に入りに入れられます。並べ替えもドラッグでできます。': 'सूचीको पङ्क्ति तानेर समूह वा मनपर्नेमा राख्न सकिन्छ। तानेर क्रम पनि मिलाउन सकिन्छ।',
+    '一覧の上の「一覧を整理」から、お気に入り（★）やまとまりに入れられます。': 'माथिको "सूची मिलाउनुहोस्" बाट मनपर्ने (★) वा समूहमा राख्न सकिन्छ।',
+    '使わない会話は、チャンネルの「設定」→「一覧から外す（自分だけ）」で一覧から外せます。新しいメッセージが来たら、また出ます。': 'प्रयोग नहुने कुराकानी "सेटिङ" → "सूचीबाट हटाउनुहोस् (मेरो लागि मात्र)" बाट हटाउन सकिन्छ। नयाँ सन्देश आएमा फेरि देखिन्छ।',
+    'この案内は「自分の設定」→「使い方の案内」でいつでも見られます。': 'यो निर्देशन "मेरो सेटिङ" → "प्रयोग निर्देशन" बाट जुनसुकै बेला हेर्न सकिन्छ।',
     // Office で直す・HALO Lite（2026-11-26）
     'Office で開いて直す（Microsoft 365 にログインして、ほかの人と一緒に直せます）': 'Office मा खोलेर सम्पादन (Microsoft 365 मा लगइन गरेर अरूसँगै सम्पादन गर्न सकिन्छ)',
     'このファイルは HALO Lite では開けません。会社の端末の HALO で開いてください': 'यो फाइल HALO Lite मा खुल्दैन। कम्पनीको उपकरणको HALO मा खोल्नुहोस्',
@@ -1676,6 +1743,8 @@ async function start() {
     loadPresence(true);
     setInterval(() => loadPresence(), 5 * 60 * 1000);
     refreshForMeSoon(1500);
+    // はじめての案内（人ごと。見終わったら出さない。「あとで」はこの画面を開いているあいだだけ出さない）
+    if ((S.prefs.guide || 0) < GUIDE_V && !sessionStorage.getItem('chat_guide_later')) setTimeout(() => openGuide(0), 900);
     const want = params.get('ch');
     if (S.pendingDm) { const x = S.pendingDm; S.pendingDm = null; openDmWith(x); }
     else if (want && S.channels.some((c) => c.id === want)) openChannel(want);
@@ -2740,6 +2809,7 @@ $('newBtn').addEventListener('click', () => openMiniSheet([
 $('mySetBtn').addEventListener('click', () => openMiniSheet([
   ['photo', 'アイコンを変える', () => $('myPhoto').click()],
   ['quiet', '通知を止める時間', () => openQuiet()],
+  ['guide', '使い方の案内', () => openGuide(0)],
   ...(S.manage ? [['manage', 'チャットの管理', () => openManage()]] : []),
 ], tf('メッセージは{n}年たつと消えます（添付ファイルは残ります）', { n: S.retentionYears || 5 })));
 
@@ -2939,6 +3009,77 @@ $('mgList').addEventListener('click', async (e) => {
   } catch (er) { b.disabled = false; $('mgErr').textContent = er.message; }
 });
 
+// ---------- はじめての案内（2026-11-26。チャットを広げる前に、通知の設定を済ませてもらうため） ----------
+// 1. この端末で通知を受ける　2. 通知を止める時間　3. よく使うものをまとめる。見終わったら人ごとの設定（prefs.guide）に残す。
+// 通知の登録は、HALO 本体の中で開いているときは本体の「通知（この端末）」の処理を呼ぶ（同じサイトなので呼べる）。
+// HALO Lite は Lite の「その他」から登録する作りなので、そこを案内する。
+const GUIDE_V = 1; // 案内を作り直したら上げる（もう一度全員に出る）
+let gdIdx = 0;
+function parentPush() {
+  // HALO 本体の pushStatus・enablePushFromSettings（index.html）。呼べなければ null
+  try { if (EMBED && typeof window.parent.pushStatus === 'function') return window.parent; } catch {}
+  return null;
+}
+function pushText() {
+  const P = parentPush();
+  if (LITE) return { st: '', html: `<div class="gd-st">${esc(tr('HALO Lite の下のメニューの「その他」→「通知を受け取る」で、この端末に通知が届くようになります。'))}</div>` };
+  if (!P) return { st: '', html: `<div class="gd-st">${esc(tr('HALO の「設定」→「通知（この端末）」で、この端末に通知が届くようになります。'))}</div>` };
+  const st = P.pushStatus();
+  const msg = {
+    ok: 'この端末は通知を受け取れます。',
+    notreg: '通知は許可されていますが、まだ登録されていません。下のボタンを押してください。',
+    default: 'まだ通知を受け取れません。下のボタンを押して「許可」を選んでください。',
+    denied: '通知がブロックされています。ブラウザ（端末）の設定で、このサイトの通知を許可してください。',
+    ios: 'iPhone は、Safari の「共有」→「ホーム画面に追加」で置いた HALO から開くと、通知を受け取れます。',
+    unsupported: 'この端末・ブラウザでは通知を受け取れません。',
+  }[st] || '';
+  const btn = st === 'default' || st === 'notreg' || st === 'ok'
+    ? `<button type="button" class="btn${st === 'ok' ? '' : ' primary'}" data-gd="push">${esc(tr(st === 'ok' ? 'もう一度登録する' : 'この端末で通知を受け取る'))}</button>` : '';
+  return { st, html: `<div class="gd-st${st === 'ok' ? '' : ' warn'}">${esc(tr(msg))}</div>${btn}` };
+}
+const GUIDE = [
+  { title: 'この端末で通知を受け取る', body: () => `<p>${esc(tr(LITE ? 'メッセージが届いたことを、このスマホに知らせます。' : 'メッセージが届いたことを、スマホ・パソコンに知らせます。会社で使う端末ごとに設定してください。'))}</p>${pushText().html}`
+    + `<p>${esc(tr('チャンネルごとの知らせ方は、チャンネルの上の「通知」のボタンで変えられます（1対1・グループはすべて、チャンネルは自分あてだけが決まりです）。'))}</p>` },
+  { title: '通知を止める時間', body: () => {
+    const q = S.quiet || { on: true, from: '20:00', to: '07:00', offDays: true };
+    const now = q.on ? tf('今は {from}〜{to} は知らせません{off}。', { from: q.from, to: q.to, off: q.offDays ? tr('（会社カレンダーの休みの日も）') : '' }) : tr('今は止める時間を決めていません（いつでも知らせます）。');
+    return `<p>${esc(tr('夜や休みの日は、スマホに知らせないようにできます。止めているあいだもメッセージは届き、開けば読めます。'))}</p><div class="gd-st">${esc(now)}</div>`
+      + `<button type="button" class="btn" data-gd="quiet">${esc(tr('止める時間を変える'))}</button>`;
+  } },
+  { title: 'よく使うものをまとめる', body: () => `<p>${esc(tr(CAN_DRAG ? '一覧の行をつかんで、まとまりやお気に入りに入れられます。並べ替えもドラッグでできます。' : '一覧の上の「一覧を整理」から、お気に入り（★）やまとまりに入れられます。'))}</p>`
+    + `<p>${esc(tr('使わない会話は、チャンネルの「設定」→「一覧から外す（自分だけ）」で一覧から外せます。新しいメッセージが来たら、また出ます。'))}</p>`
+    + `<p>${esc(tr('この案内は「自分の設定」→「使い方の案内」でいつでも見られます。'))}</p>` },
+];
+function renderGuide() {
+  const g = GUIDE[gdIdx];
+  $('gdStep').textContent = tf('{i} / {n}', { i: gdIdx + 1, n: GUIDE.length });
+  $('gdTitle').textContent = tr(g.title);
+  $('gdBody').innerHTML = g.body();
+  $('gdDots').innerHTML = GUIDE.map((_, i) => `<i class="${i === gdIdx ? 'on' : ''}"></i>`).join('');
+  $('gdBack').classList.toggle('hidden', gdIdx === 0);
+  $('gdNext').textContent = tr(gdIdx === GUIDE.length - 1 ? '終わる' : '次へ');
+}
+function openGuide(i) { gdIdx = i || 0; renderGuide(); $('guideBox').classList.remove('hidden'); }
+function finishGuide() {
+  $('guideBox').classList.add('hidden');
+  if ((S.prefs.guide || 0) < GUIDE_V) { S.prefs.guide = GUIDE_V; savePrefsSoon(); }
+}
+$('gdNext').addEventListener('click', () => { if (gdIdx < GUIDE.length - 1) { gdIdx++; renderGuide(); } else finishGuide(); });
+$('gdBack').addEventListener('click', () => { if (gdIdx > 0) { gdIdx--; renderGuide(); } });
+$('gdSkip').addEventListener('click', () => { try { sessionStorage.setItem('chat_guide_later', '1'); } catch {} $('guideBox').classList.add('hidden'); });
+$('gdBody').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-gd]');
+  if (!b) return;
+  if (b.dataset.gd === 'quiet') openQuiet();
+  else if (b.dataset.gd === 'push') {
+    const P = parentPush();
+    if (!P) return;
+    b.disabled = true;
+    try { await P.enablePushFromSettings(); } catch (er) { toast(er.message); }
+    renderGuide();
+  }
+});
+
 // ---------- 通知を止める時間（2026-11-23。Worker の quiet.js。人ごと・どの端末でも同じ） ----------
 const QT = Array.from({ length: 96 }, (_, k) => String(Math.floor(k / 4)).padStart(2, '0') + ':' + String((k % 4) * 15).padStart(2, '0'));
 $('qFrom').innerHTML = $('qTo').innerHTML = QT.map((t) => `<option value="${t}">${t}</option>`).join('');
@@ -2959,6 +3100,7 @@ $('qYes').addEventListener('click', async () => {
     const r = await api('chatQuietSave', { quiet: { on: $('qOn').checked, from: $('qFrom').value, to: $('qTo').value, offDays: $('qOff').checked, digest: $('qDigest').checked } });
     S.quiet = r.quiet;
     $('quietSet').classList.add('hidden');
+    if (!$('guideBox').classList.contains('hidden')) renderGuide();
   } catch (e) { $('qErr').textContent = e.message; }
 });
 $('avClose').addEventListener('click', () => $('avatarSet').classList.add('hidden'));
