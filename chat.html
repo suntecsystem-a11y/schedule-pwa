@@ -80,6 +80,16 @@ body.dragging-ch .dropzone{display:block}
 .mg-arc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:9px 4px;border-bottom:1px solid var(--surface-1)}
 .mg-arc .nm{flex:1;min-width:140px}
 .mg-arc .nm small{display:block;font-size:11px;color:var(--text2)}
+/* 使われ方（K-06。2026-11-26） */
+.mg-sum{font-size:13px;line-height:1.7;padding:8px 4px}
+.mg-sum b{font-weight:700}
+.mg-h{font-size:12px;font-weight:700;color:var(--text2);margin:12px 4px 4px}
+.mg-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.mg-tbl th{text-align:left;font-weight:600;color:var(--text2);padding:4px;border-bottom:1px solid var(--border);white-space:nowrap}
+.mg-tbl td{padding:5px 4px;border-bottom:1px solid var(--surface-1);vertical-align:top}
+.mg-tbl td.n{text-align:right;white-space:nowrap}
+.mg-tbl .warn{color:var(--red);font-weight:600}
+.mg-note{font-size:11px;color:var(--text2);padding:4px;line-height:1.5}
 .sec.grp .sec-ed button,.ch .ed button{border:0;background:none;color:var(--text2);padding:2px 5px;font-size:13px;cursor:pointer;border-radius:6px}
 .sec.grp .sec-ed button:hover,.ch .ed button:hover{background:var(--surface-1);color:var(--text)}
 .ch .ed{display:flex;gap:1px;align-items:center;flex-shrink:0}
@@ -504,7 +514,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
   <div class="box">
     <h2>チャットの管理</h2>
     <p id="mgNote"></p>
-    <div class="mg-tabs"><button type="button" data-t="chg" class="on">直した・消したものを探す</button><button type="button" data-t="exp">書き出す</button><button type="button" data-t="arc">しまったもの</button></div>
+    <div class="mg-tabs"><button type="button" data-t="chg" class="on">直した・消したものを探す</button><button type="button" data-t="exp">書き出す</button><button type="button" data-t="arc">しまったもの</button><button type="button" data-t="use">使われ方</button></div>
     <div id="mgChg" class="mg-form">
       <select id="mgCh" title="チャンネル"></select>
       <select id="mgWho" title="書いた人"></select>
@@ -671,6 +681,12 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 使われ方（2026-11-26）
+    '使われ方': 'Tình hình sử dụng', '対象 {n}人：開いたことがある {o}人・この7日に開いた {w}人・通知の端末が無い {d}人': 'Đối tượng {n} người: đã mở {o} · mở trong 7 ngày {w} · không có thiết bị nhận thông báo {d}',
+    '人ごと（まだ開いていない人・通知の端末が無い人が上）': 'Theo người (chưa mở / không có thiết bị ở trên)', '名前': 'Tên', '最後に開いた': 'Mở lần cuối',
+    '通知の端末': 'Thiết bị thông báo', '通知を切った数': 'Số kênh tắt thông báo', '止める時間': 'Giờ tạm dừng', 'まだ': 'Chưa', 'なし': 'Không có', '＋簡易版 {n}': ' + bản rút gọn {n}',
+    'チャンネル（メッセージの多い順）': 'Kênh (nhiều tin nhắn trước)', 'メッセージ': 'Tin nhắn', '最後': 'Lần cuối', '（自分が入っていない招待のみのチャンネル）': '(kênh chỉ người được mời mà bạn không tham gia)',
+    '保存の大きさ（無料の範囲）': 'Dung lượng lưu trữ (giới hạn miễn phí)', '{label} {c}件・{m}通': '{label} {c} · {m} tin',
     // 一覧から外す・消す・しまったもの・ドラッグ（2026-11-26）
     'しまったもの': 'Đã cất', '一覧から外す（自分だけ）': 'Ẩn khỏi danh sách (chỉ mình tôi)', '消す': 'Xóa', '外す': 'Ẩn',
     '＋ 新しいまとまりを作って入れる': '+ Tạo nhóm mới và cho vào', '★ お気に入りに入れる': '★ Cho vào yêu thích',
@@ -1006,6 +1022,12 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 使われ方（2026-11-26）
+    '使われ方': 'प्रयोगको अवस्था', '対象 {n}人：開いたことがある {o}人・この7日に開いた {w}人・通知の端末が無い {d}人': 'लक्षित {n} जना: खोलेका {o} · ७ दिनमा खोलेका {w} · सूचना उपकरण नभएका {d}',
+    '人ごと（まだ開いていない人・通知の端末が無い人が上）': 'व्यक्ति अनुसार (नखोलेका / उपकरण नभएका माथि)', '名前': 'नाम', '最後に開いた': 'अन्तिम पटक खोलेको',
+    '通知の端末': 'सूचना उपकरण', '通知を切った数': 'सूचना बन्द च्यानल', '止める時間': 'रोक्ने समय', 'まだ': 'अझै छैन', 'なし': 'छैन', '＋簡易版 {n}': ' + सरल संस्करण {n}',
+    'チャンネル（メッセージの多い順）': 'च्यानल (धेरै सन्देश भएको पहिले)', 'メッセージ': 'सन्देश', '最後': 'अन्तिम', '（自分が入っていない招待のみのチャンネル）': '(तपाईं नभएको निमन्त्रणा मात्रको च्यानल)',
+    '保存の大きさ（無料の範囲）': 'भण्डारणको आकार (निःशुल्क सीमा)', '{label} {c}件・{m}通': '{label} {c} · {m} सन्देश',
     // 一覧から外す・消す・しまったもの・ドラッグ（2026-11-26）
     'しまったもの': 'संग्रह गरिएका', '一覧から外す（自分だけ）': 'सूचीबाट हटाउनुहोस् (मेरो लागि मात्र)', '消す': 'मेटाउनुहोस्', '外す': 'हटाउनुहोस्',
     '＋ 新しいまとまりを作って入れる': '+ नयाँ समूह बनाएर राख्नुहोस्', '★ お気に入りに入れる': '★ मनपर्नेमा राख्नुहोस्',
@@ -1351,7 +1373,7 @@ function tf(key, vars) {
   return base.replace(/\{(\w+)\}/g, (_, v) => (vars && vars[v] !== undefined ? String(vars[v]) : ''));
 }
 // 人が書いたもの（本文・名前・チャンネル名・探した言葉）は置き換えない
-const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where,#mgList .where,#chgBody .where,.hid-row span,#mgCh,#mgWho,#mgExCh,.fmt-prev,#readersBody .names';
+const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where,#mgList .where,#chgBody .where,.mg-tbl .who,.hid-row span,#mgCh,#mgWho,#mgExCh,.fmt-prev,#readersBody .names';
 const NO_TR_ATTR = NO_TR.replace(',textarea', ''); // 入力欄の「入力してください」の文（placeholder）は訳す
 function trTree(root) {
   if (!I18N || !root) return;
@@ -2704,6 +2726,7 @@ function mgTab(t) {
   $('mgExp').classList.toggle('hidden', t !== 'exp');
   $('mgList').innerHTML = ''; $('mgErr').textContent = '';
   if (t === 'arc') loadArchived();
+  if (t === 'use') loadUsage();
 }
 document.querySelectorAll('.mg-tabs button').forEach((b) => b.addEventListener('click', () => mgTab(b.dataset.t)));
 function openManage() {
@@ -2810,6 +2833,41 @@ $('mgExGo').addEventListener('click', async () => {
   } catch (e) { $('mgList').innerHTML = ''; $('mgErr').textContent = e.message; }
   finally { $('mgExGo').disabled = false; }
 });
+
+// 使われ方（K-06。2026-11-26）：まだ開いていない人・通知が届かない人を先に出す（声をかける相手が分かるように）
+const mb = (n) => (n == null ? '—' : n < 1024 * 1024 ? (n / 1024).toFixed(0) + ' KB' : (n / 1024 / 1024).toFixed(1) + ' MB');
+const pct = (a, b) => (a && b ? Math.max(0.1, Math.round((a / b) * 1000) / 10) + '%' : '0%');
+async function loadUsage() {
+  $('mgList').innerHTML = `<div class="more">${esc(tr('読み込んでいます…'))}</div>`;
+  try {
+    const u = await api('chatUsage');
+    const now = Date.now(), WEEK = 7 * 864e5;
+    const ppl = u.people.slice().sort((a, b) => (!!a.lastAt - !!b.lastAt) || ((a.devices + a.liteDevices > 0) - (b.devices + b.liteDevices > 0)) || ((a.lastAt || 0) - (b.lastAt || 0)) || String(a.name).localeCompare(String(b.name), 'ja'));
+    const opened = ppl.filter((p) => p.lastAt).length, week = ppl.filter((p) => p.lastAt && now - p.lastAt < WEEK).length;
+    const noDev = ppl.filter((p) => !(p.devices + p.liteDevices)).length;
+    const k = u.kinds || {};
+    const kindLine = [['dm', '1対1'], ['group', 'グループ'], ['inbox', 'HALO 通知']].filter(([x]) => k[x]).map(([x, l]) => tf('{label} {c}件・{m}通', { label: tr(l), c: k[x].channels, m: k[x].msgs })).join('　');
+    const st = u.storage || {};
+    $('mgList').innerHTML = `<div class="mg-sum">${esc(tf('対象 {n}人：開いたことがある {o}人・この7日に開いた {w}人・通知の端末が無い {d}人', { n: ppl.length, o: opened, w: week, d: noDev }))}</div>`
+      + `<div class="mg-h">${esc(tr('人ごと（まだ開いていない人・通知の端末が無い人が上）'))}</div>`
+      + `<table class="mg-tbl"><tr><th>${esc(tr('名前'))}</th><th>${esc(tr('部署'))}</th><th>${esc(tr('最後に開いた'))}</th><th>${esc(tr('通知の端末'))}</th><th>${esc(tr('通知を切った数'))}</th><th>${esc(tr('止める時間'))}</th></tr>`
+      + ppl.map((p) => `<tr><td class="who">${esc(p.name)}</td><td class="who">${esc(p.dept)}</td>`
+        + `<td>${p.lastAt ? esc(whenOf(p.lastAt)) : `<span class="warn">${esc(tr('まだ'))}</span>`}</td>`
+        + `<td class="n">${p.devices + p.liteDevices ? esc(String(p.devices)) + (p.liteDevices ? esc(tf('＋簡易版 {n}', { n: p.liteDevices })) : '') : `<span class="warn">${esc(tr('なし'))}</span>`}</td>`
+        + `<td class="n">${p.off || ''}</td><td>${esc(p.quiet || '')}</td></tr>`).join('') + '</table>'
+      + `<div class="mg-note">${esc(tf('「最後に開いた」は、チャットを開いた記録（{date} から）と、読んだ記録の新しいほうです。通知の端末は HALO（スマホ・パソコン）と簡易版で通知を受けると決めた端末の数です（1人3台まで）。', { date: ymd(u.seenSince) }))}</div>`
+      + `<div class="mg-h">${esc(tr('チャンネル（メッセージの多い順）'))}</div>`
+      + `<table class="mg-tbl"><tr><th>${esc(tr('チャンネル'))}</th><th>${esc(tr('メッセージ'))}</th><th>${esc(tr('最後'))}</th></tr>`
+      + u.channels.map((c) => `<tr><td class="who">${esc(chTitle(c))}</td><td class="n">${c.msgs}</td><td>${esc(whenOf(c.lastAt))}</td></tr>`).join('')
+      + (u.other.channels ? `<tr><td>${esc(tr('（自分が入っていない招待のみのチャンネル）'))}</td><td class="n">${u.other.msgs}</td><td>${esc(tf('{n}件', { n: u.other.channels }))}</td></tr>` : '') + '</table>'
+      + (kindLine ? `<div class="mg-note">${esc(kindLine)}</div>` : '')
+      + `<div class="mg-h">${esc(tr('保存の大きさ（無料の範囲）'))}</div>`
+      + `<div class="mg-sum">${esc(tf('一覧・既読（D1）：{a} ／ 500 MB（{p}）', { a: mb(st.d1Bytes), p: pct(st.d1Bytes, st.limits && st.limits.d1Bytes) }))}<br>`
+      + `${esc(tf('メッセージ（多い順 {n}/{all} チャンネル）：{a} ／ 5 GB（{p}）', { n: st.doChannels, all: st.doAll, a: mb(st.doBytes), p: pct(st.doBytes, st.limits && st.limits.doBytes) }))}<br>`
+      + `${esc(tf('いちばん大きいチャンネル：{a} ／ 1 GB', { a: mb(u.maxOne) }))}</div>`
+      + `<div class="mg-note">${esc(tr('メッセージの保存は HALO のほかの Durable Object と合わせて 5 GB までです。正確な数は Cloudflare の画面で見られます。'))}</div>`;
+  } catch (e) { $('mgList').innerHTML = ''; $('mgErr').textContent = e.message; }
+}
 
 // しまったもの（2026-11-26）：自分が入っていたものだけ。中身を見る・書き出す・戻す
 let mgArc = [];
