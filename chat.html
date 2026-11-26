@@ -376,6 +376,18 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
 .gd-st{padding:8px 10px;border-radius:10px;background:var(--surface-1);margin:6px 0 10px;font-size:13px}
 .gd-st.warn{color:var(--red)}
 .gd-body .btn{margin:2px 0 8px}
+/* 依頼（人に仕事を振る。2026-11-26） */
+.rq{margin-top:8px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:var(--surface);font-size:13px}
+.rq-h{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:4px}
+.rq-h .warn,.rq-p .warn{color:var(--red)}
+.rq-p{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.rq-ok{color:var(--primary);font-weight:600}
+.rq-b{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.rq-b button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:4px 10px;font:inherit;font-size:12px}
+.rq-b button.primary{background:var(--primary);border-color:var(--primary);color:#fff;font-weight:600}
+.rq-x{opacity:.6}
+#reqBox textarea.field{resize:vertical;font:inherit}
+.req-who{font-size:13px;margin:0 0 8px}
 .sheet .note{font-size:12px;color:var(--text2);padding:8px 16px 4px;line-height:1.5}
 
 /* 自分あて・くり返し（2026-11-20） */
@@ -439,7 +451,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <div class="side-tools">
       <form id="searchForm"><div class="sq-row"><input id="searchQ" type="search" placeholder="メッセージを探す" enterkeyhint="search"><button type="button" class="txt-btn" id="searchOptBtn" title="人・チャンネル・期間で絞る">絞り込み</button></div>
         <div id="searchOpts" class="hidden"><select id="sqWho" title="書いた人"></select><select id="sqCh" title="チャンネル"></select><div class="sq-dates"><input type="date" id="sqFrom" title="この日から"><span>〜</span><input type="date" id="sqTo" title="この日まで"></div><button type="submit" class="btn primary">探す</button></div></form>
-      <div class="side-btns"><button class="pill main" id="newBtn" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>新しく</button><button class="pill" id="forMeBtn" type="button" title="まだ確認していない確認依頼・自分へのメンション・返信・リマインダー"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/></svg>自分あて<span id="forMeN" class="badge-s hidden"></span></button><button class="pill" id="savedBtn" type="button" title="保存したもの"><svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v16l-5-3.5L7 20z"/></svg>保存</button><button class="pill" id="laterListBtn" type="button" title="時間を決めて送る・あとで知らせるの一覧"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>予約</button><button class="pill" id="mySetBtn" type="button" title="アイコン・通知を止める時間"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>自分の設定</button><span class="hidden"><button id="newCh" type="button"></button><button id="newDm" type="button"></button><button id="myPhoto" type="button"></button><button id="quietBtn" type="button"></button></span></div>
+      <div class="side-btns"><button class="pill main" id="newBtn" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>新しく</button><button class="pill" id="forMeBtn" type="button" title="まだ確認していない確認依頼・自分へのメンション・返信・リマインダー"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/></svg>自分あて<span id="forMeN" class="badge-s hidden"></span></button><button class="pill" id="reqBtn" type="button" title="自分への依頼・自分が出した依頼"><svg class="i" viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>依頼<span id="reqN" class="badge-s hidden"></span></button><button class="pill" id="savedBtn" type="button" title="保存したもの"><svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v16l-5-3.5L7 20z"/></svg>保存</button><button class="pill" id="laterListBtn" type="button" title="時間を決めて送る・あとで知らせるの一覧"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>予約</button><button class="pill" id="mySetBtn" type="button" title="アイコン・通知を止める時間"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/></svg>自分の設定</button><span class="hidden"><button id="newCh" type="button"></button><button id="newDm" type="button"></button><button id="myPhoto" type="button"></button><button id="quietBtn" type="button"></button></span></div>
     </div>
     <div id="chList"></div>
     <div id="searchList" class="hidden"></div>
@@ -631,6 +643,18 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
   </div>
 </div>
 
+<div id="reqBox" class="overlay hidden">
+  <div class="box">
+    <h2>人に頼む</h2>
+    <textarea id="reqText" class="field" rows="3" maxlength="4000" placeholder="頼むこと（例：見積りの数字を確認してください）"></textarea>
+    <div class="req-who"><span id="reqWho"></span> <button type="button" class="txt-btn" id="reqPick">人を選ぶ</button></div>
+    <label class="opt">期限 <input type="date" id="reqDue" class="field" style="margin:0;width:auto"></label>
+    <p>頼んだ人に知らせが届きます。相手が「完了にする」を押すと、あなたあてに返事が付きます。期限の日の朝、まだの人に知らせます。</p>
+    <div class="err" id="reqErr"></div>
+    <div class="btns"><button type="button" class="btn" id="reqNo">やめる</button><button type="button" class="btn primary" id="reqGo">頼む</button></div>
+  </div>
+</div>
+
 <div id="chanNew" class="overlay hidden">
   <div class="box">
     <h2>チャンネルを作る</h2>
@@ -702,6 +726,16 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 依頼（2026-11-26）
+    '依頼': 'Yêu cầu', '人に頼む': 'Nhờ người khác', 'この内容で人に頼む': 'Nhờ người khác việc này', '完了': 'Xong', 'まだ': 'Chưa', '完了にする': 'Đánh dấu xong', '完了を取り消す': 'Hủy xong',
+    '依頼を取り消す': 'Hủy yêu cầu', '取り消されました': 'Đã hủy', '期限 {md}': 'Hạn {md}', '期限 {md}（過ぎています）': 'Hạn {md} (đã quá hạn)', 'この依頼を取り消しますか？': 'Hủy yêu cầu này?',
+    '自分への依頼（{n}）': 'Việc được nhờ ({n})', '自分が出した依頼・まだの人がいる（{n}）': 'Việc đã nhờ, còn người chưa xong ({n})', '終わった（7日のあいだ）（{n}）': 'Đã xong (7 ngày) ({n})',
+    '依頼はありません（入力欄の「＋」→「人に頼む」で出せます）': 'Không có yêu cầu (gửi bằng "+" → "Nhờ người khác")', '{name}さんから': 'Từ {name}', 'まだ：{names}': 'Chưa xong: {names}', '{n}人とも完了': 'Cả {n} người đã xong',
+    '完了にしました（頼んだ人に知らせました）': 'Đã đánh dấu xong (đã báo người nhờ)', '頼む人：{names}': 'Nhờ: {names}', '頼む人をまだ選んでいません': 'Chưa chọn người được nhờ',
+    '頼む人を選ぶ': 'Chọn người được nhờ', 'このチャンネルの人から選んでください（何人でも）。': 'Chọn từ những người trong kênh này (bao nhiêu cũng được).', '決める': 'Chọn',
+    '頼むことを書いてください': 'Hãy viết việc cần nhờ', '頼む人を選んでください': 'Hãy chọn người được nhờ',
+    '頼んだ人に知らせが届きます。相手が「完了にする」を押すと、あなたあてに返事が付きます。期限の日の朝、まだの人に知らせます。': 'Người được nhờ sẽ nhận thông báo. Khi họ nhấn "Đánh dấu xong", bạn sẽ nhận trả lời. Sáng ngày hạn sẽ nhắc người chưa xong.',
+    '人を選ぶ': 'Chọn người', '期限': 'Hạn', '頼む': 'Nhờ', 'やめる': 'Hủy',
     // はじめての案内（2026-11-26）
     'メッセージが届いたことを、このスマホに知らせます。': 'Báo cho điện thoại này khi có tin nhắn.',
     'あとで': 'Để sau', '戻る': 'Quay lại', '次へ': 'Tiếp', '終わる': 'Xong', '使い方の案内': 'Hướng dẫn sử dụng', '{i} / {n}': '{i} / {n}',
@@ -1072,6 +1106,16 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 依頼（2026-11-26）
+    '依頼': 'अनुरोध', '人に頼む': 'अरूलाई काम दिनुहोस्', 'この内容で人に頼む': 'यो काम अरूलाई दिनुहोस्', '完了': 'सकियो', 'まだ': 'बाँकी', '完了にする': 'सकियो भनी चिन्ह लगाउनुहोस्', '完了を取り消す': 'सकियो रद्द गर्नुहोस्',
+    '依頼を取り消す': 'अनुरोध रद्द गर्नुहोस्', '取り消されました': 'रद्द भयो', '期限 {md}': 'म्याद {md}', '期限 {md}（過ぎています）': 'म्याद {md} (नाघ्यो)', 'この依頼を取り消しますか？': 'यो अनुरोध रद्द गर्ने?',
+    '自分への依頼（{n}）': 'मलाई दिइएका काम ({n})', '自分が出した依頼・まだの人がいる（{n}）': 'मैले दिएका काम, बाँकी भएका ({n})', '終わった（7日のあいだ）（{n}）': 'सकिएका (७ दिन) ({n})',
+    '依頼はありません（入力欄の「＋」→「人に頼む」で出せます）': 'कुनै अनुरोध छैन ("+" → "अरूलाई काम दिनुहोस्" बाट पठाउन सकिन्छ)', '{name}さんから': '{name} बाट', 'まだ：{names}': 'बाँकी: {names}', '{n}人とも完了': '{n} जना सबैले सके',
+    '完了にしました（頼んだ人に知らせました）': 'सकियो भनियो (काम दिनेलाई सूचित गरियो)', '頼む人：{names}': 'काम पाउने: {names}', '頼む人をまだ選んでいません': 'काम पाउने छानिएको छैन',
+    '頼む人を選ぶ': 'काम पाउने छान्नुहोस्', 'このチャンネルの人から選んでください（何人でも）。': 'यो च्यानलका मानिसहरूबाट छान्नुहोस् (जति पनि)।', '決める': 'छान्नुहोस्',
+    '頼むことを書いてください': 'काम लेख्नुहोस्', '頼む人を選んでください': 'काम पाउने छान्नुहोस्',
+    '頼んだ人に知らせが届きます。相手が「完了にする」を押すと、あなたあてに返事が付きます。期限の日の朝、まだの人に知らせます。': 'काम पाउनेलाई सूचना जान्छ। उनले "सकियो" थिचेपछि तपाईंलाई जवाफ आउँछ। म्यादको दिन बिहान बाँकी भएकालाई सम्झाइन्छ।',
+    '人を選ぶ': 'मानिस छान्नुहोस्', '期限': 'म्याद', '頼む': 'दिनुहोस्', 'やめる': 'रद्द',
     // はじめての案内（2026-11-26）
     'メッセージが届いたことを、このスマホに知らせます。': 'सन्देश आएको कुरा यो फोनमा सूचित गर्छ।',
     'あとで': 'पछि', '戻る': 'पछाडि', '次へ': 'अर्को', '終わる': 'सकियो', '使い方の案内': 'प्रयोग निर्देशन', '{i} / {n}': '{i} / {n}',
@@ -1734,6 +1778,7 @@ async function start() {
     S.saved = new Set(init.saved || []);
     S.prefs = init.prefs || { fav: [], cats: [] };
     S.quiet = init.quiet || null; // 通知を止める時間（2026-11-23）
+    S.reqOpen = init.reqOpen || 0; // 自分への依頼でまだのもの（2026-11-26）
     api('chatManageAccess').then((r) => { S.manage = !!(r && r.allowed); S.retentionYears = (r && r.retentionYears) || 5; if (S.manage && S.cur) rerenderOpen(); }).catch(() => {}); // チャットの管理（主任以上と 90番。2026-11-25）
     if (!LITE) api('getTaskAccess').then((r) => { S.taskOk = !!(r && r.allowed); }).catch(() => {}); // メッセージから HALO のタスクを作れる人か
     document.querySelectorAll('.attach').forEach((b) => b.classList.toggle('hidden', !S.filesEnabled));
@@ -1743,6 +1788,7 @@ async function start() {
     loadPresence(true);
     setInterval(() => loadPresence(), 5 * 60 * 1000);
     refreshForMeSoon(1500);
+    setReqBadge();
     // はじめての案内（人ごと。見終わったら出さない。「あとで」はこの画面を開いているあいだだけ出さない）
     if ((S.prefs.guide || 0) < GUIDE_V && !sessionStorage.getItem('chat_guide_later')) setTimeout(() => openGuide(0), 900);
     const want = params.get('ch');
@@ -2109,7 +2155,7 @@ function msgHtml(m, prev, where) {
     + (m.pinned && !m.deleted ? `・<span class="pin-mark">${tr('ピン留め')}</span>` : '') + (isSaved(m) && !m.deleted ? '・' + tr('保存済み') : '') + (m.meta && m.meta.remind && !m.deleted ? '・' + tr('予約で届いたもの') : '') + readHtml;
   return `${day}${unread}<div class="${cls}" data-seq="${m.seq || ''}" data-id="${esc(m.id)}">
     ${!mine && !sameWho ? `<div class="m-av">${avatarHtml(m.empId)}${presDot(m.empId)}</div><div class="who">${esc(nameOf(m.empId))}</div>` : ''}
-    <div class="bw">${acts}<div class="bub">${m.deleted ? (S.manage && m.seq ? `<button type="button" class="readlink" data-act="changes">${esc(tr('削除されました（元の文を見る）'))}</button>` : tr('削除されました')) : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}${ackDueHtml(m)}</span>` : '') + quote + fwdHtml(m) + renderBody(m) + filesHtml(m)}</div></div>
+    <div class="bw">${acts}<div class="bub">${m.deleted ? (S.manage && m.seq ? `<button type="button" class="readlink" data-act="changes">${esc(tr('削除されました（元の文を見る）'))}</button>` : tr('削除されました')) : halo ? haloBody(m) : m.kind === 'vote' ? voteHtml(m) : (ack ? `<span class="ack-head">${esc(tr('確認してください'))}${ackDueHtml(m)}</span>` : '') + quote + fwdHtml(m) + renderBody(m) + reqHtml(m) + filesHtml(m)}</div></div>
     ${reacts ? `<div class="reacts">${reacts}</div>` : ''}
     ${ackRow}
     ${replies}
@@ -2186,11 +2232,11 @@ async function toggleSave(m, channelId) {
 }
 
 // ---------- 横の一覧：ピン留め・ファイル・保存したもの（B-1） ----------
-const PANEL_TITLE = { pins: 'このチャンネルのピン留め', files: 'このチャンネルのファイル', saved: '保存したもの', later: '予約・リマインダー', forme: '自分あて' };
+const PANEL_TITLE = { pins: 'このチャンネルのピン留め', files: 'このチャンネルのファイル', saved: '保存したもの', later: '予約・リマインダー', forme: '自分あて', reqs: '依頼' };
 const narrow = () => window.innerWidth < 1100; // 一覧が画面にかぶさる幅
 function chNameOf(id) { const c = S.channels.find((x) => x.id === id); return c ? chTitle(c) : ''; }
 async function openPanel(kind) {
-  if (kind !== 'saved' && kind !== 'later' && kind !== 'forme' && !S.cur) return;
+  if (kind !== 'saved' && kind !== 'later' && kind !== 'forme' && kind !== 'reqs' && !S.cur) return;
   closeThread();
   const channelId = S.cur;
   S.panel = { kind, channelId, items: [] };
@@ -2203,6 +2249,7 @@ async function openPanel(kind) {
     else if (kind === 'saved') items = (await api('chatSaved')).items;
     else if (kind === 'later') items = (await api('chatLaterList')).items;
     else if (kind === 'forme') { items = (await api('chatForMe')).items; S.forMe = items; setForMeBadge(); }
+    else if (kind === 'reqs') { const r = await api('chatReqs'); items = reqItems(r); S.reqOpen = r.received.filter((x) => !x.doneAt).length; setReqBadge(); }
     else items = (await api('chatFiles', { channelId })).files;
     if (!S.panel || S.panel.kind !== kind || S.panel.channelId !== channelId) return;
     S.panel.items = items;
@@ -2214,7 +2261,16 @@ function renderPanel() {
   if (!P) return;
   const when = (t) => ymd(t) + ' ' + hm(t);
   let html;
-  if (P.kind === 'forme') {
+  if (P.kind === 'reqs') {
+    const due = (d) => (d ? tf('期限 {md}', { md: Number(d.slice(5, 7)) + '/' + Number(d.slice(8, 10)) }) : '');
+    const row = (x) => `<div class="hit${x.done ? ' rq-x' : ''}" data-i="${P.items.indexOf(x)}"><div><div class="where">${esc(chNameOf(x.channelId))}・${esc(x.who)}${x.due ? '・' + (x.over ? `<span class="warn">${esc(due(x.due))}</span>` : esc(due(x.due))) : ''}${x.done ? '・' + esc(tr('完了')) : ''}</div>`
+      + `<div class="body">${esc(x.title)}</div></div></div>`;
+    const sec = (t, list) => (list.length ? `<div class="sec">${esc(tf(t, { n: list.length }))}</div>` + list.map(row).join('') : '');
+    html = sec('自分への依頼（{n}）', P.items.filter((x) => x.box === 'in' && !x.done))
+      + sec('自分が出した依頼・まだの人がいる（{n}）', P.items.filter((x) => x.box === 'out' && !x.done))
+      + sec('終わった（7日のあいだ）（{n}）', P.items.filter((x) => x.done))
+      || `<div class="empty">${esc(tr('依頼はありません（入力欄の「＋」→「人に頼む」で出せます）'))}</div>`;
+  } else if (P.kind === 'forme') {
     const lab = { ack: '確認してほしい', mention: 'メンション', reply: '返信', remind: 'リマインダー' };
     const row = (x) => `<div class="hit${x.why !== 'ack' && !isReadNow(x) ? ' unread' : ''}" data-i="${P.items.indexOf(x)}"><div><div class="where">${esc(tr(lab[x.why] || ''))}・${esc(chNameOf(x.channelId))}・${esc(nameOf(x.msg.empId))}・${when(x.msg.createdAt)}</div>`
       + `<div class="body">${esc(msgPreview(x.msg))}</div></div></div>`;
@@ -2246,6 +2302,7 @@ $('filesBtn').addEventListener('click', () => openPanel('files'));
 $('savedBtn').addEventListener('click', () => openPanel('saved'));
 $('laterListBtn').addEventListener('click', () => openPanel('later'));
 $('forMeBtn').addEventListener('click', () => openPanel('forme'));
+$('reqBtn').addEventListener('click', () => openPanel('reqs'));
 $('moreBtn').addEventListener('click', () => {
   if (!S.cur) return;
   const items = [['pins', 'ピン留め'], ['files', 'ファイル'], ['mute', $('muteBtn').textContent]];
@@ -2260,6 +2317,7 @@ $('panelList').addEventListener('click', async (e) => {
   const x = P.items[Number(h.dataset.i)];
   if (!x) return;
   const b = e.target.closest('button[data-p]');
+  if (P.kind === 'reqs') { if (narrow()) closePanel(); jumpTo(x.channelId, x.seq, x.parentSeq || 0); return; }
   if (P.kind === 'forme') {
     if (narrow()) closePanel();
     if (x.why === 'remind') { const mt = x.msg.meta || {}; jumpTo(mt.channelId, Number(mt.seq), Number(mt.parentSeq) || 0); }
@@ -2641,6 +2699,10 @@ function doAct(act, m, where, emoji) {
   else if (act === 'unread') markUnread(m);
   else if (act === 'fwd') openFwd(m);
   else if (act === 'changes') openChanges(m);
+  else if (act === 'req') openReq({ where, text: plainOf(m) });
+  else if (act === 'reqDone') setReq(m, 'done');
+  else if (act === 'reqUndo') setReq(m, 'undo');
+  else if (act === 'reqCancel') { if (confirm(tr('この依頼を取り消しますか？'))) setReq(m, 'cancel'); }
 }
 
 function openSheet(m, where) {
@@ -2654,6 +2716,7 @@ function openSheet(m, where) {
     ...(m.seq ? [['remind', 'あとで知らせる']] : []),
     ...(m.seq && !m.deleted ? [['fwd', '転送']] : []),
     ...(m.seq && where === 'main' && m.empId !== S.me ? [['unread', 'ここから未読にする']] : []),
+    ...(m.seq && !m.deleted && m.kind !== 'vote' && m.kind !== 'halo' && !(m.meta && m.meta.req) && canWriteCur() ? [['req', 'この内容で人に頼む']] : []),
     ...(m.seq && S.taskOk && m.kind !== 'vote' ? [['task', 'タスクにする']] : []),
     ...(m.seq && EMBED && !LITE && m.kind !== 'vote' ? [['event', '予定にする']] : []),
     ...(mine && m.seq && S.readSeqs ? [['readers', m.meta && m.meta.ack ? '確認状況' : '読んだ人']] : []),
@@ -3009,6 +3072,109 @@ $('mgList').addEventListener('click', async (e) => {
   } catch (er) { b.disabled = false; $('mgErr').textContent = er.message; }
 });
 
+// ---------- 依頼（人に仕事を振る。2026-11-26。Worker の chat.js の chatReqSet・chatReqs・remindReqs） ----------
+// 入力欄の「＋」→「人に頼む」か、メッセージの「…」→「この内容で人に頼む」。頼まれた人は依頼の枠の「完了にする」。
+const todayLocal = () => new Date().toLocaleDateString('sv');
+const plainOf = (m) => String(m.body || '').replace(/:s_[0-9a-f-]{36}:/g, '').trim();
+function canWriteCur() { const c = S.channels.find((x) => x.id === S.cur); return !!c && !['inbox', 'system', 'feed'].includes(c.kind); }
+function reqHtml(m) {
+  const q = m.meta && m.meta.req;
+  if (!q || m.deleted) return '';
+  const over = !!q.due && q.due < todayLocal();
+  const md = (d) => Number(d.slice(5, 7)) + '/' + Number(d.slice(8, 10));
+  const at = (t) => { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate(); };
+  const rows = (q.to || []).map((t) => `<div class="rq-p"><span>${esc(nameOf(t.id))}</span>${t.done ? `<span class="rq-ok">✓ ${esc(tr('完了'))} ${at(t.done)}</span>` : `<span class="${over && !q.canceled ? 'warn' : ''}">${esc(tr('まだ'))}</span>`}</div>`).join('');
+  const mine = (q.to || []).find((t) => t.id === S.me);
+  const btn = q.canceled || !m.seq ? '' : mine ? (mine.done ? `<button type="button" data-act="reqUndo">${esc(tr('完了を取り消す'))}</button>` : `<button type="button" class="primary" data-act="reqDone">${esc(tr('完了にする'))}</button>`) : '';
+  const cancel = !q.canceled && m.seq && q.by === S.me && (q.to || []).some((t) => !t.done) ? `<button type="button" data-act="reqCancel">${esc(tr('依頼を取り消す'))}</button>` : '';
+  const head = tr('依頼') + (q.due ? '・' + (over && !q.canceled ? `<span class="warn">${esc(tf('期限 {md}（過ぎています）', { md: md(q.due) }))}</span>` : esc(tf('期限 {md}', { md: md(q.due) }))) : '') + (q.canceled ? '・' + esc(tr('取り消されました')) : '');
+  return `<div class="rq${q.canceled ? ' rq-x' : ''}"><div class="rq-h">${head}</div>${rows}${btn || cancel ? `<div class="rq-b">${btn}${cancel}</div>` : ''}</div>`;
+}
+function setReqBadge() {
+  const el = $('reqN');
+  if (!el) return;
+  const n = S.reqOpen || 0;
+  el.textContent = n > 99 ? '99+' : String(n);
+  el.classList.toggle('hidden', !n);
+}
+let reqTimer = null;
+function refreshReqsSoon(ms) {
+  clearTimeout(reqTimer);
+  reqTimer = setTimeout(async () => {
+    try { const r = await api('chatReqs'); S.reqOpen = r.received.filter((x) => !x.doneAt).length; setReqBadge(); if (S.panel && S.panel.kind === 'reqs') { S.panel.items = reqItems(r); renderPanel(); } } catch {}
+  }, ms || 1500);
+}
+/** 横の一覧の形にする（自分への依頼＝in、自分が出した依頼＝out） */
+function reqItems(r) {
+  const today = r.today || todayLocal();
+  const ins = (r.received || []).map((x) => ({ box: 'in', channelId: x.channelId, seq: x.seq, parentSeq: x.parentSeq, title: x.title, due: x.due, over: !!x.due && x.due < today && !x.doneAt,
+    done: !!x.doneAt, who: tf('{name}さんから', { name: nameOf(x.by) }) }));
+  const outs = (r.sent || []).map((x) => {
+    const left = x.people.filter((p) => !p.doneAt);
+    return { box: 'out', channelId: x.channelId, seq: x.seq, parentSeq: x.parentSeq, title: x.title, due: x.due, over: !!x.due && x.due < today && left.length > 0, done: !left.length,
+      who: left.length ? tf('まだ：{names}', { names: left.map((p) => nameOf(p.id)).join('、') }) : tf('{n}人とも完了', { n: x.people.length }) };
+  });
+  const key = (x) => (x.done ? '2' : '1') + (x.due || '9999-99-99');
+  return ins.concat(outs).sort((a, b) => key(a).localeCompare(key(b)));
+}
+async function setReq(m, act) {
+  try {
+    const r = await api('chatReqSet', { channelId: m._ch || S.cur, seq: m.seq, act });
+    applyUpdate(m._ch || S.cur, r.msg);
+    if (act === 'done') toast(tr('完了にしました（頼んだ人に知らせました）'));
+    refreshReqsSoon(300);
+  } catch (e) { toast(tr(e.message)); }
+}
+let reqState = null;
+async function openReq({ where, text, fromComposer }) {
+  const ch = S.channels.find((c) => c.id === S.cur);
+  if (!ch) return;
+  const c = C[where];
+  reqState = { where, channelId: ch.id, to: [], fromComposer: !!fromComposer, parentSeq: where === 'thread' && S.thread ? S.thread.parent.seq : null };
+  if (ch.kind === 'dm') reqState.to = (ch.members || []).filter((x) => x !== S.me).slice(0, 1); // 1対1は相手に決めておく
+  $('reqText').value = fromComposer ? (c && c.input ? c.input.value : '') : (text || '');
+  $('reqDue').value = '';
+  $('reqDue').min = todayLocal();
+  $('reqErr').textContent = '';
+  renderReqWho();
+  $('reqBox').classList.remove('hidden');
+  $('reqText').focus();
+}
+function renderReqWho() {
+  const ids = (reqState && reqState.to) || [];
+  $('reqWho').textContent = ids.length ? tf('頼む人：{names}', { names: ids.map(nameOf).join('、') }) : tr('頼む人をまだ選んでいません');
+}
+$('reqPick').addEventListener('click', async () => {
+  if (!reqState) return;
+  const ch = S.channels.find((c) => c.id === reqState.channelId);
+  let allow = null; // 頼める人（チャンネルを読める人）
+  try {
+    if (ch.kind === 'dm' || ch.kind === 'group') allow = ch.members || [];
+    else if (ch.kind === 'private') allow = (await api('chatMembers', { id: ch.id })).members.map((x) => x.empId);
+  } catch (e) { $('reqErr').textContent = e.message; return; }
+  const exclude = [S.me, ...Object.keys(S.users).filter((id) => (allow && !allow.includes(id)) || !canChat(id))];
+  openPeople({ // 人を選ぶ窓は頼む窓の上に出る（やめても頼む窓に戻る）
+    title: tr('頼む人を選ぶ'), note: tr('このチャンネルの人から選んでください（何人でも）。'), goLabel: tr('決める'), exclude,
+    onGo: async (ids) => { if (reqState) { reqState.to = ids; renderReqWho(); } },
+  });
+});
+$('reqNo').addEventListener('click', () => { $('reqBox').classList.add('hidden'); reqState = null; });
+$('reqGo').addEventListener('click', () => {
+  if (!reqState) return;
+  const body = $('reqText').value.trim();
+  if (!body) { $('reqErr').textContent = tr('頼むことを書いてください'); return; }
+  if (!reqState.to.length) { $('reqErr').textContent = tr('頼む人を選んでください'); return; }
+  const req = { to: reqState.to, due: $('reqDue').value || null };
+  const where = reqState.where;
+  const msg = { id: uid(), empId: S.me, body, createdAt: Date.now(), mentions: [...reqState.to], reactions: [], files: [], meta: { req: { by: S.me, due: req.due, to: req.to.map((id) => ({ id, done: null })) } },
+    parentSeq: reqState.parentSeq, _req: req, _pending: true, _ch: reqState.channelId };
+  if (reqState.fromComposer && C[where] && C[where].input && C[where].input.value.trim() === body) { C[where].input.value = ''; if (where === 'main') clearDraft(reqState.channelId); } // 入力欄の文で頼んだら、入力欄を空にする
+  $('reqBox').classList.add('hidden');
+  reqState = null;
+  if (where === 'thread') { S.threadMsgs.push(msg); renderThread(true); } else { S.msgs.push(msg); renderMsgs(true); }
+  sendMsg(msg);
+});
+
 // ---------- はじめての案内（2026-11-26。チャットを広げる前に、通知の設定を済ませてもらうため） ----------
 // 1. この端末で通知を受ける　2. 通知を止める時間　3. よく使うものをまとめる。見終わったら人ごとの設定（prefs.guide）に残す。
 // 通知の登録は、HALO 本体の中で開いているときは本体の「通知（この端末）」の処理を呼ぶ（同じサイトなので呼べる）。
@@ -3175,6 +3341,7 @@ function addMsg(channelId, msg) {
   if (!bumpChannel(channelId, msg)) { reloadChannels(); return; } // 新しい DM など、まだ一覧に無いチャンネル
   // 自分あてになりそうなもの（確認してほしい・自分へのメンション・返信・リマインダー）が来たら、自分あてを取り直す
   if (msg.empId !== S.me && ((msg.meta && (msg.meta.ack || msg.meta.type === 'chat_remind')) || (msg.mentions || []).includes(S.me) || msg.parentSeq)) refreshForMeSoon(3000);
+  if (msg.meta && msg.meta.req && (msg.meta.req.to || []).some((t) => t.id === S.me)) refreshReqsSoon(2000); // 自分への依頼が来た
   if (msg.parentSeq) {
     if (S.thread && S.thread.channelId === channelId && S.thread.parent.seq === msg.parentSeq) {
       const stick = nearBottom('threadMsgs') || msg.empId === S.me;
@@ -3506,7 +3673,7 @@ async function sendMsg(msg) {
       msg.files[i].itemId = await uploadFile(msg._ch, msg._raw[i], (p) => { msg.files[i]._progress = p; rerenderFor(msg); });
     }
     const files = (msg.files || []).filter((f) => f.itemId).map((f) => ({ itemId: f.itemId }));
-    const r = await api('chatSend', { channelId: msg._ch, clientId: msg.id, body: msg.body, parentSeq: msg.parentSeq || undefined, quoteSeq: msg._quoteSeq || undefined, mentions: msg.mentions, files: files.length ? files : undefined, vote: msg._vote || undefined, ack: msg._ack || undefined, ackDue: msg._ackDue || undefined });
+    const r = await api('chatSend', { channelId: msg._ch, clientId: msg.id, body: msg.body, parentSeq: msg.parentSeq || undefined, quoteSeq: msg._quoteSeq || undefined, mentions: msg.mentions, files: files.length ? files : undefined, vote: msg._vote || undefined, ack: msg._ack || undefined, ackDue: msg._ackDue || undefined, req: msg._req || undefined });
     addMsg(msg._ch, r.msg);
     if (r.parent) applyUpdate(msg._ch, r.parent);
   } catch (e) {
@@ -3912,14 +4079,14 @@ function setAck(where, on) {
 function openPlus(where) {
   const c = C[where];
   const items = [['fmt', c.fmtBar.classList.contains('hidden') ? '文字の書式' : '文字の書式を閉じる'], ['ack', c.ack ? '確認してほしいをやめる' : '確認してほしい'],
-    ...(where === 'main' ? [['vote', '投票・日程調整']] : []), ['later', '時間を決めて送る']];
+    ...(where === 'main' ? [['vote', '投票・日程調整']] : []), ['req', '人に頼む'], ['later', '時間を決めて送る']];
   $('sheet').innerHTML = items.map(([a, l]) => `<button data-a="${a}">${esc(tr(l))}</button>`).join('');
   $('sheet').onclick = (e) => {
     const b = e.target.closest('button');
     if (!b) return;
     closeSheet();
     const a = b.dataset.a;
-    if (a === 'fmt') toggleFmtBar(where); else if (a === 'ack') setAck(where, !c.ack); else if (a === 'vote') openVoteSet(); else openLater({ kind: 'send', where });
+    if (a === 'fmt') toggleFmtBar(where); else if (a === 'ack') setAck(where, !c.ack); else if (a === 'vote') openVoteSet(); else if (a === 'req') openReq({ where, fromComposer: true }); else openLater({ kind: 'send', where });
   };
   showSheet();
 }
