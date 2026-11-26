@@ -8,17 +8,23 @@
   'use strict';
   const WHO = { '81': '永野', '90': '畑村', '100': '日野', '1002': '江波' };
   const whoName = (w) => WHO[w] || (w ? String(w) : '担当なし');
-  // 流れ：設計図の作成 → レビュー → 承認 → リリース（リリース＝本番に出した）。いまは見るだけなので、段階は開発状況の「状態」から決める。
-  // 承認の記録（レビューOK・承認など）は次の段階。それまでは、作っている途中＝設計図の作成、出す前＝リリース待ち、出した＝リリース済み。
+  // 流れ（2026-11-26 永野さん・江波さんの整理）：受付 → 検討 → 設計 → 機能レビュー → UIレビュー → 本番テスト → 部分リリース → 全体リリース → 定着。
+  // 段階は開発状況の各項目の stage で決める（無いときだけ、古い「状態」から仮に決める）。確認者・承認者は決まるまで画面に出さない。
+  // 保留は印（hold）で表し、列にしない。mark は「作成中」「本番に出す前」などの一言の印。
   const STAGES = [
-    { k: 'idea', t: 'これから・保留', c: '#6b7280', bg: '#eceff3' },
-    { k: 'design', t: '設計図の作成', c: '#2f6fed', bg: '#e8f0ff' },
-    { k: 'review', t: 'レビュー', c: '#7c4dcc', bg: '#efe8fb' },
-    { k: 'approve', t: '承認', c: '#b7791f', bg: '#fff3d6' },
-    { k: 'release', t: 'リリース', c: '#0f8b8d', bg: '#dff4f4' },
+    { k: 'inbox', t: '受付', c: '#6b7280', bg: '#eceff3' },
+    { k: 'study', t: '検討', c: '#a16207', bg: '#fef3c7' },
+    { k: 'design', t: '設計', c: '#2f6fed', bg: '#e8f0ff' },
+    { k: 'frev', t: '機能レビュー', c: '#7c4dcc', bg: '#efe8fb' },
+    { k: 'urev', t: 'UIレビュー', c: '#a21caf', bg: '#fae8ff' },
+    { k: 'prod', t: '本番テスト', c: '#c2410c', bg: '#ffedd5' },
+    { k: 'partial', t: '部分リリース', c: '#0f8b8d', bg: '#dff4f4' },
+    { k: 'all', t: '全体リリース', c: '#15803d', bg: '#dcfce7' },
+    { k: 'settle', t: '定着', c: '#0369a1', bg: '#e0f2fe' },
   ];
-  const FLOW = ['design', 'review', 'approve', 'release'];
-  const stageOf = (s) => (s === 'dev' ? 'design' : (s === 'idea' || s === 'hold') ? 'idea' : 'release');
+  const FLOW = STAGES.map((x) => x.k);
+  const oldStage = (s) => (s === 'dev' ? 'design' : (s === 'idea' || s === 'hold') ? 'inbox' : s === 'ready' ? 'frev' : s === 'check' ? 'partial' : 'all');
+  const stageOf = (i) => (FLOW.includes(i.stage) ? i.stage : oldStage(i.state));
   const st = { data: null, loading: false, error: '', view: 'board', who: '', area: '', doneAll: false, doc: -1, docs: {}, ui: null, uiLoading: false };
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -39,7 +45,7 @@
       '.dm-yw{display:flex;gap:12px;align-items:flex-start}.dm-rail{display:flex;flex-direction:column;gap:6px;width:88px;flex:none}',
       '.dm-rb{border:1px solid var(--dmb);background:var(--dms);border-radius:10px;padding:9px 6px;cursor:pointer;color:var(--dmt);text-align:center}.dm-rb span{display:block;font-size:.78em;color:var(--dmt2)}.dm-rb.on{background:var(--dmt);border-color:var(--dmt);color:var(--dms)}.dm-rb.on span{opacity:.75}',
       '.dm-steps{display:flex;gap:4px;flex-wrap:wrap}.dm-st{flex:1;min-width:70px;text-align:center;font-size:11px;padding:5px 4px;border-radius:6px;background:#eceff3;color:#6b7280}.dm-st.on{background:var(--c);color:#fff;font-weight:700}.dm-st.past{background:#fff;color:var(--c);border:1px solid var(--c)}',
-      '.dm-cols{flex:1;min-width:0;display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:10px;align-items:start;overflow-x:auto;padding-bottom:8px}',
+      '.dm-cols{flex:1;min-width:0;display:grid;grid-template-columns:repeat(9,minmax(140px,1fr));gap:10px;align-items:start;overflow-x:auto;padding-bottom:8px}',
       '.dm-col{background:rgba(127,127,127,.10);border-radius:12px;padding:8px;border-top:4px solid var(--c);min-height:100px}',
       '.dm-ch{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;font-size:.9em}.dm-ch i{font-style:normal;background:var(--dms);border-radius:10px;padding:0 8px;font-size:.85em;color:var(--dmt2)}',
       '.dm-card{overflow-wrap:anywhere;background:var(--dms);border:1px solid var(--dmb);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer}.dm-card:hover{border-color:var(--dmp)}',
@@ -82,7 +88,7 @@
   }
   function items() {
     const s = st.data && st.data.status;
-    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i.state), rel: i.state !== 'ready', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, desc: i.desc || '', sh: i.sheet || null }));
+    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i), mark: i.mark || '', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, desc: i.desc || '', sh: i.sheet || null }));
   }
   const filtered = () => items().filter((i) => (!st.who || i.who === st.who) && (!st.area || i.area === st.area));
 
@@ -108,19 +114,21 @@
     const list = filtered();
     h += STAGES.map((s) => {
       const l = list.filter((i) => i.stage === s.k); let show = l, more = '';
-      if (s.k === 'release') {
-        const pend = l.filter((i) => !i.rel), done = l.filter((i) => i.rel).sort((a, c) => (c.date || '').localeCompare(a.date || ''));
-        const cut = !st.doneAll && done.length > 4; show = pend.concat(cut ? done.slice(0, 4) : done);
-        if (done.length > 4) more = '<div class="dm-more" onclick="DevManage.doneAll()">' + (st.doneAll ? '閉じる' : '済みのほか ' + (done.length - 4) + '件を見る') + '</div>';
+      if (s.k === 'all' && l.length > 5) {   // 全体リリースは件数が多いので、新しい5件だけ出して、残りは開く
+        const sorted = l.slice().sort((a, c) => (c.date || '').localeCompare(a.date || ''));
+        show = st.doneAll ? sorted : sorted.slice(0, 5);
+        more = '<div class="dm-more" onclick="DevManage.doneAll()">' + (st.doneAll ? '閉じる' : '古いもの ' + (l.length - 5) + '件を見る') + '</div>';
       }
       return '<div class="dm-col" style="--c:' + s.c + '"><div class="dm-ch"><b>' + s.t + '</b><i>' + l.length + '</i></div>' + (show.map((i) => card(i, s)).join('') || '<div class="dm-empty">なし</div>') + more + '</div>';
     }).join('');
     b.innerHTML = h + '</div></div></div>';
   }
-  const relTag = (i) => (i.stage !== 'release' ? '' : i.rel ? '<span class="dm-tag" style="background:#e3f6ec;color:#1f6b46">リリース済み</span>' : '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">リリース待ち</span>');
+  const tags = (i) => (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '')
+    + (i.mark ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">' + esc(i.mark) + '</span>' : '')
+    + (i.chk ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '');
   function card(i, s) {
     return '<div class="dm-card" style="--c:' + s.c + ';--bg2:' + s.bg + '" onclick="DevManage.open(' + i.id + ')"><div class="t">' + esc(i.title) + '</div><div class="dm-meta">'
-      + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + relTag(i) + (i.chk && i.stage === 'release' && i.rel ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
+      + tags(i)
       + (i.sh ? '<span class="dm-tag" style="background:#e8f0ff;color:#2f6fed">項目あり</span>' : '')
       + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
       + (i.next ? '<div class="dm-nx"><b>次</b>' + esc(i.next) + '</div>' : '')
@@ -128,18 +136,18 @@
   }
   function flowHtml(i) {
     const idx = FLOW.indexOf(i.stage);
-    return FLOW.map((x, n) => { const t = STAGES.find((y) => y.k === x), last = x === 'release';
-      const cls = (x === i.stage && !(last && i.rel)) ? 'on' : (((idx >= 0 && n < idx) || (last && i.stage === 'release' && i.rel)) ? 'past' : '');
-      return '<div class="dm-st ' + cls + '" style="--c:' + t.c + '">' + (last && i.stage === 'release' ? (i.rel ? 'リリース済み' : 'リリース待ち') : t.t) + '</div>'; }).join('');
+    return FLOW.map((x, n) => { const t = STAGES.find((y) => y.k === x);
+      const cls = x === i.stage ? 'on' : (idx >= 0 && n < idx ? 'past' : '');
+      return '<div class="dm-st ' + cls + '" style="--c:' + t.c + '">' + t.t + '</div>'; }).join('');
   }
   function openItem(id) {
     const i = items()[id]; if (!i) return; const s = STAGES.find((x) => x.k === i.stage);
     const el = document.createElement('div'); el.id = 'dm-drw';
     el.innerHTML = '<div class="dm-ov" onclick="DevManage.closeItem()"></div><div class="dm dm-dr"><button class="x" onclick="DevManage.closeItem()">×</button><h2>' + esc(i.title) + '</h2><div class="dm-meta"><span class="dm-tag" style="background:' + s.bg + ';color:' + s.c + '">' + s.t + '</span>'
-      + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + (i.chk && i.stage === 'release' && i.rel ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
+      + tags(i)
       + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>担当 ' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
       + (i.desc ? '<h4>機能の説明</h4><div class="dm-bx">' + esc(i.desc) + '</div>' : '')
-      + '<h4>流れ</h4><div class="dm-steps">' + flowHtml(i) + '</div>' + (i.stage === 'idea' ? '<div class="dm-bx" style="margin-top:6px">いまは「これから・保留」です</div>' : '')
+      + '<h4>流れ</h4><div class="dm-steps">' + flowHtml(i) + '</div>'
       + (i.where ? '<h4>いまの状態</h4><div class="dm-bx">' + esc(i.where) + '</div>' : '') + (i.next ? '<h4>次にやること</h4><div class="dm-bx">' + esc(i.next) + '</div>' : '')
       + sheetHtml(i) + '</div>';
     closeItem(); document.body.appendChild(el);
