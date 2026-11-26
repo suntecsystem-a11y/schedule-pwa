@@ -25,7 +25,7 @@
   const FLOW = STAGES.map((x) => x.k);
   const oldStage = (s) => (s === 'dev' ? 'design' : (s === 'idea' || s === 'hold') ? 'inbox' : s === 'ready' ? 'frev' : s === 'check' ? 'partial' : 'all');
   const stageOf = (i) => (FLOW.includes(i.stage) ? i.stage : oldStage(i.state));
-  const st = { data: null, loading: false, error: '', view: 'board', who: '', area: '', doneAll: false, doc: -1, docs: {}, ui: null, uiLoading: false };
+  const st = { data: null, loading: false, error: '', view: 'board', who: '', area: '', doneAll: false, doc: -1, docs: {}, ui: null, uiLoading: false, tasks: {} };
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const md = (d) => (d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '');
@@ -62,6 +62,7 @@
       '.dm-doc{background:var(--dms);border:1px solid var(--dmb);border-radius:12px;padding:6px 22px 18px;line-height:1.75}.dm-doc h1{font-size:1.3em}.dm-doc h2{font-size:1.1em;border-bottom:1px solid var(--dmb);padding-bottom:4px;margin-top:24px}.dm-doc h3{font-size:1em}.dm-doc table{border-collapse:collapse;font-size:.85em;margin:8px 0;display:block;overflow-x:auto}.dm-doc td,.dm-doc th{border:1px solid var(--dmb);padding:3px 8px}.dm-doc th{background:rgba(127,127,127,.12)}.dm-doc pre{background:rgba(127,127,127,.12);padding:10px;border-radius:8px;overflow-x:auto;font-size:.85em;line-height:1.4}.dm-doc code{background:rgba(127,127,127,.12);padding:0 4px;border-radius:4px}.dm-doc blockquote{margin:6px 0;padding:2px 12px;border-left:3px solid var(--dmb);color:var(--dmt2)}',
       '.dm-shh{margin:20px 0 0;padding-top:10px;border-top:2px solid var(--dmb);font-weight:700;font-size:.95em}.dm-kv{display:flex;gap:8px;font-size:.88em;margin:4px 0}.dm-kv b{flex:none;width:8.4em;color:var(--dmt2);font-weight:600}.dm-mute{color:var(--dmt2)}.dm-pb{font-weight:600}',
       '.dm-tb{width:100%;border-collapse:collapse;font-size:.8em}.dm-tb th,.dm-tb td{border:1px solid var(--dmb);padding:3px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.dm-tb th{background:var(--bg2,#f3f4f6);white-space:nowrap}.dm-tb td:nth-child(-n+2){white-space:nowrap}',
+      '.dm-tk{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.86em;padding:5px 0;border-bottom:1px solid var(--dmb)}.dm-tk:last-of-type{border-bottom:0}.dm-tkt{font-weight:600}',
       '.dm-pop{position:fixed;inset:2vh 2vw;background:var(--bg,#f6f7f9);color:var(--dmt);border-radius:14px;z-index:3001;display:flex;flex-direction:column;padding:12px 14px;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.3)}.dm-ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}',
       '.dm-cmp{display:grid;grid-template-columns:170px 1fr 1fr;gap:10px;align-items:start}.dm-mn{display:flex;flex-direction:column;gap:5px}.dm-mi{border:1px solid var(--dmb);background:var(--dms);border-radius:10px;padding:8px 10px;font-size:.85em;cursor:pointer;text-align:left;color:var(--dmt)}.dm-mi.on{background:var(--dmt);border-color:var(--dmt);color:var(--dms)}.dm-mi i{font-style:normal;margin-left:6px;font-size:.7em;background:#fff3d6;color:#8a5200;border-radius:6px;padding:0 5px}',
       '.dm-cp{position:relative}.dm-cl{font-weight:700;font-size:.85em;border-left:4px solid var(--c);padding-left:8px;margin-bottom:4px}.dm-cp iframe{width:100%;height:calc(96vh - 215px);min-height:380px;border:1px solid var(--dmb);border-radius:10px;background:#fff}',
@@ -76,7 +77,7 @@
   function render(reload) {
     const b = box(); if (!b) return;
     css();
-    if (reload && !st.loading) { st.data = null; st.error = ''; st.docs = {}; st.ui = null; }
+    if (reload && !st.loading) { st.data = null; st.error = ''; st.docs = {}; st.ui = null; st.tasks = {}; }
     if (!st.data && !st.error && !st.loading) {
       st.loading = true;
       b.innerHTML = '<div class="dm" style="padding:24px;color:var(--text2)">読み込んでいます…</div>';
@@ -88,7 +89,7 @@
   }
   function items() {
     const s = st.data && st.data.status;
-    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i), mark: i.mark || '', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, desc: i.desc || '', sh: i.sheet || null }));
+    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i), mark: i.mark || '', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, desc: i.desc || '', act: i.activityId ? String(i.activityId) : '', sh: i.sheet || null }));
   }
   const filtered = () => items().filter((i) => (!st.who || i.who === st.who) && (!st.area || i.area === st.area));
 
@@ -149,8 +150,35 @@
       + (i.desc ? '<h4>機能の説明</h4><div class="dm-bx">' + esc(i.desc) + '</div>' : '')
       + '<h4>流れ</h4><div class="dm-steps">' + flowHtml(i) + '</div>'
       + (i.where ? '<h4>いまの状態</h4><div class="dm-bx">' + esc(i.where) + '</div>' : '') + (i.next ? '<h4>次にやること</h4><div class="dm-bx">' + esc(i.next) + '</div>' : '')
+      + '<div id="dm-tasks">' + tasksBox(i) + '</div>'
       + sheetHtml(i) + '</div>';
     closeItem(); document.body.appendChild(el);
+    loadTasks(i);
+  }
+  // ===== タスク（タスク管理 Kintone 945 の「活動」と連動。見るだけ。追加・更新は945で行う） =====
+  const TK_ORDER = { '進行中': 0, '確認待ち': 1, '未着手': 2, '保留': 3, '完了': 4 };
+  const TK_COLOR = { '進行中': ['#e8f0ff', '#2f6fed'], '確認待ち': ['#fff3d6', '#8a5200'], '未着手': ['#eceff3', '#6b7280'], '保留': ['#fde8e8', '#9a3b3b'], '完了': ['#e3f6ec', '#1f6b46'] };
+  function tasksBox(i) {
+    if (!i.act) return '<h4>タスク</h4><div class="dm-bx dm-mute">連動する活動が未設定です（開発状況.json の activityId。タスク管理の活動のレコード番号）</div>';
+    const r = st.tasks[i.act];
+    if (!r) return '<h4>タスク（タスク管理と連動）</h4><div class="dm-bx dm-mute">読み込んでいます…</div>';
+    if (r.error) return '<h4>タスク（タスク管理と連動）</h4><div class="dm-bx dm-mute">' + esc(r.error) + '</div>';
+    const ts = (r.tasks || []).slice().sort((a, b) => (TK_ORDER[a.st] ?? 2) - (TK_ORDER[b.st] ?? 2) || (a.end || '9999').localeCompare(b.end || '9999'));
+    const open = ts.filter((x) => x.st !== '完了'), done = ts.filter((x) => x.st === '完了').sort((a, b) => (b.done || '').localeCompare(a.done || ''));
+    const cnt = ['進行中', '確認待ち', '未着手', '保留'].map((k) => [k, ts.filter((x) => x.st === k).length]).filter((x) => x[1]).map((x) => x[0] + x[1]).concat('完了' + done.length).join('・');
+    const row = (x) => { const c = TK_COLOR[x.st] || TK_COLOR['未着手']; const d = x.st === '完了' ? (x.done ? '完了 ' + md(x.done) : '') : (x.end ? '期限 ' + md(x.end) : '');
+      return '<div class="dm-tk"><span class="dm-tag" style="background:' + c[0] + ';color:' + c[1] + '">' + esc(x.st) + '</span><span class="dm-tkt">' + esc(x.title) + '</span><span class="dm-mute">' + esc([x.who, d].filter(Boolean).join('・')) + '</span></div>'; };
+    const shown = open.concat(done.slice(0, 5));
+    return '<h4>タスク（タスク管理の活動「' + esc((r.activity && r.activity.title) || '') + '」と連動）</h4><div class="dm-bx">'
+      + (ts.length ? '<div class="dm-mute" style="margin-bottom:4px">' + esc(cnt) + '</div>' + shown.map(row).join('') + (done.length > 5 ? '<div class="dm-mute">ほか完了 ' + (done.length - 5) + '件</div>' : '') : '<span class="dm-mute">この活動の下に、タスクはまだありません</span>')
+      + '</div>';
+  }
+  function loadTasks(i) {
+    if (!i.act || st.tasks[i.act]) return;
+    api('getDevTasks', { activityId: i.act }, '', { quiet: true })
+      .then((r) => { st.tasks[i.act] = r || { tasks: [] }; })
+      .catch((e) => { st.tasks[i.act] = { error: (e && e.message) || 'タスクを読み込めませんでした' }; })
+      .finally(() => { const el = document.getElementById('dm-tasks'); if (el) el.innerHTML = tasksBox(i); });
   }
   // ===== 設計図の項目（記入シート）。中身は開発状況の sheet（Worker が返す）。書いてあるものだけ出す =====
   const PRI = { high: ['高', '#fde8e8', '#9a3b3b'], mid: ['中', '#fff3d6', '#8a5200'], low: ['低', '#eceff3', '#6b7280'] };
