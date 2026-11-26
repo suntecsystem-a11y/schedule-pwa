@@ -54,7 +54,7 @@
       '.dm-bx{border:1px solid var(--dmb);border-radius:10px;padding:9px 12px;font-size:.9em}',
       '.dm-dg{font-size:.82em;color:var(--dmt2);font-weight:700;margin:14px 0 6px}.dm-dc{background:var(--dms);border:1px solid var(--dmb);border-radius:10px;padding:10px 14px;margin-bottom:8px;cursor:pointer;display:flex;gap:10px;align-items:center}.dm-dc:hover{border-color:var(--dmp)}.dm-dc .t{font-weight:700}.dm-dc .d{font-size:.82em;color:var(--dmt2)}.dm-dc .v{margin-left:auto;font-size:.78em;color:var(--dmt2);white-space:nowrap}',
       '.dm-doc{background:var(--dms);border:1px solid var(--dmb);border-radius:12px;padding:6px 22px 18px;line-height:1.75}.dm-doc h1{font-size:1.3em}.dm-doc h2{font-size:1.1em;border-bottom:1px solid var(--dmb);padding-bottom:4px;margin-top:24px}.dm-doc h3{font-size:1em}.dm-doc table{border-collapse:collapse;font-size:.85em;margin:8px 0;display:block;overflow-x:auto}.dm-doc td,.dm-doc th{border:1px solid var(--dmb);padding:3px 8px}.dm-doc th{background:rgba(127,127,127,.12)}.dm-doc pre{background:rgba(127,127,127,.12);padding:10px;border-radius:8px;overflow-x:auto;font-size:.85em;line-height:1.4}.dm-doc code{background:rgba(127,127,127,.12);padding:0 4px;border-radius:4px}.dm-doc blockquote{margin:6px 0;padding:2px 12px;border-left:3px solid var(--dmb);color:var(--dmt2)}',
-      '.dm-shh{margin:20px 0 0;padding-top:10px;border-top:2px solid var(--dmb);font-weight:700;font-size:.95em}.dm-kv{display:flex;gap:8px;font-size:.88em;margin:4px 0}.dm-kv b{flex:none;width:6.8em;color:var(--dmt2);font-weight:600}.dm-mute{color:var(--dmt2)}.dm-pb{font-weight:600}',
+      '.dm-shh{margin:20px 0 0;padding-top:10px;border-top:2px solid var(--dmb);font-weight:700;font-size:.95em}.dm-kv{display:flex;gap:8px;font-size:.88em;margin:4px 0}.dm-kv b{flex:none;width:8.4em;color:var(--dmt2);font-weight:600}.dm-mute{color:var(--dmt2)}.dm-pb{font-weight:600}',
       '.dm-tb{width:100%;border-collapse:collapse;font-size:.8em}.dm-tb th,.dm-tb td{border:1px solid var(--dmb);padding:3px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.dm-tb th{background:var(--bg2,#f3f4f6);white-space:nowrap}.dm-tb td:nth-child(-n+2){white-space:nowrap}',
       '.dm-pop{position:fixed;inset:2vh 2vw;background:var(--bg,#f6f7f9);color:var(--dmt);border-radius:14px;z-index:3001;display:flex;flex-direction:column;padding:12px 14px;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.3)}.dm-ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}',
       '.dm-cmp{display:grid;grid-template-columns:170px 1fr 1fr;gap:10px;align-items:start}.dm-mn{display:flex;flex-direction:column;gap:5px}.dm-mi{border:1px solid var(--dmb);background:var(--dms);border-radius:10px;padding:8px 10px;font-size:.85em;cursor:pointer;text-align:left;color:var(--dmt)}.dm-mi.on{background:var(--dmt);border-color:var(--dmt);color:var(--dms)}.dm-mi i{font-style:normal;margin-left:6px;font-size:.7em;background:#fff3d6;color:#8a5200;border-radius:6px;padding:0 5px}',
@@ -154,9 +154,15 @@
     let h = '<div class="dm-shh">設計図の項目</div>' + (s.draft ? '<div class="dm-bx dm-mute">' + esc(s.draft) + '</div>' : '');
     h += sec('解く問題', s.problem ? '<div class="dm-bx dm-pb">' + esc(s.problem) + '</div>' : '<div class="dm-bx dm-mute">まだ書かれていません</div>');
     h += sec('現状・困りごと', s.now ? '<div class="dm-bx">' + esc(s.now) + '</div>' : '');
-    const eff = kv('目標への近さ', e.goal) + kv('工数削減', e.labor) + kv('影響範囲', e.scope) + kv('緊急性', e.urgency)
-      + (p ? '<div class="dm-kv"><b>優先度</b><span><span class="dm-tag" style="background:' + p[1] + ';color:' + p[2] + '">' + p[0] + '</span> ' + esc(s.priorityWhy || '') + '</span></div>' : '');
-    h += sec('効果と優先度の根拠', eff ? '<div class="dm-bx">' + eff + '</div>' : '');
+    // 優先順位＝成果（会社にとっての成果の量）と難易度（期間＋スキル）で決める。緊急性は例外。未記入は「未判定」と出す
+    const hd = s.hard || {}, unk = '<span class="dm-mute">未判定</span>';
+    const row = (k, inner) => '<div class="dm-kv"><b>' + k + '</b><span>' + inner + '</span></div>';
+    const lvl = (v, why) => (v ? '<span class="dm-tag" style="background:#e8f0ff;color:#2f6fed">' + esc(v) + '</span> ' + esc(why || '') : unk);
+    const eff = row('成果', lvl(s.value, s.valueWhy)) + kv('　目標への近さ', e.goal) + kv('　工数削減', e.labor) + kv('　影響範囲', e.scope)
+      + row('難易度：期間', hd.period ? esc(hd.period) : unk) + row('難易度：スキル', hd.skill ? esc(hd.skill) : unk)
+      + kv('緊急性（例外）', e.urgency)
+      + row('優先度', p ? '<span class="dm-tag" style="background:' + p[1] + ';color:' + p[2] + '">' + p[0] + '</span> ' + esc(s.priorityWhy || '') : unk);
+    h += sec('成果と難易度（優先順位の根拠）', '<div class="dm-bx">' + eff + '</div>');
     const aft = kv('画面', a.screen) + kv('データ', a.data) + kv('運用・人', a.ops) + kv('やらないこと', a.out);
     h += sec('アフター（作るもの）', aft ? '<div class="dm-bx">' + aft + '</div>' : '');
     const rv = (s.review || []).map((r) => '<tr><td>' + esc(r.kind) + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.who) + '</td><td>' + esc(r.note) + '</td><td>' + esc(r.result) + '</td></tr>').join('');
