@@ -4796,7 +4796,7 @@ function keieiTabVisible(){return keieiAllowed()||yakuinAllowed();}
 const YAKUIN_ALLOWED_IDS=['81','3','12','100'];
 function yakuinAllowed(){return !!(currentUser&&!currentUser.isPartner&&YAKUIN_ALLOWED_IDS.includes(String(currentUser.id)));}
 let _keiei={loaded:false,loading:false,error:'',view:''};
-let _yakuin={loaded:false,loading:false,error:''};
+let _yakuin={loaded:false,loading:false,error:'',date:''};
 function renderKeieiTab(){
   const box=document.getElementById('tab-keiei');if(!box)return;
   if(!box.dataset.built){
@@ -4834,21 +4834,28 @@ function renderKeieiMock(){
     box.innerHTML='<div style="padding:24px;color:#b5533c">'+esc(_keiei.error)+'</div>';
   }).finally(()=>{_keiei.loading=false;});
 }
-function renderYakuinTab(reload){
+function renderYakuinTab(reload,date){
   const box=document.getElementById('keiei-pane-yakuin');if(!box)return;
   if(_yakuin.loading)return;
+  if(date!==undefined){_yakuin.date=date;reload=true;}   // 日付を選んだとき（''＝最新）
   if(_yakuin.loaded&&!reload)return;
   _yakuin.loading=true;_yakuin.error='';
   box.innerHTML='<div style="padding:24px;color:#6e7773">読み込んでいます…</div>';
-  api('getYakuinReport',{},'',{quiet:true}).then(r=>{
+  api('getYakuinReport',_yakuin.date?{date:_yakuin.date}:{},'',{quiet:true}).then(r=>{
     const rep=r&&r.report;
-    if(!rep||!rep.html){box.innerHTML='<div style="padding:24px;color:#6e7773">報告がまだ置かれていません。</div>';return;}
+    const dates=(r&&r.dates)||[];
     box.innerHTML='';
     const bar=document.createElement('div');
-    bar.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;font-size:12px;color:#6e7773';
-    const upd=rep.updatedAt?new Date(rep.updatedAt):null;
-    bar.innerHTML='<span>報告の日付 '+esc(rep.asof||'-')+(upd&&!isNaN(upd)?'　／　更新 '+esc((upd.getMonth()+1)+'/'+upd.getDate()+' '+String(upd.getHours()).padStart(2,'0')+':'+String(upd.getMinutes()).padStart(2,'0')):'')+'</span><button onclick="renderYakuinTab(true)" style="border:1px solid #cfd6d3;background:#fff;border-radius:8px;padding:3px 10px;cursor:pointer">読み直す</button>';
+    bar.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;font-size:12px;color:#6e7773';
+    const cur=_yakuin.date||(rep&&rep.asof)||(dates[0]||'');
+    const i=dates.indexOf(cur);
+    const nb=(lab,to,dis)=>'<button '+(dis?'disabled ':'')+'onclick="renderYakuinTab(false,\''+(to||'')+'\')" style="border:1px solid #cfd6d3;background:#fff;border-radius:8px;padding:3px 10px;cursor:'+(dis?'default':'pointer')+';opacity:'+(dis?'.4':'1')+'">'+lab+'</button>';
+    const opts=dates.map(d=>'<option value="'+esc(d)+'"'+(d===cur?' selected':'')+'>'+esc(d.slice(5).replace('-','/'))+'</option>').join('');
+    const upd=rep&&rep.updatedAt?new Date(rep.updatedAt):null;
+    bar.innerHTML=(dates.length?nb('◀ 前の日',dates[i+1],i<0||i+1>=dates.length)+'<select onchange="renderYakuinTab(false,this.value)" style="border:1px solid #cfd6d3;border-radius:8px;padding:3px 6px;background:#fff">'+opts+'</select>'+nb('次の日 ▶',dates[i-1],i<=0)+nb('最新','',!_yakuin.date):'')
+      +'<span>'+(rep?'報告の日付 '+esc(rep.asof||'-')+(upd&&!isNaN(upd)?'　／　更新 '+esc((upd.getMonth()+1)+'/'+upd.getDate()+' '+String(upd.getHours()).padStart(2,'0')+':'+String(upd.getMinutes()).padStart(2,'0')):''):'')+'</span><button onclick="renderYakuinTab(true)" style="border:1px solid #cfd6d3;background:#fff;border-radius:8px;padding:3px 10px;cursor:pointer">読み直す</button>';
     box.appendChild(bar);
+    if(!rep||!rep.html){const m=document.createElement('div');m.style.cssText='padding:24px;color:#6e7773';m.textContent=_yakuin.date?'この日の報告はありません。':'報告がまだ置かれていません。';box.appendChild(m);_yakuin.loaded=true;return;}
     const f=document.createElement('iframe');
     f.title='役員向け 日次進捗報告';
     f.setAttribute('sandbox','');   // 中の画面は動かす部品を持たず、親のログイン情報には触れない
