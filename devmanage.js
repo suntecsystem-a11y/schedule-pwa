@@ -54,6 +54,8 @@
       '.dm-bx{border:1px solid var(--dmb);border-radius:10px;padding:9px 12px;font-size:.9em}',
       '.dm-dg{font-size:.82em;color:var(--dmt2);font-weight:700;margin:14px 0 6px}.dm-dc{background:var(--dms);border:1px solid var(--dmb);border-radius:10px;padding:10px 14px;margin-bottom:8px;cursor:pointer;display:flex;gap:10px;align-items:center}.dm-dc:hover{border-color:var(--dmp)}.dm-dc .t{font-weight:700}.dm-dc .d{font-size:.82em;color:var(--dmt2)}.dm-dc .v{margin-left:auto;font-size:.78em;color:var(--dmt2);white-space:nowrap}',
       '.dm-doc{background:var(--dms);border:1px solid var(--dmb);border-radius:12px;padding:6px 22px 18px;line-height:1.75}.dm-doc h1{font-size:1.3em}.dm-doc h2{font-size:1.1em;border-bottom:1px solid var(--dmb);padding-bottom:4px;margin-top:24px}.dm-doc h3{font-size:1em}.dm-doc table{border-collapse:collapse;font-size:.85em;margin:8px 0;display:block;overflow-x:auto}.dm-doc td,.dm-doc th{border:1px solid var(--dmb);padding:3px 8px}.dm-doc th{background:rgba(127,127,127,.12)}.dm-doc pre{background:rgba(127,127,127,.12);padding:10px;border-radius:8px;overflow-x:auto;font-size:.85em;line-height:1.4}.dm-doc code{background:rgba(127,127,127,.12);padding:0 4px;border-radius:4px}.dm-doc blockquote{margin:6px 0;padding:2px 12px;border-left:3px solid var(--dmb);color:var(--dmt2)}',
+      '.dm-shh{margin:20px 0 0;padding-top:10px;border-top:2px solid var(--dmb);font-weight:700;font-size:.95em}.dm-kv{display:flex;gap:8px;font-size:.88em;margin:4px 0}.dm-kv b{flex:none;width:6.8em;color:var(--dmt2);font-weight:600}.dm-mute{color:var(--dmt2)}.dm-pb{font-weight:600}',
+      '.dm-tb{width:100%;border-collapse:collapse;font-size:.8em}.dm-tb th,.dm-tb td{border:1px solid var(--dmb);padding:3px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere}.dm-tb th{background:var(--bg2,#f3f4f6);white-space:nowrap}.dm-tb td:nth-child(-n+2){white-space:nowrap}',
       '.dm-pop{position:fixed;inset:2vh 2vw;background:var(--bg,#f6f7f9);color:var(--dmt);border-radius:14px;z-index:3001;display:flex;flex-direction:column;padding:12px 14px;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.3)}.dm-ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}',
       '.dm-cmp{display:grid;grid-template-columns:170px 1fr 1fr;gap:10px;align-items:start}.dm-mn{display:flex;flex-direction:column;gap:5px}.dm-mi{border:1px solid var(--dmb);background:var(--dms);border-radius:10px;padding:8px 10px;font-size:.85em;cursor:pointer;text-align:left;color:var(--dmt)}.dm-mi.on{background:var(--dmt);border-color:var(--dmt);color:var(--dms)}.dm-mi i{font-style:normal;margin-left:6px;font-size:.7em;background:#fff3d6;color:#8a5200;border-radius:6px;padding:0 5px}',
       '.dm-cp{position:relative}.dm-cl{font-weight:700;font-size:.85em;border-left:4px solid var(--c);padding-left:8px;margin-bottom:4px}.dm-cp iframe{width:100%;height:calc(96vh - 215px);min-height:380px;border:1px solid var(--dmb);border-radius:10px;background:#fff}',
@@ -80,7 +82,7 @@
   }
   function items() {
     const s = st.data && st.data.status;
-    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i.state), rel: i.state !== 'ready', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next }));
+    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i.state), rel: i.state !== 'ready', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, sh: i.sheet || null }));
   }
   const filtered = () => items().filter((i) => (!st.who || i.who === st.who) && (!st.area || i.area === st.area));
 
@@ -119,6 +121,7 @@
   function card(i, s) {
     return '<div class="dm-card" style="--c:' + s.c + ';--bg2:' + s.bg + '" onclick="DevManage.open(' + i.id + ')"><div class="t">' + esc(i.title) + '</div><div class="dm-meta">'
       + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + relTag(i) + (i.chk && i.stage === 'release' && i.rel ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
+      + (i.sh ? '<span class="dm-tag" style="background:#e8f0ff;color:#2f6fed">項目あり</span>' : '')
       + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
       + (i.next ? '<div class="dm-nx"><b>次</b>' + esc(i.next) + '</div>' : '')
       + '<button class="dm-cbtn" onclick="event.stopPropagation();DevManage.compare(' + i.id + ')">◧ ビフォー／アフター</button></div>';
@@ -136,8 +139,35 @@
       + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + (i.chk && i.stage === 'release' && i.rel ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
       + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>担当 ' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
       + '<h4>流れ</h4><div class="dm-steps">' + flowHtml(i) + '</div>' + (i.stage === 'idea' ? '<div class="dm-bx" style="margin-top:6px">いまは「これから・保留」です</div>' : '')
-      + (i.where ? '<h4>いまの状態</h4><div class="dm-bx">' + esc(i.where) + '</div>' : '') + (i.next ? '<h4>次にやること</h4><div class="dm-bx">' + esc(i.next) + '</div>' : '') + '</div>';
+      + (i.where ? '<h4>いまの状態</h4><div class="dm-bx">' + esc(i.where) + '</div>' : '') + (i.next ? '<h4>次にやること</h4><div class="dm-bx">' + esc(i.next) + '</div>' : '')
+      + sheetHtml(i) + '</div>';
     closeItem(); document.body.appendChild(el);
+  }
+  // ===== 設計図の項目（記入シート）。中身は開発状況の sheet（Worker が返す）。書いてあるものだけ出す =====
+  const PRI = { high: ['高', '#fde8e8', '#9a3b3b'], mid: ['中', '#fff3d6', '#8a5200'], low: ['低', '#eceff3', '#6b7280'] };
+  const kv = (k, v) => (v ? '<div class="dm-kv"><b>' + k + '</b><span>' + esc(v) + '</span></div>' : '');
+  function sheetHtml(i) {
+    const s = i.sh;
+    if (!s) return '<h4>解く問題</h4><div class="dm-bx dm-mute">まだ書かれていません（なぜやるか・誰が確認したか・何を変えたかを残す）</div>';
+    const e = s.effect || {}, a = s.after || {}, g = s.gate || {}, f = s.follow || {}, p = PRI[s.priority];
+    const sec = (t, body) => (body ? '<h4>' + t + '</h4>' + body : '');
+    let h = '<div class="dm-shh">設計図の項目</div>' + (s.draft ? '<div class="dm-bx dm-mute">' + esc(s.draft) + '</div>' : '');
+    h += sec('解く問題', s.problem ? '<div class="dm-bx dm-pb">' + esc(s.problem) + '</div>' : '<div class="dm-bx dm-mute">まだ書かれていません</div>');
+    h += sec('現状・困りごと', s.now ? '<div class="dm-bx">' + esc(s.now) + '</div>' : '');
+    const eff = kv('目標への近さ', e.goal) + kv('工数削減', e.labor) + kv('影響範囲', e.scope) + kv('緊急性', e.urgency)
+      + (p ? '<div class="dm-kv"><b>優先度</b><span><span class="dm-tag" style="background:' + p[1] + ';color:' + p[2] + '">' + p[0] + '</span> ' + esc(s.priorityWhy || '') + '</span></div>' : '');
+    h += sec('効果と優先度の根拠', eff ? '<div class="dm-bx">' + eff + '</div>' : '');
+    const aft = kv('画面', a.screen) + kv('データ', a.data) + kv('運用・人', a.ops) + kv('やらないこと', a.out);
+    h += sec('アフター（作るもの）', aft ? '<div class="dm-bx">' + aft + '</div>' : '');
+    const rv = (s.review || []).map((r) => '<tr><td>' + esc(r.kind) + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.who) + '</td><td>' + esc(r.note) + '</td><td>' + esc(r.result) + '</td></tr>').join('');
+    h += sec('レビュー記録（先に設計、次にUI）', '<div class="dm-bx">' + (rv ? '<table class="dm-tb"><tr><th>種類</th><th>日付</th><th>確認者</th><th>指摘・直したこと</th><th>結果</th></tr>' + rv + '</table>' : '<span class="dm-mute">まだありません</span>') + '</div>');
+    const gt = (g.wide === true ? '全社に影響する' : g.wide === false ? '全社には影響しない' : '') ;
+    h += sec('リリース確認', (gt || g.confirmer) ? '<div class="dm-bx">' + kv('全社への影響', gt) + kv('確認者', g.confirmer) + kv('確認日', g.date) + kv('結果', g.result) + '</div>' : '');
+    const fl = kv('見直し日', f.when) + kv('解決できたか・効果', f.result) + kv('次にやること', f.next);
+    h += sec('定着・フィードバック', fl ? '<div class="dm-bx">' + fl + '</div>' : '');
+    const hs = (s.history || []).map((r) => '<tr><td>' + esc(r.v) + '</td><td>' + esc(r.date) + '</td><td>' + esc(r.what) + '</td><td>' + esc(r.why) + '</td><td>' + esc(r.ok) + '</td></tr>').join('');
+    h += sec('仕様変更履歴（理由も残す）', hs ? '<div class="dm-bx"><table class="dm-tb"><tr><th>版</th><th>日付</th><th>変更内容</th><th>変更の理由</th><th>確認</th></tr>' + hs + '</table></div>' : '');
+    return h;
   }
   function closeItem() { const e = document.getElementById('dm-drw'); if (e) e.remove(); }
 
