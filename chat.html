@@ -68,6 +68,18 @@ body.embed .side-head{display:none}
 .sec.grp .fold{display:inline-block;width:10px;transition:transform .15s}
 .sec.grp.closed .fold{transform:rotate(-90deg)}
 .sec.grp .sec-ed{margin-left:auto;display:flex;gap:2px}
+/* ドラッグでまとまりに入れる（2026-11-26。パソコンだけ） */
+.dropzone{display:none;margin:4px 10px;padding:8px 12px;border:1.5px dashed var(--border);border-radius:10px;font-size:12px;color:var(--text2);text-align:center}
+body.dragging-ch .dropzone{display:block}
+.drop-on{outline:2px solid var(--primary);outline-offset:-2px;background:var(--primary-light)}
+.ch.drop-before{box-shadow:inset 0 2px 0 var(--primary)}
+.ch.dragging{opacity:.45}
+.hid-row{display:flex;align-items:center;gap:8px;padding:6px 16px;font-size:13px;color:var(--text2)}
+.hid-row span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hid-row button,.mg-arc button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:3px 10px;font:inherit;font-size:12px}
+.mg-arc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:9px 4px;border-bottom:1px solid var(--surface-1)}
+.mg-arc .nm{flex:1;min-width:140px}
+.mg-arc .nm small{display:block;font-size:11px;color:var(--text2)}
 .sec.grp .sec-ed button,.ch .ed button{border:0;background:none;color:var(--text2);padding:2px 5px;font-size:13px;cursor:pointer;border-radius:6px}
 .sec.grp .sec-ed button:hover,.ch .ed button:hover{background:var(--surface-1);color:var(--text)}
 .ch .ed{display:flex;gap:1px;align-items:center;flex-shrink:0}
@@ -492,7 +504,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
   <div class="box">
     <h2>チャットの管理</h2>
     <p id="mgNote"></p>
-    <div class="mg-tabs"><button type="button" data-t="chg" class="on">直した・消したものを探す</button><button type="button" data-t="exp">書き出す</button></div>
+    <div class="mg-tabs"><button type="button" data-t="chg" class="on">直した・消したものを探す</button><button type="button" data-t="exp">書き出す</button><button type="button" data-t="arc">しまったもの</button></div>
     <div id="mgChg" class="mg-form">
       <select id="mgCh" title="チャンネル"></select>
       <select id="mgWho" title="書いた人"></select>
@@ -606,7 +618,7 @@ textarea.in{flex:1;resize:none;overflow-y:hidden;max-height:160px;min-height:42p
     <p id="setNote"></p>
     <div id="setMembers"></div>
     <div class="err" id="setErr"></div>
-    <div class="btns wrap"><button type="button" class="btn" id="setAdd">メンバーを足す</button><button type="button" class="btn" id="setLeave">抜ける</button><button type="button" class="btn danger" id="setArchive">しまう</button><button type="button" class="btn primary" id="setClose">閉じる</button></div>
+    <div class="btns wrap"><button type="button" class="btn" id="setAdd">メンバーを足す</button><button type="button" class="btn" id="setLeave">抜ける</button><button type="button" class="btn" id="setHide">一覧から外す（自分だけ）</button><button type="button" class="btn danger" id="setArchive">しまう</button><button type="button" class="btn danger" id="setDelete">消す</button><button type="button" class="btn primary" id="setClose">閉じる</button></div>
   </div>
 </div>
 
@@ -659,6 +671,15 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // 一覧から外す・消す・しまったもの・ドラッグ（2026-11-26）
+    'しまったもの': 'Đã cất', '一覧から外す（自分だけ）': 'Ẩn khỏi danh sách (chỉ mình tôi)', '消す': 'Xóa', '外す': 'Ẩn',
+    '＋ 新しいまとまりを作って入れる': '+ Tạo nhóm mới và cho vào', '★ お気に入りに入れる': '★ Cho vào yêu thích',
+    '一覧から外したもの（{n}）': 'Đã ẩn khỏi danh sách ({n})', '戻す': 'Khôi phục',
+    '一覧から外しました（新しいメッセージが来たら、また出ます。「一覧を整理」から戻せます）': 'Đã ẩn khỏi danh sách (sẽ hiện lại khi có tin mới; có thể khôi phục trong "Sắp xếp danh sách")',
+    'このチャンネルを消しますか？（まだ何も書いていないので、消すと元に戻せません）': 'Xóa kênh này? (Chưa có tin nhắn nào; xóa rồi không khôi phục được)',
+    '最後 {when}': 'Lần cuối {when}', '中身を見る': 'Xem nội dung', 'しまったチャンネル・会話はありません': 'Không có kênh / cuộc trò chuyện đã cất',
+    '「{name}」を一覧に戻しますか？（メンバーの一覧にもまた出ます）': 'Đưa "{name}" trở lại danh sách? (Sẽ hiện lại với các thành viên)',
+    '戻しました': 'Đã khôi phục', 'メッセージはありません': 'Không có tin nhắn', '‹ しまったものの一覧へ': '‹ Về danh sách đã cất', '返信': 'Trả lời', '添付：': 'Đính kèm: ',
     // チャットの管理（2026-11-25）
     'チャットの管理': 'Quản lý trò chuyện', '直した・消したものを探す': 'Tìm tin đã sửa / đã xóa', '書き出す': 'Xuất dữ liệu',
     '直したものと消したもの': 'Cả tin đã sửa và đã xóa', '直したものだけ': 'Chỉ tin đã sửa', '消したものだけ': 'Chỉ tin đã xóa',
@@ -985,6 +1006,15 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // 一覧から外す・消す・しまったもの・ドラッグ（2026-11-26）
+    'しまったもの': 'संग्रह गरिएका', '一覧から外す（自分だけ）': 'सूचीबाट हटाउनुहोस् (मेरो लागि मात्र)', '消す': 'मेटाउनुहोस्', '外す': 'हटाउनुहोस्',
+    '＋ 新しいまとまりを作って入れる': '+ नयाँ समूह बनाएर राख्नुहोस्', '★ お気に入りに入れる': '★ मनपर्नेमा राख्नुहोस्',
+    '一覧から外したもの（{n}）': 'सूचीबाट हटाइएका ({n})', '戻す': 'फर्काउनुहोस्',
+    '一覧から外しました（新しいメッセージが来たら、また出ます。「一覧を整理」から戻せます）': 'सूचीबाट हटाइयो (नयाँ सन्देश आएमा फेरि देखिन्छ; "सूची मिलाउनुहोस्" बाट फर्काउन सकिन्छ)',
+    'このチャンネルを消しますか？（まだ何も書いていないので、消すと元に戻せません）': 'यो च्यानल मेटाउने? (अहिलेसम्म कुनै सन्देश छैन; मेटाएपछि फर्काउन सकिँदैन)',
+    '最後 {when}': 'अन्तिम {when}', '中身を見る': 'सामग्री हेर्नुहोस्', 'しまったチャンネル・会話はありません': 'संग्रह गरिएका च्यानल / कुराकानी छैनन्',
+    '「{name}」を一覧に戻しますか？（メンバーの一覧にもまた出ます）': '"{name}" लाई सूचीमा फर्काउने? (सदस्यहरूको सूचीमा पनि फेरि देखिन्छ)',
+    '戻しました': 'फर्काइयो', 'メッセージはありません': 'कुनै सन्देश छैन', '‹ しまったものの一覧へ': '‹ संग्रह गरिएका सूचीमा', '返信': 'जवाफ', '添付：': 'संलग्न: ',
     // チャットの管理（2026-11-25）
     'チャットの管理': 'च्याट व्यवस्थापन', '直した・消したものを探す': 'सम्पादित / मेटाइएका खोज्नुहोस्', '書き出す': 'निर्यात गर्नुहोस्',
     '直したものと消したもの': 'सम्पादित र मेटाइएका दुवै', '直したものだけ': 'सम्पादित मात्र', '消したものだけ': 'मेटाइएका मात्र',
@@ -1321,7 +1351,7 @@ function tf(key, vars) {
   return base.replace(/\{(\w+)\}/g, (_, v) => (vars && vars[v] !== undefined ? String(vars[v]) : ''));
 }
 // 人が書いたもの（本文・名前・チャンネル名・探した言葉）は置き換えない
-const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where,#mgList .where,#chgBody .where,#mgCh,#mgWho,#mgExCh,.fmt-prev,#readersBody .names';
+const NO_TR = '.bub,.nm,.who,.quote,.hit .body,#setMembers,#peopleList,#picked,.pending-files,#meName,#ivName,textarea,.mention-box,#chName,#searchList .where,#mgList .where,#chgBody .where,.hid-row span,#mgCh,#mgWho,#mgExCh,.fmt-prev,#readersBody .names';
 const NO_TR_ATTR = NO_TR.replace(',textarea', ''); // 入力欄の「入力してください」の文（placeholder）は訳す
 function trTree(root) {
   if (!I18N || !root) return;
@@ -1646,6 +1676,9 @@ function renderChannels() {
   const used = new Set();
   const self = S.channels.find(isSelfCh); // 自分メモは、いつもいちばん上（お気に入り・まとまりには入れない）
   if (self) used.add(self.id);
+  // 一覧から外したもの（自分だけ。2026-11-26）：外したあとに新しいメッセージが来たら、また出す
+  const hiddenList = S.channels.filter((c) => isHiddenCh(c) && !used.has(c.id));
+  hiddenList.forEach((c) => used.add(c.id));
   const favs = pr.fav.map((id) => byId.get(id)).filter((c) => c && !used.has(c.id));
   favs.forEach((c) => used.add(c.id));
   const cats = pr.cats.map((cat) => {
@@ -1657,7 +1690,7 @@ function renderChannels() {
   const ed = S.listEdit;
   const catOf = (id) => (pr.cats.find((x) => x.ids.includes(id)) || {}).id || '';
   const row = (c, where) => `
-    <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}${ed ? ' editing' : ''}" data-id="${esc(c.id)}">
+    <div class="ch${c.id === S.cur ? ' on' : ''}${c.unread ? ' unread' : ''}${c.muted ? ' muted' : ''}${ed ? ' editing' : ''}" data-id="${esc(c.id)}" data-where="${esc(where || 'none')}"${CAN_DRAG && !ed ? ' draggable="true"' : ''}>
       <div class="nm"><b>${c.kind === 'dm' ? (() => { const o = (c.members || []).find((x) => x !== S.me) || S.me; return `<span class="avw">${avatarHtml(o)}${presDot(o)}</span>`; })() : ''}${c.kind === 'public' || c.kind === 'private' ? '# ' : ''}${esc(chTitle(c))}${c.dept ? `<span class="tag">${tr('部署')}</span>` : c.kind === 'private' ? `<span class="tag">${tr('招待のみ')}</span>` : ''}</b><small>${esc(previewText(c.lastPreview))}</small></div>
       ${c.muted ? '<span class="mute">通知オフ</span>' : ''}
       ${c.unread && (c.mentionSeq || 0) > (c.readSeq || 0) ? '<span class="badge at" title="自分あてのメンションがあります">＠</span>' : ''}
@@ -1665,6 +1698,7 @@ function renderChannels() {
       ${ed ? `<span class="ed">
         <button type="button" data-ed="fav" class="${pr.fav.includes(c.id) ? 'on' : ''}" title="お気に入り">${pr.fav.includes(c.id) ? '★' : '☆'}</button>
         ${where ? `<button type="button" data-ed="up" title="上へ">↑</button><button type="button" data-ed="down" title="下へ">↓</button>` : ''}
+        <button type="button" data-ed="hide" title="一覧から外す（自分だけ。新しいメッセージが来たらまた出ます）">外す</button>
         ${pr.fav.includes(c.id) ? '' : `<select data-ed="cat" title="まとまりに入れる"><option value="">まとまり…</option>${pr.cats.map((x) => `<option value="${esc(x.id)}"${catOf(c.id) === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}<option value="+">＋新しいまとまり</option>${catOf(c.id) ? '<option value="-">まとまりから出す</option>' : ''}</select>`}
       </span>` : ''}
     </div>`;
@@ -1675,14 +1709,20 @@ function renderChannels() {
   const favOpen = !(pr.closed || []).includes('fav');
   const tools = `<div class="list-tools">${ed ? '<button type="button" class="txt-btn" data-ed="newcat">まとまりを作る</button>' : ''}<button type="button" class="txt-btn" data-ed="toggle">${ed ? '整理を終わる' : '一覧を整理'}</button></div>`;
   const selfRow = `<div class="ch self${self && self.id === S.cur ? ' on' : ''}${self && self.unread ? ' unread' : ''}" data-id="${esc(self ? self.id : '__self__')}"><div class="nm"><b>${esc(tr('自分メモ'))}</b><small>${esc(self && self.lastPreview ? previewText(self.lastPreview) : tr('自分だけが見られるメモ'))}</small></div>${self && self.unread ? `<span class="badge">${self.unread}</span>` : ''}</div>`;
-  $('chList').innerHTML = tools + selfRow
+  const drops = CAN_DRAG ? `<div class="dropzone" data-drop="newcat">${esc(tr('＋ 新しいまとまりを作って入れる'))}</div>`
+    + (favs.length ? '' : `<div class="dropzone" data-drop="fav">${esc(tr('★ お気に入りに入れる'))}</div>`)
+    + `<div class="dropzone" data-drop="hide">${esc(tr('一覧から外す（自分だけ）'))}</div>` : '';
+  const hidHtml = ed && hiddenList.length ? `<div class="sec">${esc(tf('一覧から外したもの（{n}）', { n: hiddenList.length }))}</div>`
+    + hiddenList.map((c) => `<div class="hid-row" data-id="${esc(c.id)}"><span>${esc(chTitle(c))}</span><button type="button" data-ed="unhide">${esc(tr('戻す'))}</button></div>`).join('') : '';
+  $('chList').innerHTML = tools + drops + selfRow
     + (favs.length ? grp('fav', '★ お気に入り', '', favOpen) + (favOpen ? favs.map((c) => row(c, 'fav')).join('') : '') : '')
     + cats.map(({ cat, list }) => grp('cat:' + cat.id, esc(cat.name), list.length ? `（${list.length}）` : '', cat.open,
       ed ? `<span class="sec-ed"><button type="button" data-ed="catname" data-cat="${esc(cat.id)}" title="名前を変える">✎</button><button type="button" data-ed="catdel" data-cat="${esc(cat.id)}" title="まとまりを消す">×</button></span>` : '')
       + (cat.open ? list.map((c) => row(c, 'cat:' + cat.id)).join('') : '')).join('')
-    + (halo.length ? '<div class="sec">HALO</div>' + halo.map((c) => row(c, '')).join('') : '')
-    + (chs.length ? '<div class="sec">チャンネル</div>' + chs.map((c) => row(c, '')).join('') : '')
-    + (dms.length ? '<div class="sec">会話</div>' + dms.map((c) => row(c, '')).join('') : '')
+    + (halo.length ? '<div class="sec" data-drop="none">HALO</div>' + halo.map((c) => row(c, '')).join('') : '')
+    + (chs.length ? '<div class="sec" data-drop="none">チャンネル</div>' + chs.map((c) => row(c, '')).join('') : '')
+    + (dms.length ? '<div class="sec" data-drop="none">会話</div>' + dms.map((c) => row(c, '')).join('') : '')
+    + hidHtml
     + (S.channels.length ? '' : '<div class="empty">チャンネルがありません</div>');
   postUnread();
   setForMeBadge();
@@ -1691,11 +1731,82 @@ function renderChannels() {
 /** 並べ方を残す（続けて押しても1回にまとめる） */
 let prefsTimer = null;
 function savePrefsSoon() {
+  const hid = S.prefs.hidden || (S.prefs.hidden = {});
+  for (const id of Object.keys(hid)) { const c = S.channels.find((x) => x.id === id); if (c && (c.lastSeq || 0) > hid[id]) delete hid[id]; } // また出たもの
   clearTimeout(prefsTimer);
   prefsTimer = setTimeout(() => api('chatPrefsSave', { prefs: S.prefs }).then((r) => { if (r && r.prefs) S.prefs = r.prefs; }).catch((e) => toast(e.message)), 600);
   renderChannels();
 }
 const newCatId = () => Math.random().toString(36).slice(2, 10);
+// ---------- 一覧から外す（自分だけ。2026-11-26）・ドラッグでまとまりに入れる（パソコンだけ） ----------
+const CAN_DRAG = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+function isHiddenCh(c) {
+  const h = (S.prefs && S.prefs.hidden) || {};
+  return c.id !== S.cur && Object.prototype.hasOwnProperty.call(h, c.id) && (c.lastSeq || 0) <= h[c.id];
+}
+function hideCh(id) {
+  const c = S.channels.find((x) => x.id === id);
+  if (!c || isSelfCh(c)) return;
+  (S.prefs.hidden || (S.prefs.hidden = {}))[id] = c.lastSeq || 0;
+  if (S.cur === id) { S.cur = null; S.msgs = []; renderMsgs(); $('chName').textContent = ''; document.body.classList.remove('in-ch'); }
+  savePrefsSoon();
+  toast(tr('一覧から外しました（新しいメッセージが来たら、また出ます。「一覧を整理」から戻せます）'));
+}
+/** チャンネルをまとまりへ動かす。to は 'fav'・'cat:ID'・'newcat'・'hide'・'none'（元の場所へ）。before の前に入れる */
+function moveCh(id, to, before) {
+  const pr = S.prefs;
+  if (to === 'hide') { hideCh(id); return; }
+  let cat = null;
+  if (to === 'newcat') { cat = addCat(); if (!cat) return; }
+  pr.fav = pr.fav.filter((x) => x !== id);
+  pr.cats.forEach((x) => { x.ids = x.ids.filter((y) => y !== id); });
+  const put = (list) => { const i = before ? list.indexOf(before) : -1; if (i >= 0) list.splice(i, 0, id); else list.push(id); };
+  if (to === 'fav') put(pr.fav);
+  else if (cat) cat.ids.push(id);
+  else if (to.startsWith('cat:')) { const c = pr.cats.find((x) => 'cat:' + x.id === to); if (c) { put(c.ids); c.open = true; } }
+  savePrefsSoon();
+}
+/** 落とせる場所：まとまりの見出し・入れる枠・まとまりの中の行（その前に入れる）・ほかの見出し（まとまりから出す） */
+function dropTarget(e) {
+  const el = e.target.closest('[data-drop], .sec.grp, .ch[data-where]');
+  if (!el) return null;
+  if (el.dataset.drop) return { el, to: el.dataset.drop };
+  if (el.classList.contains('grp')) return { el, to: el.dataset.grp };
+  const w = el.dataset.where;
+  if (w === 'fav' || (w || '').startsWith('cat:')) return { el, to: w, before: el.dataset.id };
+  return { el, to: 'none' };
+}
+let dragId = null;
+const clearDropMarks = () => document.querySelectorAll('#chList .drop-on, #chList .drop-before').forEach((x) => x.classList.remove('drop-on', 'drop-before'));
+$('chList').addEventListener('dragstart', (e) => {
+  const row = e.target.closest('.ch[draggable="true"]');
+  if (!row) return;
+  dragId = row.dataset.id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', dragId);
+  row.classList.add('dragging');
+  setTimeout(() => document.body.classList.add('dragging-ch'), 0); // すぐ形を変えるとドラッグが止まるので、次に回す
+});
+$('chList').addEventListener('dragover', (e) => {
+  if (!dragId) return;
+  const t = dropTarget(e);
+  if (!t || t.before === dragId) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  clearDropMarks();
+  t.el.classList.add(t.before ? 'drop-before' : 'drop-on');
+});
+$('chList').addEventListener('drop', (e) => {
+  if (!dragId) return;
+  const t = dropTarget(e);
+  e.preventDefault();
+  const id = dragId;
+  dragId = null;
+  clearDropMarks();
+  document.body.classList.remove('dragging-ch');
+  if (t && t.before !== id) moveCh(id, t.to, t.before);
+});
+$('chList').addEventListener('dragend', () => { dragId = null; clearDropMarks(); document.body.classList.remove('dragging-ch'); document.querySelectorAll('#chList .dragging').forEach((x) => x.classList.remove('dragging')); });
 function addCat() {
   const name = prompt('まとまりの名前（20文字まで）');
   if (!name || !name.trim()) return null;
@@ -1717,6 +1828,8 @@ $('chList').addEventListener('click', (e) => {
     const id = edEl.closest('.ch')?.dataset.id;
     if (a === 'toggle') { S.listEdit = !S.listEdit; renderChannels(); }
     else if (a === 'newcat') { if (addCat()) savePrefsSoon(); }
+    else if (a === 'hide' && id) hideCh(id);
+    else if (a === 'unhide') { const hid = edEl.closest('.hid-row')?.dataset.id; if (hid) { delete S.prefs.hidden[hid]; savePrefsSoon(); } }
     else if (a === 'fav' && id) {
       if (pr.fav.includes(id)) pr.fav = pr.fav.filter((x) => x !== id);
       else { pr.fav.push(id); pr.cats.forEach((x) => { x.ids = x.ids.filter((y) => y !== id); }); }
@@ -1771,6 +1884,7 @@ $('back').addEventListener('click', () => { document.body.classList.remove('in-c
 
 async function openChannel(id) {
   S.holdRead = null;
+  if (S.prefs && S.prefs.hidden && Object.prototype.hasOwnProperty.call(S.prefs.hidden, id)) { delete S.prefs.hidden[id]; savePrefsSoon(); } // 一覧から外したものを開いたら戻す
   saveDraft('main');
   closeThread();
   S.cur = id;
@@ -2589,6 +2703,7 @@ function mgTab(t) {
   $('mgChg').classList.toggle('hidden', t !== 'chg');
   $('mgExp').classList.toggle('hidden', t !== 'exp');
   $('mgList').innerHTML = ''; $('mgErr').textContent = '';
+  if (t === 'arc') loadArchived();
 }
 document.querySelectorAll('.mg-tabs button').forEach((b) => b.addEventListener('click', () => mgTab(b.dataset.t)));
 function openManage() {
@@ -2655,39 +2770,86 @@ $('chgClose').addEventListener('click', () => $('chgBox').classList.add('hidden'
 
 /** 書き出し：チャンネルごとに続きを取りながら1つの CSV にする（Excel で開けるよう、頭に BOM を付ける） */
 const csvCell = (v) => { let s = String(v == null ? '' : v); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+/** チャンネル1つの、期間のメッセージを全部取る（しまったものは archived） */
+async function exportRowsOf(c, from, to, archived) {
+  let after = 0, rows = [];
+  for (;;) {
+    const r = await api('chatExport', { channelId: c.id, from, to, after, ...(archived ? { archived: true } : {}) });
+    rows = rows.concat(r.rows || []);
+    if (!r.next) break;
+    after = r.next;
+  }
+  return rows;
+}
+function saveCsv(lines, name) {
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+const CSV_HEAD = ['チャンネル', '番号', 'スレッドの元の番号', '書いた日時', '書いた人', '社員番号', '本文', '添付', '直した・消した日時', '消した'];
+const csvLine = (c, m) => [chTitle(c), m.seq, m.parentSeq || '', whenOf(m.createdAt), fullNameOf(m.empId), m.empId, m.kind === 'halo' ? '[HALO] ' + m.body : m.body, (m.files || []).join(' / '), whenOf(m.editedAt), m.deleted ? '消した' : ''].map(csvCell).join(',');
 $('mgExGo').addEventListener('click', async () => {
   const from = dayStart($('mgExFrom').value), to = dayEnd($('mgExTo').value);
   $('mgErr').textContent = '';
   if (!from || !to || from > to) { $('mgErr').textContent = tr('期間を選んでください'); return; }
   const targets = $('mgExCh').value ? S.channels.filter((c) => c.id === $('mgExCh').value) : S.channels.filter((c) => c.lastSeq > 0);
-  const lines = [['チャンネル', '番号', 'スレッドの元の番号', '書いた日時', '書いた人', '社員番号', '本文', '添付', '直した・消した日時', '消した'].map(csvCell).join(',')];
+  const lines = [CSV_HEAD.map(csvCell).join(',')];
   $('mgExGo').disabled = true;
   try {
     let n = 0;
     for (const [k, c] of targets.entries()) {
       $('mgList').innerHTML = `<div class="more">${esc(tf('書き出しています…（{i}/{all}）', { i: k + 1, all: targets.length }))}</div>`;
-      let after = 0;
-      for (;;) {
-        const r = await api('chatExport', { channelId: c.id, from, to, after });
-        for (const m of r.rows || []) {
-          const body = m.kind === 'halo' ? '[HALO] ' + m.body : m.body;
-          lines.push([chTitle(c), m.seq, m.parentSeq || '', whenOf(m.createdAt), fullNameOf(m.empId), m.empId, body, (m.files || []).join(' / '), whenOf(m.editedAt), m.deleted ? '消した' : ''].map(csvCell).join(','));
-          n++;
-        }
-        if (!r.next) break;
-        after = r.next;
-      }
+      for (const m of await exportRowsOf(c, from, to, false)) { lines.push(csvLine(c, m)); n++; }
     }
     if (!n) { $('mgList').innerHTML = `<div class="empty">${esc(tr('この期間のメッセージはありませんでした'))}</div>`; return; }
-    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `チャット書き出し_${$('mgExFrom').value}_${$('mgExTo').value}.csv`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    saveCsv(lines, `チャット書き出し_${$('mgExFrom').value}_${$('mgExTo').value}.csv`);
     $('mgList').innerHTML = `<div class="empty">${esc(tf('{n}件を書き出しました', { n }))}</div>`;
   } catch (e) { $('mgList').innerHTML = ''; $('mgErr').textContent = e.message; }
   finally { $('mgExGo').disabled = false; }
+});
+
+// しまったもの（2026-11-26）：自分が入っていたものだけ。中身を見る・書き出す・戻す
+let mgArc = [];
+async function loadArchived() {
+  $('mgList').innerHTML = `<div class="more">${esc(tr('読み込んでいます…'))}</div>`;
+  try {
+    mgArc = (await api('chatArchivedList')).items || [];
+    $('mgList').innerHTML = mgArc.map((c, i) => `<div class="mg-arc" data-i="${i}"><div class="nm"><span class="where">${esc(chTitle(c))}</span><small>${esc(tr(c.kind === 'dm' || c.kind === 'group' ? '会話' : 'チャンネル'))}・${esc(tf('最後 {when}', { when: whenOf(c.lastAt) }))}</small></div>`
+      + `<button type="button" data-a="view">${esc(tr('中身を見る'))}</button><button type="button" data-a="csv">${esc(tr('書き出す'))}</button><button type="button" data-a="restore">${esc(tr('戻す'))}</button></div>`).join('')
+      || `<div class="empty">${esc(tr('しまったチャンネル・会話はありません'))}</div>`;
+  } catch (e) { $('mgList').innerHTML = ''; $('mgErr').textContent = e.message; }
+}
+$('mgList').addEventListener('click', async (e) => {
+  const b = e.target.closest('.mg-arc button[data-a], button[data-a="arcback"]');
+  if (!b) return;
+  if (b.dataset.a === 'arcback') { loadArchived(); return; }
+  const c = mgArc[Number(b.closest('.mg-arc').dataset.i)];
+  if (!c) return;
+  $('mgErr').textContent = '';
+  try {
+    if (b.dataset.a === 'restore') {
+      if (!confirm(tf('「{name}」を一覧に戻しますか？（メンバーの一覧にもまた出ます）', { name: chTitle(c) }))) return;
+      await api('chatArchiveRestore', { channelId: c.id });
+      await reloadChannels();
+      toast(tr('戻しました'));
+      loadArchived();
+      return;
+    }
+    b.disabled = true;
+    const rows = await exportRowsOf(c, 0, Date.now() + 60000, true);
+    b.disabled = false;
+    if (b.dataset.a === 'csv') {
+      if (!rows.length) { toast(tr('メッセージはありません')); return; }
+      saveCsv([CSV_HEAD.map(csvCell).join(','), ...rows.map((m) => csvLine(c, m))], `チャット書き出し_${chTitle(c).replace(/[\\/:*?"<>|]/g, '_')}.csv`);
+      return;
+    }
+    $('mgList').innerHTML = `<div class="hit"><button type="button" data-a="arcback">${esc(tr('‹ しまったものの一覧へ'))}</button></div>`
+      + (rows.map((m) => `<div class="hit"><div class="where">${esc(nameOf(m.empId))}・${whenOf(m.createdAt)}${m.parentSeq ? '・' + esc(tr('返信')) : ''}${m.deleted ? '・' + esc(tr('消した')) : m.editedAt ? '・' + esc(tr('直した')) : ''}</div><div class="body">${esc(m.body || '')}${(m.files || []).length ? '\n' + esc(tr('添付：')) + esc(m.files.join(' / ')) : ''}</div></div>`).join('')
+      || `<div class="empty">${esc(tr('メッセージはありません'))}</div>`);
+  } catch (er) { b.disabled = false; $('mgErr').textContent = er.message; }
 });
 
 // ---------- 通知を止める時間（2026-11-23。Worker の quiet.js。人ごと・どの端末でも同じ） ----------
@@ -3276,6 +3438,9 @@ async function openSettings() {
   $('setAdd').classList.toggle('hidden', !canMembers);
   $('setLeave').classList.toggle('hidden', !canMembers);
   $('setArchive').classList.toggle('hidden', ch.kind === 'dm' || ch.id === 'general' || feed);
+  $('setHide').classList.toggle('hidden', ch.kind === 'inbox' || isSelfCh(ch));
+  // まだ何も書いていない、自分が作ったチャンネル・グループは本当に消せる（2026-11-26）
+  $('setDelete').classList.toggle('hidden', !(['public', 'private', 'group'].includes(ch.kind) && !ch.dept && ch.id !== 'general' && (ch.kind === 'group' || ch.createdBy === S.me) && !(ch.lastSeq > 0)));
   $('setNote').textContent = tr(feed ? 'HALO が書くチャンネルです。メンバーを足す・外すのは管理者です（自分で抜けることはできます）。'
     : ch.dept ? '部署のチャンネルです。メンバーは名簿の部署で決まります（異動すると自動で入れ替わります）。'
     : ch.kind === 'public' ? '全員が見られるチャンネルです。'
@@ -3322,6 +3487,12 @@ $('setAdd').addEventListener('click', async () => {
 $('setLeave').addEventListener('click', async () => {
   if (!confirm('このチャンネルから抜けますか？（もう一度入るには、メンバーに足してもらう必要があります）')) return;
   try { await api('chatMembersSave', { id: S.cur, remove: [S.me] }); $('chanSet').classList.add('hidden'); await reloadChannels(true); }
+  catch (e) { $('setErr').textContent = e.message; }
+});
+$('setHide').addEventListener('click', () => { const id = S.cur; $('chanSet').classList.add('hidden'); hideCh(id); });
+$('setDelete').addEventListener('click', async () => {
+  if (!confirm(tr('このチャンネルを消しますか？（まだ何も書いていないので、消すと元に戻せません）'))) return;
+  try { await api('chatChannelDelete', { id: S.cur }); $('chanSet').classList.add('hidden'); await reloadChannels(true); }
   catch (e) { $('setErr').textContent = e.message; }
 });
 $('setArchive').addEventListener('click', async () => {
