@@ -681,6 +681,12 @@ const $ = (id) => document.getElementById(id);
 const LANG = (() => { try { const l = localStorage.getItem('sch_lang'); return l === 'vi' || l === 'ne' ? l : 'ja'; } catch { return 'ja'; } })();
 const I18N = {
   vi: {
+    // Office で直す・HALO Lite（2026-11-26）
+    'Office で開いて直す（Microsoft 365 にログインして、ほかの人と一緒に直せます）': 'Mở và sửa bằng Office (đăng nhập Microsoft 365 để sửa cùng người khác)',
+    'このファイルは HALO Lite では開けません。会社の端末の HALO で開いてください': 'Không mở được tệp này trên HALO Lite. Hãy mở bằng HALO trên thiết bị của công ty',
+    'HALO Lite ではダウンロード・編集はできません。会社の端末の HALO で開いてください': 'HALO Lite không tải xuống / chỉnh sửa được. Hãy mở bằng HALO trên thiết bị của công ty',
+    'Microsoft 365 のアカウントが見つからないので、Office で直せません（見る・ダウンロードはできます）': 'Không tìm thấy tài khoản Microsoft 365 nên không sửa bằng Office được (vẫn xem / tải xuống được)',
+    'あり': 'Có', '見つからない': 'Không tìm thấy',
     // 使われ方（2026-11-26）
     '使われ方': 'Tình hình sử dụng', '対象 {n}人：開いたことがある {o}人・この7日に開いた {w}人・通知の端末が無い {d}人': 'Đối tượng {n} người: đã mở {o} · mở trong 7 ngày {w} · không có thiết bị nhận thông báo {d}',
     '人ごと（まだ開いていない人・通知の端末が無い人が上）': 'Theo người (chưa mở / không có thiết bị ở trên)', '名前': 'Tên', '最後に開いた': 'Mở lần cuối',
@@ -1022,6 +1028,12 @@ const I18N = {
     '[スタンプ]': '[Nhãn dán]', '[画像]': '[Hình ảnh]',
   },
   ne: {
+    // Office で直す・HALO Lite（2026-11-26）
+    'Office で開いて直す（Microsoft 365 にログインして、ほかの人と一緒に直せます）': 'Office मा खोलेर सम्पादन (Microsoft 365 मा लगइन गरेर अरूसँगै सम्पादन गर्न सकिन्छ)',
+    'このファイルは HALO Lite では開けません。会社の端末の HALO で開いてください': 'यो फाइल HALO Lite मा खुल्दैन। कम्पनीको उपकरणको HALO मा खोल्नुहोस्',
+    'HALO Lite ではダウンロード・編集はできません。会社の端末の HALO で開いてください': 'HALO Lite मा डाउनलोड / सम्पादन गर्न सकिँदैन। कम्पनीको उपकरणको HALO मा खोल्नुहोस्',
+    'Microsoft 365 のアカウントが見つからないので、Office で直せません（見る・ダウンロードはできます）': 'Microsoft 365 खाता भेटिएन, त्यसैले Office मा सम्पादन गर्न सकिँदैन (हेर्न / डाउनलोड गर्न सकिन्छ)',
+    'あり': 'छ', '見つからない': 'भेटिएन',
     // 使われ方（2026-11-26）
     '使われ方': 'प्रयोगको अवस्था', '対象 {n}人：開いたことがある {o}人・この7日に開いた {w}人・通知の端末が無い {d}人': 'लक्षित {n} जना: खोलेका {o} · ७ दिनमा खोलेका {w} · सूचना उपकरण नभएका {d}',
     '人ごと（まだ開いていない人・通知の端末が無い人が上）': 'व्यक्ति अनुसार (नखोलेका / उपकरण नभएका माथि)', '名前': 'नाम', '最後に開いた': 'अन्तिम पटक खोलेको',
@@ -2148,7 +2160,7 @@ function renderPanel() {
       || `<div class="empty">${esc(tr('予約はありません（メッセージの「あとで知らせる」、入力欄の時計のボタンで足せます）'))}</div>`;
   } else if (P.kind === 'files') {
     html = P.items.map((f, i) => `<div class="hit" data-i="${i}"><div><div class="where">${esc(nameOf(f.empId))}・${when(f.createdAt)}</div><div class="body">${esc(f.name)}　<small>${sizeText(f.size || 0)}</small></div></div>`
-      + `<button type="button" data-p="dl">${esc(tr('ダウンロード'))}</button><button type="button" data-p="jump">${esc(tr('メッセージへ'))}</button></div>`).join('')
+      + (LITE ? '' : `<button type="button" data-p="dl">${esc(tr('ダウンロード'))}</button>`) + `<button type="button" data-p="jump">${esc(tr('メッセージへ'))}</button></div>`).join('')
       || `<div class="empty">${esc(tr('ファイルはありません'))}</div>`;
   } else {
     html = P.items.map((x, i) => `<div class="hit" data-i="${i}"><div><div class="where">${P.kind === 'saved' ? esc(chNameOf(x.channelId)) + '・' : ''}${esc(nameOf(x.msg.empId))}・${when(x.msg.createdAt)}</div>`
@@ -2352,13 +2364,25 @@ function filesHtml(m) {
   return '<div class="files">' + fs.map((f) => (isImage(f) && !m._pending
     ? `<img class="thumb" alt="${esc(f.name)}" title="${esc(f.name)}" data-file="${esc(f.itemId)}">`
     : `<span class="file-row"><button type="button" class="file" data-file="${esc(f.itemId || '')}" title="${esc(tr('押すとブラウザで開きます'))}"><b>${esc(f.name)}</b><small>${sizeText(f.size || 0)}${f._progress !== undefined ? '・' + f._progress + '%' : ''}</small></button>`
-      + (f.itemId ? `<button type="button" class="file-dl" data-dl="${esc(f.itemId)}" title="${esc(tr('ダウンロード'))}"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>` : '') + '</span>')).join('') + '</div>';
+      + (f.itemId && !LITE && canEditFile(f) ? `<button type="button" class="file-dl" data-edit="${esc(f.itemId)}" title="${esc(tr('Office で開いて直す（Microsoft 365 にログインして、ほかの人と一緒に直せます）'))}"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>` : '')
+      + (f.itemId && !LITE ? `<button type="button" class="file-dl" data-dl="${esc(f.itemId)}" title="${esc(tr('ダウンロード'))}"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></button>` : '') + '</span>')).join('') + '</div>';
+}
+// Office で開いて直す（F-04。2026-11-26）：Word・Excel・PowerPoint の新しい形だけ。HALO Lite では出さない
+const canEditFile = (f) => /\.(docx|xlsx|pptx)$/i.test(String(f.name || ''));
+async function openEdit(itemId) {
+  if (!itemId || LITE) return;
+  const w = window.open('', '_blank'); // 先に窓を開ける（ポップアップを止められないように）
+  try {
+    const r = await api('chatFileOpen', { channelId: S.cur, itemId, mode: 'edit' });
+    if (w) w.location = r.webUrl; else location.href = r.webUrl;
+  } catch (e) { if (w) w.close(); toast(tr(e.message)); }
 }
 const fileUrlCache = new Map(); // itemId → { url, webUrl, until }
 async function fileUrl(itemId) {
   const hit = fileUrlCache.get(itemId);
   if (hit && hit.until > Date.now()) return hit;
-  const r = await api('chatFileOpen', { channelId: S.cur, itemId });
+  // HALO Lite（個人のスマホ）はダウンロードできないので、画像は大きい縮小版で見せる（2026-11-26）
+  const r = await api('chatFileOpen', { channelId: S.cur, itemId, ...(LITE ? { mode: 'thumb' } : {}) });
   const v = { ...r, until: Date.now() + 20 * 60 * 1000 };
   fileUrlCache.set(itemId, v);
   return v;
@@ -2428,6 +2452,7 @@ $('ivClose').addEventListener('click', closeImageView);
 $('imgView').addEventListener('click', (e) => { if (e.target.id === 'imgView') closeImageView(); }); // 画像の外を押しても閉じる
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('imgView').classList.contains('hidden')) closeImageView(); });
 $('ivDl').addEventListener('click', () => { if (ivItem) openFileAct(ivItem); });
+if (LITE) $('ivDl').classList.add('hidden'); // HALO Lite ではダウンロードしない（2026-11-26）
 
 /**
  * 画像以外の添付（PDF・Excel・Word など）をブラウザで開く（2026-11-18 ユーザー要望。前は押すとダウンロードだった）。
@@ -2441,6 +2466,7 @@ async function openPreview(itemId) {
     if (w) w.location = r.previewUrl; else location.href = r.previewUrl;
   } catch (e) {
     if (w) w.close();
+    if (LITE) { toast(tr('このファイルは HALO Lite では開けません。会社の端末の HALO で開いてください')); return; }
     if (confirm(tf('{msg}\nダウンロードしますか？', { msg: tr(e.message) }))) openFileAct(itemId);
   }
 }
@@ -2511,6 +2537,8 @@ function onListClick(where) {
     if (m._failed) { sendMsg(m); return; } // 送れなかったものは、どこを押しても送り直す
     const dlEl = e.target.closest('[data-dl]');
     if (dlEl) { openFileAct(dlEl.dataset.dl); return; } // ダウンロード
+    const edEl = e.target.closest('[data-edit]');
+    if (edEl) { openEdit(edEl.dataset.edit); return; } // Office で開いて直す
     const fileEl = e.target.closest('[data-file]');
     if (fileEl) { if (fileEl.tagName === 'IMG') openImageView(fileEl.dataset.file, fileEl.alt); else openPreview(fileEl.dataset.file); return; }
     const btn = e.target.closest('[data-act]');
@@ -2850,12 +2878,13 @@ async function loadUsage() {
     const st = u.storage || {};
     $('mgList').innerHTML = `<div class="mg-sum">${esc(tf('対象 {n}人：開いたことがある {o}人・この7日に開いた {w}人・通知の端末が無い {d}人', { n: ppl.length, o: opened, w: week, d: noDev }))}</div>`
       + `<div class="mg-h">${esc(tr('人ごと（まだ開いていない人・通知の端末が無い人が上）'))}</div>`
-      + `<table class="mg-tbl"><tr><th>${esc(tr('名前'))}</th><th>${esc(tr('部署'))}</th><th>${esc(tr('最後に開いた'))}</th><th>${esc(tr('通知の端末'))}</th><th>${esc(tr('通知を切った数'))}</th><th>${esc(tr('止める時間'))}</th></tr>`
+      + `<table class="mg-tbl"><tr><th>${esc(tr('名前'))}</th><th>${esc(tr('部署'))}</th><th>${esc(tr('最後に開いた'))}</th><th>${esc(tr('通知の端末'))}</th><th>${esc(tr('通知を切った数'))}</th><th>${esc(tr('止める時間'))}</th>${ppl.some((p) => p.m365 !== null) ? `<th>${esc(tr('Microsoft 365'))}</th>` : ''}</tr>`
       + ppl.map((p) => `<tr><td class="who">${esc(p.name)}</td><td class="who">${esc(p.dept)}</td>`
         + `<td>${p.lastAt ? esc(whenOf(p.lastAt)) : `<span class="warn">${esc(tr('まだ'))}</span>`}</td>`
         + `<td class="n">${p.devices + p.liteDevices ? esc(String(p.devices)) + (p.liteDevices ? esc(tf('＋簡易版 {n}', { n: p.liteDevices })) : '') : `<span class="warn">${esc(tr('なし'))}</span>`}</td>`
-        + `<td class="n">${p.off || ''}</td><td>${esc(p.quiet || '')}</td></tr>`).join('') + '</table>'
-      + `<div class="mg-note">${esc(tf('「最後に開いた」は、チャットを開いた記録（{date} から）と、読んだ記録の新しいほうです。通知の端末は HALO（スマホ・パソコン）と簡易版で通知を受けると決めた端末の数です（1人3台まで）。', { date: ymd(u.seenSince) }))}</div>`
+        + `<td class="n">${p.off || ''}</td><td>${esc(p.quiet || '')}</td>`
+        + (p.m365 === null ? '' : `<td>${p.m365 ? esc(tr('あり')) : `<span class="warn">${esc(tr('見つからない'))}</span>`}</td>`) + '</tr>').join('') + '</table>'
+      + `<div class="mg-note">${esc(tf('「最後に開いた」は、チャットを開いた記録（{date} から）と、読んだ記録の新しいほうです。通知の端末は HALO（スマホ・パソコン）と簡易版で通知を受けると決めた端末の数です（1人3台まで）。Microsoft 365 は、名簿の氏名と同じ名前のアカウントがあるか（Office で開いて直すのに要る）。', { date: ymd(u.seenSince) }))}</div>`
       + `<div class="mg-h">${esc(tr('チャンネル（メッセージの多い順）'))}</div>`
       + `<table class="mg-tbl"><tr><th>${esc(tr('チャンネル'))}</th><th>${esc(tr('メッセージ'))}</th><th>${esc(tr('最後'))}</th></tr>`
       + u.channels.map((c) => `<tr><td class="who">${esc(chTitle(c))}</td><td class="n">${c.msgs}</td><td>${esc(whenOf(c.lastAt))}</td></tr>`).join('')
