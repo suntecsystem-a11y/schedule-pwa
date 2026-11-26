@@ -62,8 +62,8 @@ body.embed .side-head{display:none}
 .ch.muted .badge{background:var(--text3)}
 .ch .badge.at,.ch.muted .badge.at{background:var(--red);margin-right:4px;padding:0 5px} /* まだ読んでいない自分あてのメンション（11/19） */
 /* お気に入り・まとまり・並べ替え（2026-11-19） */
-.list-tools{display:flex;gap:6px;justify-content:flex-end;padding:2px 10px 0}
-.list-tools .txt-btn{font-size:12px;padding:4px 6px}
+.list-tools{display:flex;gap:6px;justify-content:flex-end;padding:6px 10px 2px}
+.list-tools .pill{font-size:12px;padding:3px 10px} /* 一覧を整理・まとまりを作る（2026-11-26 ボタンの形に） */
 .sec.grp{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
 .sec.grp .fold{display:inline-block;width:10px;transition:transform .15s}
 .sec.grp.closed .fold{transform:rotate(-90deg)}
@@ -1707,7 +1707,7 @@ function renderChannels() {
   const chs = rest.filter((c) => c.kind !== 'dm' && c.kind !== 'group' && !isHaloCh(c));
   const dms = rest.filter((c) => c.kind === 'dm' || c.kind === 'group');
   const favOpen = !(pr.closed || []).includes('fav');
-  const tools = `<div class="list-tools">${ed ? '<button type="button" class="txt-btn" data-ed="newcat">まとまりを作る</button>' : ''}<button type="button" class="txt-btn" data-ed="toggle">${ed ? '整理を終わる' : '一覧を整理'}</button></div>`;
+  const tools = `<div class="list-tools">${ed ? '<button type="button" class="pill" data-ed="newcat">まとまりを作る</button>' : ''}<button type="button" class="pill${ed ? ' main' : ''}" data-ed="toggle">${ed ? '整理を終わる' : '一覧を整理'}</button></div>`;
   const selfRow = `<div class="ch self${self && self.id === S.cur ? ' on' : ''}${self && self.unread ? ' unread' : ''}" data-id="${esc(self ? self.id : '__self__')}"><div class="nm"><b>${esc(tr('自分メモ'))}</b><small>${esc(self && self.lastPreview ? previewText(self.lastPreview) : tr('自分だけが見られるメモ'))}</small></div>${self && self.unread ? `<span class="badge">${self.unread}</span>` : ''}</div>`;
   const drops = CAN_DRAG ? `<div class="dropzone" data-drop="newcat">${esc(tr('＋ 新しいまとまりを作って入れる'))}</div>`
     + (favs.length ? '' : `<div class="dropzone" data-drop="fav">${esc(tr('★ お気に入りに入れる'))}</div>`)
