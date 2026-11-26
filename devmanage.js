@@ -8,13 +8,17 @@
   'use strict';
   const WHO = { '81': '永野', '90': '畑村', '100': '日野', '1002': '江波' };
   const whoName = (w) => WHO[w] || (w ? String(w) : '担当なし');
+  // 流れ：設計図の作成 → レビュー → 承認 → リリース（リリース＝本番に出した）。いまは見るだけなので、段階は開発状況の「状態」から決める。
+  // 承認の記録（レビューOK・承認など）は次の段階。それまでは、作っている途中＝設計図の作成、出す前＝リリース待ち、出した＝リリース済み。
   const STAGES = [
-    { k: 'dev', t: '作っている途中', c: '#2f6fed', bg: '#e8f0ff' },
-    { k: 'ready', t: '出す前・確認待ち', c: '#b7791f', bg: '#fff3d6' },
     { k: 'idea', t: 'これから・保留', c: '#6b7280', bg: '#eceff3' },
-    { k: 'done', t: '最近本番に出した', c: '#1f8a5b', bg: '#e3f6ec' },
+    { k: 'design', t: '設計図の作成', c: '#2f6fed', bg: '#e8f0ff' },
+    { k: 'review', t: 'レビュー', c: '#7c4dcc', bg: '#efe8fb' },
+    { k: 'approve', t: '承認', c: '#b7791f', bg: '#fff3d6' },
+    { k: 'release', t: 'リリース', c: '#0f8b8d', bg: '#dff4f4' },
   ];
-  const stageOf = (s) => (s === 'dev' ? 'dev' : (s === 'ready' || s === 'check') ? 'ready' : (s === 'idea' || s === 'hold') ? 'idea' : 'done');
+  const FLOW = ['design', 'review', 'approve', 'release'];
+  const stageOf = (s) => (s === 'dev' ? 'design' : (s === 'idea' || s === 'hold') ? 'idea' : 'release');
   const st = { data: null, loading: false, error: '', view: 'board', who: '', area: '', doneAll: false, doc: -1, docs: {}, ui: null, uiLoading: false };
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -34,7 +38,8 @@
       '.dm-strip{display:flex;gap:18px;flex-wrap:wrap;background:var(--dms);border:1px solid var(--dmb);border-radius:10px;padding:7px 12px;margin-bottom:10px;font-size:.82em;color:var(--dmt2)}.dm-strip b{color:var(--dmt);font-weight:600}',
       '.dm-yw{display:flex;gap:12px;align-items:flex-start}.dm-rail{display:flex;flex-direction:column;gap:6px;width:88px;flex:none}',
       '.dm-rb{border:1px solid var(--dmb);background:var(--dms);border-radius:10px;padding:9px 6px;cursor:pointer;color:var(--dmt);text-align:center}.dm-rb span{display:block;font-size:.78em;color:var(--dmt2)}.dm-rb.on{background:var(--dmt);border-color:var(--dmt);color:var(--dms)}.dm-rb.on span{opacity:.75}',
-      '.dm-cols{flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:10px;align-items:start;overflow-x:auto;padding-bottom:8px}',
+      '.dm-steps{display:flex;gap:4px;flex-wrap:wrap}.dm-st{flex:1;min-width:70px;text-align:center;font-size:11px;padding:5px 4px;border-radius:6px;background:#eceff3;color:#6b7280}.dm-st.on{background:var(--c);color:#fff;font-weight:700}.dm-st.past{background:#fff;color:var(--c);border:1px solid var(--c)}',
+      '.dm-cols{flex:1;min-width:0;display:grid;grid-template-columns:repeat(5,minmax(170px,1fr));gap:10px;align-items:start;overflow-x:auto;padding-bottom:8px}',
       '.dm-col{background:rgba(127,127,127,.10);border-radius:12px;padding:8px;border-top:4px solid var(--c);min-height:100px}',
       '.dm-ch{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 8px;font-size:.9em}.dm-ch i{font-style:normal;background:var(--dms);border-radius:10px;padding:0 8px;font-size:.85em;color:var(--dmt2)}',
       '.dm-card{background:var(--dms);border:1px solid var(--dmb);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer}.dm-card:hover{border-color:var(--dmp)}',
@@ -75,7 +80,7 @@
   }
   function items() {
     const s = st.data && st.data.status;
-    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i.state), hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next }));
+    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i.state), rel: i.state !== 'ready', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next }));
   }
   const filtered = () => items().filter((i) => (!st.who || i.who === st.who) && (!st.area || i.area === st.area));
 
@@ -100,27 +105,37 @@
     h += '<div class="dm-yw"><div class="dm-rail"><div class="dm-lb">担当者</div>' + ['', ...whos].map((w) => '<button class="dm-rb ' + (st.who === w ? 'on' : '') + '" data-w="' + esc(w) + '" onclick="DevManage.who(this.dataset.w)">' + (w ? esc(whoName(w)) : '全員') + '<span>' + cnt(w) + '件</span></button>').join('') + '</div><div class="dm-cols">';
     const list = filtered();
     h += STAGES.map((s) => {
-      let l = list.filter((i) => i.stage === s.k);
-      if (s.k === 'done') l.sort((a, c) => (c.date || '').localeCompare(a.date || ''));
-      const cut = s.k === 'done' && !st.doneAll && l.length > 5, show = cut ? l.slice(0, 5) : l;
-      return '<div class="dm-col" style="--c:' + s.c + '"><div class="dm-ch"><b>' + s.t + '</b><i>' + l.length + '</i></div>' + (show.map((i) => card(i, s)).join('') || '<div class="dm-empty">なし</div>')
-        + (s.k === 'done' && l.length > 5 ? '<div class="dm-more" onclick="DevManage.doneAll()">' + (st.doneAll ? '閉じる' : 'ほか ' + (l.length - 5) + '件を見る') + '</div>' : '') + '</div>';
+      const l = list.filter((i) => i.stage === s.k); let show = l, more = '';
+      if (s.k === 'release') {
+        const pend = l.filter((i) => !i.rel), done = l.filter((i) => i.rel).sort((a, c) => (c.date || '').localeCompare(a.date || ''));
+        const cut = !st.doneAll && done.length > 4; show = pend.concat(cut ? done.slice(0, 4) : done);
+        if (done.length > 4) more = '<div class="dm-more" onclick="DevManage.doneAll()">' + (st.doneAll ? '閉じる' : '済みのほか ' + (done.length - 4) + '件を見る') + '</div>';
+      }
+      return '<div class="dm-col" style="--c:' + s.c + '"><div class="dm-ch"><b>' + s.t + '</b><i>' + l.length + '</i></div>' + (show.map((i) => card(i, s)).join('') || '<div class="dm-empty">なし</div>') + more + '</div>';
     }).join('');
     b.innerHTML = h + '</div></div></div>';
   }
+  const relTag = (i) => (i.stage !== 'release' ? '' : i.rel ? '<span class="dm-tag" style="background:#e3f6ec;color:#1f6b46">リリース済み</span>' : '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">リリース待ち</span>');
   function card(i, s) {
     return '<div class="dm-card" style="--c:' + s.c + ';--bg2:' + s.bg + '" onclick="DevManage.open(' + i.id + ')"><div class="t">' + esc(i.title) + '</div><div class="dm-meta">'
-      + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + (i.chk ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
+      + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + relTag(i) + (i.chk && i.stage === 'release' && i.rel ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
       + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
       + (i.next ? '<div class="dm-nx"><b>次</b>' + esc(i.next) + '</div>' : '')
       + '<button class="dm-cbtn" onclick="event.stopPropagation();DevManage.compare(' + i.id + ')">◧ ビフォー／アフター</button></div>';
+  }
+  function flowHtml(i) {
+    const idx = FLOW.indexOf(i.stage);
+    return FLOW.map((x, n) => { const t = STAGES.find((y) => y.k === x), last = x === 'release';
+      const cls = (x === i.stage && !(last && i.rel)) ? 'on' : (((idx >= 0 && n < idx) || (last && i.stage === 'release' && i.rel)) ? 'past' : '');
+      return '<div class="dm-st ' + cls + '" style="--c:' + t.c + '">' + (last && i.stage === 'release' ? (i.rel ? 'リリース済み' : 'リリース待ち') : t.t) + '</div>'; }).join('');
   }
   function openItem(id) {
     const i = items()[id]; if (!i) return; const s = STAGES.find((x) => x.k === i.stage);
     const el = document.createElement('div'); el.id = 'dm-drw';
     el.innerHTML = '<div class="dm-ov" onclick="DevManage.closeItem()"></div><div class="dm dm-dr"><button class="x" onclick="DevManage.closeItem()">×</button><h2>' + esc(i.title) + '</h2><div class="dm-meta"><span class="dm-tag" style="background:' + s.bg + ';color:' + s.c + '">' + s.t + '</span>'
-      + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + (i.chk ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
+      + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + (i.chk && i.stage === 'release' && i.rel ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
       + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>担当 ' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
+      + '<h4>流れ</h4><div class="dm-steps">' + flowHtml(i) + '</div>' + (i.stage === 'idea' ? '<div class="dm-bx" style="margin-top:6px">いまは「これから・保留」です</div>' : '')
       + (i.where ? '<h4>いまの状態</h4><div class="dm-bx">' + esc(i.where) + '</div>' : '') + (i.next ? '<h4>次にやること</h4><div class="dm-bx">' + esc(i.next) + '</div>' : '') + '</div>';
     closeItem(); document.body.appendChild(el);
   }
@@ -181,8 +196,8 @@
 
   function openCompare(id) {
     const i = id == null ? null : items()[id];
+    closePop(); // 先に閉じる（閉じると飛び先 cmp.start が空になるため、設定はあと）
     cmp.start = i ? (AREAMENU[i.area] == null ? 0 : AREAMENU[i.area]) : 0; cmp.from = i ? i.title : '';
-    closePop();
     const el = document.createElement('div'); el.id = 'dm-pop';
     el.innerHTML = '<div class="dm-ov" onclick="DevManage.closePop()"></div><div class="dm dm-pop"><div class="dm-ph"><b>◧ ビフォー／アフター' + (cmp.from ? '：' + esc(cmp.from) : '') + '</b><button class="dm-chip" onclick="DevManage.closePop()">閉じる ×</button></div><div id="dm-mode"></div><div id="dm-body"></div></div>';
     document.body.appendChild(el); modeBar(); renderCmp();
