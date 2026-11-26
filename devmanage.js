@@ -130,14 +130,14 @@
   const tags = (i) => (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '')
     + (i.mark ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">' + esc(i.mark) + '</span>' : '')
     + (i.chk ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '');
-  // 一覧のカードの表面は簡易版：題名・優先度・担当・開始日→期日・B/F。そのほかは詳細に出す（2026-11-26 永野さん）
+  // 一覧のカードの表面は簡易版：題名・優先度・担当・開始日→期日・B/A。そのほかは詳細に出す（2026-11-26 永野さん）
   // 開始日・期日は、連動した945の活動の「開始日」「終了日」（Worker の acts）。未連動・未入力は「—」
   function card(i, s) {
     const p = PRI[i.pri], a = ((st.data && st.data.acts) || {})[i.act];
     const dt = a && (a.start || a.end) ? (a.start ? md(a.start) : '—') + ' → ' + (a.end ? md(a.end) : '—') : '日付なし';
     return '<div class="dm-card" style="--c:' + s.c + ';--bg2:' + s.bg + '" onclick="DevManage.open(' + i.id + ')"><div class="t">' + esc(i.title) + '</div>'
       + '<div class="dm-c2"><span>' + (p ? '優先 <span class="dm-tag" style="background:' + p[1] + ';color:' + p[2] + '">' + p[0] + '</span>' : '<span class="dm-mute">優先 未判定</span>') + '</span><span>' + (i.who ? esc(whoName(i.who)) : '') + '</span></div>'
-      + '<div class="dm-c2"><span class="dm-mute">' + esc(dt) + '</span><button class="dm-cbtn s" title="ビフォー／アフターを比べる" onclick="event.stopPropagation();DevManage.compare(' + i.id + ')">B/F</button></div></div>';
+      + '<div class="dm-c2"><span class="dm-mute">' + esc(dt) + '</span><button class="dm-cbtn s" title="ビフォー／アフターを比べる" onclick="event.stopPropagation();DevManage.compare(' + i.id + ')">B/A</button></div></div>';
   }
   function flowHtml(i) {
     const idx = FLOW.indexOf(i.stage);
