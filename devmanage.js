@@ -82,7 +82,7 @@
   }
   function items() {
     const s = st.data && st.data.status;
-    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i.state), rel: i.state !== 'ready', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, sh: i.sheet || null }));
+    return ((s && s.items) || []).map((i, n) => ({ id: n, title: i.title, area: i.area, stage: stageOf(i.state), rel: i.state !== 'ready', hold: i.state === 'hold', chk: i.state === 'check', date: i.date, who: i.who, where: i.where, next: i.next, desc: i.desc || '', sh: i.sheet || null }));
   }
   const filtered = () => items().filter((i) => (!st.who || i.who === st.who) && (!st.area || i.area === st.area));
 
@@ -138,6 +138,7 @@
     el.innerHTML = '<div class="dm-ov" onclick="DevManage.closeItem()"></div><div class="dm dm-dr"><button class="x" onclick="DevManage.closeItem()">×</button><h2>' + esc(i.title) + '</h2><div class="dm-meta"><span class="dm-tag" style="background:' + s.bg + ';color:' + s.c + '">' + s.t + '</span>'
       + (i.hold ? '<span class="dm-tag" style="background:#fde8e8;color:#9a3b3b">保留</span>' : '') + (i.chk && i.stage === 'release' && i.rel ? '<span class="dm-tag" style="background:#fff3d6;color:#8a5200">確認待ち</span>' : '')
       + (i.area ? '<span class="dm-area">' + esc(i.area) + '</span>' : '') + (i.who ? '<span>担当 ' + esc(whoName(i.who)) + '</span>' : '') + (i.date ? '<span>' + md(i.date) + '</span>' : '') + '</div>'
+      + (i.desc ? '<h4>機能の説明</h4><div class="dm-bx">' + esc(i.desc) + '</div>' : '')
       + '<h4>流れ</h4><div class="dm-steps">' + flowHtml(i) + '</div>' + (i.stage === 'idea' ? '<div class="dm-bx" style="margin-top:6px">いまは「これから・保留」です</div>' : '')
       + (i.where ? '<h4>いまの状態</h4><div class="dm-bx">' + esc(i.where) + '</div>' : '') + (i.next ? '<h4>次にやること</h4><div class="dm-bx">' + esc(i.next) + '</div>' : '')
       + sheetHtml(i) + '</div>';
