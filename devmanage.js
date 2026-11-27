@@ -25,7 +25,7 @@
   const FLOW = STAGES.map((x) => x.k);
   const oldStage = (s) => (s === 'dev' ? 'design' : (s === 'idea' || s === 'hold') ? 'inbox' : s === 'ready' ? 'frev' : s === 'check' ? 'partial' : 'all');
   const stageOf = (i) => (FLOW.includes(i.stage) ? i.stage : oldStage(i.state));
-  const st = { data: null, loading: false, error: '', view: 'board', who: '', area: '', doneAll: false, doc: -1, docs: {}, ui: null, uiLoading: false, tasks: {} };
+  const st = { data: null, loading: false, error: '', view: 'board', who: '', area: '', doneAll: false, doc: -1, docs: {}, ui: null, uiLoading: false, tasks: {}, dview: 'pages', dp: 0 };
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const md = (d) => (d ? (+d.slice(5, 7)) + '/' + (+d.slice(8, 10)) : '');
@@ -69,7 +69,13 @@
       '.dm-cp{position:relative}.dm-cl{font-weight:700;font-size:.85em;border-left:4px solid var(--c);padding-left:8px;margin-bottom:4px}.dm-cp iframe{width:100%;height:calc(96vh - 215px);min-height:380px;border:1px solid var(--dmb);border-radius:10px;background:#fff}',
       '.dm-ovn{display:none;position:absolute;left:0;right:0;bottom:0;top:26px;background:#f1efe9;border:1px dashed #b9b4a6;border-radius:10px;align-items:center;justify-content:center;text-align:center;color:#6b7280;line-height:1.8}.dm-ovn.on{display:flex}',
       '.dm-spec{width:100%;border-collapse:separate;border-spacing:0;font-size:.85em;background:var(--dms);border:1px solid var(--dmb);border-radius:10px;overflow:hidden}.dm-spec th,.dm-spec td{padding:7px 10px;border-bottom:1px solid var(--dmb);vertical-align:top;text-align:left}.dm-spec thead th{background:rgba(127,127,127,.12);text-align:center}.dm-spec thead th.l{text-align:left}.dm-spec td.c{text-align:center}.dm-spec .gb{border-left:2px solid var(--dmb)}.dm-spec .y{color:#1f8a5b;font-weight:700}.dm-spec .n{color:#a0a6b0}.dm-spec .df{background:#fff3d6;color:#222}.dm-spec .nt{display:block;font-size:.78em;color:var(--dmt2);font-weight:400}.dm-spec tr.dim{opacity:.35}.dm-spec details summary{cursor:pointer}.dm-spec details>div{margin-top:4px;color:var(--dmt2);font-size:.9em}.dm-sph{font-weight:700;margin:16px 0 6px}.dm-spn{font-size:.82em;color:var(--dmt2);margin-bottom:6px}',
-      '@media(max-width:900px){.dm-yw{flex-direction:column}.dm-rail{flex-direction:row;width:auto;flex-wrap:wrap}.dm-rb{flex:1}.dm-cmp{grid-template-columns:1fr}.dm-mn{flex-direction:row;flex-wrap:wrap}}',
+      '.dm-dsg{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}.dm-dnav{background:var(--dms);border:1px solid var(--dmb);border-radius:12px;padding:8px;position:sticky;top:8px;max-height:calc(100vh - 24px);overflow:auto}',
+      '.dm-dnav .sy{font-weight:700;font-size:.88em;padding:6px 8px 2px}.dm-dnav .sy.emp{color:var(--dmt2);font-weight:600}.dm-dnav .tb{font-size:.76em;color:var(--dmt2);padding:4px 8px 0 14px}.dm-dnav .em{font-size:.78em;color:var(--dmt2);padding:0 8px 4px 14px}',
+      '.dm-da{display:flex;justify-content:space-between;gap:6px;width:100%;text-align:left;border:0;background:none;color:var(--dmt);font:inherit;font-size:.86em;padding:4px 8px 4px 14px;border-radius:8px;cursor:pointer}.dm-da:hover{background:rgba(127,127,127,.12)}.dm-da.on{background:rgba(47,111,237,.14);font-weight:700}.dm-da small{color:var(--dmt2);font-size:.8em;white-space:nowrap}.dm-dd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--dmb)}.dm-dd.w{background:#3aa655}',
+      '.dm-dpg{background:var(--dms);border:1px solid var(--dmb);border-radius:12px;padding:14px 20px 24px;min-width:0}.dm-dpg h2{font-size:1.25em;margin:2px 0 4px}.dm-crm{font-size:.8em;color:var(--dmt2)}.dm-dsec{border-top:1px solid var(--dmb);margin-top:16px;padding-top:8px}.dm-dsec h3{margin:0 0 6px;font-size:.98em}.dm-dsec h3 span{display:inline-block;width:21px;height:21px;line-height:21px;text-align:center;border-radius:50%;background:var(--dmt);color:var(--dms);font-size:.8em;margin-right:8px}',
+      '.dm-ck{display:inline-block;border-radius:10px;padding:0 8px;font-size:.78em;font-weight:700;background:#fff3d6;color:#8a5200;white-space:nowrap}.dm-dfl{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0}.dm-dnd{border:1px solid var(--dmb);border-radius:10px;padding:5px 10px;font-size:.85em;background:rgba(127,127,127,.1)}.dm-dnd.m{background:rgba(47,111,237,.14)}',
+      '.dm-dba{display:grid;grid-template-columns:1fr 1fr;gap:10px}.dm-dsh{border:1px dashed var(--dmb);border-radius:10px;min-height:96px;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;font-size:.82em;color:var(--dmt2)}',
+      '@media(max-width:900px){.dm-dsg{grid-template-columns:1fr}.dm-dnav{position:static;max-height:none}.dm-dba{grid-template-columns:1fr}.dm-yw{flex-direction:column}.dm-rail{flex-direction:row;width:auto;flex-wrap:wrap}.dm-rb{flex:1}.dm-cmp{grid-template-columns:1fr}.dm-mn{flex-direction:row;flex-wrap:wrap}}',
     ].join('\n');
     document.head.appendChild(e);
   }
@@ -241,7 +247,50 @@
     }
     cu(); return h;
   }
+  // ----- 活動ごとの設計書（構造は docs/設計書の雛形.md。データは開発状況の design）-----
+  const designOf = () => { const s = st.data && st.data.status; return (s && s.design) || null; };
+  const cardIdOf = (n) => { const x = items().find((i) => i.act === String(n)); return x ? x.id : -1; };
+  const SEC = ['入口', '必要要件', 'データの流れ', '画面（ビフォー／アフター）'];
+  function pageBody(p) {
+    if (!p) return SEC.map((t, k) => '<div class="dm-dsec"><h3><span>' + (k + 1) + '</span>' + t + '</h3><div class="dm-mute">（まだ書いていない）</div></div>').join('');
+    const ck = (f) => (f ? ' <span class="dm-ck">要確認</span>' : '');
+    const e = p.entry || [], r = p.req || {}, dt = p.data || {}, sc = p.screen || {};
+    let h = '<div class="dm-dsec"><h3><span>1</span>入口</h3>' + (e.length ? '<table class="dm-tb"><tr><th>入口</th><th>どこに出るか</th><th>使える人</th></tr>' + e.map((x) => '<tr><td>' + esc(x.in) + '</td><td>' + esc(x.where) + '</td><td>' + esc(x.who) + ck(x.check) + '</td></tr>').join('') + '</table>' : '<div class="dm-mute">なし</div>') + '</div>';
+    h += '<div class="dm-dsec"><h3><span>2</span>必要要件</h3><div class="dm-pb">誰の何の問題を解決するか</div><ul>' + ((r.problem || []).map((x) => '<li><b>' + esc(x.who) + '</b>：' + esc(x.text) + ck(x.check) + '</li>').join('') || '<li class="dm-mute">（まだ書いていない）</li>') + '</ul><div class="dm-pb">できること</div><ul>' + ((r.can || []).map((x) => '<li>' + esc(x) + '</li>').join('') || '<li class="dm-mute">（まだ書いていない）</li>') + '</ul></div>';
+    h += '<div class="dm-dsec"><h3><span>3</span>データの流れ</h3><div class="dm-pb">マスタとの連動：' + esc(dt.master || '未記入') + '</div>'
+      + ((dt.flow || []).length ? '<div class="dm-dfl">' + dt.flow.map((x, k, a) => '<span class="dm-dnd' + (k === a.length - 1 ? ' m' : '') + '">' + esc(x) + '</span>').join('<span class="dm-mute">→</span>') + '</div>' : '')
+      + ((dt.rows || []).length ? '<table class="dm-tb"><tr><th>データ</th><th>kintone</th><th>読む／書く</th><th>何のため</th></tr>' + dt.rows.map((x) => '<tr><td>' + esc(x.d) + '</td><td>' + esc(x.app) + ck(x.check) + '</td><td>' + esc(x.rw) + '</td><td>' + esc(x.why) + '</td></tr>').join('') + '</table>' : '')
+      + ((dt.notes || []).map((x) => '<p class="dm-mute">' + esc(x) + '</p>').join('')) + '</div>';
+    h += '<div class="dm-dsec"><h3><span>4</span>画面（ビフォー／アフター）</h3><div class="dm-dba"><div><b>ビフォー（本番の今）</b><div class="dm-dsh">' + esc(sc.before || 'なし') + '</div></div><div><b>アフター（目指す形）</b><div class="dm-dsh">' + esc(sc.after || 'なし') + '</div></div></div></div>';
+    return h;
+  }
+  function designView() {
+    const D = designOf();
+    if (!D || !(D.tree || []).length) return '<div class="dm-empty">活動ごとの設計書がまだ置かれていません（scripts/devstatus-put.mjs）</div>';
+    const pages = D.pages || {};
+    const flat = D.tree.flatMap((s) => (s.tabs || []).flatMap((t) => (t.acts || []).map((a) => ({ s: s.sys, t: t.tab, a }))));
+    let cur = flat.find((x) => x.a.n === st.dp);
+    if (!cur) { cur = flat.find((x) => pages[x.a.n]) || flat[0]; st.dp = cur.a.n; }
+    let nav = '';
+    D.tree.forEach((s) => {
+      const has = (s.tabs || []).some((t) => (t.acts || []).length);
+      nav += '<div class="sy' + (has ? '' : ' emp') + '">' + esc(s.sys) + '</div>';
+      if (!has) { nav += '<div class="em">これから活動を決めて並べる</div>'; return; }
+      s.tabs.forEach((t) => {
+        if (t.tab) nav += '<div class="tb">' + esc(t.tab) + '</div>';
+        (t.acts || []).forEach((a) => { nav += '<button class="dm-da' + (st.dp === a.n ? ' on' : '') + '" onclick="DevManage.dp(' + a.n + ')"><span><i class="dm-dd' + (pages[a.n] ? ' w' : '') + '"></i>' + esc(a.name) + '</span><small>#' + a.n + '</small></button>'; });
+      });
+    });
+    const p = pages[cur.a.n], cid = cardIdOf(cur.a.n);
+    const pg = '<div class="dm-dpg"><div class="dm-crm">' + esc(cur.s) + (cur.t ? ' ／ ' + esc(cur.t) : '') + ' ／ ' + esc(cur.a.name) + '</div><h2>' + esc(cur.a.name) + '</h2><div class="dm-chips"><span class="dm-chip">945の活動 #' + cur.a.n + '</span><span class="dm-chip">' + esc(p ? (p.state || '記入済み') : '未記入') + '</span>' + (cid >= 0 ? '<button class="dm-chip" onclick="DevManage.open(' + cid + ')">開発管理のカードを見る →</button>' : '') + '</div>' + pageBody(p) + '</div>';
+    return '<div class="dm-dsg"><div class="dm-dnav">' + nav + '<p class="dm-mute" style="font-size:.76em;margin:8px">● 中身あり　○ 枠だけ</p></div>' + pg + '</div>';
+  }
   function docsView() {
+    const sw = '<div class="dm-chips"><button class="dm-chip ' + (st.dview === 'pages' ? 'on' : '') + '" onclick="DevManage.dview(\'pages\')">活動ごとの設計書</button><button class="dm-chip ' + (st.dview === 'files' ? 'on' : '') + '" onclick="DevManage.dview(\'files\')">資料（文書）</button></div>';
+    if (st.dview === 'pages') return sw + designView();
+    return (st.doc < 0 ? sw : '') + filesView();
+  }
+  function filesView() {
     const docs = (st.data && st.data.docs) || [];
     if (st.doc >= 0) {
       const d = docs[st.doc], body = st.docs[st.doc];
@@ -388,6 +437,8 @@
     doneAll: () => { st.doneAll = !st.doneAll; draw(); },
     open: openItem, closeItem,
     doc: openDoc,
+    dview: (v) => { st.dview = v; st.doc = -1; draw(); },
+    dp: (n) => { st.dp = n; draw(); scrollTo(0, 0); },
     compare: openCompare, closePop,
     mode: (m) => { cmp.mode = m; modeBar(); renderCmp(); },
     go: go2, set: setOpt, reset: resetBoth, sync: () => { cmp.sync = !cmp.sync; bar(); },
