@@ -3552,13 +3552,14 @@ function mentionCandidates() {
  * まとめて呼ぶ（2026-11-27）：@部署名＝その部署の全員、@主任以上＝役職が空でも「一般」でもない人。
  * 呼べるのは、このチャンネルで知らせが届く人がいるまとまりだけ（n＝自分を除いた人数）。広げるのは Worker（送るとき）
  */
+const SHOW_LEADER_GROUP = false;
 const isLeader = (u) => !!u && !u.isPartner && !!String(u.role || '').trim() && String(u.role).trim() !== '一般';
 function mentionGroups(people) {
   const by = new Map();
   for (const id of people) { const d = String((S.users[id] || {}).dept || '').trim(); if (d) by.set(d, (by.get(d) || 0) + 1); }
   const out = [...by].sort((a, b) => a[0].localeCompare(b[0], 'ja')).map(([d, n]) => ({ id: 'g:d:' + d, n }));
-  const lead = people.filter((id) => isLeader(S.users[id])).length;
-  if (lead) out.push({ id: 'g:r:主任以上', n: lead });
+  // @主任以上（g:r:主任以上）は 11/27 にいったん出さないことにした（ユーザー判断）。Worker は受け付けるので、戻すときはここを戻すだけ
+  if (SHOW_LEADER_GROUP) { const lead = people.filter((id) => isLeader(S.users[id])).length; if (lead) out.push({ id: 'g:r:主任以上', n: lead }); }
   S.groupN = Object.fromEntries(out.map((g) => [g.id, g.n]));
   return out;
 }
