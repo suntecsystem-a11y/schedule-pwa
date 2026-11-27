@@ -1859,4 +1859,23 @@ document.querySelectorAll('.btns').forEach(function(group){group.addEventListene
   }
 })();
 </script>
+<script>
+// 小窓を、HALO の画面で今見えている範囲の真ん中に出す（2026-11-27。make-zaiseki-map.py 13.）
+(function(){
+  var orig=HTMLDialogElement.prototype.showModal;
+  function place(d){
+    var fe=null,pw=null;try{fe=window.frameElement;pw=window.parent;}catch(e){}
+    if(!fe||!pw||pw===window)return;
+    var r=fe.getBoundingClientRect(),vh=pw.innerHeight||0;if(!vh)return;
+    // マップが画面の下のほうに少ししか見えていないときは、小窓が入るだけ HALO の画面を上に送る
+    d.style.maxHeight='';
+    var want=Math.min(d.scrollHeight+24,vh),shown=Math.min(r.bottom,vh)-Math.max(r.top,0);
+    if(shown<want&&r.top>0){try{pw.scrollBy(0,Math.min(r.top,want-shown));}catch(e){}r=fe.getBoundingClientRect();}
+    var top=Math.max(0,-r.top),bottom=Math.min(r.height,vh-r.top),visH=Math.max(160,bottom-top);
+    d.style.maxHeight=(visH-24)+'px';d.style.margin='0 auto';d.style.bottom='auto';
+    d.style.top=Math.round(top+Math.max(12,(visH-d.offsetHeight)/2))+'px';
+  }
+  HTMLDialogElement.prototype.showModal=function(){orig.apply(this,arguments);place(this);};
+})();
+</script>
 </body></html>
