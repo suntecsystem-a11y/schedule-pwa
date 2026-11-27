@@ -2399,7 +2399,7 @@ ja:{
 'place.busy':'今は予定の「{status}」が表示されています',
 'place.title':'今いる場所を選ぶ','place.sub':'今日だけ有効です。翌日は「いつもの場所」（決めていなければ未設定）に戻ります',
 'place.grp.other':'拠点・そのほか',
-'place.rule.1':'会議の予定・出張・在宅・休暇・予定に入れた外出は、その時間だけ自動で表示されます。',
+'place.rule.1':'会議の予定・出張・在宅・休暇・予定に入れた外出は、その時間だけ自動で表示されます。会議を途中で抜けたときは、ここで場所を選び直すと、その会議の終わりまで選んだ場所になります。',
 'place.rule.2':'「外出中」は、予定に入れない短い外出のときだけ使ってください。',
 'place.rule.3':'10分以上その場所にいるときは、場所を変更してください。',
 'place.sethome':'この場所を「いつもの場所」にする（毎朝ここから始まる）',
@@ -2805,7 +2805,7 @@ vi:{
 'place.busy':'Hiện đang hiển thị lịch "{status}"',
 'place.title':'Chọn vị trí hiện tại','place.sub':'Chỉ có hiệu lực trong hôm nay. Ngày mai sẽ trở về "vị trí thường ngày" (nếu chưa đặt thì để trống)',
 'place.grp.other':'Cơ sở khác・Khác',
-'place.rule.1':'Lịch họp, công tác, làm việc tại nhà, nghỉ phép và ra ngoài đã đăng ký lịch sẽ tự động hiển thị trong thời gian đó.',
+'place.rule.1':'Lịch họp, công tác, làm việc tại nhà, nghỉ phép và ra ngoài đã đăng ký lịch sẽ tự động hiển thị trong thời gian đó. Nếu rời cuộc họp giữa chừng, hãy chọn lại địa điểm tại đây; địa điểm đã chọn sẽ được hiển thị đến khi cuộc họp kết thúc.',
 'place.rule.2':'Chỉ dùng "Đang ra ngoài" cho những lần ra ngoài ngắn không đăng ký lịch.',
 'place.rule.3':'Nếu ở một nơi từ 10 phút trở lên, hãy đổi vị trí.',
 'place.sethome':'Đặt nơi này làm "vị trí thường ngày" (mỗi sáng bắt đầu từ đây)',
@@ -3198,7 +3198,7 @@ ne:{
 'place.busy':'अहिले तालिकाको "{status}" देखाइएको छ',
 'place.title':'हालको स्थान छान्नुहोस्','place.sub':'आजको लागि मात्र मान्य। भोलि "सामान्य स्थान" मा फर्किन्छ (नतोकेको भए खाली)',
 'place.grp.other':'अन्य कार्यस्थल・अन्य',
-'place.rule.1':'बैठक, व्यापारिक यात्रा, घरबाट काम, बिदा र तालिकामा राखिएको बाहिर जाने कुरा त्यही समयमा स्वतः देखाइन्छ।',
+'place.rule.1':'बैठक, व्यापारिक यात्रा, घरबाट काम, बिदा र तालिकामा राखिएको बाहिर जाने कुरा त्यही समयमा स्वतः देखाइन्छ। बैठकबाट बीचमै निस्कनुभयो भने यहाँ ठाउँ फेरि छान्नुहोस्; बैठक नसकिँदासम्म छानेको ठाउँ देखाइन्छ।',
 'place.rule.2':'"बाहिर गएको" तालिकामा नराखिने छोटो बाहिर जाँदा मात्र प्रयोग गर्नुहोस्।',
 'place.rule.3':'कुनै ठाउँमा १० मिनेट वा बढी बस्दा स्थान बदल्नुहोस्।',
 'place.sethome':'यो स्थानलाई "सामान्य स्थान" बनाउनुहोस् (हरेक बिहान यहीँबाट सुरु)',
@@ -7974,6 +7974,13 @@ const PLACES = [
 ];
 const PLACE_GRP_NAME = {honsha:'本社', shinto:'新棟'};
 let placeToday = {}, placeHome = {}, _placesAt = 0, _placeSel = '';
+// placeAt … { 社員番号: 今日、手で場所を選んだ時刻（ミリ秒） }（Worker の placedo.js の at。2026-11-27）。会議を途中で抜けたかの判断に使う
+let placeAt = {};
+// 手で場所を選んだ時刻（その日の分。日本時間）。無ければ -1
+function placeAtMins(empId){
+  const ms=Number(placeAt[empId]); if(!ms) return -1;
+  const d=new Date(ms+9*60*60*1000); return d.getUTCHours()*60+d.getUTCMinutes();
+}
 function placeLabel(id){
   if(id==='out') return t('place.out');
   const p=PLACES.find(x=>x.id===id); if(!p) return '';
@@ -7990,7 +7997,7 @@ async function loadPlaces(force){
   if(!force && Date.now()-_placesAt < 30000) return;
   try {
     const d=await api('getPlaces', {}, '', { quiet:true });
-    if(d){ placeToday=d.today||{}; placeHome=d.home||{}; _placesAt=Date.now(); }
+    if(d){ placeToday=d.today||{}; placeHome=d.home||{}; placeAt=d.at||{}; _placesAt=Date.now(); }
   } catch(e) { /* 表示は前の値のまま */ }
 }
 
@@ -8059,7 +8066,16 @@ function teamStatusNow(u, ds, nowMins){
   const baseStatus=(yasumiUsers.has(u.id)&&!hasVacEv)?'休み':(earlyNow&&!hasVacEv)?'早退':away?statusBase:inMeeting?'会議中':(statusBase||'在席');
   const ev=baseStatus==='会議中' ? activeEvs.find(e=>e.type==='会議室') : activeEvs.find(e=>e.type===baseStatus);
   let status=baseStatus, subInfo=ev?.title||'', placeId='', placeText='';
-  if(PLACE_STATUSES.includes(baseStatus)){
+  // 会議（会議室・打ち合わせ・来社）が始まったあとに手で場所を選び直した人は、途中で抜けたとして「在席」＋選んだ場所（2026-11-27）。
+  // その会議が終わるまで。次の会議が始まれば、また会議の部屋に出る。HALO Lite（lite.js）も同じ
+  const evStart=ev&&ev.start&&(ev.startDate||ev.date)===ds ? timeToMins(ev.start) : 0;
+  const left=isTodayDs&&!!ev&&ROOM_TYPES.includes(ev.type)&&PLACE_STATUSES.includes(baseStatus)&&placeAtMins(u.id)>=evStart;
+  if(left){
+    const mine=placeOf(u.id);
+    status='在席'; subInfo='';
+    if(mine==='out'){ status='外出'; subInfo=t('place.out.self'); placeId='out'; }
+    else if(mine){ placeId=mine; placeText=placeLabel(mine); }
+  } else if(PLACE_STATUSES.includes(baseStatus)){
     if(ev && usesRoom(ev)){
       // 予定が優先：押さえた会議室を場所にする
       placeId=placeIdOfRoom(ev.room);
@@ -8083,7 +8099,8 @@ function teamStatusNow(u, ds, nowMins){
   const eTime=isTodayDs?earlyTimeOf(u.id):'';
   if(eTime && baseStatus==='早退') subInfo=t('team.early.at',{t:eTime});
   else if(eTime && baseStatus!=='休み') subInfo=subInfo ? subInfo+' / '+t('team.early.plan',{t:eTime}) : t('team.early.plan',{t:eTime});
-  return {status, baseStatus, subInfo, placeId, placeText, placeUnset: status==='在席'&&!placeText, myEvs};
+  // 会議を抜けた人は「予定で決まった状態」も在席として返す（「今は予定の会議中が表示されています」などを出さない）
+  return {status, baseStatus: left?'在席':baseStatus, subInfo, placeId, placeText, placeUnset: status==='在席'&&!placeText, myEvs};
 }
 // 場所の絞り込み（本社・新棟は建物ごと、それ以外は場所ごと）
 function placeMatches(placeId, filter){
@@ -8195,7 +8212,7 @@ async function savePlace(id, setHome, target){
   const before=placeOf(currentUser.id);
   try {
     const res=await api('setPlace', other ? {place:id,setHome:false,target:String(other.id)} : {place:id,setHome:!!setHome});
-    placeToday=res.today||{}; placeHome=res.home||{}; _placesAt=Date.now();
+    placeToday=res.today||{}; placeHome=res.home||{}; placeAt=res.at||{}; _placesAt=Date.now();
     if(!other && id==='out' && before && before!=='out'){
       try { localStorage.setItem('halo_place_prev',JSON.stringify({date:fmtDate(new Date()),id:before})); } catch(e) {}
     }
