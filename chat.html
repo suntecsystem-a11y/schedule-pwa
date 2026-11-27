@@ -1074,7 +1074,7 @@ const I18N = {
     'アイコンを外しますか？': 'Gỡ ảnh đại diện?', '画像を選んでください': 'Vui lòng chọn một hình ảnh',
     '住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください': 'Không viết địa chỉ, số điện thoại, tài khoản ngân hàng, mã số cá nhân, số thẻ, tên bệnh hay bản vẽ của khách hàng',
     'ファイルを付ける（1つ250MBまで）': 'Đính kèm tệp (tối đa 250MB mỗi tệp)', '返信を入力': 'Nhập trả lời', 'メッセージを入力（@ か ＠ で名前）': 'Nhập tin nhắn (@ để gọi tên)',
-    '送信': 'Gửi', '直しています': 'Đang sửa', '保存': 'Lưu', 'このチャンネルの全員に知らせる': 'Thông báo cho mọi người trong kênh',
+    '送信': 'Gửi', '直しています': 'Đang sửa', '保存': 'Lưu', 'このチャンネルの全員に知らせる': 'Thông báo cho mọi người trong kênh', '主任以上': 'Từ chủ nhiệm trở lên', '部署の全員・{n}人に知らせる': 'Cả bộ phận · thông báo cho {n} người', '主任以上の全員・{n}人に知らせる': 'Từ chủ nhiệm trở lên · thông báo cho {n} người',
     '添付は1回に10個までです': 'Tối đa 10 tệp đính kèm mỗi lần', 'ファイルを送れませんでした': 'Không gửi được tệp',
     'マイナンバーらしい12けたの数字': 'Dãy 12 chữ số giống mã số cá nhân', 'カード番号らしい数字': 'Dãy số giống số thẻ', '口座番号らしい数字': 'Dãy số giống số tài khoản',
     '電話番号らしい数字': 'Dãy số giống số điện thoại', '住所らしい文': 'Câu giống địa chỉ', '・協力会社': '・Công ty đối tác', '見つかりません': 'Không tìm thấy',
@@ -1454,7 +1454,7 @@ const I18N = {
     'アイコンを外しますか？': 'आइकन हटाउने हो?', '画像を選んでください': 'तस्बिर छान्नुहोस्',
     '住所・電話番号・口座・マイナンバー・カード番号・病名・お客さんの図面は書かないでください': 'ठेगाना, फोन नम्बर, बैंक खाता, व्यक्तिगत नम्बर, कार्ड नम्बर, रोगको नाम वा ग्राहकको ड्रइङ नलेख्नुहोस्',
     'ファイルを付ける（1つ250MBまで）': 'फाइल संलग्न गर्नुहोस् (प्रति फाइल २५०MB सम्म)', '返信を入力': 'जवाफ लेख्नुहोस्', 'メッセージを入力（@ か ＠ で名前）': 'सन्देश लेख्नुहोस् (@ ले नाम)',
-    '送信': 'पठाउनुहोस्', '直しています': 'सच्याउँदै', '保存': 'सुरक्षित गर्नुहोस्', 'このチャンネルの全員に知らせる': 'यो च्यानलका सबैलाई सूचना दिनुहोस्',
+    '送信': 'पठाउनुहोस्', '直しています': 'सच्याउँदै', '保存': 'सुरक्षित गर्नुहोस्', 'このチャンネルの全員に知らせる': 'यो च्यानलका सबैलाई सूचना दिनुहोस्', '主任以上': 'सुपरभाइजर र माथि', '部署の全員・{n}人に知らせる': 'पूरै विभाग · {n} जनालाई सूचना', '主任以上の全員・{n}人に知らせる': 'सुपरभाइजर र माथि सबै · {n} जनालाई सूचना',
     '添付は1回に10個までです': 'एक पटकमा १० वटा संलग्नसम्म', 'ファイルを送れませんでした': 'फाइल पठाउन सकिएन',
     'マイナンバーらしい12けたの数字': 'व्यक्तिगत नम्बर जस्तो १२ अङ्कको संख्या', 'カード番号らしい数字': 'कार्ड नम्बर जस्तो संख्या', '口座番号らしい数字': 'खाता नम्बर जस्तो संख्या',
     '電話番号らしい数字': 'फोन नम्बर जस्तो संख्या', '住所らしい文': 'ठेगाना जस्तो वाक्य', '・協力会社': '・साझेदार कम्पनी', '見つかりません': 'भेटिएन',
@@ -1579,7 +1579,9 @@ function toast(msg) { alert(msg); }
 const HALO = 'HALO';
 const isHaloCh = (c) => !!c && (c.kind === 'inbox' || c.kind === 'system' || c.kind === 'feed'); // feed＝決まった人だけが読む HALO のチャンネル（お弁当など）
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const nameOf = (id) => { if (id === 'all') return '全員'; if (id === HALO) return 'HALO'; const u = S.users[id]; return u ? (u.dispName || u.name) : id; };
+const isGroupId = (id) => String(id).startsWith('g:'); // まとめて呼ぶメンション（g:d:部署名・g:r:主任以上。2026-11-27）
+const groupLabel = (id) => String(id).slice(4);
+const nameOf = (id) => { if (id === 'all') return '全員'; if (id === HALO) return 'HALO'; if (isGroupId(id)) return groupLabel(id); const u = S.users[id]; return u ? (u.dispName || u.name) : id; };
 const fullNameOf = (id) => { const u = S.users[id]; return u ? u.name : id; };
 const pad = (n) => String(n).padStart(2, '0');
 const hm = (t) => { const d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
@@ -3543,7 +3545,22 @@ function setComposer(where, o) {
 function mentionCandidates() {
   const ch = S.channels.find((c) => c.id === S.cur);
   const ids = ch && ch.members && ch.kind !== 'public' ? ch.members : Object.keys(S.users);
-  return ['all', ...ids.filter((id) => id !== S.me && canChat(id))];
+  const people = ids.filter((id) => id !== S.me && canChat(id));
+  return ['all', ...mentionGroups(people).map((g) => g.id), ...people];
+}
+/**
+ * まとめて呼ぶ（2026-11-27）：@部署名＝その部署の全員、@主任以上＝役職が空でも「一般」でもない人。
+ * 呼べるのは、このチャンネルで知らせが届く人がいるまとまりだけ（n＝自分を除いた人数）。広げるのは Worker（送るとき）
+ */
+const isLeader = (u) => !!u && !u.isPartner && !!String(u.role || '').trim() && String(u.role).trim() !== '一般';
+function mentionGroups(people) {
+  const by = new Map();
+  for (const id of people) { const d = String((S.users[id] || {}).dept || '').trim(); if (d) by.set(d, (by.get(d) || 0) + 1); }
+  const out = [...by].sort((a, b) => a[0].localeCompare(b[0], 'ja')).map(([d, n]) => ({ id: 'g:d:' + d, n }));
+  const lead = people.filter((id) => isLeader(S.users[id])).length;
+  if (lead) out.push({ id: 'g:r:主任以上', n: lead });
+  S.groupN = Object.fromEntries(out.map((g) => [g.id, g.n]));
+  return out;
 }
 function mentionSearch(where) {
   const c = C[where];
@@ -3554,11 +3571,12 @@ function mentionSearch(where) {
   const q = m[2].toLowerCase();
   const list = mentionCandidates().filter((id) => {
     if (id === 'all') return '全員'.includes(q) || 'all'.includes(q);
+    if (isGroupId(id)) return groupLabel(id).toLowerCase().includes(q) || tr(groupLabel(id)).toLowerCase().includes(q);
     const u = S.users[id] || {};
     return [u.name, u.dispName, u.dept, id].some((s) => s && String(s).toLowerCase().includes(q));
   }).slice(0, 30);
   if (!list.length) { c.box.classList.add('hidden'); return; }
-  c.box.innerHTML = list.map((id, k) => `<div data-id="${esc(id)}" class="${k === 0 ? 'sel' : ''}">${esc(id === 'all' ? tr('全員') : fullNameOf(id))}<small>${esc(id === 'all' ? tr('このチャンネルの全員に知らせる') : [S.users[id]?.dept || '', presText(id)].filter(Boolean).join('・'))}</small></div>`).join('');
+  c.box.innerHTML = list.map((id, k) => `<div data-id="${esc(id)}" class="${k === 0 ? 'sel' : ''}">${esc(id === 'all' ? tr('全員') : isGroupId(id) ? tr(groupLabel(id)) : fullNameOf(id))}<small>${esc(id === 'all' ? tr('このチャンネルの全員に知らせる') : isGroupId(id) ? tf(id.startsWith('g:r:') ? '主任以上の全員・{n}人に知らせる' : '部署の全員・{n}人に知らせる', { n: (S.groupN || {})[id] || 0 }) : [S.users[id]?.dept || '', presText(id)].filter(Boolean).join('・'))}</small></div>`).join('');
   c.box.classList.remove('hidden');
 }
 function pickMention(where, id) {
@@ -4157,7 +4175,7 @@ function updateAwayHint(where) {
   const c = C[where];
   if (!c || !c.awayEl) return;
   const ch = S.channels.find((x) => x.id === S.cur);
-  const ids = new Set([...c.state.mentions].filter(([id, label]) => id !== 'all' && c.input.value.includes(label)).map(([id]) => id));
+  const ids = new Set([...c.state.mentions].filter(([id, label]) => id !== 'all' && !isGroupId(id) && c.input.value.includes(label)).map(([id]) => id));
   if (ch && ch.kind === 'dm') (ch.members || []).filter((x) => x !== S.me).forEach((x) => ids.add(x));
   const lines = [...ids].filter((id) => { const p = presOf(id); return p && AWAY_HINT.includes(p.s); })
     .map((id) => tf('{name}さんは {status}', { name: nameOf(id), status: presText(id) }));
@@ -4273,7 +4291,7 @@ $('taskYes').addEventListener('click', async () => {
 function makeEvent(m) {
   if (!EMBED) return;
   const ch = S.channels.find((c) => c.id === S.cur);
-  const ids = new Set([S.me, m.empId, ...(m.mentions || []).filter((x) => x !== 'all')]);
+  const ids = new Set([S.me, m.empId, ...(m.mentions || []).filter((x) => x !== 'all' && !isGroupId(x))]);
   if (ch && (ch.kind === 'dm' || ch.kind === 'group')) (ch.members || []).forEach((x) => ids.add(x));
   const people = [...ids].filter((id) => S.users[id]);
   const text = msgText(m);
